@@ -33,7 +33,7 @@ refrigeração, elétrica e civil.
 - usuarios (concluído)
 - clientes
 - ordens (coração do sistema)
-- financeiro
+- financeiro (concluído)
 - crm (kanban estilo Trello) (concluído)
 - estoque
 - relatorios

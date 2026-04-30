@@ -6,6 +6,11 @@ import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";
+import ContasBancariasPage from "./pages/Financeiro/ContasBancarias";
+import FinanceiroDashboard from "./pages/Financeiro/Dashboard";
+import LancamentosPage from "./pages/Financeiro/Lancamentos";
+import NovoLancamentoPage from "./pages/Financeiro/NovoLancamento";
+import RelatoriosFinanceirosPage from "./pages/Financeiro/Relatorios";
 import LoginPage from "./pages/LoginPage";
 import OrdensPage from "./pages/OrdensPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -22,6 +27,12 @@ export default function App() {
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/ordens" element={<OrdensPage />} />
           <Route path="/crm" element={<CRMPage />} />
+          <Route path="/financeiro" element={<FinanceiroDashboard />} />
+          <Route path="/financeiro/lancamentos" element={<LancamentosPage />} />
+          <Route path="/financeiro/lancamentos/novo" element={<NovoLancamentoPage />} />
+          <Route path="/financeiro/lancamentos/:id" element={<NovoLancamentoPage />} />
+          <Route path="/financeiro/contas" element={<ContasBancariasPage />} />
+          <Route path="/financeiro/relatorios" element={<RelatoriosFinanceirosPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
         </Route>
       </Route>
