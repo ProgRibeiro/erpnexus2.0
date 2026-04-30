@@ -34,6 +34,7 @@ refrigeração, elétrica e civil.
 - Fase 6: complementos, portal, notificações
 - Fase 7: PWA mobile (manifest, service worker, offline, técnico campo)
 - Fase 8: tema visual e UI (Ant Design 5, componentes, layouts, refactoring)
+- Fase 9: geração de PDF (WeasyPrint, templates, Celery, frontend buttons)
 
 ## Módulos do projeto
 
