@@ -10,6 +10,8 @@ const menuItems = [
   { key: "/", label: <Link to="/">Dashboard</Link> },
   { key: "/clientes", label: <Link to="/clientes">Clientes</Link> },
   { key: "/ordens", label: <Link to="/ordens">Ordens de Servico</Link> },
+  { key: "/agenda", label: <Link to="/agenda">Agenda</Link> },
+  { key: "/agenda/hoje", label: <Link to="/agenda/hoje">Minhas OS hoje</Link> },
   { key: "/crm", label: <Link to="/crm">CRM</Link> },
   { key: "/financeiro", label: <Link to="/financeiro">Financeiro</Link> },
   { key: "/financeiro/lancamentos", label: <Link to="/financeiro/lancamentos">Lancamentos</Link> },
@@ -17,6 +19,7 @@ const menuItems = [
   { key: "/financeiro/relatorios", label: <Link to="/financeiro/relatorios">Relatorios</Link> },
   { key: "/estoque", label: <Link to="/estoque">Estoque</Link> },
   { key: "/estoque/alertas", label: <Link to="/estoque/alertas">Alertas estoque</Link> },
+  { key: "/configuracoes", label: <Link to="/configuracoes">Configuracoes</Link> },
   { key: "/perfil", label: <Link to="/perfil">Meu perfil</Link> },
 ];
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Table, Tag, Typography } from "antd";
+import { Button, Card, Space, Table, Tag, Typography, message } from "antd";
 
 import ordemService from "../services/ordemService";
 
@@ -29,6 +29,17 @@ export default function OrdensPage() {
     carregar();
   }, []);
 
+  const relatorioUrl = (record) =>
+    `${window.location.origin}/relatorio/${record.token_relatorio}`;
+
+  const copiarLink = async (record) => {
+    await navigator.clipboard.writeText(relatorioUrl(record));
+    message.success("Link copiado");
+  };
+
+  const whatsappLink = (record) =>
+    `https://wa.me/?text=${encodeURIComponent(`Relatorio da OS ${record.numero}: ${relatorioUrl(record)}`)}`;
+
   return (
     <Card>
       <Typography.Title level={3}>Ordens de Servico</Typography.Title>
@@ -37,14 +48,23 @@ export default function OrdensPage() {
         loading={loading}
         dataSource={ordens}
         columns={[
-          { title: "Titulo", dataIndex: "titulo" },
+          { title: "Numero", dataIndex: "numero" },
           { title: "Cliente", dataIndex: "cliente_nome" },
           {
             title: "Status",
             dataIndex: "status",
             render: (status) => <Tag color={colorByStatus[status]}>{status}</Tag>,
           },
-          { title: "Valor", dataIndex: "valor_total" },
+          { title: "Valor", dataIndex: "valor_total_orcado" },
+          {
+            title: "Relatorio",
+            render: (_, record) => (
+              <Space>
+                <Button size="small" onClick={() => copiarLink(record)}>Copiar link</Button>
+                <Button size="small" href={whatsappLink(record)} target="_blank">WhatsApp</Button>
+              </Space>
+            ),
+          },
         ]}
       />
     </Card>

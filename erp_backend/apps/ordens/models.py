@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Max, Sum
@@ -61,6 +63,7 @@ class OrdemServico(models.Model):
         DINHEIRO = "dinheiro", "Dinheiro"
 
     numero = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    token_relatorio = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.ABERTA)
     tipo_servico = models.CharField(
         max_length=30,

@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     "apps.crm",
     "apps.estoque",
     "apps.relatorios",
+    "apps.notificacoes",
+    "apps.portal",
+    "apps.configuracoes",
 ]
 
 MIDDLEWARE = [

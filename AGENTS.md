@@ -37,6 +37,7 @@ refrigeração, elétrica e civil.
 - crm (kanban estilo Trello) (concluído)
 - estoque (concluído)
 - relatorios
+- Fase 6: complementos, portal e notificações (concluído)
 
 ## Padrão de rotas
 

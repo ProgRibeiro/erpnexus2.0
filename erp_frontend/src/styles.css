@@ -111,3 +111,14 @@ body {
 .crm-kanban-card:active {
   cursor: grabbing;
 }
+
+.public-report {
+  min-height: 100vh;
+  padding: 16px;
+  background: #f5f7fb;
+}
+
+.public-report .ant-card {
+  max-width: 760px;
+  margin: 0 auto;
+}

@@ -1,7 +1,14 @@
+from io import BytesIO
+
+from django.http import FileResponse
+from django.utils import timezone
+from reportlab.pdfgen import canvas
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import ChatOS, DespesaOS, FotoOS, LogStatusOS, OrdemServico
 from .serializers import (
@@ -10,6 +17,7 @@ from .serializers import (
     FotoOSSerializer,
     MudarStatusOSSerializer,
     OrdemServicoSerializer,
+    ReagendarOSSerializer,
 )
 
 
@@ -137,3 +145,64 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             **serializer.validated_data,
         )
         return Response(DespesaOSSerializer(despesa).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["get"], url_path="agenda")
+    def agenda(self, request):
+        data_inicio = request.query_params.get("data_inicio")
+        data_fim = request.query_params.get("data_fim")
+        queryset = self.get_queryset().exclude(data_agendada__isnull=True)
+        if data_inicio:
+            queryset = queryset.filter(data_agendada__gte=data_inicio)
+        if data_fim:
+            queryset = queryset.filter(data_agendada__lte=data_fim)
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path="agenda/hoje")
+    def agenda_hoje(self, request):
+        hoje = timezone.localdate()
+        queryset = self.get_queryset().filter(data_agendada=hoje)
+        if getattr(request.user, "role", None) == "tecnico":
+            queryset = queryset.filter(tecnico_responsavel=request.user)
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    @action(detail=True, methods=["patch"], url_path="reagendar")
+    def reagendar(self, request, pk=None):
+        ordem = self.get_object()
+        serializer = ReagendarOSSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ordem.data_agendada = serializer.validated_data["data_agendada"]
+        if "hora_inicio" in serializer.validated_data:
+            ordem.hora_inicio = serializer.validated_data["hora_inicio"]
+        if "tecnico_responsavel" in serializer.validated_data:
+            ordem.tecnico_responsavel_id = serializer.validated_data["tecnico_responsavel"]
+        ordem.atualizado_por = request.user
+        ordem.save()
+        return Response(self.get_serializer(ordem).data)
+
+
+class RelatorioPublicoView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        ordem = OrdemServico.objects.select_related("cliente", "tecnico_responsavel").prefetch_related("fotos").get(
+            token_relatorio=token
+        )
+        return Response(OrdemServicoSerializer(ordem, context={"request": request}).data)
+
+
+class RelatorioPublicoPDFView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        ordem = OrdemServico.objects.select_related("cliente").get(token_relatorio=token)
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer)
+        pdf.drawString(72, 800, f"Relatorio da OS {ordem.numero}")
+        pdf.drawString(72, 775, f"Cliente: {ordem.cliente.nome}")
+        pdf.drawString(72, 750, f"Status: {ordem.status}")
+        pdf.drawString(72, 725, f"Descricao: {ordem.descricao_servico[:100]}")
+        pdf.drawString(72, 700, f"Observacoes: {ordem.observacoes_tecnicas[:100]}")
+        pdf.showPage()
+        pdf.save()
+        buffer.seek(0)
+        return FileResponse(buffer, as_attachment=False, filename=f"{ordem.numero}.pdf")

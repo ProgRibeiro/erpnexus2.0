@@ -6,11 +6,15 @@ import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";
+import AgendaPage from "./pages/Agenda";
+import MinhasOSHojePage from "./pages/Agenda/MinhasOSHoje";
+import ConfiguracoesPage from "./pages/Configuracoes";
 import ContasBancariasPage from "./pages/Financeiro/ContasBancarias";
 import FinanceiroDashboard from "./pages/Financeiro/Dashboard";
 import LancamentosPage from "./pages/Financeiro/Lancamentos";
 import NovoLancamentoPage from "./pages/Financeiro/NovoLancamento";
 import RelatoriosFinanceirosPage from "./pages/Financeiro/Relatorios";
+import RelatorioPublicoPage from "./pages/RelatorioPublico";
 import AlertasEstoquePage from "./pages/Estoque/Alertas";
 import EntradaEstoquePage from "./pages/Estoque/EntradaEstoque";
 import EstoquePage from "./pages/Estoque";
@@ -26,11 +30,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/relatorio/:token" element={<RelatorioPublicoPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/ordens" element={<OrdensPage />} />
+          <Route path="/agenda" element={<AgendaPage />} />
+          <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
           <Route path="/crm" element={<CRMPage />} />
           <Route path="/financeiro" element={<FinanceiroDashboard />} />
           <Route path="/financeiro/lancamentos" element={<LancamentosPage />} />
@@ -43,6 +50,7 @@ export default function App() {
           <Route path="/estoque/entrada" element={<EntradaEstoquePage />} />
           <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
           <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
+          <Route path="/configuracoes" element={<ConfiguracoesPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
         </Route>
       </Route>

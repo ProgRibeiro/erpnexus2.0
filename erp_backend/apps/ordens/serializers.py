@@ -138,3 +138,9 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
 class MudarStatusOSSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=OrdemServico.Status.choices)
     observacao = serializers.CharField(required=False, allow_blank=True)
+
+
+class ReagendarOSSerializer(serializers.Serializer):
+    data_agendada = serializers.DateField()
+    hora_inicio = serializers.TimeField(required=False, allow_null=True)
+    tecnico_responsavel = serializers.IntegerField(required=False, allow_null=True)

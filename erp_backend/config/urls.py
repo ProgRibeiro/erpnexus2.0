@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from apps.ordens.views import RelatorioPublicoPDFView, RelatorioPublicoView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +23,10 @@ api_patterns = [
     path("crm/", include("apps.crm.urls")),
     path("estoque/", include("apps.estoque.urls")),
     path("relatorios/", include("apps.relatorios.urls")),
+    path("publico/relatorio/<uuid:token>/", RelatorioPublicoView.as_view(), name="publico-relatorio"),
+    path("publico/relatorio/<uuid:token>/pdf/", RelatorioPublicoPDFView.as_view(), name="publico-relatorio-pdf"),
+    path("portal/", include("apps.portal.urls")),
+    path("configuracoes/", include("apps.configuracoes.urls")),
     path("health/", HealthCheckView.as_view(), name="health-check"),
 ]
 
