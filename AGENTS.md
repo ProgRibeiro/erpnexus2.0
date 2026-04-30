@@ -1,0 +1,47 @@
+# ERP NOVO EM PRODUÇÃO — Instruções permanentes
+
+## Contexto do projeto
+
+ERP web completo para empresa de serviços: HVAC,
+refrigeração, elétrica e civil.
+
+## Stack obrigatória
+
+- Backend: Python 3.11 + Django 5 + Django REST Framework
+- Frontend: React 18 + Ant Design 5 + Vite
+- Banco: PostgreSQL 15
+- Autenticação: JWT com simplejwt
+- Tarefas: Celery + Redis
+- Upload: django-storages
+
+## Regras que sempre deve seguir
+
+- Responda sempre em português brasileiro
+- Crie os arquivos diretamente no projeto, nunca só mostre o código
+- Confirme o caminho de cada arquivo criado
+- Nunca sobrescreva arquivos existentes sem avisar
+- Sempre rode migrations após criar ou alterar models
+- Sempre faça commit após concluir cada fase
+- Nunca use "..." ou "resto do código aqui" — sempre código completo
+
+## O que já foi concluído
+
+- Fase 1: usuarios, JWT, autenticação frontend, Git
+
+## Módulos do projeto
+
+- usuarios (concluído)
+- clientes
+- ordens (coração do sistema)
+- financeiro
+- crm (kanban estilo Trello) (concluído)
+- estoque
+- relatorios
+
+## Padrão de rotas
+
+Todas as rotas no prefixo /api/v1/
+
+## Padrão de commits
+
+"Fase X: descrição do que foi feito"

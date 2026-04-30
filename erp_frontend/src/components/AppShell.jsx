@@ -10,6 +10,7 @@ const menuItems = [
   { key: "/", label: <Link to="/">Dashboard</Link> },
   { key: "/clientes", label: <Link to="/clientes">Clientes</Link> },
   { key: "/ordens", label: <Link to="/ordens">Ordens de Servico</Link> },
+  { key: "/crm", label: <Link to="/crm">CRM</Link> },
   { key: "/perfil", label: <Link to="/perfil">Meu perfil</Link> },
 ];
 
@@ -31,7 +32,7 @@ export default function AppShell() {
         <Menu
           mode="inline"
           theme="dark"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[`/${location.pathname.split("/")[1]}` || "/"]}
           items={menuItems}
         />
       </Sider>

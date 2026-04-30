@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
+import CRMPage from "./pages/CRM";
 import LoginPage from "./pages/LoginPage";
 import OrdensPage from "./pages/OrdensPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/ordens" element={<OrdensPage />} />
+          <Route path="/crm" element={<CRMPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
         </Route>
       </Route>
