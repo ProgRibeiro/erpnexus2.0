@@ -1,12 +1,139 @@
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.response import Response
 
-from .models import OrdemServico
-from .serializers import OrdemServicoSerializer
+from .models import ChatOS, DespesaOS, FotoOS, LogStatusOS, OrdemServico
+from .serializers import (
+    ChatOSSerializer,
+    DespesaOSSerializer,
+    FotoOSSerializer,
+    MudarStatusOSSerializer,
+    OrdemServicoSerializer,
+)
 
 
 class OrdemServicoViewSet(viewsets.ModelViewSet):
-    queryset = OrdemServico.objects.select_related("cliente", "tecnico_responsavel")
     serializer_class = OrdemServicoSerializer
-    search_fields = ["titulo", "descricao", "cliente__nome"]
-    filterset_fields = ["status", "cliente", "tecnico_responsavel"]
-    ordering_fields = ["criado_em", "data_agendada", "valor_total"]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    search_fields = ["numero", "descricao_servico", "cliente__nome", "cliente__cnpj_cpf"]
+    filterset_fields = ["status", "cliente", "tecnico_responsavel", "tipo_servico"]
+    ordering_fields = ["criado_em", "data_agendada", "valor_total_orcado"]
+
+    def get_queryset(self):
+        queryset = (
+            OrdemServico.objects.select_related(
+                "cliente",
+                "contato_responsavel",
+                "endereco_servico",
+                "tecnico_responsavel",
+                "criado_por",
+                "atualizado_por",
+            )
+            .prefetch_related("itens", "fotos", "mensagens__anexos", "despesas", "logs_status")
+        )
+        status_param = self.request.query_params.get("status")
+        tecnico = self.request.query_params.get("tecnico") or self.request.query_params.get(
+            "tecnico_responsavel"
+        )
+        tipo = self.request.query_params.get("tipo") or self.request.query_params.get("tipo_servico")
+        periodo_inicio = self.request.query_params.get("periodo_inicio") or self.request.query_params.get(
+            "data_inicio"
+        )
+        periodo_fim = self.request.query_params.get("periodo_fim") or self.request.query_params.get(
+            "data_fim"
+        )
+
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+        if tecnico:
+            queryset = queryset.filter(tecnico_responsavel_id=tecnico)
+        if tipo:
+            queryset = queryset.filter(tipo_servico=tipo)
+        if periodo_inicio:
+            queryset = queryset.filter(data_agendada__gte=periodo_inicio)
+        if periodo_fim:
+            queryset = queryset.filter(data_agendada__lte=periodo_fim)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(criado_por=self.request.user, atualizado_por=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(atualizado_por=self.request.user)
+
+    @action(detail=True, methods=["post"], url_path="mudar-status")
+    def mudar_status(self, request, pk=None):
+        ordem = self.get_object()
+        serializer = MudarStatusOSSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        status_anterior = ordem.status
+        status_novo = serializer.validated_data["status"]
+        ordem.status = status_novo
+        ordem.atualizado_por = request.user
+        ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
+        LogStatusOS.objects.create(
+            os=ordem,
+            status_anterior=status_anterior,
+            status_novo=status_novo,
+            alterado_por=request.user,
+            observacao=serializer.validated_data.get("observacao", ""),
+        )
+        return Response(self.get_serializer(ordem).data)
+
+    @action(detail=True, methods=["post"], url_path="upload-fotos")
+    def upload_fotos(self, request, pk=None):
+        ordem = self.get_object()
+        arquivos = request.FILES.getlist("arquivos") or request.FILES.getlist("arquivo")
+        if not arquivos:
+            return Response(
+                {"detail": "Envie ao menos um arquivo em 'arquivo' ou 'arquivos'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        fotos = []
+        for arquivo in arquivos:
+            fotos.append(
+                FotoOS.objects.create(
+                    os=ordem,
+                    tipo=request.data.get("tipo", FotoOS.Tipo.ANTES),
+                    arquivo=arquivo,
+                    legenda=request.data.get("legenda", ""),
+                    ordem=request.data.get("ordem") or 0,
+                    enviado_por=request.user,
+                )
+            )
+        return Response(FotoOSSerializer(fotos, many=True).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get", "post"], url_path="chat")
+    def chat(self, request, pk=None):
+        ordem = self.get_object()
+        if request.method == "GET":
+            mensagens = ordem.mensagens.select_related("usuario").prefetch_related("anexos")
+            return Response(ChatOSSerializer(mensagens, many=True).data)
+
+        serializer = ChatOSSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        mensagem = ChatOS.objects.create(
+            os=ordem,
+            usuario=request.user,
+            mensagem=serializer.validated_data["mensagem"],
+        )
+        return Response(ChatOSSerializer(mensagem).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get", "post"], url_path="despesas")
+    def despesas(self, request, pk=None):
+        ordem = self.get_object()
+        if request.method == "GET":
+            despesas = ordem.despesas.select_related("registrado_por")
+            return Response(DespesaOSSerializer(despesas, many=True).data)
+
+        serializer = DespesaOSSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        despesa = DespesaOS.objects.create(
+            os=ordem,
+            registrado_por=request.user,
+            **serializer.validated_data,
+        )
+        return Response(DespesaOSSerializer(despesa).data, status=status.HTTP_201_CREATED)
