@@ -27,6 +27,12 @@ refrigeração, elétrica e civil.
 ## O que já foi concluído
 
 - Fase 1: usuarios, JWT, autenticação frontend, Git
+- Fase 2: clientes e ordens
+- Fase 3: CRM Kanban
+- Fase 4: financeiro
+- Fase 5: estoque
+- Fase 6: complementos, portal, notificações
+- Fase 7: PWA mobile (manifest, service worker, offline, técnico campo)
 
 ## Módulos do projeto
 
