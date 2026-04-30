@@ -11,6 +11,11 @@ import FinanceiroDashboard from "./pages/Financeiro/Dashboard";
 import LancamentosPage from "./pages/Financeiro/Lancamentos";
 import NovoLancamentoPage from "./pages/Financeiro/NovoLancamento";
 import RelatoriosFinanceirosPage from "./pages/Financeiro/Relatorios";
+import AlertasEstoquePage from "./pages/Estoque/Alertas";
+import EntradaEstoquePage from "./pages/Estoque/EntradaEstoque";
+import EstoquePage from "./pages/Estoque";
+import ProdutoDetalhePage from "./pages/Estoque/ProdutoDetalhe";
+import SaidaEstoquePage from "./pages/Estoque/SaidaEstoque";
 import LoginPage from "./pages/LoginPage";
 import OrdensPage from "./pages/OrdensPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -33,6 +38,11 @@ export default function App() {
           <Route path="/financeiro/lancamentos/:id" element={<NovoLancamentoPage />} />
           <Route path="/financeiro/contas" element={<ContasBancariasPage />} />
           <Route path="/financeiro/relatorios" element={<RelatoriosFinanceirosPage />} />
+          <Route path="/estoque" element={<EstoquePage />} />
+          <Route path="/estoque/produtos/:id" element={<ProdutoDetalhePage />} />
+          <Route path="/estoque/entrada" element={<EntradaEstoquePage />} />
+          <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
+          <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
           <Route path="/perfil" element={<ProfilePage />} />
         </Route>
       </Route>

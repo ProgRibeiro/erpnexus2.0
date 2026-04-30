@@ -35,7 +35,7 @@ refrigeração, elétrica e civil.
 - ordens (coração do sistema)
 - financeiro (concluído)
 - crm (kanban estilo Trello) (concluído)
-- estoque
+- estoque (concluído)
 - relatorios
 
 ## Padrão de rotas

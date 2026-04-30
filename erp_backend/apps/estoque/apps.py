@@ -5,3 +5,6 @@ class EstoqueConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.estoque"
     verbose_name = "Estoque"
+
+    def ready(self):
+        import apps.estoque.signals  # noqa: F401

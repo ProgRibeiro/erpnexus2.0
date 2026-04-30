@@ -15,6 +15,8 @@ const menuItems = [
   { key: "/financeiro/lancamentos", label: <Link to="/financeiro/lancamentos">Lancamentos</Link> },
   { key: "/financeiro/contas", label: <Link to="/financeiro/contas">Contas bancarias</Link> },
   { key: "/financeiro/relatorios", label: <Link to="/financeiro/relatorios">Relatorios</Link> },
+  { key: "/estoque", label: <Link to="/estoque">Estoque</Link> },
+  { key: "/estoque/alertas", label: <Link to="/estoque/alertas">Alertas estoque</Link> },
   { key: "/perfil", label: <Link to="/perfil">Meu perfil</Link> },
 ];
 
