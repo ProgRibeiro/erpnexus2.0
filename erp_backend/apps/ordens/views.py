@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import ChatOS, DespesaOS, FotoOS, LogStatusOS, OrdemServico
+from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .serializers import (
     ChatOSSerializer,
     DespesaOSSerializer,
@@ -179,6 +180,58 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         ordem.save()
         return Response(self.get_serializer(ordem).data)
 
+    @action(detail=True, methods=["post"], url_path="gerar-pdf-relatorio")
+    def gerar_pdf_relatorio(self, request, pk=None):
+        ordem = self.get_object()
+        pdf_bytes = gerar_relatorio_pdf(ordem.pk)
+        if pdf_bytes:
+            return FileResponse(
+                BytesIO(pdf_bytes),
+                as_attachment=True,
+                filename=f"relatorio_{ordem.numero}.pdf",
+                content_type="application/pdf",
+            )
+        return Response(
+            {"detail": "Erro ao gerar PDF de relatório"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    @action(detail=True, methods=["post"], url_path="gerar-pdf-orcamento")
+    def gerar_pdf_orcamento(self, request, pk=None):
+        ordem = self.get_object()
+        pdf_bytes = gerar_orcamento_pdf(ordem.pk)
+        if pdf_bytes:
+            return FileResponse(
+                BytesIO(pdf_bytes),
+                as_attachment=True,
+                filename=f"orcamento_{ordem.numero}.pdf",
+                content_type="application/pdf",
+            )
+        return Response(
+            {"detail": "Erro ao gerar PDF de orçamento"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    @action(detail=True, methods=["post"], url_path="salvar-relatorio-pdf")
+    def salvar_relatorio_pdf_action(self, request, pk=None):
+        ordem = self.get_object()
+        if salvar_relatorio_pdf(ordem.pk):
+            return Response({"detail": "PDF de relatório salvo com sucesso"})
+        return Response(
+            {"detail": "Erro ao salvar PDF de relatório"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    @action(detail=True, methods=["post"], url_path="salvar-orcamento-pdf")
+    def salvar_orcamento_pdf_action(self, request, pk=None):
+        ordem = self.get_object()
+        if salvar_orcamento_pdf(ordem.pk):
+            return Response({"detail": "PDF de orçamento salvo com sucesso"})
+        return Response(
+            {"detail": "Erro ao salvar PDF de orçamento"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
 
 class RelatorioPublicoView(APIView):
     permission_classes = [AllowAny]
@@ -194,15 +247,16 @@ class RelatorioPublicoPDFView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, token):
-        ordem = OrdemServico.objects.select_related("cliente").get(token_relatorio=token)
-        buffer = BytesIO()
-        pdf = canvas.Canvas(buffer)
-        pdf.drawString(72, 800, f"Relatorio da OS {ordem.numero}")
-        pdf.drawString(72, 775, f"Cliente: {ordem.cliente.nome}")
-        pdf.drawString(72, 750, f"Status: {ordem.status}")
-        pdf.drawString(72, 725, f"Descricao: {ordem.descricao_servico[:100]}")
-        pdf.drawString(72, 700, f"Observacoes: {ordem.observacoes_tecnicas[:100]}")
-        pdf.showPage()
-        pdf.save()
-        buffer.seek(0)
-        return FileResponse(buffer, as_attachment=False, filename=f"{ordem.numero}.pdf")
+        ordem = OrdemServico.objects.select_related("cliente", "tecnico_responsavel").prefetch_related("fotos").get(token_relatorio=token)
+        pdf_bytes = gerar_relatorio_pdf(ordem.pk)
+        if pdf_bytes:
+            return FileResponse(
+                BytesIO(pdf_bytes),
+                as_attachment=False,
+                filename=f"relatorio_{ordem.numero}.pdf",
+                content_type="application/pdf",
+            )
+        return Response(
+            {"detail": "Erro ao gerar PDF de relatório"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

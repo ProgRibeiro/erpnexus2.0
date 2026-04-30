@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposta Comercial - {{ os.numero }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            font-size: 12px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 210mm;
+            height: 297mm;
+            padding: 20px;
+            background: white;
+            margin: 0 auto;
+        }
+
+        /* Cabeçalho */
+        .header {
+            border-bottom: 3px solid #1B4F8A;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-info {
+            flex: 1;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1B4F8A;
+            margin-bottom: 5px;
+        }
+
+        .company-details {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: #1B4F8A;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+            margin-left: 20px;
+        }
+
+        /* Título */
+        .title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1B4F8A;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f0f5f9;
+            border-radius: 4px;
+        }
+
+        /* Seções */
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            background: #1B4F8A;
+            padding: 8px 10px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        /* Grid de 2 colunas */
+        .grid-2 {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .grid-2 > div {
+            flex: 1;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #1B4F8A;
+            margin-bottom: 3px;
+        }
+
+        .field-value {
+            font-size: 12px;
+            color: #333;
+            padding: 6px;
+            background: #f9f9f9;
+            border-left: 3px solid #1B4F8A;
+        }
+
+        /* Tabelas */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th {
+            background: #1B4F8A;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 11px;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Total */
+        .total-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .total-box {
+            width: 300px;
+            border: 2px solid #1B4F8A;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .total-row {
+            display: flex;
+            padding: 12px 15px;
+            border-bottom: 1px solid #1B4F8A;
+            font-size: 12px;
+        }
+
+        .total-row:last-child {
+            border-bottom: none;
+        }
+
+        .total-label {
+            flex: 1;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .total-value {
+            font-weight: bold;
+            color: #1B4F8A;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .total-row.grand-total {
+            background: #1B4F8A;
+            color: white;
+        }
+
+        .total-row.grand-total .total-label,
+        .total-row.grand-total .total-value {
+            color: white;
+            font-size: 14px;
+        }
+
+        /* Observações */
+        .observations {
+            background: #f0f5f9;
+            padding: 12px;
+            border-left: 4px solid #1B4F8A;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        /* Condições */
+        .conditions-box {
+            background: #f0f5f9;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .conditions-box strong {
+            color: #1B4F8A;
+        }
+
+        /* Assinatura */
+        .signature-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 40%;
+        }
+
+        .signature-line {
+            border-top: 1px solid #333;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .signature-label {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .signature-label.name {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* Rodapé */
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 2px solid #1B4F8A;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .footer-left {
+            text-align: left;
+        }
+
+        .footer-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .footer-right {
+            text-align: right;
+        }
+
+        /* Validade */
+        .validity-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+
+        .validity-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CABEÇALHO -->
+        <div class="header">
+            <div class="header-info">
+                <div class="company-name">ERP Prod Serviços</div>
+                <div class="company-details">
+                    Av. Principal, 1000 - Centro<br>
+                    Tel: (11) 3000-0000<br>
+                    Email: contato@erpprod.com.br<br>
+                    CNPJ: 00.000.000/0000-00
+                </div>
+            </div>
+            <div class="logo">ERPp</div>
+        </div>
+
+        <!-- TÍTULO -->
+        <div class="title">
+            PROPOSTA COMERCIAL
+        </div>
+
+        <!-- INFORMAÇÕES DA PROPOSTA -->
+        <div class="section">
+            <div class="grid-2">
+                <div>
+                    <div class="field">
+                        <div class="field-label">Número da Proposta</div>
+                        <div class="field-value">{{ os.numero }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Data da Proposta</div>
+                        <div class="field-value">{{ data_proposta }}</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="field">
+                        <div class="field-label">Validade da Proposta</div>
+                        <div class="field-value">Até {{ validade_orcamento }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Tipo de Serviço</div>
+                        <div class="field-value">{{ os.get_tipo_servico_display }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DADOS DO CLIENTE -->
+        <div class="section">
+            <div class="section-title">DADOS DO CLIENTE</div>
+            <div class="grid-2">
+                <div>
+                    <div class="field">
+                        <div class="field-label">Razão Social / Nome</div>
+                        <div class="field-value">{{ os.cliente.nome }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Contato</div>
+                        <div class="field-value">{{ contato }}</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="field">
+                        <div class="field-label">Endereço</div>
+                        <div class="field-value">{{ endereco }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Telefone</div>
+                        <div class="field-value">{{ telefone }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVISO DE VALIDADE -->
+        {% if validade_orcamento %}
+        <div class="validity-box">
+            <strong>⚠️ ATENÇÃO:</strong> Esta proposta é válida até <strong>{{ validade_orcamento }}</strong>. Após esta data, favor solicitar nova cotação.
+        </div>
+        {% endif %}
+
+        <!-- ITENS DA PROPOSTA -->
+        <div class="section">
+            <div class="section-title">DESCRIÇÃO DOS SERVIÇOS</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50%">Descrição</th>
+                        <th style="width: 15%" class="text-center">Quantidade</th>
+                        <th style="width: 15%" class="text-right">Valor Unit.</th>
+                        <th style="width: 20%" class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td>{{ item.descricao }}</td>
+                        <td class="text-center">{{ item.quantidade }}</td>
+                        <td class="text-right">R$ {{ item.valor_unitario|floatformat:2 }}</td>
+                        <td class="text-right"><strong>R$ {{ item.valor_total|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TOTAL GERAL -->
+        <div class="total-section">
+            <div class="total-box">
+                <div class="total-row">
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-value">R$ {{ subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">Descontos:</span>
+                    <span class="total-value">R$ {{ descontos|floatformat:2 }}</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span class="total-label">TOTAL:</span>
+                    <span class="total-value">R$ {{ total|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONDIÇÕES DE PAGAMENTO -->
+        <div class="section">
+            <div class="section-title">CONDIÇÕES DE PAGAMENTO</div>
+            <div class="conditions-box">
+                <strong>Forma de Pagamento:</strong> {{ os.forma_cobranca|default:"A combinar" }}<br>
+                <strong>Condições:</strong> {{ os.condicao_pagamento|default:"A combinar com o cliente" }}<br>
+                <strong>Prazo:</strong> Conforme acordado
+            </div>
+        </div>
+
+        <!-- OBSERVAÇÕES -->
+        {% if os.observacoes_tecnicas %}
+        <div class="section">
+            <div class="section-title">OBSERVAÇÕES E TERMOS</div>
+            <div class="observations">{{ os.observacoes_tecnicas }}</div>
+        </div>
+        {% endif %}
+
+        <!-- ASSINATURA -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Cliente/Responsável</div>
+                <div class="signature-label name">{{ os.cliente.nome }}</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Empresa</div>
+                <div class="signature-label name">ERP Prod Serviços</div>
+            </div>
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="footer">
+            <div class="footer-left">
+                Data: {{ data_proposta }}
+            </div>
+            <div class="footer-center">
+                Proposta Comercial
+            </div>
+            <div class="footer-right">
+                {{ os.numero }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
