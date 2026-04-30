@@ -1,0 +1,431 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: #f5f5f5;
+  color: #262626;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8c8c8c;
+}
+
+/* Sidebar */
+.ant-layout-sider {
+  background: #ffffff;
+  border-right: 1px solid #f0f0f0;
+}
+
+.ant-menu {
+  background: #ffffff;
+}
+
+.ant-menu-item {
+  border-radius: 6px !important;
+  margin: 4px 12px !important;
+}
+
+.ant-menu-submenu-title {
+  border-radius: 6px !important;
+  margin: 4px 12px !important;
+}
+
+/* Header */
+.ant-layout-header {
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+}
+
+/* Cards */
+.erp-page-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.erp-metric-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  padding: 20px;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.erp-metric-card:hover {
+  box-shadow: 0 4px 12px rgba(27, 79, 138, 0.08);
+  border-color: #d9d9d9;
+}
+
+.erp-metric-label {
+  color: #8c8c8c;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.erp-metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #262626;
+  line-height: 1.2;
+}
+
+.erp-metric-change {
+  font-size: 12px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.erp-metric-change.positive {
+  color: #1A7A4A;
+}
+
+.erp-metric-change.negative {
+  color: #B91C1C;
+}
+
+/* Status Badges */
+.os-status-badge {
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.os-status-lead {
+  background: #f0f0f0;
+  color: #595959;
+}
+
+.os-status-orcamento {
+  background: #fffaed;
+  color: #b45309;
+}
+
+.os-status-aprovado {
+  background: #e6f4ff;
+  color: #0284c7;
+}
+
+.os-status-em-execucao {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.os-status-faturado {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+
+.os-status-concluido {
+  background: #dcfce7;
+  color: #1a7a4a;
+}
+
+.os-status-cancelado {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Tabelas */
+.ant-table-thead > tr > th {
+  background: #f5f5f5;
+  color: #262626;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  border-color: #f0f0f0;
+}
+
+.ant-table-tbody > tr {
+  transition: background-color 0.2s;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #fafafa;
+}
+
+/* Chat */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.chat-message {
+  display: flex;
+  gap: 8px;
+  max-width: 80%;
+}
+
+.chat-message.sent {
+  align-self: flex-end;
+  margin-right: 0;
+}
+
+.chat-message.received {
+  align-self: flex-start;
+}
+
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-message.sent .chat-bubble {
+  background: #1B4F8A;
+  color: white;
+  border-radius: 16px 16px 4px 16px;
+}
+
+.chat-message.received .chat-bubble {
+  background: #f0f0f0;
+  color: #262626;
+  border-radius: 16px 16px 16px 4px;
+}
+
+.chat-time {
+  font-size: 12px;
+  color: #bfbfbf;
+  margin-top: 4px;
+}
+
+/* Grid de fotos */
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.photo-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.photo-item:hover {
+  border-color: #1B4F8A;
+  box-shadow: 0 2px 8px rgba(27, 79, 138, 0.15);
+  transform: scale(1.02);
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Kanban */
+.kanban-column {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 300px;
+  flex-shrink: 0;
+}
+
+.kanban-column-title {
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 12px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kanban-card {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #f0f0f0;
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.kanban-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+/* Relatório Público */
+.relatorio-publico-container {
+  max-width: 100%;
+  padding: 16px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.relatorio-header {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.relatorio-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1B4F8A;
+  margin-bottom: 8px;
+}
+
+.relatorio-content {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .ant-btn {
+    height: 52px !important;
+    font-size: 16px !important;
+  }
+
+  .ant-input,
+  .ant-select-selector,
+  .ant-input-number {
+    height: 52px !important;
+    font-size: 16px !important;
+  }
+
+  body {
+    font-size: 16px;
+  }
+
+  .erp-metric-value {
+    font-size: 24px;
+  }
+
+  .photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .chat-message {
+    max-width: 90%;
+  }
+
+  .kanban-column {
+    min-width: 280px;
+  }
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease;
+}
+
+/* Utilities */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-muted {
+  color: #bfbfbf;
+}
+
+.text-secondary {
+  color: #8c8c8c;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.p-4 {
+  padding: 16px;
+}

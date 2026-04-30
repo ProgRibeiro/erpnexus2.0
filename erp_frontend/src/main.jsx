@@ -4,18 +4,13 @@ import { BrowserRouter } from "react-router-dom";
 import { ConfigProvider } from "antd";
 
 import App from "./App";
+import { theme } from "./styles/theme";
+import "./styles/global.css";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: "#0057b8",
-          borderRadius: 10,
-        },
-      }}
-    >
+    <ConfigProvider theme={theme}>
       <BrowserRouter>
         <App />
       </BrowserRouter>
