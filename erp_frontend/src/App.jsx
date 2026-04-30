@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import AppShell from "./components/AppShell";
 import ProtectedRoute from "./components/ProtectedRoute";
+import BottomNavigationBar from "./components/BottomNavigationBar";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
@@ -23,38 +24,45 @@ import SaidaEstoquePage from "./pages/Estoque/SaidaEstoque";
 import LoginPage from "./pages/LoginPage";
 import OrdensPage from "./pages/OrdensPage";
 import ProfilePage from "./pages/ProfilePage";
+import TecnicoMobilePage from "./pages/TecnicoMobile";
+import OSCampoPage from "./pages/TecnicoMobile/OSCampo";
 
 export default function App() {
   useBootstrapAuth();
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/relatorio/:token" element={<RelatorioPublicoPage />} />
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/clientes" element={<ClientesPage />} />
-          <Route path="/ordens" element={<OrdensPage />} />
-          <Route path="/agenda" element={<AgendaPage />} />
-          <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
-          <Route path="/crm" element={<CRMPage />} />
-          <Route path="/financeiro" element={<FinanceiroDashboard />} />
-          <Route path="/financeiro/lancamentos" element={<LancamentosPage />} />
-          <Route path="/financeiro/lancamentos/novo" element={<NovoLancamentoPage />} />
-          <Route path="/financeiro/lancamentos/:id" element={<NovoLancamentoPage />} />
-          <Route path="/financeiro/contas" element={<ContasBancariasPage />} />
-          <Route path="/financeiro/relatorios" element={<RelatoriosFinanceirosPage />} />
-          <Route path="/estoque" element={<EstoquePage />} />
-          <Route path="/estoque/produtos/:id" element={<ProdutoDetalhePage />} />
-          <Route path="/estoque/entrada" element={<EntradaEstoquePage />} />
-          <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
-          <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
-          <Route path="/configuracoes" element={<ConfiguracoesPage />} />
-          <Route path="/perfil" element={<ProfilePage />} />
+    <>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/relatorio/:token" element={<RelatorioPublicoPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/tecnico-mobile" element={<TecnicoMobilePage />} />
+          <Route path="/tecnico-mobile/os-campo/:osId" element={<OSCampoPage />} />
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/clientes" element={<ClientesPage />} />
+            <Route path="/ordens" element={<OrdensPage />} />
+            <Route path="/agenda" element={<AgendaPage />} />
+            <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
+            <Route path="/crm" element={<CRMPage />} />
+            <Route path="/financeiro" element={<FinanceiroDashboard />} />
+            <Route path="/financeiro/lancamentos" element={<LancamentosPage />} />
+            <Route path="/financeiro/lancamentos/novo" element={<NovoLancamentoPage />} />
+            <Route path="/financeiro/lancamentos/:id" element={<NovoLancamentoPage />} />
+            <Route path="/financeiro/contas" element={<ContasBancariasPage />} />
+            <Route path="/financeiro/relatorios" element={<RelatoriosFinanceirosPage />} />
+            <Route path="/estoque" element={<EstoquePage />} />
+            <Route path="/estoque/produtos/:id" element={<ProdutoDetalhePage />} />
+            <Route path="/estoque/entrada" element={<EntradaEstoquePage />} />
+            <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
+            <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
+            <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
+          </Route>
         </Route>
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <BottomNavigationBar />
+    </>
   );
 }
