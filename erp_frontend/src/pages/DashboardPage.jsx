@@ -20,8 +20,8 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const [dashResponse, ordensResponse] = await Promise.all([
-        api.get("/api/v1/dashboard/"),
-        api.get("/api/v1/ordens/?data_agendado=" + new Date().toISOString().split("T")[0]),
+        api.get("/dashboard/"),
+        api.get("/ordens/?data_agendado=" + new Date().toISOString().split("T")[0]),
       ]);
 
       setDashboard(dashResponse.data);
