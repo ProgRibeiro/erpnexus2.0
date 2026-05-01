@@ -37,7 +37,7 @@ export default function Sidebar() {
         },
         {
           key: 'agenda',
-          icon: <BarsOutlined />,
+          icon: <CalendarOutlined />,
           label: 'Agenda',
           onClick: () => navigate('/agenda'),
         },
@@ -82,7 +82,7 @@ export default function Sidebar() {
   ];
 
   const getSelectedKey = () => {
-    if (location.pathname === '/') return 'dashboard';
+    if (location.pathname === '/' || location.pathname === '/dashboard') return 'dashboard';
     if (location.pathname.startsWith('/ordens')) return 'ordens';
     if (location.pathname.startsWith('/clientes')) return 'clientes';
     if (location.pathname.startsWith('/agenda')) return 'agenda';

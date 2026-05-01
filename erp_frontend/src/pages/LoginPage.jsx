@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Form, Input, Typography, Space, Row, Col, message } from "antd";
+import { Button, Form, Input, Typography, Space, Row, Col } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import authService from "../services/authService";
@@ -21,10 +21,11 @@ export default function LoginPage() {
       const data = await authService.login(values);
       console.log("Login response:", data);
       setAuth(data);
-      console.log("Auth setado, navegando para", location.state?.from?.pathname || "/");
-      message.success("Bem-vindo ao ERP!");
+      const fromPath = location.state?.from?.pathname;
+      const redirectTo = fromPath && fromPath !== "/" ? fromPath : "/dashboard";
+      console.log("Auth setado, navegando para", redirectTo);
       setTimeout(() => {
-        navigate(location.state?.from?.pathname || "/", { replace: true });
+        navigate(redirectTo, { replace: true });
       }, 500);
     } catch (requestError) {
       console.error("Login error:", requestError);
@@ -33,7 +34,6 @@ export default function LoginPage() {
         requestError?.response?.data?.non_field_errors?.[0] ||
         "Não foi possível autenticar. Verifique suas credenciais.";
       setError(errorMsg);
-      message.error(errorMsg);
     } finally {
       setLoading(false);
     }

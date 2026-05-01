@@ -40,6 +40,7 @@ export default function App() {
           <Route path="/tecnico-mobile/os-campo/:osId" element={<OSCampoPage />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/ordens" element={<OrdensPage />} />
             <Route path="/agenda" element={<AgendaPage />} />

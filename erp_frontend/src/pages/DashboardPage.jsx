@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Card, Col, Row, Table, Tag, Button, Space, Empty, Spin } from "antd";
+import { Card, Col, Row, Table, Button, Empty, Spin } from "antd";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ArrowRightOutlined } from "@ant-design/icons";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
-import { MetricCard, PageHeader, StatusBadge } from "../components/ui";
+import { MetricCard, StatusBadge } from "../components/ui";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -20,12 +20,12 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const [dashResponse, ordensResponse] = await Promise.all([
-        api.get("/dashboard/"),
-        api.get("/ordens/?data_agendado=" + new Date().toISOString().split("T")[0]),
+        api.get("/financeiro/dashboard/"),
+        api.get("/ordens/agenda/hoje/"),
       ]);
 
       setDashboard(dashResponse.data);
-      setOrdens(ordensResponse.data.results || []);
+      setOrdens(ordensResponse.data.results || ordensResponse.data || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
@@ -55,6 +55,11 @@ export default function DashboardPage() {
     month: "long",
     day: "numeric",
   });
+  const primeiroNome =
+    user?.first_name ||
+    user?.nome_completo?.split(" ")[0] ||
+    user?.nome?.split(" ")[0] ||
+    "Usuário";
 
   const colunas = [
     {
@@ -82,10 +87,10 @@ export default function DashboardPage() {
     },
     {
       title: "Horário",
-      dataIndex: "data_agendado",
+      dataIndex: "data_agendada",
       key: "horario",
       render: (data) =>
-        data ? new Date(data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "-",
+        data ? new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR") : "-",
     },
   ];
 
@@ -101,7 +106,7 @@ export default function DashboardPage() {
     <>
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ margin: 0, fontSize: "32px", fontWeight: 700 }}>
-          {saudacao()}, {user?.nome?.split(" ")[0]}! 👋
+          {saudacao()}, {primeiroNome}! 👋
         </h1>
         <p style={{ margin: "8px 0 0 0", color: "#8c8c8c", fontSize: "14px" }}>
           {dataFormatada}
@@ -128,16 +133,16 @@ export default function DashboardPage() {
         <Col xs={24} sm={12} md={6}>
           <MetricCard
             label="Receita do Mês"
-            value={`R$ ${(dashboard?.receita_mes || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
-            change={dashboard?.receita_mes_change || "0%"}
-            trend={dashboard?.receita_mes_change_type || "positive"}
+            value={`R$ ${Number(dashboard?.receita || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+            change="0%"
+            trend="positive"
           />
         </Col>
         <Col xs={24} sm={12} md={6}>
           <MetricCard
             label="A Faturar"
-            value={`R$ ${(dashboard?.a_faturar || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
-            change={dashboard?.a_faturar_change || "0%"}
+            value={`R$ ${Number(dashboard?.contas_receber || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+            change="0%"
             trend="warning"
           />
         </Col>
