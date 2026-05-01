@@ -35,7 +35,7 @@ refrigeração, elétrica e civil.
 - Fase 7: PWA mobile (manifest, service worker, offline, técnico campo)
 - Fase 8: tema visual e UI (Ant Design 5, componentes, layouts, refactoring)
 - Fase 9: geração de PDF (WeasyPrint, templates, Celery, frontend buttons)
-- Fase 10: deploy e produção (Docker, docker-compose, Nginx, SSL/TLS, scripts de backup) ✓ CONCLUÍDO
+- Fase 10: deploy e produção removida do fluxo atual; projeto será executado localmente
 
 ## Módulos do projeto
 
