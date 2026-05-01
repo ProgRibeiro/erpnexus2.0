@@ -4,7 +4,18 @@
       "Bash(npm install *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(python manage.py check)"
+      "Bash(python manage.py check)",
+      "Bash(docker-compose -f docker-compose.prod.yml up -d)",
+      "Bash(docker-compose -f docker-compose.prod.yml down)",
+      "Bash(docker-compose -f docker-compose.prod.yml up -d --remove-orphans)",
+      "Bash(docker stop *)",
+      "Bash(docker-compose -f docker-compose.prod.yml ps)",
+      "Bash(docker-compose -f docker-compose.prod.yml logs backend)",
+      "Bash(docker-compose -f docker-compose.prod.yml down -v)",
+      "Bash(docker-compose -f docker-compose.prod.yml logs celery_beat)",
+      "Bash(docker-compose -f docker-compose.prod.yml build)",
+      "Bash(curl -s http://localhost/health/)",
+      "Bash(curl -s http://localhost:8000/api/)"
     ]
   }
 }
