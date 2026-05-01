@@ -30,7 +30,23 @@
       "Bash(curl -s -X OPTIONS http://localhost/api/v1/auth/login/ -H 'Origin: http://localhost' -H 'Access-Control-Request-Method: POST' -v)",
       "Bash(curl -s -X POST http://localhost/api/v1/auth/login/ -H 'Content-Type: application/json' -H 'Origin: http://localhost' -d '{\"email\":\"admin@admin.com\",\"password\":\"admin123\"}' -v)",
       "Bash(curl *)",
-      "Bash(mcp__plugin_playwright_playwright__browser_navigate *)"
+      "Bash(mcp__plugin_playwright_playwright__browser_navigate *)",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py shell -c ' *)",
+      "Bash(timeout 10 python manage.py runserver)",
+      "Bash(timeout 10 python manage.py runserver 0.0.0.0:8000)",
+      "Bash(python -m json.tool)",
+      "Bash(python manage.py shell)",
+      "Bash(pkill -f \"python manage.py runserver\")",
+      "PowerShell(Stop-Process *)",
+      "Bash(python -m json.tool sleep 1 echo \"=== VALIDATE DEBUG ===\")",
+      "Bash(rm -f /tmp/login_view_called.txt /tmp/login_serializer_created.txt)",
+      "Bash(python manage.py runserver 0.0.0.0:8000)",
+      "Bash(curl -X POST http://localhost:8000/api/v1/auth/login/ -H 'Content-Type: application/json' -d '{\"email\":\"admin@erp.com\",\"password\":\"Admin123!\"}')",
+      "Bash(cat /tmp/login_view_called.txt)",
+      "Bash(cat /tmp/login_serializer_created.txt)",
+      "Bash(python -B manage.py runserver 0.0.0.0:8000)",
+      "Bash(python -m json.tool sleep 1 cat /tmp/login_view_called.txt)"
     ]
   }
 }
