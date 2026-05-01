@@ -178,3 +178,20 @@ if USE_S3:
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 else:
     DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "WARNING",
+        },
+    },
+    "loggers": {
+        "apps.usuarios": {
+            "handlers": ["console"],
+            "level": "WARNING",
+        },
+    },
+}

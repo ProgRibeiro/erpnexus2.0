@@ -46,7 +46,9 @@
       "Bash(cat /tmp/login_view_called.txt)",
       "Bash(cat /tmp/login_serializer_created.txt)",
       "Bash(python -B manage.py runserver 0.0.0.0:8000)",
-      "Bash(python -m json.tool sleep 1 cat /tmp/login_view_called.txt)"
+      "Bash(python -m json.tool sleep 1 cat /tmp/login_view_called.txt)",
+      "Bash(jobs -p)",
+      "Bash(xargs kill *)"
     ]
   }
 }
