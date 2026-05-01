@@ -25,10 +25,14 @@ export default function CRMPage() {
   }, [kanban, selectedId]);
 
   const carregarPipelines = async () => {
-    const data = await crmService.listarPipelines();
-    setPipelines(data);
-    if (!pipelineId && data.length) {
-      setPipelineId(data[0].id);
+    try {
+      const data = await crmService.listarPipelines();
+      setPipelines(data);
+      if (!pipelineId && data.length) {
+        setPipelineId(data[0].id);
+      }
+    } catch {
+      setPipelines([]);
     }
   };
 
@@ -38,14 +42,20 @@ export default function CRMPage() {
     try {
       const data = await crmService.obterKanban(id);
       setKanban(data);
+    } catch {
+      setKanban(null);
     } finally {
       setLoading(false);
     }
   };
 
   const carregarClientes = async () => {
-    const data = await clienteService.listar();
-    setClientes(data.results ?? data);
+    try {
+      const data = await clienteService.listar();
+      setClientes(data.results ?? data);
+    } catch {
+      setClientes([]);
+    }
   };
 
   useEffect(() => {

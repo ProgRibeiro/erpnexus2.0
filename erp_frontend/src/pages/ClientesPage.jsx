@@ -13,6 +13,8 @@ export default function ClientesPage() {
       try {
         const data = await clienteService.listar();
         setClientes(data.results ?? data);
+      } catch {
+        setClientes([]);
       } finally {
         setLoading(false);
       }

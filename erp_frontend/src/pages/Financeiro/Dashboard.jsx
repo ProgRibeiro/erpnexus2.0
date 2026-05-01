@@ -38,6 +38,9 @@ export default function FinanceiroDashboard() {
         ]);
         setData(dashboard);
         setFluxo(fluxoCaixa);
+      } catch {
+        setData(null);
+        setFluxo([]);
       } finally {
         setLoading(false);
       }

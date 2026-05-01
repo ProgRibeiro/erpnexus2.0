@@ -15,6 +15,8 @@ export default function EstoquePage() {
     setLoading(true);
     try {
       setProdutos(await estoqueService.listarProdutos());
+    } catch {
+      setProdutos([]);
     } finally {
       setLoading(false);
     }

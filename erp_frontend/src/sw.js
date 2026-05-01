@@ -92,8 +92,51 @@ async function networkFirstStrategy(request) {
       });
     }
 
-    return new Response('Offline', { status: 503 });
+    if (request.method === 'GET') {
+      return offlineApiResponse(request);
+    }
+
+    return new Response(JSON.stringify({ detail: 'Offline' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
+}
+
+function offlineApiResponse(request) {
+  const { pathname } = new URL(request.url);
+  const body = getOfflineApiBody(pathname);
+
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-ERP-Offline': 'true'
+    }
+  });
+}
+
+function getOfflineApiBody(pathname) {
+  if (pathname.includes('/dashboard/')) {
+    return {
+      receita: 0,
+      despesa: 0,
+      lucro: 0,
+      contas_receber: 0,
+      contas_pagar: 0,
+      saldo_total: 0,
+      por_mes: [],
+      contas_receber_lista: [],
+      contas_pagar_lista: [],
+      despesas_categoria: []
+    };
+  }
+
+  if (pathname.includes('/configuracoes/empresa/')) {
+    return {};
+  }
+
+  return [];
 }
 
 function generateSyncTag(request) {

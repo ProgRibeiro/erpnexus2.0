@@ -7,7 +7,12 @@ export default function AgendaPage() {
   const [ordens, setOrdens] = useState([]);
 
   useEffect(() => {
-    ordemService.agenda().then((data) => setOrdens(data.results ?? data));
+    ordemService
+      .agenda()
+      .then((data) => setOrdens(data.results ?? data))
+      .catch(() => {
+        setOrdens([]);
+      });
   }, []);
 
   const porData = useMemo(() => {

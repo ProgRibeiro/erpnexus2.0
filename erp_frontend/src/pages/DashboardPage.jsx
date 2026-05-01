@@ -26,8 +26,9 @@ export default function DashboardPage() {
 
       setDashboard(dashResponse.data);
       setOrdens(ordensResponse.data.results || ordensResponse.data || []);
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+    } catch {
+      setDashboard(null);
+      setOrdens([]);
     } finally {
       setLoading(false);
     }

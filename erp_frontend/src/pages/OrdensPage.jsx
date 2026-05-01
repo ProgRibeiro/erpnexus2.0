@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Space, Table, Tag, Typography, message, Spin } from "antd";
+import { Button, Card, Space, Table, Tag, Typography, message } from "antd";
 import { FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
 
 import ordemService from "../services/ordemService";
@@ -24,6 +24,9 @@ export default function OrdensPage() {
       try {
         const data = await ordemService.listar();
         setOrdens(data.results ?? data);
+      } catch {
+        setOrdens([]);
+        message.warning("Não foi possível carregar as ordens de serviço.");
       } finally {
         setLoading(false);
       }
@@ -46,7 +49,7 @@ export default function OrdensPage() {
   const gerarPDFRelatorio = async (record) => {
     try {
       setGerandoPDF((prev) => ({ ...prev, [record.id]: "relatorio" }));
-      const response = await api.post(`/api/v1/ordens/${record.id}/gerar-pdf-relatorio/`, {}, {
+      const response = await api.post(`/ordens/${record.id}/gerar-pdf-relatorio/`, {}, {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -59,7 +62,6 @@ export default function OrdensPage() {
       window.URL.revokeObjectURL(url);
       message.success("Relatório PDF gerado com sucesso");
     } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
       message.error("Erro ao gerar PDF de relatório");
     } finally {
       setGerandoPDF((prev) => {
@@ -73,7 +75,7 @@ export default function OrdensPage() {
   const gerarPDFOrcamento = async (record) => {
     try {
       setGerandoPDF((prev) => ({ ...prev, [record.id]: "orcamento" }));
-      const response = await api.post(`/api/v1/ordens/${record.id}/gerar-pdf-orcamento/`, {}, {
+      const response = await api.post(`/ordens/${record.id}/gerar-pdf-orcamento/`, {}, {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -86,7 +88,6 @@ export default function OrdensPage() {
       window.URL.revokeObjectURL(url);
       message.success("Orçamento PDF gerado com sucesso");
     } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
       message.error("Erro ao gerar PDF de orçamento");
     } finally {
       setGerandoPDF((prev) => {

@@ -8,8 +8,19 @@ export default function ConfiguracoesPage() {
   const [notificacoes, setNotificacoes] = useState([]);
 
   useEffect(() => {
-    configuracoesService.obterEmpresa().then((data) => empresaForm.setFieldsValue(data));
-    configuracoesService.listarNotificacoes().then(setNotificacoes);
+    configuracoesService
+      .obterEmpresa()
+      .then((data) => empresaForm.setFieldsValue(data))
+      .catch(() => {
+        empresaForm.resetFields();
+      });
+
+    configuracoesService
+      .listarNotificacoes()
+      .then(setNotificacoes)
+      .catch(() => {
+        setNotificacoes([]);
+      });
   }, [empresaForm]);
 
   const salvarEmpresa = async (values) => {
