@@ -17,11 +17,17 @@ export default function LoginPage() {
     setError("");
 
     try {
+      console.log("Iniciando login...", values);
       const data = await authService.login(values);
+      console.log("Login response:", data);
       setAuth(data);
+      console.log("Auth setado, navegando para", location.state?.from?.pathname || "/");
       message.success("Bem-vindo ao ERP!");
-      navigate(location.state?.from?.pathname || "/", { replace: true });
+      setTimeout(() => {
+        navigate(location.state?.from?.pathname || "/", { replace: true });
+      }, 500);
     } catch (requestError) {
+      console.error("Login error:", requestError);
       const errorMsg =
         requestError?.response?.data?.detail ||
         requestError?.response?.data?.non_field_errors?.[0] ||

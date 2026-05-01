@@ -15,7 +15,22 @@
       "Bash(docker-compose -f docker-compose.prod.yml logs celery_beat)",
       "Bash(docker-compose -f docker-compose.prod.yml build)",
       "Bash(curl -s http://localhost/health/)",
-      "Bash(curl -s http://localhost:8000/api/)"
+      "Bash(curl -s http://localhost:8000/api/)",
+      "Bash(docker-compose *)",
+      "Bash(curl -s -X POST http://localhost:8000/api/token/ -H 'Content-Type: application/json' -d '{\"email\":\"admin@admin.com\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login/ -H 'Content-Type: application/json' -d '{\"email\":\"admin@admin.com\",\"password\":\"admin123\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost/api/v1/auth/login/ -H 'Content-Type: application/json' -d '{\"email\":\"admin@admin.com\",\"password\":\"admin123\"}')",
+      "Bash(docker exec *)",
+      "Bash(curl -s http://localhost/)",
+      "Bash(VITE_API_BASE_URL=/api/v1 npm run build)",
+      "Bash(curl -s http://localhost/ -H \"X-Requested-With: XMLHttpRequest\")",
+      "Bash(curl -s -X POST http://localhost/api/v1/auth/login/ -H 'Content-Type: application/json' -d '{\"email\":\"admin@admin.com\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -X OPTIONS http://localhost/api/v1/auth/login/ -H 'Origin: http://localhost' -H 'Access-Control-Request-Method: POST' -v)",
+      "Bash(curl -s -X POST http://localhost/api/v1/auth/login/ -H 'Content-Type: application/json' -H 'Origin: http://localhost' -d '{\"email\":\"admin@admin.com\",\"password\":\"admin123\"}' -v)",
+      "Bash(curl *)",
+      "Bash(mcp__plugin_playwright_playwright__browser_navigate *)"
     ]
   }
 }
