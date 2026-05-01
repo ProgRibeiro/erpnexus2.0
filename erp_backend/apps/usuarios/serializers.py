@@ -11,24 +11,16 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        email = attrs.get("email")
-        username = attrs.get("username")
-        password = attrs.get("password")
-
-        if not email and not username:
+        identifier = attrs.get("email") or attrs.get("username")
+        if not identifier:
             raise serializers.ValidationError("Informe email ou username.")
 
-        # If username is provided, look it up to get the email
-        if username and not email:
-            try:
-                user = Usuario.objects.get(username=username)
-                email = user.email
-            except Usuario.DoesNotExist:
-                raise serializers.ValidationError("Credenciais inválidas.")
-
-        user = authenticate(username=email, password=password)
+        user = authenticate(
+            username=identifier,
+            password=attrs.get("password"),
+        )
         if not user:
-            raise serializers.ValidationError(f"AUTH FAILED: email={email}")
+            raise serializers.ValidationError("Credenciais inválidas.")
         attrs["user"] = user
         return attrs
 

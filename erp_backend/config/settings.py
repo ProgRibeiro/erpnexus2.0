@@ -118,6 +118,10 @@ CSRF_TRUSTED_ORIGINS = env.list(
 )
 CORS_ALLOW_CREDENTIALS = True
 
+AUTHENTICATION_BACKENDS = [
+    "apps.usuarios.backends.EmailOrUsernameBackend",
+]
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
