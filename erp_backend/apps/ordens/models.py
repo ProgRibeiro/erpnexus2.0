@@ -205,7 +205,33 @@ class OrdemServico(models.Model):
 
 
 class ItemOrcamento(models.Model):
+    class OrigemTipo(models.TextChoices):
+        PRODUTO = "produto", "Produto"
+        SERVICO = "servico", "Serviço"
+        AVULSO = "avulso", "Item avulso"
+
     os = models.ForeignKey(OrdemServico, on_delete=models.CASCADE, related_name="itens")
+    origem_tipo = models.CharField(
+        max_length=20,
+        choices=OrigemTipo.choices,
+        default=OrigemTipo.AVULSO,
+    )
+    produto = models.ForeignKey(
+        "estoque.Produto",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itens_orcamento",
+    )
+    servico = models.ForeignKey(
+        "estoque.Servico",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itens_orcamento",
+    )
+    codigo_referencia = models.CharField(max_length=30, blank=True)
+    unidade_referencia = models.CharField(max_length=20, blank=True)
     descricao = models.TextField()
     quantidade = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     valor_unitario = models.DecimalField(max_digits=12, decimal_places=2)

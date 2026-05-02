@@ -24,12 +24,16 @@ import SaidaEstoquePage from "./pages/Estoque/SaidaEstoque";
 import LoginPage from "./pages/Auth/LoginPage";
 import NovaOS from "./pages/Ordens/NovaOS";
 import OrdensPage from "./pages/Ordens/OrdensPage";
+import OSDetalhe from "./pages/Ordens/OSDetalhe";
 import OrcamentoDetalhe from "./pages/Orcamentos/OrcamentoDetalhe";
+import ImpressaoOrcamento from "./pages/Orcamentos/ImpressaoOrcamento";
 import NovoOrcamento from "./pages/Orcamentos/NovoOrcamento";
 import OrcamentosPage from "./pages/Orcamentos/OrcamentosPage";
 import ProfilePage from "./pages/ProfilePage";
 import TecnicoMobilePage from "./pages/TecnicoMobile";
 import OSCampoPage from "./pages/TecnicoMobile/OSCampo";
+import FiscalPage from "./pages/Fiscal";
+import ServicosPage from "./pages/Servicos";
 
 export default function App() {
   useBootstrapAuth();
@@ -48,9 +52,11 @@ export default function App() {
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/ordens" element={<OrdensPage />} />
             <Route path="/ordens/novo" element={<NovaOS />} />
+            <Route path="/ordens/:id" element={<OSDetalhe />} />
             <Route path="/orcamentos" element={<OrcamentosPage />} />
             <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
             <Route path="/orcamentos/:id" element={<OrcamentoDetalhe />} />
+            <Route path="/orcamentos/:id/impressao" element={<ImpressaoOrcamento />} />
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
             <Route path="/crm" element={<CRMPage />} />
@@ -65,6 +71,8 @@ export default function App() {
             <Route path="/estoque/entrada" element={<EntradaEstoquePage />} />
             <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
             <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
+            <Route path="/servicos" element={<ServicosPage />} />
+            <Route path="/fiscal" element={<FiscalPage />} />
             <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
           </Route>

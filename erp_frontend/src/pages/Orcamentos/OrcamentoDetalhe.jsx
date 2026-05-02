@@ -26,8 +26,11 @@ import {
   EditOutlined,
   EyeOutlined,
   FilePdfOutlined,
+  PlusOutlined,
   ReloadOutlined,
+  SaveOutlined,
   SendOutlined,
+  ShoppingOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -35,66 +38,29 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import {
+  buildItemsPayload,
+  btnPrimaryStyle,
+  calcItemsTotals,
+  createEmptyItem,
+  formatBudgetStatus,
+  itemOriginOptions,
+  mapBackendItem,
+  mapProdutoToItem,
+  mapServicoToItem,
+  moneyFormatter,
+  normalizeList,
+  pageStyle,
+  panelStyle,
+  paymentOptions,
+  priorityOptions,
+  productUnitOptions,
+  serviceOptions,
+  serviceUnitOptions,
+} from "./shared";
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Title } = Typography;
 const { TextArea } = Input;
-
-const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-};
-
-const panelStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
-};
-
-const serviceOptions = [
-  { label: "HVAC", value: "hvac" },
-  { label: "Refrigeração", value: "refrigeracao" },
-  { label: "Elétrica", value: "eletrica" },
-  { label: "Civil", value: "civil" },
-  { label: "Preventiva", value: "manutencao" },
-  { label: "Instalação", value: "instalacao" },
-];
-
-const priorityOptions = [
-  { label: "Normal", value: "media" },
-  { label: "Urgente", value: "alta" },
-  { label: "Emergência", value: "urgente" },
-];
-
-const paymentOptions = [
-  { label: "À vista/Pix", value: "pix" },
-  { label: "30 dias", value: "30_dias" },
-  { label: "30/60 dias", value: "30_60_dias" },
-  { label: "30/60/90 dias", value: "30_60_90_dias" },
-  { label: "Boleto", value: "boleto" },
-  { label: "Cartão", value: "cartao" },
-];
-
-const budgetStatusConfig = {
-  rascunho: { label: "Rascunho", color: "default" },
-  enviado: { label: "Enviado", color: "blue" },
-  aprovado: { label: "Aprovado", color: "green" },
-  recusado: { label: "Recusado", color: "red" },
-  expirado: { label: "Expirado", color: "orange" },
-};
-
-const moneyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-function normalizeList(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  return [];
-}
 
 function getBudgetStatus(order) {
   const rawStatus = String(order?.status || "").toLowerCase();
@@ -109,34 +75,6 @@ function getBudgetStatus(order) {
   return "rascunho";
 }
 
-function buildPayload(values, items) {
-  return {
-    cliente: values.cliente,
-    contato_responsavel: values.contato_responsavel || null,
-    tipo_servico: values.tipo_servico,
-    prioridade: values.prioridade,
-    descricao_servico: values.descricao_servico,
-    condicao_pagamento: values.condicao_pagamento,
-    validade_orcamento: values.validade_orcamento?.format("YYYY-MM-DD") || null,
-    tem_pedido_compra: Boolean(values.tem_pedido_compra),
-    numero_pc: values.numero_pc || "",
-    valor_autorizado_pc: Number(values.valor_autorizado_pc || 0),
-    validade_pc: values.validade_pc?.format("YYYY-MM-DD") || null,
-    observacoes_tecnicas: values.observacoes || "",
-    itens: items.map((item, index) => ({
-      id: item.id,
-      descricao: item.descricao || `Item ${index + 1}`,
-      quantidade: Number(item.quantidade || 0),
-      valor_unitario: Number(item.valor_unitario || 0),
-      ordem: index,
-    })),
-  };
-}
-
-function itemTotal(item) {
-  return Number(item.quantidade || 0) * Number(item.valor_unitario || 0);
-}
-
 export default function OrcamentoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -149,35 +87,38 @@ export default function OrcamentoDetalhe() {
   const [clients, setClients] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [items, setItems] = useState([]);
+  const [produtos, setProdutos] = useState([]);
+  const [servicos, setServicos] = useState([]);
+  const [impostos, setImpostos] = useState(null);
   const [editMode, setEditMode] = useState(searchParams.get("modo") === "edicao");
   const [refusalModalOpen, setRefusalModalOpen] = useState(false);
   const [approvalModal, setApprovalModal] = useState({ open: false, tecnico_responsavel: null, data_agendada: null });
   const [refusalReason, setRefusalReason] = useState("");
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
+  const [catalogOrigin, setCatalogOrigin] = useState("servico");
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState(null);
 
   const isAdmin = ["admin", "gestor"].includes(String(user?.role || "").toLowerCase());
   const budgetStatus = getBudgetStatus(order);
+  const budgetStatusMeta = formatBudgetStatus(budgetStatus);
 
-  const totals = useMemo(() => {
-    const subtotal = items.reduce((accumulator, item) => accumulator + itemTotal(item), 0);
-    return {
-      subtotal,
-      total: subtotal,
-    };
-  }, [items]);
+  const totals = useMemo(() => calcItemsTotals(items), [items]);
 
   useEffect(() => {
-    let isMounted = true;
+    let active = true;
 
     async function loadDetail() {
       try {
         setLoading(true);
-        const [orderResponse, clientsResponse, ordersResponse] = await Promise.all([
+        const [orderResponse, clientsResponse, ordersResponse, produtosResponse, servicosResponse] = await Promise.all([
           api.get(`/ordens/${id}/`),
           api.get("/clientes/"),
           api.get("/ordens/"),
+          api.get("/estoque/produtos/"),
+          api.get("/estoque/servicos/"),
         ]);
 
-        if (!isMounted) return;
+        if (!active) return;
 
         const currentOrder = orderResponse.data;
         const allOrders = normalizeList(ordersResponse.data);
@@ -191,22 +132,20 @@ export default function OrcamentoDetalhe() {
           }
         });
 
-        if (user?.id && user?.nome_completo) {
+        if (user?.id && (user?.nome_completo || user?.nome)) {
           technicianMap.set(String(user.id), {
-            label: user.nome_completo,
+            label: user.nome_completo || user.nome,
             value: user.id,
           });
         }
 
         setClients(normalizeList(clientsResponse.data));
         setTechnicians(Array.from(technicianMap.values()));
+        setProdutos(normalizeList(produtosResponse.data));
+        setServicos(normalizeList(servicosResponse.data));
         setOrder(currentOrder);
-        setItems(
-          (currentOrder.itens || []).map((item, index) => ({
-            ...item,
-            key: item.id || `item-${index}`,
-          }))
-        );
+        setImpostos(currentOrder.dados_impostos || null);
+        setItems((currentOrder.itens || []).map((item, index) => mapBackendItem(item, index)));
 
         form.setFieldsValue({
           cliente: currentOrder.cliente,
@@ -223,18 +162,39 @@ export default function OrcamentoDetalhe() {
           observacoes: currentOrder.observacoes_tecnicas,
         });
       } catch {
-        if (isMounted) message.error("Não foi possível carregar o orçamento.");
+        if (active) message.error("Não foi possível carregar o orçamento.");
       } finally {
-        if (isMounted) setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
     loadDetail();
-
     return () => {
-      isMounted = false;
+      active = false;
     };
-  }, [form, id, user?.id, user?.nome_completo]);
+  }, [form, id, user?.id, user?.nome, user?.nome_completo]);
+
+  useEffect(() => {
+    if (!editMode) return undefined;
+    let active = true;
+
+    async function recalcularImpostos() {
+      try {
+        const response = await api.post("/fiscal/calcular-impostos/", {
+          valor_servicos: totals.valorServicos,
+          valor_materiais: totals.valorMateriais,
+        });
+        if (active) setImpostos(response.data || null);
+      } catch {
+        if (active) setImpostos(null);
+      }
+    }
+
+    recalcularImpostos();
+    return () => {
+      active = false;
+    };
+  }, [editMode, totals.valorMateriais, totals.valorServicos]);
 
   const selectedClient = useMemo(
     () => clients.find((cliente) => String(cliente.id) === String(form.getFieldValue("cliente"))),
@@ -245,12 +205,52 @@ export default function OrcamentoDetalhe() {
     setItems((current) => current.map((item) => (item.key === key ? { ...item, [field]: value } : item)));
   };
 
+  const removeItem = (key) => {
+    setItems((current) => (current.length > 1 ? current.filter((item) => item.key !== key) : current));
+  };
+
+  const addManualItem = () => setItems((current) => [...current, createEmptyItem(current.length)]);
+
+  const addCatalogItem = () => {
+    if (!selectedCatalogItem) {
+      message.warning("Selecione um item do catálogo.");
+      return;
+    }
+    const item =
+      catalogOrigin === "produto"
+        ? mapProdutoToItem(produtos.find((produto) => String(produto.id) === String(selectedCatalogItem)))
+        : mapServicoToItem(servicos.find((servico) => String(servico.id) === String(selectedCatalogItem)));
+    if (!item) {
+      message.error("Item não encontrado.");
+      return;
+    }
+    setItems((current) => [...current, item]);
+    setCatalogModalOpen(false);
+    setSelectedCatalogItem(null);
+  };
+
   const saveEdition = async () => {
     try {
       const values = await form.validateFields();
       setSaving(true);
-      const response = await api.patch(`/ordens/${id}/`, buildPayload(values, items));
+      const response = await api.patch(`/ordens/${id}/`, {
+        cliente: values.cliente,
+        contato_responsavel: values.contato_responsavel || null,
+        tipo_servico: values.tipo_servico,
+        prioridade: values.prioridade,
+        descricao_servico: values.descricao_servico,
+        tem_pedido_compra: Boolean(values.tem_pedido_compra),
+        numero_pc: values.numero_pc || "",
+        valor_autorizado_pc: Number(values.valor_autorizado_pc || 0),
+        validade_pc: values.validade_pc?.format("YYYY-MM-DD") || null,
+        condicao_pagamento: values.condicao_pagamento,
+        validade_orcamento: values.validade_orcamento?.format("YYYY-MM-DD") || null,
+        observacoes_tecnicas: values.observacoes || "",
+        itens: buildItemsPayload(items),
+      });
       setOrder(response.data);
+      setImpostos(response.data.dados_impostos || null);
+      setItems((response.data.itens || []).map((item, index) => mapBackendItem(item, index)));
       setEditMode(false);
       message.success("Orçamento atualizado com sucesso.");
     } catch {
@@ -316,18 +316,16 @@ export default function OrcamentoDetalhe() {
     }
   };
 
+  const openPrintPage = () => navigate(`/orcamentos/${id}/impressao`);
+
   const confirmRefusal = async () => {
     if (!refusalReason.trim()) {
       message.warning("Informe o motivo da recusa.");
       return;
     }
-
     try {
-      await api.post(`/ordens/${id}/mudar-status/`, {
-        status: "cancelada",
-        observacao: refusalReason,
-      });
-      setOrder((current) => ({ ...current, status: "cancelada", motivo_recusa: refusalReason }));
+      await api.post(`/ordens/${id}/mudar-status/`, { status: "cancelada", observacao: refusalReason });
+      setOrder((current) => ({ ...current, status: "cancelada" }));
       setRefusalModalOpen(false);
       setRefusalReason("");
       message.success("Orçamento recusado.");
@@ -342,11 +340,7 @@ export default function OrcamentoDetalhe() {
         tecnico_responsavel: approvalModal.tecnico_responsavel,
         data_agendada: approvalModal.data_agendada?.format("YYYY-MM-DD"),
       });
-
-      const response = await api.post(`/ordens/${id}/mudar-status/`, {
-        status: "aprovada",
-      });
-
+      const response = await api.post(`/ordens/${id}/mudar-status/`, { status: "aprovada" });
       const osId = response.data?.os_id || response.data?.ordem_servico_id || response.data?.id || id;
       message.success("Orçamento aprovado com sucesso.");
       setApprovalModal({ open: false, tecnico_responsavel: null, data_agendada: null });
@@ -356,68 +350,41 @@ export default function OrcamentoDetalhe() {
     }
   };
 
-  const actionButtons = {
-    rascunho: (
-      <Space wrap>
-        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)}>
-          Editar
-        </Button>
-        <Button type="primary" icon={<SendOutlined />} onClick={sendBudget} style={{ background: "#1B4F8A", borderColor: "#1B4F8A" }}>
-          Enviar
-        </Button>
-        <Button danger icon={<DeleteOutlined />} onClick={deleteBudget}>
-          Excluir
-        </Button>
-      </Space>
-    ),
-    enviado: (
-      <Space wrap>
-        <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => setApprovalModal({ open: true, tecnico_responsavel: null, data_agendada: dayjs().add(1, "day") })} style={{ background: "#15803D", borderColor: "#15803D" }}>
-          Aprovar
-        </Button>
-        <Button danger icon={<StopOutlined />} onClick={() => setRefusalModalOpen(true)}>
-          Recusar
-        </Button>
-        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)}>
-          Editar
-        </Button>
-      </Space>
-    ),
-    aprovado: (
-      <Space wrap>
-        <Button type="primary" icon={<EyeOutlined />} onClick={() => navigate(`/ordens/${order?.id}`)} style={{ background: "#15803D", borderColor: "#15803D" }}>
-          Ver OS gerada
-        </Button>
-        <Button icon={<FilePdfOutlined />} onClick={generatePdf}>
-          Gerar PDF
-        </Button>
-      </Space>
-    ),
-    recusado: (
-      <Space wrap>
-        <Button icon={<ReloadOutlined />} onClick={reopenBudget}>
-          Reabrir orçamento
-        </Button>
-      </Space>
-    ),
-    expirado: (
-      <Space wrap>
-        <Button icon={<ReloadOutlined />} onClick={reopenBudget}>
-          Reativar orçamento
-        </Button>
-      </Space>
-    ),
-  };
-
   const itemColumns = [
+    {
+      title: "Origem",
+      key: "origem_tipo",
+      width: 110,
+      render: (_, item) => (
+        <Tag color={item.origem_tipo === "servico" ? "blue" : item.origem_tipo === "produto" ? "gold" : "default"}>
+          {item.origem_tipo === "servico" ? "Serviço" : item.origem_tipo === "produto" ? "Produto" : "Avulso"}
+        </Tag>
+      ),
+    },
     {
       title: "Descrição",
       key: "descricao",
       render: (_, item) =>
         editMode ? (
-          <Input value={item.descricao} onChange={(event) => setItemField(item.key, "descricao", event.target.value)} />
+          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            <Input value={item.descricao} onChange={(event) => setItemField(item.key, "descricao", event.target.value)} />
+            <Space size={8} wrap>
+              <Input value={item.codigo_referencia} onChange={(event) => setItemField(item.key, "codigo_referencia", event.target.value)} style={{ width: 120 }} />
+              <Select
+                value={item.unidade_referencia || undefined}
+                onChange={(value) => setItemField(item.key, "unidade_referencia", value)}
+                options={[...productUnitOptions, ...serviceUnitOptions]}
+                style={{ width: 120 }}
+              />
+            </Space>
+          </Space>
         ) : (
-          item.descricao
+          <div>
+            <div style={{ fontWeight: 700, color: "#10233C" }}>{item.descricao}</div>
+            <div style={{ color: "#6B7280", fontSize: 12 }}>
+              {item.codigo_referencia || "-"} | {item.unidade_referencia || "-"}
+            </div>
+          </div>
         ),
     },
     {
@@ -434,7 +401,7 @@ export default function OrcamentoDetalhe() {
     {
       title: "Valor Unit (R$)",
       key: "valor_unitario",
-      width: 160,
+      width: 150,
       render: (_, item) =>
         editMode ? (
           <InputNumber min={0} step={0.01} value={item.valor_unitario} onChange={(value) => setItemField(item.key, "valor_unitario", value)} style={{ width: "100%" }} />
@@ -446,68 +413,81 @@ export default function OrcamentoDetalhe() {
       title: "Total",
       key: "total",
       width: 140,
-      render: (_, item) => <Text strong>{moneyFormatter.format(itemTotal(item))}</Text>,
+      render: (_, item) => <Text strong>{moneyFormatter.format(Number(item.quantidade || 0) * Number(item.valor_unitario || 0))}</Text>,
     },
+    ...(editMode
+      ? [{
+          title: "",
+          key: "remover",
+          width: 60,
+          render: (_, item) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeItem(item.key)} disabled={items.length === 1} />,
+        }]
+      : []),
   ];
 
   const timelineItems = [
-    {
-      color: "blue",
-      children: `Criado em: ${order?.criado_em ? dayjs(order.criado_em).format("DD/MM/YYYY HH:mm") : "-"}`,
-    },
-    budgetStatus !== "rascunho"
-      ? {
-          color: "cyan",
-          children: `Enviado em: ${order?.atualizado_em ? dayjs(order.atualizado_em).format("DD/MM/YYYY HH:mm") : "-"}`,
-        }
-      : null,
+    { color: "blue", children: `Criado em: ${order?.criado_em ? dayjs(order.criado_em).format("DD/MM/YYYY HH:mm") : "-"}` },
+    budgetStatus !== "rascunho" ? { color: "cyan", children: `Enviado em: ${order?.atualizado_em ? dayjs(order.atualizado_em).format("DD/MM/YYYY HH:mm") : "-"}` } : null,
+    budgetStatus === "aprovado" ? { color: "green", children: `Aprovado em: ${order?.data_aprovacao ? dayjs(order.data_aprovacao).format("DD/MM/YYYY HH:mm") : "-"}` } : null,
+    budgetStatus === "recusado" ? { color: "red", children: `Recusado em: ${order?.atualizado_em ? dayjs(order.atualizado_em).format("DD/MM/YYYY HH:mm") : "-"}` } : null,
     budgetStatus === "aprovado"
       ? {
           color: "green",
-          children: `Aprovado em: ${order?.data_aprovacao ? dayjs(order.data_aprovacao).format("DD/MM/YYYY HH:mm") : "-"}`,
-        }
-      : null,
-    budgetStatus === "recusado"
-      ? {
-          color: "red",
-          children: `Recusado em: ${order?.atualizado_em ? dayjs(order.atualizado_em).format("DD/MM/YYYY HH:mm") : "-"}`,
-        }
-      : null,
-    budgetStatus === "aprovado"
-      ? {
-          color: "green",
-          children: (
-            <span>
-              OS gerada:{" "}
-              <Button type="link" onClick={() => navigate(`/ordens/${order?.id}`)} style={{ padding: 0 }}>
-                abrir Ordem de Serviço
-              </Button>
-            </span>
-          ),
+          children: <Button type="link" onClick={() => navigate(`/ordens/${order?.id}`)} style={{ padding: 0 }}>OS gerada: abrir Ordem de Serviço</Button>,
         }
       : null,
   ].filter(Boolean);
 
+  const actionButtons = {
+    rascunho: (
+      <Space wrap>
+        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)}>Editar</Button>
+        <Button type="primary" icon={<SendOutlined />} onClick={sendBudget} style={btnPrimaryStyle}>Enviar</Button>
+        <Button icon={<EyeOutlined />} onClick={openPrintPage}>Imprimir</Button>
+        <Button danger icon={<DeleteOutlined />} onClick={deleteBudget}>Excluir</Button>
+      </Space>
+    ),
+    enviado: (
+      <Space wrap>
+        <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => setApprovalModal({ open: true, tecnico_responsavel: null, data_agendada: dayjs().add(1, "day") })} style={{ background: "#15803D", borderColor: "#15803D" }}>
+          Aprovar
+        </Button>
+        <Button danger icon={<StopOutlined />} onClick={() => setRefusalModalOpen(true)}>Recusar</Button>
+        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)}>Editar</Button>
+        <Button icon={<EyeOutlined />} onClick={openPrintPage}>Imprimir</Button>
+      </Space>
+    ),
+    aprovado: (
+      <Space wrap>
+        <Button type="primary" icon={<EyeOutlined />} onClick={() => navigate(`/ordens/${order?.id}`)} style={{ background: "#15803D", borderColor: "#15803D" }}>
+          Ver OS gerada
+        </Button>
+        <Button icon={<EyeOutlined />} onClick={openPrintPage}>Imprimir</Button>
+        <Button icon={<FilePdfOutlined />} onClick={generatePdf}>Gerar PDF</Button>
+      </Space>
+    ),
+    recusado: (
+      <Space wrap>
+        <Button icon={<ReloadOutlined />} onClick={reopenBudget}>Reabrir orçamento</Button>
+      </Space>
+    ),
+    expirado: (
+      <Space wrap>
+        <Button icon={<ReloadOutlined />} onClick={reopenBudget}>Reativar orçamento</Button>
+      </Space>
+    ),
+  };
+
   return (
     <div style={pageStyle}>
       <Card bordered={false} style={{ ...panelStyle, marginBottom: 16 }} bodyStyle={{ padding: 16 }}>
-        <div
-          style={{
-            alignItems: "center",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 12,
-            justifyContent: "space-between",
-          }}
-        >
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <Space direction="vertical" size={2}>
             <Title level={1} style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>
               {order?.numero || `ORC-${dayjs().year()}-${String(id).padStart(4, "0")}`}
             </Title>
             <Space size={10} wrap>
-              <Tag color={budgetStatusConfig[budgetStatus]?.color || "default"} style={{ borderRadius: 999, paddingInline: 10 }}>
-                {budgetStatusConfig[budgetStatus]?.label || "Rascunho"}
-              </Tag>
+              <Tag color={budgetStatusMeta.color} style={{ borderRadius: 999, paddingInline: 10 }}>{budgetStatusMeta.label}</Tag>
               {editMode ? <Tag color="processing">Modo edição</Tag> : null}
             </Space>
           </Space>
@@ -521,7 +501,7 @@ export default function OrcamentoDetalhe() {
           type="info"
           showIcon
           message="Modo edição ativo"
-          description="Os campos abaixo estão liberados para ajustes. Salve quando terminar."
+          description="Você pode ajustar cliente, escopo, itens do catálogo e valores antes de salvar novamente."
           style={{ ...panelStyle, marginBottom: 16 }}
         />
       ) : null}
@@ -529,25 +509,16 @@ export default function OrcamentoDetalhe() {
       <Form form={form} layout="vertical">
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
-              Cliente
-            </Title>
+            <Title level={4} style={{ marginTop: 0 }}>Cliente</Title>
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={12}>
                 <Form.Item label="Cliente" name="cliente">
-                  <Select
-                    disabled={!editMode}
-                    options={clients.map((cliente) => ({ label: cliente.nome, value: cliente.id }))}
-                  />
+                  <Select disabled={!editMode} options={clients.map((cliente) => ({ label: cliente.nome, value: cliente.id }))} />
                 </Form.Item>
               </Col>
               <Col xs={24} lg={12}>
                 <Form.Item label="Contato responsável" name="contato_responsavel">
-                  <Select
-                    disabled={!editMode}
-                    allowClear
-                    options={(selectedClient?.contatos || []).map((contato) => ({ label: contato.nome, value: contato.id }))}
-                  />
+                  <Select disabled={!editMode} allowClear options={(selectedClient?.contatos || []).map((contato) => ({ label: contato.nome, value: contato.id }))} />
                 </Form.Item>
               </Col>
             </Row>
@@ -559,38 +530,7 @@ export default function OrcamentoDetalhe() {
           </Card>
 
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
-              Pedido de compra do cliente
-            </Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Form.Item label="Cliente possui PC?" name="tem_pedido_compra" valuePropName="checked">
-                  <Select
-                    disabled={!editMode}
-                    options={[
-                      { label: "Sim", value: true },
-                      { label: "Não", value: false },
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item label="Número PC" name="numero_pc">
-                  <Input disabled={!editMode} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item label="Valor autorizado" name="valor_autorizado_pc">
-                  <InputNumber disabled={!editMode} style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
-
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
-              Serviço
-            </Title>
+            <Title level={4} style={{ marginTop: 0 }}>Serviço</Title>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
                 <Form.Item label="Tipo de serviço" name="tipo_servico">
@@ -612,6 +552,11 @@ export default function OrcamentoDetalhe() {
                   <TextArea disabled={!editMode} rows={4} />
                 </Form.Item>
               </Col>
+              <Col xs={24} md={8}>
+                <Form.Item label="Condição de pagamento" name="condicao_pagamento">
+                  <Select disabled={!editMode} options={paymentOptions} />
+                </Form.Item>
+              </Col>
               <Col xs={24}>
                 <Form.Item label="Observações e termos" name="observacoes">
                   <TextArea disabled={!editMode} rows={4} />
@@ -621,38 +566,45 @@ export default function OrcamentoDetalhe() {
           </Card>
 
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
-              Itens do orçamento
-            </Title>
+            <Space style={{ justifyContent: "space-between", width: "100%", marginBottom: 16 }} wrap>
+              <Title level={4} style={{ margin: 0 }}>Itens do orçamento</Title>
+              {editMode ? (
+                <Space wrap>
+                  <Button icon={<ShoppingOutlined />} onClick={() => setCatalogModalOpen(true)}>Selecionar do catálogo</Button>
+                  <Button icon={<PlusOutlined />} onClick={addManualItem}>Item avulso</Button>
+                </Space>
+              ) : null}
+            </Space>
             <Table columns={itemColumns} dataSource={items} pagination={false} rowKey="key" />
             <Divider />
-            <div style={{ alignItems: "center", display: "flex", justifyContent: "space-between" }}>
-              <Text style={{ color: "#6B7280" }}>Subtotal</Text>
-              <Text strong>{moneyFormatter.format(totals.subtotal)}</Text>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 14 }}>
+              <div><Text type="secondary">Subtotal serviços</Text><div style={{ fontWeight: 800 }}>{moneyFormatter.format(totals.valorServicos)}</div></div>
+              <div><Text type="secondary">Subtotal produtos</Text><div style={{ fontWeight: 800 }}>{moneyFormatter.format(totals.valorMateriais)}</div></div>
+              <div><Text type="secondary">Impostos</Text><div style={{ fontWeight: 800 }}>{moneyFormatter.format(Number(impostos?.total_impostos || 0))}</div></div>
             </div>
-            <div
-              style={{
-                alignItems: "center",
-                background: "#EFF6FF",
-                border: "1px solid #BFDBFE",
-                borderRadius: 12,
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: 12,
-                padding: 16,
-              }}
-            >
-              <Text style={{ color: "#1E40AF", fontSize: 16, fontWeight: 700 }}>Total geral</Text>
+            <Alert
+              type="info"
+              showIcon
+              style={{ borderRadius: 12 }}
+              message="Descrição dos impostos pagos"
+              description={
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span>ISS {moneyFormatter.format(impostos?.iss || 0)} | PIS {moneyFormatter.format(impostos?.pis || 0)} | COFINS {moneyFormatter.format(impostos?.cofins || 0)} | IRPJ {moneyFormatter.format(impostos?.irpj || 0)} | CSLL {moneyFormatter.format(impostos?.csll || 0)}</span>
+                  <span>Total estimado: <strong>{moneyFormatter.format(Number(impostos?.total_impostos || 0))}</strong></span>
+                  {impostos?.observacao ? <span>{impostos.observacao}</span> : null}
+                </div>
+              }
+            />
+            <div style={{ alignItems: "center", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, display: "flex", justifyContent: "space-between", marginTop: 12, padding: 16 }}>
+              <Text style={{ color: "#1E40AF", fontSize: 16, fontWeight: 700 }}>Total com impostos</Text>
               <Text style={{ color: "#1B4F8A", fontSize: 28, fontWeight: 800 }}>
-                {moneyFormatter.format(totals.total)}
+                {moneyFormatter.format(Number(impostos?.total_geral || order?.total_com_impostos || totals.subtotal || 0))}
               </Text>
             </div>
           </Card>
 
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
-              Timeline de status
-            </Title>
+            <Title level={4} style={{ marginTop: 0 }}>Timeline de status</Title>
             <Timeline items={timelineItems} />
           </Card>
         </Space>
@@ -661,13 +613,40 @@ export default function OrcamentoDetalhe() {
       {editMode ? (
         <Card bordered={false} style={{ ...panelStyle, marginTop: 16 }} bodyStyle={{ padding: 16 }}>
           <Space wrap>
-            <Button type="primary" icon={<EditOutlined />} onClick={saveEdition} loading={saving} style={{ background: "#1B4F8A", borderColor: "#1B4F8A" }}>
+            <Button type="primary" icon={<SaveOutlined />} onClick={saveEdition} loading={saving} style={btnPrimaryStyle}>
               Salvar alterações
             </Button>
             <Button onClick={() => setEditMode(false)}>Cancelar edição</Button>
           </Space>
         </Card>
       ) : null}
+
+      <Modal
+        open={catalogModalOpen}
+        title="Selecionar item do catálogo"
+        okText="Adicionar item"
+        cancelText="Cancelar"
+        onOk={addCatalogItem}
+        onCancel={() => {
+          setCatalogModalOpen(false);
+          setSelectedCatalogItem(null);
+        }}
+      >
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Select value={catalogOrigin} onChange={setCatalogOrigin} options={itemOriginOptions.filter((option) => option.value !== "avulso")} />
+          <Select
+            showSearch
+            optionFilterProp="label"
+            placeholder={catalogOrigin === "produto" ? "Selecione um produto" : "Selecione um serviço"}
+            value={selectedCatalogItem}
+            onChange={setSelectedCatalogItem}
+            options={(catalogOrigin === "produto" ? produtos : servicos).map((item) => ({
+              label: `${item.codigo || "-"} - ${item.nome}`,
+              value: item.id,
+            }))}
+          />
+        </Space>
+      </Modal>
 
       <Modal
         open={refusalModalOpen}
@@ -689,19 +668,8 @@ export default function OrcamentoDetalhe() {
         onCancel={() => setApprovalModal({ open: false, tecnico_responsavel: null, data_agendada: null })}
       >
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Select
-            allowClear
-            placeholder="Técnico responsável"
-            value={approvalModal.tecnico_responsavel ?? undefined}
-            onChange={(value) => setApprovalModal((current) => ({ ...current, tecnico_responsavel: value }))}
-            options={technicians}
-          />
-          <DatePicker
-            format="DD/MM/YYYY"
-            value={approvalModal.data_agendada}
-            onChange={(value) => setApprovalModal((current) => ({ ...current, data_agendada: value }))}
-            style={{ width: "100%" }}
-          />
+          <Select allowClear placeholder="Técnico responsável" value={approvalModal.tecnico_responsavel ?? undefined} onChange={(value) => setApprovalModal((current) => ({ ...current, tecnico_responsavel: value }))} options={technicians} />
+          <DatePicker format="DD/MM/YYYY" value={approvalModal.data_agendada} onChange={(value) => setApprovalModal((current) => ({ ...current, data_agendada: value }))} style={{ width: "100%" }} />
         </Space>
       </Modal>
     </div>
