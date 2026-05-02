@@ -32,7 +32,7 @@ export default function Header() {
   ];
 
   return (
-    <Layout.Header>
+    <Layout.Header className="erp-header">
       <div className="erp-topbar">
         <div className="erp-topbar-title">
           <span className="erp-topbar-kicker">ERP Unificado</span>

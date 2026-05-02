@@ -4,18 +4,20 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 
 export default function MainLayout() {
+  const sidebarWidth = 280;
+
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
       <Layout.Sider
-        width={260}
+        width={sidebarWidth}
+        className="erp-sidebar-shell"
         style={{
           position: 'fixed',
           left: 0,
-          top: 60,
+          top: 0,
           bottom: 0,
-          overflowY: 'auto',
-          zIndex: 100,
-          boxShadow: '12px 0 40px rgba(15, 46, 76, 0.05)',
+          overflow: 'hidden',
+          zIndex: 95,
         }}
         breakpoint="lg"
         collapsedWidth={0}
@@ -31,7 +33,7 @@ export default function MainLayout() {
         <Sidebar />
       </Layout.Sider>
 
-      <Layout style={{ marginLeft: 260, background: 'transparent' }}>
+      <Layout style={{ marginLeft: sidebarWidth, background: 'transparent' }}>
         <Header />
         <Layout.Content className="erp-shell-content">
           <div className="erp-shell-panel">
@@ -42,4 +44,3 @@ export default function MainLayout() {
     </Layout>
   );
 }
-
