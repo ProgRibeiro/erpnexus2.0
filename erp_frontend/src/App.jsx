@@ -22,7 +22,7 @@ import EstoquePage from "./pages/Estoque";
 import ProdutoDetalhePage from "./pages/Estoque/ProdutoDetalhe";
 import SaidaEstoquePage from "./pages/Estoque/SaidaEstoque";
 import LoginPage from "./pages/LoginPage";
-import OrdensPage from "./pages/OrdensPage";
+import OrdensPage from "./pages/Ordens/OrdensPage";
 import ProfilePage from "./pages/ProfilePage";
 import TecnicoMobilePage from "./pages/TecnicoMobile";
 import OSCampoPage from "./pages/TecnicoMobile/OSCampo";
