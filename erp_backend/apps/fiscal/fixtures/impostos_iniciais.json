@@ -1,0 +1,17 @@
+[
+  {
+    "model": "fiscal.tabelaimpostolucropresumido",
+    "pk": 1,
+    "fields": {
+      "descricao": "Tabela padrão Lucro Presumido 2025",
+      "pis": "0.65",
+      "cofins": "3.00",
+      "irpj_servicos": "4.80",
+      "csll_servicos": "2.88",
+      "irpj_comercio": "1.20",
+      "csll_comercio": "1.08",
+      "vigencia_inicio": "2025-01-01",
+      "ativo": true
+    }
+  }
+]

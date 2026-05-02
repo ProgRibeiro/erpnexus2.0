@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.notificacoes",
     "apps.portal",
     "apps.configuracoes",
+    "apps.fiscal",
 ]
 
 MIDDLEWARE = [
@@ -64,7 +65,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "templates", BASE_DIR / "frontend_dist"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -107,6 +108,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "frontend_dist"]
 
 MEDIA_URL = env("MEDIA_URL", default="/media/")
 MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")
