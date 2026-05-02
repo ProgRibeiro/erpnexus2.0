@@ -4,7 +4,7 @@ import AppShell from "./components/AppShell";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BottomNavigationBar from "./components/BottomNavigationBar";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
-import DashboardPage from "./pages/DashboardPage";
+import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";
 import AgendaPage from "./pages/Agenda";
