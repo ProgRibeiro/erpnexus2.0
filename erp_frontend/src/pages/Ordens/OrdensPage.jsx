@@ -547,13 +547,17 @@ function OrdensPage() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate("/ordens/nova")}
+            onClick={() => navigate("/ordens/novo")}
             style={{
               background: "#1B4F8A",
               borderColor: "#1B4F8A",
-              borderRadius: 8,
-              fontWeight: 700,
-              height: 40,
+              color: "#ffffff",
+              height: "40px",
+              paddingLeft: "20px",
+              paddingRight: "20px",
+              fontWeight: 500,
+              fontSize: "14px",
+              borderRadius: "8px",
             }}
           >
             Nova OS
@@ -656,8 +660,18 @@ function OrdensPage() {
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
-                      onClick={() => navigate("/ordens/nova")}
-                      style={{ background: "#1B4F8A", borderColor: "#1B4F8A", borderRadius: 8 }}
+                      onClick={() => navigate("/ordens/novo")}
+                      style={{
+                        background: "#1B4F8A",
+                        borderColor: "#1B4F8A",
+                        color: "#ffffff",
+                        height: "40px",
+                        paddingLeft: "20px",
+                        paddingRight: "20px",
+                        fontWeight: 500,
+                        fontSize: "14px",
+                        borderRadius: "8px",
+                      }}
                     >
                       Criar primeira OS
                     </Button>

@@ -36,6 +36,20 @@ export default function CRMPage() {
     }
   };
 
+  const criarPipelinePadrao = async () => {
+    try {
+      await crmService.criarPipeline({
+        nome: "Pipeline Comercial",
+        descricao: "Pipeline principal de vendas",
+        ativo: true,
+      });
+      message.success("Pipeline padrão criado");
+      await carregarPipelines();
+    } catch (error) {
+      message.error("Erro ao criar pipeline padrão");
+    }
+  };
+
   const carregarKanban = async (id = pipelineId) => {
     if (!id) return;
     setLoading(true);
@@ -109,26 +123,36 @@ export default function CRMPage() {
             <Typography.Text type="secondary">Pipeline comercial</Typography.Text>
           </div>
           <Space>
-            <Select
-              style={{ width: 260 }}
-              value={pipelineId}
-              onChange={setPipelineId}
-              options={pipelines.map((pipeline) => ({
-                value: pipeline.id,
-                label: pipeline.nome,
-              }))}
-            />
-            <Button type="primary" onClick={() => setModalOpen(true)}>
-              Nova oportunidade
-            </Button>
+            {pipelines.length > 0 ? (
+              <>
+                <Select
+                  style={{ width: 260 }}
+                  value={pipelineId}
+                  onChange={setPipelineId}
+                  options={pipelines.map((pipeline) => ({
+                    value: pipeline.id,
+                    label: pipeline.nome,
+                  }))}
+                />
+                <Button type="primary" onClick={() => setModalOpen(true)}>
+                  Nova oportunidade
+                </Button>
+              </>
+            ) : (
+              <Button type="primary" onClick={criarPipelinePadrao}>
+                Criar pipeline padrão
+              </Button>
+            )}
           </Space>
         </div>
-        <KanbanBoard
-          kanban={kanban}
-          loading={loading}
-          onMove={handleMove}
-          onOpen={handleOpen}
-        />
+        {pipelines.length > 0 && (
+          <KanbanBoard
+            kanban={kanban}
+            loading={loading}
+            onMove={handleMove}
+            onOpen={handleOpen}
+          />
+        )}
       </Card>
 
       <Modal

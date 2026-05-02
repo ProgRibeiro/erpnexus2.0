@@ -33,8 +33,11 @@ export default function Header() {
 
   return (
     <Layout.Header>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-        <div />
+      <div className="erp-topbar">
+        <div className="erp-topbar-title">
+          <span className="erp-topbar-kicker">ERP Unificado</span>
+          <span className="erp-topbar-heading">Central de Operações</span>
+        </div>
         <Space size="large">
           <Tooltip title="Notificações">
             <Badge count={0}>
@@ -49,9 +52,12 @@ export default function Header() {
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AvatarUsuario nome={user?.nome || 'Usuário'} size="small" />
-              <span style={{ fontSize: '14px', color: '#262626', fontWeight: '600' }}>
-                {user?.nome?.split(' ')[0] || 'Usuário'}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                <span style={{ fontSize: '14px', color: '#1a2a3a', fontWeight: '700' }}>
+                  {user?.nome?.split(' ')[0] || 'Usuário'}
+                </span>
+                <span className="erp-topbar-meta">Sessão ativa</span>
+              </div>
             </div>
           </Dropdown>
         </Space>

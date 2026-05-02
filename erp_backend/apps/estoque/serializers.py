@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import CategoriaProduto, MovimentacaoEstoque, Produto
+from .models import CategoriaProduto, MovimentacaoEstoque, Produto, Servico
 
 
 class CategoriaProdutoSerializer(serializers.ModelSerializer):
@@ -40,3 +40,10 @@ class ProdutoDetalheSerializer(ProdutoSerializer):
 
     class Meta(ProdutoSerializer.Meta):
         fields = "__all__"
+
+
+class ServicoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Servico
+        fields = "__all__"
+        read_only_fields = ["codigo", "criado_em"]

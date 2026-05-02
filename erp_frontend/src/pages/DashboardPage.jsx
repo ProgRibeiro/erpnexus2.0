@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, Col, Row, Table, Button, Empty, Spin } from "antd";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ArrowRightOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { MetricCard, StatusBadge } from "../components/ui";
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [ordens, setOrdens] = useState([]);
@@ -181,7 +183,7 @@ export default function DashboardPage() {
               <Button
                 type="link"
                 icon={<ArrowRightOutlined />}
-                href="/agenda/hoje"
+                onClick={() => navigate("/agenda/hoje")}
               >
                 Ver tudo
               </Button>
@@ -209,7 +211,7 @@ export default function DashboardPage() {
               <Button
                 type="link"
                 icon={<ArrowRightOutlined />}
-                href="/financeiro/lancamentos"
+                onClick={() => navigate("/financeiro/lancamentos")}
               >
                 Ver tudo
               </Button>

@@ -1,0 +1,48 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img "tool" [ref=e7]:
+        - img [ref=e8]
+      - generic [ref=e10]:
+        - paragraph [ref=e11]: ERP Produção
+        - generic [ref=e12]: Gestão de Serviços
+    - list [ref=e13]:
+      - listitem [ref=e14]:
+        - img "check-circle" [ref=e15]:
+          - img [ref=e16]
+        - text: Ordens de Serviço completas
+      - listitem [ref=e18]:
+        - img "check-circle" [ref=e19]:
+          - img [ref=e20]
+        - text: CRM e pipeline de vendas
+      - listitem [ref=e22]:
+        - img "check-circle" [ref=e23]:
+          - img [ref=e24]
+        - text: Financeiro e relatórios
+    - generic [ref=e26]: v1.0.0
+  - generic [ref=e28]:
+    - heading "Bem-vindo de volta" [level=1] [ref=e29]
+    - generic [ref=e30]: Faça login para acessar o sistema
+    - generic [ref=e32]:
+      - generic [ref=e34]:
+        - generic [ref=e37]: Email
+        - generic [ref=e41]:
+          - img "mail" [ref=e43]:
+            - img [ref=e44]
+          - textbox "Email" [ref=e46]:
+            - /placeholder: seu@email.com
+      - generic [ref=e48]:
+        - generic [ref=e51]: Senha
+        - generic [ref=e55]:
+          - img "lock" [ref=e57]:
+            - img [ref=e58]
+          - textbox "Senha" [ref=e60]:
+            - /placeholder: ••••••••
+          - img "eye-invisible" [ref=e62] [cursor=pointer]:
+            - img [ref=e63]
+      - generic [ref=e71] [cursor=pointer]:
+        - checkbox "Lembrar por 30 dias" [ref=e73]
+        - generic [ref=e75]: Lembrar por 30 dias
+      - button "Entrar" [ref=e81] [cursor=pointer]:
+        - generic [ref=e82]: Entrar
+      - generic [ref=e84] [cursor=pointer]: Esqueci minha senha

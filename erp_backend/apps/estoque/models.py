@@ -129,3 +129,66 @@ class MovimentacaoEstoque(models.Model):
 
     def __str__(self):
         return f"{self.produto} - {self.tipo} - {self.quantidade}"
+
+
+class Servico(models.Model):
+    class UnidadeMedida(models.TextChoices):
+        HORA = "hora", "Hora"
+        DIA = "dia", "Dia"
+        UNI = "uni", "Unitário"
+        LOTE = "lote", "Lote"
+
+    class Categoria(models.TextChoices):
+        HVAC = "hvac", "HVAC"
+        REFRIGERACAO = "refrigeracao", "Refrigeração"
+        ELETRICA = "eletrica", "Elétrica"
+        CIVIL = "civil", "Civil"
+        MANUTENCAO = "manutencao", "Manutenção"
+        INSTALACAO = "instalacao", "Instalação"
+
+    class Tributacao(models.TextChoices):
+        ISS = "iss", "ISS"
+        ICMS = "icms", "ICMS"
+        PIS_COFINS = "pis_cofins", "PIS/COFINS"
+
+    codigo = models.CharField(max_length=30, unique=True, blank=True, null=True)
+    nome = models.CharField(max_length=255)
+    descricao = models.TextField(blank=True)
+    categoria = models.CharField(
+        max_length=50,
+        choices=Categoria.choices,
+        default=Categoria.HVAC,
+    )
+    unidade_medida = models.CharField(
+        max_length=20,
+        choices=UnidadeMedida.choices,
+        default=UnidadeMedida.UNI,
+    )
+    preco_padrao = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tributacao = models.CharField(
+        max_length=30,
+        choices=Tributacao.choices,
+        default=Tributacao.ISS,
+    )
+    codigo_lc116 = models.CharField(max_length=10, blank=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["categoria", "nome"]
+        verbose_name = "Serviço"
+        verbose_name_plural = "Serviços"
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            self.codigo = self._gerar_codigo()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def _gerar_codigo(cls):
+        ultimo = cls.objects.exclude(codigo__isnull=True).filter(codigo__startswith="SRV-").order_by("codigo").last()
+        sequencial = int(ultimo.codigo.split("-")[-1]) + 1 if ultimo else 1
+        return f"SRV-{sequencial:06d}"
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nome}"

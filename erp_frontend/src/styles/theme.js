@@ -1,16 +1,16 @@
 export const theme = {
   token: {
-    colorPrimary: '#1B4F8A',
+    colorPrimary: '#0F5A88',
     colorSuccess: '#1A7A4A',
-    colorWarning: '#B45309',
+    colorWarning: '#D08A2F',
     colorError: '#B91C1C',
-    colorInfo: '#0284C7',
+    colorInfo: '#1D78B8',
 
     fontSize: 14,
-    fontFamily: '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif',
+    fontFamily: '"Manrope", "Segoe UI", system-ui, -apple-system, sans-serif',
 
-    borderRadius: 8,
-    borderRadiusLG: 12,
+    borderRadius: 10,
+    borderRadiusLG: 18,
     borderRadiusSM: 4,
     borderRadiusXS: 2,
 
@@ -19,15 +19,15 @@ export const theme = {
     controlHeightSM: 32,
 
     colorBgContainer: '#ffffff',
-    colorBgElevated: '#fafafa',
-    colorBgLayout: '#f5f5f5',
+    colorBgElevated: '#fbfdff',
+    colorBgLayout: '#eef3f9',
 
-    colorBorder: '#d9d9d9',
-    colorBorderSecondary: '#f0f0f0',
+    colorBorder: 'rgba(24, 55, 87, 0.14)',
+    colorBorderSecondary: 'rgba(24, 55, 87, 0.08)',
 
-    colorText: '#262626',
-    colorTextSecondary: '#595959',
-    colorTextTertiary: '#8c8c8c',
+    colorText: '#1a2a3a',
+    colorTextSecondary: '#5d7186',
+    colorTextTertiary: '#7b8ea3',
     colorTextQuaternary: '#bfbfbf',
 
     lineHeight: 1.5714285714,
@@ -38,16 +38,16 @@ export const theme = {
   components: {
     Button: {
       controlHeight: 38,
-      primaryColor: '#1B4F8A',
-      borderRadius: 8,
+      primaryColor: '#0F5A88',
+      borderRadius: 10,
       fontWeight: 600,
-      controlOutline: 'rgba(27, 79, 138, 0.1)',
+      controlOutline: 'rgba(15, 90, 136, 0.12)',
     },
 
     Card: {
-      borderRadiusLG: 8,
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      boxShadowSecondary: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      borderRadiusLG: 18,
+      boxShadow: '0 20px 50px rgba(15, 46, 76, 0.08)',
+      boxShadowSecondary: '0 20px 50px rgba(15, 46, 76, 0.08)',
     },
 
     Table: {
@@ -59,26 +59,26 @@ export const theme = {
     },
 
     Menu: {
-      itemBg: '#ffffff',
-      itemHoverColor: '#1B4F8A',
-      itemHoverBg: '#f0f7ff',
-      itemSelectedColor: '#1B4F8A',
-      itemSelectedBg: '#e6f4ff',
+      itemBg: 'transparent',
+      itemHoverColor: '#0F5A88',
+      itemHoverBg: '#eef6fb',
+      itemSelectedColor: '#0F5A88',
+      itemSelectedBg: '#e4f0f8',
       itemSelectedFontWeight: 600,
-      itemBorderRadius: 6,
+      itemBorderRadius: 10,
     },
 
     Input: {
       controlHeight: 38,
-      borderRadius: 8,
-      controlOutline: 'rgba(27, 79, 138, 0.1)',
+      borderRadius: 10,
+      controlOutline: 'rgba(15, 90, 136, 0.12)',
       colorTextPlaceholder: '#bfbfbf',
     },
 
     Select: {
       controlHeight: 38,
-      borderRadius: 8,
-      controlOutline: 'rgba(27, 79, 138, 0.1)',
+      borderRadius: 10,
+      controlOutline: 'rgba(15, 90, 136, 0.12)',
     },
 
     Tag: {
@@ -87,27 +87,27 @@ export const theme = {
     },
 
     Tabs: {
-      itemColor: '#8c8c8c',
-      itemHoverColor: '#1B4F8A',
-      itemSelectedColor: '#1B4F8A',
+      itemColor: '#7b8ea3',
+      itemHoverColor: '#0F5A88',
+      itemSelectedColor: '#0F5A88',
       itemSelectedBg: '#ffffff',
-      itemActiveWithIcon: '#1B4F8A',
-      inkBarColor: '#1B4F8A',
+      itemActiveWithIcon: '#0F5A88',
+      inkBarColor: '#0F5A88',
     },
 
     Layout: {
-      headerBg: '#ffffff',
+      headerBg: 'rgba(255, 255, 255, 0.82)',
       headerHeight: 60,
       headerPadding: '0 24px',
-      headerColor: '#262626',
-      siderBg: '#ffffff',
-      bodyBg: '#f5f5f5',
+      headerColor: '#1a2a3a',
+      siderBg: 'rgba(255, 255, 255, 0.92)',
+      bodyBg: '#eef3f9',
       footerBg: '#ffffff',
       footerPadding: '16px 50px',
     },
 
     Modal: {
-      borderRadiusLG: 8,
+      borderRadiusLG: 18,
       boxShadow: '0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
       contentBg: '#ffffff',
     },
@@ -127,7 +127,7 @@ export const theme = {
     },
 
     Notification: {
-      borderRadiusLG: 8,
+      borderRadiusLG: 18,
     },
   },
 };

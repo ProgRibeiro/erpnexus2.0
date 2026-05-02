@@ -47,6 +47,12 @@ export default function Sidebar() {
           label: 'Agenda',
           onClick: () => navigate('/agenda'),
         },
+        {
+          key: 'servicos',
+          icon: <FileTextOutlined />,
+          label: 'Serviços',
+          onClick: () => navigate('/servicos'),
+        },
       ],
     },
     {
@@ -93,6 +99,7 @@ export default function Sidebar() {
     if (location.pathname.startsWith('/ordens')) return 'ordens';
     if (location.pathname.startsWith('/clientes')) return 'clientes';
     if (location.pathname.startsWith('/agenda')) return 'agenda';
+    if (location.pathname.startsWith('/servicos')) return 'servicos';
     if (location.pathname.startsWith('/estoque')) return 'estoque';
     if (location.pathname.startsWith('/financeiro')) return 'financeiro';
     if (location.pathname.startsWith('/crm')) return 'crm';

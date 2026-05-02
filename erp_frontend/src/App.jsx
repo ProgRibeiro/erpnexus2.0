@@ -21,8 +21,12 @@ import EntradaEstoquePage from "./pages/Estoque/EntradaEstoque";
 import EstoquePage from "./pages/Estoque";
 import ProdutoDetalhePage from "./pages/Estoque/ProdutoDetalhe";
 import SaidaEstoquePage from "./pages/Estoque/SaidaEstoque";
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/Auth/LoginPage";
+import NovaOS from "./pages/Ordens/NovaOS";
 import OrdensPage from "./pages/Ordens/OrdensPage";
+import OrcamentoDetalhe from "./pages/Orcamentos/OrcamentoDetalhe";
+import NovoOrcamento from "./pages/Orcamentos/NovoOrcamento";
+import OrcamentosPage from "./pages/Orcamentos/OrcamentosPage";
 import ProfilePage from "./pages/ProfilePage";
 import TecnicoMobilePage from "./pages/TecnicoMobile";
 import OSCampoPage from "./pages/TecnicoMobile/OSCampo";
@@ -43,6 +47,10 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/ordens" element={<OrdensPage />} />
+            <Route path="/ordens/novo" element={<NovaOS />} />
+            <Route path="/orcamentos" element={<OrcamentosPage />} />
+            <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
+            <Route path="/orcamentos/:id" element={<OrcamentoDetalhe />} />
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
             <Route path="/crm" element={<CRMPage />} />

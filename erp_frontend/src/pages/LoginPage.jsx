@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Form, Input, Typography, Space, Row, Col } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -7,28 +7,35 @@ import authService from "../services/authService";
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { setAuth } = useAuth();
+  const { isAuthenticated, setAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const fromPath = location.state?.from?.pathname;
+    const redirectTo = fromPath && fromPath !== "/login" ? fromPath : "/dashboard";
+    navigate(redirectTo, { replace: true });
+  }, [isAuthenticated, location.state, navigate]);
 
   const onFinish = async (values) => {
     setLoading(true);
     setError("");
 
     try {
-      console.log("Iniciando login...", values);
       const data = await authService.login(values);
-      console.log("Login response:", data);
       setAuth(data);
       const fromPath = location.state?.from?.pathname;
-      const redirectTo = fromPath && fromPath !== "/" ? fromPath : "/dashboard";
-      console.log("Auth setado, navegando para", redirectTo);
-      setTimeout(() => {
-        navigate(redirectTo, { replace: true });
-      }, 500);
+      const redirectTo =
+        fromPath && fromPath !== "/" && fromPath !== "/login"
+          ? fromPath
+          : "/dashboard";
+      navigate(redirectTo, { replace: true });
     } catch (requestError) {
-      console.error("Login error:", requestError);
       const errorMsg =
         requestError?.response?.data?.detail ||
         requestError?.response?.data?.non_field_errors?.[0] ||

@@ -5,7 +5,7 @@ import Header from './Header';
 
 export default function MainLayout() {
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
       <Layout.Sider
         width={260}
         style={{
@@ -15,32 +15,28 @@ export default function MainLayout() {
           bottom: 0,
           overflowY: 'auto',
           zIndex: 100,
+          boxShadow: '12px 0 40px rgba(15, 46, 76, 0.05)',
         }}
         breakpoint="lg"
         collapsedWidth={0}
         trigger={null}
       >
-        <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #f0f0f0', marginBottom: '12px' }}>
-          <h2 style={{ margin: 0, color: '#1B4F8A', fontSize: '18px', fontWeight: 700 }}>
-            ERP Prod
-          </h2>
-          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#8c8c8c' }}>
-            Gestão de Serviços
+        <div className="erp-brand-panel">
+          <div className="erp-brand-mark">EP</div>
+          <h2 className="erp-brand-title">ERP Produção</h2>
+          <p className="erp-brand-subtitle">
+            Operações, financeiro, CRM, estoque e campo em um fluxo único.
           </p>
         </div>
         <Sidebar />
       </Layout.Sider>
 
-      <Layout style={{ marginLeft: 260 }}>
+      <Layout style={{ marginLeft: 260, background: 'transparent' }}>
         <Header />
-        <Layout.Content
-          style={{
-            padding: '24px',
-            background: '#f5f5f5',
-            minHeight: 'calc(100vh - 60px)',
-          }}
-        >
-          <Outlet />
+        <Layout.Content className="erp-shell-content">
+          <div className="erp-shell-panel">
+            <Outlet />
+          </div>
         </Layout.Content>
       </Layout>
     </Layout>

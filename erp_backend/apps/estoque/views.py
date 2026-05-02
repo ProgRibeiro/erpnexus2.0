@@ -1,15 +1,18 @@
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import CategoriaProduto, MovimentacaoEstoque, Produto
+from .models import CategoriaProduto, MovimentacaoEstoque, Produto, Servico
 from .serializers import (
     CategoriaProdutoSerializer,
     MovimentacaoEstoqueSerializer,
     ProdutoDetalheSerializer,
     ProdutoSerializer,
+    ServicoSerializer,
 )
+from .excel_import import ExcelImporter
 
 
 class CategoriaProdutoViewSet(viewsets.ModelViewSet):
@@ -84,3 +87,44 @@ def relatorio_estoque(request):
             }
         )
     return Response(dados)
+
+
+class ServicoViewSet(viewsets.ModelViewSet):
+    queryset = Servico.objects.all()
+    serializer_class = ServicoSerializer
+    filterset_fields = ["ativo", "categoria", "tributacao"]
+    search_fields = ["codigo", "nome", "descricao"]
+    ordering_fields = ["nome", "preco_padrao", "categoria", "criado_em"]
+    ordering = ["categoria", "nome"]
+
+
+class ImportExcelViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    @action(detail=False, methods=["post"])
+    def importar_clientes(self, request):
+        arquivo = request.FILES.get("arquivo")
+        if not arquivo:
+            return Response({"erro": "Arquivo não fornecido"}, status=400)
+
+        resultado = ExcelImporter.importar_clientes(arquivo)
+        return Response(resultado)
+
+    @action(detail=False, methods=["post"])
+    def importar_servicos(self, request):
+        arquivo = request.FILES.get("arquivo")
+        if not arquivo:
+            return Response({"erro": "Arquivo não fornecido"}, status=400)
+
+        resultado = ExcelImporter.importar_servicos(arquivo)
+        return Response(resultado)
+
+    @action(detail=False, methods=["post"])
+    def importar_produtos(self, request):
+        arquivo = request.FILES.get("arquivo")
+        if not arquivo:
+            return Response({"erro": "Arquivo não fornecido"}, status=400)
+
+        resultado = ExcelImporter.importar_produtos(arquivo)
+        return Response(resultado)

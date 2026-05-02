@@ -7,8 +7,9 @@ export default function BottomNavigationBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile(768);
+  const hiddenPaths = ['/login'];
 
-  if (!isMobile) {
+  if (!isMobile || hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/relatorio/')) {
     return null;
   }
 
@@ -24,7 +25,7 @@ export default function BottomNavigationBar() {
       id: 'today',
       label: 'Hoje',
       icon: CalendarOutlined,
-      path: '/tecnico-mobile'
+      path: '/agenda/hoje'
     },
     {
       id: 'os',
@@ -33,16 +34,16 @@ export default function BottomNavigationBar() {
       path: '/ordens'
     },
     {
-      id: 'chat',
-      label: 'Chat',
+      id: 'crm',
+      label: 'CRM',
       icon: MessageOutlined,
-      path: '/chat'
+      path: '/crm'
     },
     {
       id: 'profile',
       label: 'Perfil',
       icon: UserOutlined,
-      path: '/profile'
+      path: '/perfil'
     }
   ];
 
