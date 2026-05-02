@@ -1,0 +1,85 @@
+[
+  {
+    "model": "crm.pipeline",
+    "pk": 1,
+    "fields": {
+      "nome": "Pipeline Comercial",
+      "descricao": "Pipeline principal de vendas",
+      "ativo": true,
+      "criado_por": null,
+      "criado_em": "2026-05-02T10:00:00Z"
+    }
+  },
+  {
+    "model": "crm.colunapipeline",
+    "pk": 1,
+    "fields": {
+      "pipeline": 1,
+      "nome": "Novo Lead",
+      "ordem": 1,
+      "cor": "#9099A8",
+      "eh_ganho": false,
+      "eh_perdido": false
+    }
+  },
+  {
+    "model": "crm.colunapipeline",
+    "pk": 2,
+    "fields": {
+      "pipeline": 1,
+      "nome": "Contato Feito",
+      "ordem": 2,
+      "cor": "#1B4F8A",
+      "eh_ganho": false,
+      "eh_perdido": false
+    }
+  },
+  {
+    "model": "crm.colunapipeline",
+    "pk": 3,
+    "fields": {
+      "pipeline": 1,
+      "nome": "Proposta Enviada",
+      "ordem": 3,
+      "cor": "#B45309",
+      "eh_ganho": false,
+      "eh_perdido": false
+    }
+  },
+  {
+    "model": "crm.colunapipeline",
+    "pk": 4,
+    "fields": {
+      "pipeline": 1,
+      "nome": "Negociação",
+      "ordem": 4,
+      "cor": "#5B21B6",
+      "eh_ganho": false,
+      "eh_perdido": false
+    }
+  },
+  {
+    "model": "crm.colunapipeline",
+    "pk": 5,
+    "fields": {
+      "pipeline": 1,
+      "nome": "Ganho",
+      "ordem": 5,
+      "cor": "#1A7A4A",
+      "eh_ganho": true,
+      "eh_perdido": false
+    }
+  },
+  {
+    "model": "crm.colunapipeline",
+    "pk": 6,
+    "fields": {
+      "pipeline": 1,
+      "nome": "Perdido",
+      "ordem": 6,
+      "cor": "#B91C1C",
+      "eh_ganho": false,
+      "eh_perdido": true
+    }
+  }
+]

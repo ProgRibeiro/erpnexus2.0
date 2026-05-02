@@ -24,6 +24,12 @@ export default function Sidebar() {
       type: 'group',
       children: [
         {
+          key: 'orcamentos',
+          icon: <FileTextOutlined />,
+          label: 'Orçamentos',
+          onClick: () => navigate('/orcamentos'),
+        },
+        {
           key: 'ordens',
           icon: <FileTextOutlined />,
           label: 'Ordens de Serviço',
@@ -83,6 +89,7 @@ export default function Sidebar() {
 
   const getSelectedKey = () => {
     if (location.pathname === '/' || location.pathname === '/dashboard') return 'dashboard';
+    if (location.pathname.startsWith('/orcamentos')) return 'orcamentos';
     if (location.pathname.startsWith('/ordens')) return 'ordens';
     if (location.pathname.startsWith('/clientes')) return 'clientes';
     if (location.pathname.startsWith('/agenda')) return 'agenda';

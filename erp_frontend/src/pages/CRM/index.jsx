@@ -64,8 +64,12 @@ export default function CRMPage() {
   }, []);
 
   useEffect(() => {
+    if (!pipelineId && pipelines.length) {
+      setPipelineId(pipelines[0].id);
+      return;
+    }
     carregarKanban(pipelineId);
-  }, [pipelineId]);
+  }, [pipelineId, pipelines]);
 
   const handleMove = async (oportunidadeId, colunaId) => {
     await crmService.moverOportunidade(oportunidadeId, { coluna: colunaId });
