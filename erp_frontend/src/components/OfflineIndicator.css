@@ -1,0 +1,19 @@
+.offline-indicator {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.offline-indicator:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}

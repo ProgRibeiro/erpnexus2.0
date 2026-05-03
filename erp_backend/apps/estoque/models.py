@@ -7,8 +7,11 @@ from apps.ordens.models import OrdemServico
 
 
 class CategoriaProduto(models.Model):
-    nome = models.CharField(max_length=120)
+    nome = models.CharField(max_length=120, unique=True)
     descricao = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["nome"]
@@ -57,7 +60,41 @@ class Produto(models.Model):
         verbose_name_plural = "Produtos"
 
     def __str__(self):
-        return f"{self.codigo or '-'} - {self.nome}"
+        return f"{self.codigo} - {self.nome}"
+
+
+class AlertaEstoque(models.Model):
+    class TipoAlerta(models.TextChoices):
+        ESTOQUE_BAIXO = "estoque_baixo", "Estoque Baixo"
+        SEM_ESTOQUE = "sem_estoque", "Sem Estoque"
+        FORA_MINIMO = "fora_minimo", "Fora do Mínimo"
+
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.CASCADE,
+        related_name="alertas"
+    )
+    tipo = models.CharField(
+        max_length=50,
+        choices=TipoAlerta.choices,
+        default=TipoAlerta.ESTOQUE_BAIXO
+    )
+    descricao = models.TextField()
+    lido = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    resolvido_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Alerta de Estoque"
+        verbose_name_plural = "Alertas de Estoque"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["lido", "-criado_em"]),
+            models.Index(fields=["produto"]),
+        ]
+
+    def __str__(self):
+        return f"{self.produto.nome} - {self.tipo}"
 
     def save(self, *args, **kwargs):
         if not self.codigo:
@@ -83,6 +120,23 @@ class Produto(models.Model):
         ).aggregate(total=Sum("quantidade"))["total"] or 0
         return entradas + ajustes - saidas
 
+    @property
+    def em_alerta(self):
+        """Verifica se está abaixo do estoque mínimo"""
+        return self.estoque_atual <= self.estoque_minimo
+
+    @property
+    def margem_unitaria(self):
+        """Calcula margem unitária: preço_venda - preço_custo"""
+        return self.preco_venda - self.preco_custo
+
+    @property
+    def margem_percentual(self):
+        """Calcula margem percentual"""
+        if self.preco_custo > 0:
+            return ((self.preco_venda - self.preco_custo) / self.preco_custo) * 100
+        return 0
+
 
 class MovimentacaoEstoque(models.Model):
     class Tipo(models.TextChoices):
@@ -97,6 +151,8 @@ class MovimentacaoEstoque(models.Model):
         PERDA = "perda", "Perda"
         AJUSTE_INVENTARIO = "ajuste_inventario", "Ajuste de inventario"
         DEVOLUCAO = "devolucao", "Devolucao"
+        CONSUMO_INTERNO = "consumo_interno", "Consumo Interno"
+        AMOSTRA = "amostra", "Amostra"
 
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="movimentacoes")
     tipo = models.CharField(max_length=20, choices=Tipo.choices)
@@ -129,6 +185,11 @@ class MovimentacaoEstoque(models.Model):
 
     def __str__(self):
         return f"{self.produto} - {self.tipo} - {self.quantidade}"
+
+    @property
+    def valor_total(self):
+        """Calcula valor total da movimentação"""
+        return self.quantidade * self.valor_unitario
 
 
 class Servico(models.Model):

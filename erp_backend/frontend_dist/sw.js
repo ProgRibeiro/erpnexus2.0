@@ -1,6 +1,6 @@
-const CACHE_NAME = 'erp-cache-v1';
-const API_CACHE = 'erp-api-v1';
-const IMAGE_CACHE = 'erp-images-v1';
+const CACHE_NAME = 'erp-cache-v2';
+const API_CACHE = 'erp-api-v2';
+const IMAGE_CACHE = 'erp-images-v2';
 const OFFLINE_QUEUE_DB = 'ERPOfflineQueue';
 const PHOTOS_DB = 'ERPPhotosDB';
 
@@ -54,7 +54,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (request.method === 'GET') {
-    if (isImageRequest(url)) {
+    if (request.mode === 'navigate') {
+      event.respondWith(networkFirstNavigationStrategy(request));
+    } else if (isImageRequest(url)) {
       event.respondWith(cacheFirstImageStrategy(request));
     } else if (url.pathname.startsWith('/api/')) {
       event.respondWith(networkFirstApiStrategy(request));
@@ -65,6 +67,38 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(offlineQueueStrategy(request));
   }
 });
+
+async function networkFirstNavigationStrategy(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+      return response;
+    }
+    throw new Error('Falha ao carregar navegação');
+  } catch (error) {
+    console.log('[SW] Fallback de navegação por cache:', error);
+    const cachedRequest = await caches.match(request);
+    if (cachedRequest) {
+      return cachedRequest;
+    }
+
+    const fallbackIndex =
+      (await caches.match('/index.html')) ||
+      (await caches.match('/static/index.html')) ||
+      (await caches.match('/'));
+
+    if (fallbackIndex) {
+      return fallbackIndex;
+    }
+
+    return new Response('Offline - Página não disponível', {
+      status: 503,
+      statusText: 'Service Unavailable'
+    });
+  }
+}
 
 function isImageRequest(url) {
   return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url.pathname);
@@ -502,4 +536,3 @@ async function queueChat(chatData) {
     console.log('[SW] Erro ao enfileirar chat:', error);
   }
 }
-

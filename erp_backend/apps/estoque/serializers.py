@@ -1,45 +1,135 @@
 from rest_framework import serializers
 
-from .models import CategoriaProduto, MovimentacaoEstoque, Produto, Servico
+from .models import CategoriaProduto, MovimentacaoEstoque, Produto, Servico, AlertaEstoque
 
 
 class CategoriaProdutoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CategoriaProduto
-        fields = "__all__"
+        fields = ["id", "nome", "descricao", "ativo", "criado_em", "atualizado_em"]
+        read_only_fields = ["id", "criado_em", "atualizado_em"]
 
 
 class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
     produto_nome = serializers.CharField(source="produto.nome", read_only=True)
     produto_codigo = serializers.CharField(source="produto.codigo", read_only=True)
-    os_numero = serializers.CharField(source="os.numero", read_only=True)
+    os_numero = serializers.CharField(source="os.numero", read_only=True, allow_null=True)
     realizado_por_nome = serializers.CharField(source="realizado_por.nome_completo", read_only=True)
+    valor_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = MovimentacaoEstoque
-        fields = "__all__"
-        read_only_fields = ["realizado_por"]
+        fields = [
+            "id",
+            "produto",
+            "produto_nome",
+            "produto_codigo",
+            "tipo",
+            "quantidade",
+            "valor_unitario",
+            "valor_total",
+            "motivo",
+            "os",
+            "os_numero",
+            "fornecedor",
+            "numero_nota",
+            "observacoes",
+            "realizado_por",
+            "realizado_por_nome",
+            "data_movimentacao",
+            "criado_em",
+            "atualizado_em",
+        ]
+        read_only_fields = ["id", "realizado_por", "criado_em", "atualizado_em", "valor_total"]
+
+    def validate_quantidade(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantidade deve ser maior que zero")
+        return value
+
+    def validate_valor_unitario(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Valor unitário não pode ser negativo")
+        return value
+
+
+class AlertaEstoqueSerializer(serializers.ModelSerializer):
+    produto_nome = serializers.CharField(source="produto.nome", read_only=True)
+    produto_codigo = serializers.CharField(source="produto.codigo", read_only=True)
+
+    class Meta:
+        model = AlertaEstoque
+        fields = [
+            "id",
+            "produto",
+            "produto_nome",
+            "produto_codigo",
+            "tipo",
+            "descricao",
+            "lido",
+            "criado_em",
+            "resolvido_em",
+        ]
+        read_only_fields = ["id", "produto", "tipo", "descricao", "criado_em"]
 
 
 class ProdutoSerializer(serializers.ModelSerializer):
     categoria_nome = serializers.CharField(source="categoria.nome", read_only=True)
-    estoque_atual = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
-    abaixo_minimo = serializers.SerializerMethodField()
+    estoque_atual = serializers.SerializerMethodField()
+    em_alerta = serializers.SerializerMethodField()
+    margem_unitaria = serializers.SerializerMethodField()
+    margem_percentual = serializers.SerializerMethodField()
 
     class Meta:
         model = Produto
-        fields = "__all__"
-        read_only_fields = ["codigo", "criado_em", "estoque_atual", "abaixo_minimo"]
+        fields = [
+            "id",
+            "codigo",
+            "nome",
+            "descricao",
+            "categoria",
+            "categoria_nome",
+            "unidade_medida",
+            "preco_custo",
+            "preco_venda",
+            "estoque_minimo",
+            "localizacao",
+            "ativo",
+            "estoque_atual",
+            "em_alerta",
+            "margem_unitaria",
+            "margem_percentual",
+            "criado_em",
+        ]
+        read_only_fields = [
+            "id",
+            "codigo",
+            "criado_em",
+            "estoque_atual",
+            "em_alerta",
+            "margem_unitaria",
+            "margem_percentual",
+        ]
 
-    def get_abaixo_minimo(self, obj):
-        return obj.estoque_atual < obj.estoque_minimo
+    def get_estoque_atual(self, obj):
+        return obj.estoque_atual
+
+    def get_em_alerta(self, obj):
+        return obj.em_alerta
+
+    def get_margem_unitaria(self, obj):
+        return obj.margem_unitaria
+
+    def get_margem_percentual(self, obj):
+        return obj.margem_percentual
 
 
 class ProdutoDetalheSerializer(ProdutoSerializer):
     movimentacoes = MovimentacaoEstoqueSerializer(many=True, read_only=True)
+    alertas = AlertaEstoqueSerializer(many=True, read_only=True)
 
     class Meta(ProdutoSerializer.Meta):
-        fields = "__all__"
+        fields = ProdutoSerializer.Meta.fields + ["movimentacoes", "alertas"]
 
 
 class ServicoSerializer(serializers.ModelSerializer):

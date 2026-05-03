@@ -9,7 +9,9 @@ class UsuarioPortal(models.Model):
     email = models.EmailField(unique=True)
     senha = models.CharField(max_length=128)
     ativo = models.BooleanField(default=True)
+    ultimo_acesso = models.DateTimeField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["email"]

@@ -34,3 +34,9 @@ pnpm-debug.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Arquivos locais de ferramentas
+.openclaude-profile.json
+.env
+.env.*
+!.env.example

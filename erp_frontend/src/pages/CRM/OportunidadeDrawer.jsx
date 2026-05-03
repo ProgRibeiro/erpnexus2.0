@@ -1,4 +1,29 @@
-import { Button, Descriptions, Divider, Drawer, Form, Input, List, message, Space, Tag, Timeline } from "antd";
+import {
+  Button,
+  Descriptions,
+  Divider,
+  Drawer,
+  Form,
+  Input,
+  List,
+  message,
+  Space,
+  Tag,
+  Timeline,
+  Badge,
+  Avatar,
+  Card,
+  Row,
+  Col,
+  Tooltip,
+} from "antd";
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  MailOutlined,
+} from "@ant-design/icons";
 
 import crmService from "../../services/crm";
 import AtividadeForm from "./AtividadeForm";
@@ -9,37 +34,60 @@ const formatCurrency = (value) =>
     currency: "BRL",
   });
 
-export default function OportunidadeDrawer({
-  oportunidade,
-  open,
-  onClose,
-  onRefresh,
-}) {
+const prioridadeConfig = {
+  baixa: { color: "green", label: "Baixa" },
+  media: { color: "orange", label: "Média" },
+  alta: { color: "red", label: "Alta" },
+  urgente: { color: "purple", label: "Urgente" },
+};
+
+export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefresh }) {
   const [emailForm] = Form.useForm();
 
   const handleAtividade = async (payload) => {
-    await crmService.criarAtividade(payload);
-    message.success("Atividade registrada");
-    onRefresh();
+    try {
+      await crmService.criarAtividade(payload);
+      message.success("Atividade registrada com sucesso");
+      onRefresh();
+    } catch (error) {
+      message.error("Erro ao registrar atividade");
+    }
   };
 
   const handleConverter = async () => {
-    const os = await crmService.converterOrcamento(oportunidade.id);
-    message.success(`OS ${os.numero} criada`);
-    onRefresh();
+    try {
+      const os = await crmService.converterOrcamento(oportunidade.id);
+      message.success(`Ordem de Serviço ${os.numero} criada com sucesso`);
+      onRefresh();
+    } catch (error) {
+      message.error("Erro ao converter para ordem de serviço");
+    }
   };
 
   const handleEmail = async (values) => {
-    await crmService.enviarEmail(oportunidade.id, values);
-    emailForm.resetFields();
-    message.success("Email registrado");
-    onRefresh();
+    try {
+      await crmService.enviarEmail(oportunidade.id, values);
+      emailForm.resetFields();
+      message.success("Email registrado com sucesso");
+      onRefresh();
+    } catch (error) {
+      message.error("Erro ao registrar email");
+    }
   };
+
+  const prioridade = prioridadeConfig[oportunidade?.prioridade] || prioridadeConfig.media;
 
   return (
     <Drawer
       width={720}
-      title={oportunidade?.titulo}
+      title={
+        oportunidade && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span>{oportunidade.titulo}</span>
+            <Tag color={prioridade.color}>{prioridade.label}</Tag>
+          </div>
+        )
+      }
       open={open}
       onClose={onClose}
       extra={
@@ -47,99 +95,216 @@ export default function OportunidadeDrawer({
           Converter em OS
         </Button>
       }
+      bodyStyle={{ paddingBottom: 80 }}
     >
       {oportunidade && (
         <Space direction="vertical" size={20} style={{ width: "100%" }}>
+          {/* Informações principais */}
+          <Card size="small">
+            <Row gutter={16}>
+              <Col span={12}>
+                <div>
+                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                    CLIENTE
+                  </span>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>
+                    {oportunidade.cliente_nome}
+                  </div>
+                </div>
+              </Col>
+              <Col span={12}>
+                <div>
+                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                    CONTATO
+                  </span>
+                  <div style={{ fontSize: 14, marginTop: 4 }}>
+                    {oportunidade.contato_nome || "-"}
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Detalhes financeiros */}
+          <Card size="small">
+            <Row gutter={16}>
+              <Col span={12}>
+                <div>
+                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                    VALOR ESTIMADO
+                  </span>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#1B4F8A", marginTop: 4 }}>
+                    {formatCurrency(oportunidade.valor_estimado)}
+                  </div>
+                </div>
+              </Col>
+              <Col span={12}>
+                <div>
+                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                    PROBABILIDADE
+                  </span>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>
+                    {oportunidade.probabilidade}%
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Detalhes adicionais */}
           <Descriptions bordered column={2} size="small">
-            <Descriptions.Item label="Cliente">
-              {oportunidade.cliente_nome}
-            </Descriptions.Item>
-            <Descriptions.Item label="Contato">
-              {oportunidade.contato_nome || "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Valor">
-              {formatCurrency(oportunidade.valor_estimado)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Responsavel">
-              {oportunidade.responsavel_nome || "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Prioridade">
-              <Tag>{oportunidade.prioridade}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Probabilidade">
-              {oportunidade.probabilidade}%
+            <Descriptions.Item label="Responsável">
+              {oportunidade.responsavel_nome ? (
+                <Space size={4}>
+                  <Avatar size={24} icon={<UserOutlined />} />
+                  {oportunidade.responsavel_nome}
+                </Space>
+              ) : (
+                "-"
+              )}
             </Descriptions.Item>
             <Descriptions.Item label="Origem">
               {oportunidade.origem || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Fechamento">
-              {oportunidade.data_fechamento_prevista || "-"}
+            <Descriptions.Item label="Data Fechamento Prevista">
+              {oportunidade.data_fechamento_prevista
+                ? new Date(oportunidade.data_fechamento_prevista).toLocaleDateString("pt-BR")
+                : "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Descricao" span={2}>
-              {oportunidade.descricao || "-"}
+            <Descriptions.Item label="Status">
+              <Badge status="processing" text="Ativa" />
             </Descriptions.Item>
           </Descriptions>
 
-          <Divider orientation="left">Atividades</Divider>
-          <AtividadeForm oportunidadeId={oportunidade.id} onSubmit={handleAtividade} />
-          <Timeline
-            items={(oportunidade.atividades || []).map((atividade) => ({
-              color: atividade.concluida ? "green" : "blue",
-              children: (
-                <Space direction="vertical" size={2}>
-                  <strong>{atividade.titulo}</strong>
-                  <span>{atividade.descricao}</span>
-                  <span>{atividade.usuario_nome || ""}</span>
-                </Space>
-              ),
-            }))}
-          />
+          {/* Descrição */}
+          {oportunidade.descricao && (
+            <Card size="small" title={<FileTextOutlined />}>
+              <Typography.Paragraph>{oportunidade.descricao}</Typography.Paragraph>
+            </Card>
+          )}
 
-          <Divider orientation="left">Enviar email</Divider>
-          <Form form={emailForm} layout="vertical" onFinish={handleEmail}>
-            <Form.Item
-              name="destinatario_email"
-              label="Destinatario"
-              rules={[{ required: true, message: "Informe o email" }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item name="destinatario_nome" label="Nome">
-              <Input />
-            </Form.Item>
-            <Form.Item
-              name="assunto"
-              label="Assunto"
-              rules={[{ required: true, message: "Informe o assunto" }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              name="corpo"
-              label="Corpo"
-              rules={[{ required: true, message: "Informe o corpo" }]}
-            >
-              <Input.TextArea rows={4} />
-            </Form.Item>
-            <Button type="primary" htmlType="submit">
-              Enviar
-            </Button>
-          </Form>
-
-          <Divider orientation="left">Emails</Divider>
-          <List
-            dataSource={oportunidade.emails || []}
-            renderItem={(email) => (
-              <List.Item>
-                <List.Item.Meta
-                  title={email.assunto}
-                  description={`${email.destinatario_email} - ${email.status}`}
-                />
-              </List.Item>
+          {/* Atividades */}
+          <div>
+            <Divider orientation="left" style={{ fontSize: 13, fontWeight: 600 }}>
+              Atividades
+            </Divider>
+            <AtividadeForm oportunidadeId={oportunidade.id} onSubmit={handleAtividade} />
+            {(oportunidade.atividades || []).length > 0 ? (
+              <Timeline
+                style={{ marginTop: 16 }}
+                items={(oportunidade.atividades || []).map((atividade) => ({
+                  dot: atividade.concluida ? (
+                    <CheckCircleOutlined style={{ fontSize: 16, color: "#10b981" }} />
+                  ) : (
+                    <ClockCircleOutlined style={{ fontSize: 16, color: "#3b82f6" }} />
+                  ),
+                  color: atividade.concluida ? "green" : "blue",
+                  children: (
+                    <Card size="small" style={{ marginBottom: 8 }}>
+                      <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                        <div>
+                          <Tag color="blue">{atividade.tipo}</Tag>
+                          <strong>{atividade.titulo}</strong>
+                          {atividade.concluida && (
+                            <Tag color="green" style={{ marginLeft: 8 }}>
+                              Concluída
+                            </Tag>
+                          )}
+                        </div>
+                        {atividade.descricao && (
+                          <Typography.Paragraph style={{ marginBottom: 0, fontSize: 12 }}>
+                            {atividade.descricao}
+                          </Typography.Paragraph>
+                        )}
+                        <Space direction="vertical" size={0} style={{ fontSize: 11, color: "#9099a8" }}>
+                          {atividade.usuario_nome && <div>👤 {atividade.usuario_nome}</div>}
+                          {atividade.data_atividade && (
+                            <div>📅 {new Date(atividade.data_atividade).toLocaleString("pt-BR")}</div>
+                          )}
+                        </Space>
+                      </Space>
+                    </Card>
+                  ),
+                }))}
+              />
+            ) : (
+              <Empty description="Nenhuma atividade registrada" style={{ marginTop: 16 }} />
             )}
-          />
+          </div>
+
+          {/* Emails */}
+          <div>
+            <Divider orientation="left" style={{ fontSize: 13, fontWeight: 600 }}>
+              <MailOutlined /> Comunicação por Email
+            </Divider>
+
+            <Card size="small" style={{ marginBottom: 16, backgroundColor: "#f9fafb" }}>
+              <Form form={emailForm} layout="vertical" onFinish={handleEmail}>
+                <Form.Item
+                  name="destinatario_email"
+                  label="Email do Destinatário"
+                  rules={[
+                    { required: true, message: "Informe o email" },
+                    { type: "email", message: "Email inválido" },
+                  ]}
+                >
+                  <Input placeholder="contato@empresa.com.br" type="email" />
+                </Form.Item>
+                <Form.Item name="destinatario_nome" label="Nome do Destinatário">
+                  <Input placeholder="Nome (opcional)" />
+                </Form.Item>
+                <Form.Item
+                  name="assunto"
+                  label="Assunto"
+                  rules={[{ required: true, message: "Informe o assunto" }]}
+                >
+                  <Input placeholder="Assunto do email" />
+                </Form.Item>
+                <Form.Item
+                  name="corpo"
+                  label="Mensagem"
+                  rules={[{ required: true, message: "Informe o corpo do email" }]}
+                >
+                  <Input.TextArea rows={4} placeholder="Corpo do email" maxLength={1000} showCount />
+                </Form.Item>
+                <Button type="primary" htmlType="submit" block>
+                  Enviar Email
+                </Button>
+              </Form>
+            </Card>
+
+            {(oportunidade.emails || []).length > 0 && (
+              <List
+                size="small"
+                dataSource={oportunidade.emails}
+                renderItem={(email) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<MailOutlined style={{ color: "#1B4F8A" }} />}
+                      title={email.assunto}
+                      description={
+                        <Space wrap size="small">
+                          <span>{email.destinatario_email}</span>
+                          <Tag color={email.status === "enviado" ? "green" : "orange"}>
+                            {email.status}
+                          </Tag>
+                          {email.data_envio && (
+                            <span style={{ fontSize: 12, color: "#9099a8" }}>
+                              {new Date(email.data_envio).toLocaleString("pt-BR")}
+                            </span>
+                          )}
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            )}
+          </div>
         </Space>
       )}
     </Drawer>
   );
 }
+
+import { Empty, Typography } from "antd";

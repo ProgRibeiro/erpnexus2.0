@@ -1,0 +1,350 @@
+"""
+Exemplos de Uso - API de Agenda de Técnicos
+
+Todos os endpoints usam autenticação por Token Bearer
+"""
+
+# =============================================================================
+# EXEMPLO 1: Buscar agenda por período (Visão Mensal)
+# =============================================================================
+
+GET /api/v1/ordens/agenda/?data_inicio=2025-04-01&data_fim=2025-04-30
+
+Response (200):
+[
+  {
+    "data": "2025-04-01",
+    "tecnicos": [
+      {
+        "id": 1,
+        "nome_completo": "João Silva",
+        "username": "joao.silva",
+        "total_os": 2,
+        "ordens": [
+          {
+            "id": 101,
+            "numero": "OS-2025-0001",
+            "status": "agendada",
+            "cliente_nome": "Empresa XYZ",
+            "endereco_servico_texto": "Rua A, 123, São Paulo",
+            "data_agendada": "2025-04-01",
+            "hora_inicio": "09:00:00",
+            "hora_conclusao": null,
+            "tipo_servico": "hvac",
+            "descricao_servico": "Instalação de ar condicionado",
+            ...
+          },
+          {
+            "id": 102,
+            "numero": "OS-2025-0002",
+            "status": "agendada",
+            "cliente_nome": "Empresa ABC",
+            "endereco_servico_texto": "Av. B, 456, São Paulo",
+            "data_agendada": "2025-04-01",
+            "hora_inicio": "14:00:00",
+            ...
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "nome_completo": "Maria Santos",
+        "username": "maria.santos",
+        "total_os": 1,
+        "ordens": [...]
+      }
+    ]
+  },
+  {
+    "data": "2025-04-02",
+    "tecnicos": [...]
+  }
+]
+
+# =============================================================================
+# EXEMPLO 2: Buscar agenda com filtro de técnico
+# =============================================================================
+
+GET /api/v1/ordens/agenda/?data_inicio=2025-04-01&data_fim=2025-04-30&tecnico=1
+
+Response (200):
+[
+  {
+    "data": "2025-04-01",
+    "tecnicos": [
+      {
+        "id": 1,
+        "nome_completo": "João Silva",
+        "username": "joao.silva",
+        "total_os": 2,
+        "ordens": [...]
+      }
+    ]
+  }
+]
+
+# =============================================================================
+# EXEMPLO 3: Buscar agenda com filtro de tipo de serviço
+# =============================================================================
+
+GET /api/v1/ordens/agenda/?data_inicio=2025-04-01&data_fim=2025-04-30&tipo_servico=hvac
+
+Response (200):
+[
+  {
+    "data": "2025-04-01",
+    "tecnicos": [
+      {
+        "id": 1,
+        "nome_completo": "João Silva",
+        "username": "joao.silva",
+        "total_os": 1,
+        "ordens": [
+          {
+            "id": 101,
+            "numero": "OS-2025-0001",
+            "tipo_servico": "hvac",
+            ...
+          }
+        ]
+      }
+    ]
+  }
+]
+
+# =============================================================================
+# EXEMPLO 4: Buscar OS agendadas para hoje (Visão "Hoje" e Mobile)
+# =============================================================================
+
+GET /api/v1/ordens/agenda/hoje/
+
+# Se usuário é técnico: retorna apenas suas OS
+# Se usuário é admin/gestor: retorna todas as OS de hoje
+
+Response (200):
+[
+  {
+    "id": 101,
+    "numero": "OS-2025-0001",
+    "status": "agendada",
+    "cliente_nome": "Empresa XYZ",
+    "contato_nome": "João Contato",
+    "endereco_servico_texto": "Rua A, 123, São Paulo",
+    "data_agendada": "2025-04-15",
+    "hora_inicio": "09:00:00",
+    "hora_conclusao": null,
+    "tipo_servico": "hvac",
+    "descricao_servico": "Manutenção de ar condicionado",
+    "tecnico_nome": "joao.silva",
+    "tecnico_responsavel": 1,
+    ...
+  },
+  {
+    "id": 102,
+    "numero": "OS-2025-0002",
+    "status": "em_execucao",
+    "cliente_nome": "Empresa ABC",
+    "contato_nome": "Maria Contato",
+    "endereco_servico_texto": "Av. B, 456, São Paulo",
+    "data_agendada": "2025-04-15",
+    "hora_inicio": "14:00:00",
+    "hora_conclusao": null,
+    ...
+  }
+]
+
+# =============================================================================
+# EXEMPLO 5: Reagendar uma OS - PATCH
+# =============================================================================
+
+PATCH /api/v1/ordens/101/reagendar/
+
+Body (JSON):
+{
+  "data_agendada": "2025-04-20",
+  "hora_inicio": "10:30:00"
+}
+
+Response (200):
+{
+  "id": 101,
+  "numero": "OS-2025-0001",
+  "status": "agendada",
+  "data_agendada": "2025-04-20",
+  "hora_inicio": "10:30:00",
+  "tecnico_responsavel": 1,
+  "atualizado_em": "2025-04-15T14:30:00Z",
+  ...
+}
+
+# Log automático criado:
+LogStatusOS {
+  os_id: 101,
+  status_anterior: "agendada",
+  status_novo: "agendada",
+  alterado_por: admin_user,
+  observacao: "Reagendada de 2025-04-15 para 2025-04-20",
+  alterado_em: "2025-04-15T14:30:00Z"
+}
+
+# =============================================================================
+# EXEMPLO 6: Reagendar OS para outro técnico
+# =============================================================================
+
+PATCH /api/v1/ordens/101/reagendar/
+
+Body (JSON):
+{
+  "data_agendada": "2025-04-20",
+  "hora_inicio": "14:00:00",
+  "tecnico_responsavel": 2
+}
+
+Response (200):
+{
+  "id": 101,
+  "numero": "OS-2025-0001",
+  "data_agendada": "2025-04-20",
+  "hora_inicio": "14:00:00",
+  "tecnico_responsavel": 2,
+  ...
+}
+
+# Log automático:
+LogStatusOS {
+  observacao: "Reagendada de 2025-04-15 para 2025-04-20 | Técnico alterado",
+  ...
+}
+
+# =============================================================================
+# EXEMPLO 7: Tipos de Serviço Disponíveis
+# =============================================================================
+
+Os tipos de serviço que podem ser filtrados:
+- hvac: HVAC
+- refrigeracao: Refrigeração
+- eletrica: Elétrica
+- civil: Civil
+- manutencao: Manutenção
+- instalacao: Instalação
+- outro: Outro
+
+# =============================================================================
+# EXEMPLO 8: Status de Ordem de Serviço (na Agenda)
+# =============================================================================
+
+Apenas estas OS aparecem na agenda:
+- agendada: Agendada
+- em_execucao: Em execução
+
+Outros status que NÃO aparecem na agenda:
+- rascunho: Rascunho (não está pronta)
+- aberta: Aberta (aguardando orçamento)
+- orcamento_enviado: Orçamento enviado
+- aprovada: Aprovada
+- concluida: Concluída
+- faturada: Faturada
+- cancelada: Cancelada
+
+# =============================================================================
+# EXEMPLO 9: Erro - OS não encontrada
+# =============================================================================
+
+PATCH /api/v1/ordens/999/reagendar/
+
+Response (404):
+{
+  "detail": "Not found."
+}
+
+# =============================================================================
+# EXEMPLO 10: Erro - Dados inválidos
+# =============================================================================
+
+PATCH /api/v1/ordens/101/reagendar/
+
+Body (JSON):
+{
+  "data_agendada": "data-invalida",
+  "hora_inicio": "25:99:99"
+}
+
+Response (400):
+{
+  "data_agendada": ["Date has wrong format. Use one of these formats instead: YYYY-MM-DD"],
+  "hora_inicio": ["Time has wrong format. Use one of these formats instead: HH:MM[:ss[.uuuuuu]]"]
+}
+
+# =============================================================================
+# EXEMPLO 11: Usar no Frontend - JavaScript
+# =============================================================================
+
+// Importar serviço
+import agendaService from "@/services/agenda";
+
+// Listar agenda por período
+const agenda = await agendaService.listarPorPeriodo(
+  "2025-04-01",
+  "2025-04-30",
+  tecnicoId = null,
+  tipoServico = null
+);
+
+// Agenda de hoje
+const hoje = await agendaService.agendaHoje();
+
+// Reagendar
+await agendaService.reagendar(osId, {
+  data_agendada: "2025-04-20",
+  hora_inicio: "14:30:00",
+  tecnico_responsavel: 2,
+});
+
+// Reagendar via drag-drop
+await agendaService.reagendarDragDrop(osId, "2025-04-20", "14:30");
+
+# =============================================================================
+# EXEMPLO 12: Filtros Combinados
+# =============================================================================
+
+GET /api/v1/ordens/agenda/?data_inicio=2025-04-01&data_fim=2025-04-30&tecnico=1&tipo_servico=hvac
+
+Retorna: OS agendadas de HVAC do técnico 1 entre 01/04 e 30/04
+
+# =============================================================================
+# EXEMPLO 13: Performance - Select Related
+# =============================================================================
+
+Cada request de agenda otimiza queries com:
+- select_related: cliente, contato_responsavel, endereco_servico, tecnico_responsavel, criado_por, atualizado_por
+- prefetch_related: itens, fotos, mensagens__anexos, despesas, logs_status
+
+Resultado: Número mínimo de queries ao banco de dados
+
+# =============================================================================
+# EXEMPLO 14: Autenticação Necessária
+# =============================================================================
+
+Header obrigatório:
+Authorization: Bearer <seu_token_jwt>
+
+Exemplo com curl:
+curl -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \\
+     http://localhost:8000/api/v1/ordens/agenda/hoje/
+
+# =============================================================================
+# EXEMPLO 15: Resposta de Reagendamento com Log
+# =============================================================================
+
+Após PATCH /api/v1/ordens/101/reagendar/, a OS retorna com campo:
+"logs_status": [
+  {
+    "id": 5,
+    "os_id": 101,
+    "status_anterior": "agendada",
+    "status_novo": "agendada",
+    "alterado_por_nome": "Admin User",
+    "alterado_em": "2025-04-15T14:30:00Z",
+    "observacao": "Reagendada de 2025-04-15 para 2025-04-20"
+  }
+]

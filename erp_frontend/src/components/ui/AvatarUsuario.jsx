@@ -1,4 +1,4 @@
-import { Avatar } from 'antd';
+import { Avatar, Tooltip } from 'antd';
 
 function getColorFromName(name) {
   const colors = [
@@ -25,7 +25,7 @@ function getColorFromName(name) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function AvatarUsuario({ nome, size = 'default' }) {
+export default function AvatarUsuario({ nome, foto, cargo, size = 'default' }) {
   const initials = nome
     .split(' ')
     .map(n => n[0])
@@ -34,13 +34,30 @@ export default function AvatarUsuario({ nome, size = 'default' }) {
     .slice(0, 2);
 
   const color = getColorFromName(nome);
+  const sizeMap = {
+    sm: 32,
+    default: 40,
+    md: 40,
+    lg: 56,
+  };
 
-  return (
+  const avatar = (
     <Avatar
-      size={size === 'small' ? 32 : size === 'large' ? 56 : 40}
-      style={{ backgroundColor: color, fontWeight: 600 }}
+      size={sizeMap[size] || 40}
+      src={foto}
+      style={!foto ? { backgroundColor: color, fontWeight: 600 } : {}}
     >
-      {initials}
+      {!foto && initials}
     </Avatar>
   );
+
+  if (cargo) {
+    return (
+      <Tooltip title={`${nome} • ${cargo}`}>
+        {avatar}
+      </Tooltip>
+    );
+  }
+
+  return avatar;
 }

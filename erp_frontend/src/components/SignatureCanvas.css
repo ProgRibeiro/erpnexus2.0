@@ -1,0 +1,67 @@
+.signature-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.signature-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90vw;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.signature-container h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.signature-instruction {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.signature-canvas {
+  border: 2px solid #d9d9d9;
+  border-radius: 8px;
+  background: white;
+  width: 100%;
+  height: 250px;
+  cursor: crosshair;
+  display: block;
+  touch-action: none;
+}
+
+.signature-canvas:active {
+  border-color: #1B4F8A;
+}
+
+.btn-clear,
+.btn-confirm,
+.btn-cancel {
+  font-size: 14px;
+  height: 44px;
+  min-width: 100px;
+}
+
+@media (max-width: 480px) {
+  .signature-container {
+    width: 95vw;
+    padding: 16px;
+  }
+
+  .signature-canvas {
+    height: 200px;
+  }
+}

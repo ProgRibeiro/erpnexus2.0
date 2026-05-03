@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Modal, Tabs, Upload, message, Spin, Result, Row, Col } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
-import api from "../../services/api";
+import { InboxOutlined, DownloadOutlined } from "@ant-design/icons";
+import api from "../services/api";
 
 const { Dragger } = Upload;
 
@@ -31,6 +31,25 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
     ],
     servicos: ["Nome", "Descrição", "Categoria", "Preço", "Tributação", "LC116", "Unidade"],
     produtos: ["Nome", "Descrição", "Categoria", "Unidade", "Custo", "Venda", "Mín.", "Local"],
+  };
+
+  const handleDownloadTemplate = async (tipo) => {
+    try {
+      const response = await api.get(`/estoque/excel-import/template_${tipo}/`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `template_${tipo}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      message.success("Template baixado!");
+    } catch {
+      message.error("Erro ao baixar template");
+    }
   };
 
   const handleImport = async () => {
@@ -71,7 +90,12 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
       label: "Clientes",
       children: (
         <div>
-          <p>Colunas esperadas: {templates.clientes.join(", ")}</p>
+          <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <p style={{ margin: 0 }}>Colunas: {templates.clientes.join(", ")}</p>
+            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate("clientes")} size="small">
+              Template
+            </Button>
+          </div>
           <Dragger
             accept=".xlsx"
             maxCount={1}
@@ -90,7 +114,12 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
       label: "Serviços",
       children: (
         <div>
-          <p>Colunas esperadas: {templates.servicos.join(", ")}</p>
+          <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <p style={{ margin: 0 }}>Colunas: {templates.servicos.join(", ")}</p>
+            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate("servicos")} size="small">
+              Template
+            </Button>
+          </div>
           <Dragger
             accept=".xlsx"
             maxCount={1}
@@ -109,7 +138,12 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
       label: "Produtos",
       children: (
         <div>
-          <p>Colunas esperadas: {templates.produtos.join(", ")}</p>
+          <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <p style={{ margin: 0 }}>Colunas: {templates.produtos.join(", ")}</p>
+            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate("produtos")} size="small">
+              Template
+            </Button>
+          </div>
           <Dragger
             accept=".xlsx"
             maxCount={1}
@@ -179,3 +213,4 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
     </Modal>
   );
 }
+

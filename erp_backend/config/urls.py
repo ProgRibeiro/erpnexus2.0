@@ -24,6 +24,7 @@ api_patterns = [
     path("crm/", include("apps.crm.urls")),
     path("estoque/", include("apps.estoque.urls")),
     path("relatorios/", include("apps.relatorios.urls")),
+    path("notificacoes/", include("apps.notificacoes.urls")),
     path("publico/relatorio/<uuid:token>/", RelatorioPublicoView.as_view(), name="publico-relatorio"),
     path("publico/relatorio/<uuid:token>/pdf/", RelatorioPublicoPDFView.as_view(), name="publico-relatorio-pdf"),
     path("portal/", include("apps.portal.urls")),

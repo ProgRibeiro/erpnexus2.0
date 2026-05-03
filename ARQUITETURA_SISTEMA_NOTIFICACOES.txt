@@ -1,0 +1,301 @@
+════════════════════════════════════════════════════════════════════════════════
+                    DIAGRAMA DO SISTEMA DE NOTIFICAÇÕES
+════════════════════════════════════════════════════════════════════════════════
+
+
+                                    ┌─────────────────────┐
+                                    │  EVENTO NO SISTEMA  │
+                                    │  (OrdemServico,     │
+                                    │   Lancamento, etc)  │
+                                    └──────────┬──────────┘
+                                               │
+                                               ▼
+                                    ┌──────────────────────┐
+                                    │   SIGNAL DJANGO      │
+                                    │  (post_save trigger) │
+                                    └──────────┬───────────┘
+                                               │
+                                               ▼
+                        ┌──────────────────────────────────────┐
+                        │     TAREFA CELERY                    │
+                        │  (enviar_email_os_atribuida)         │
+                        │  (enviar_notificacao_pagamentos)     │
+                        │  (etc...)                            │
+                        └──────────┬──────────────────┬────────┘
+                                   │                  │
+                    ┌──────────────▼─────────┐      ▼
+                    │ REVISAR                │  ┌────────────────────┐
+                    │ CONFIGURAÇÃO USUÁRIO   │  │ CELERY BEAT        │
+                    │                        │  │ (agendadas)        │
+                    │ - Frequência?          │  │ 18h, 09h, 2ª etc   │
+                    │ - Canal?               │  │                    │
+                    │ - Ativo?               │  └────────────────────┘
+                    └──────────┬─────────────┘
+                               │
+                    ┌──────────▼───────────────┐
+                    │  ENVIAR NOTIFICAÇÃO      │
+                    │  (verificar condições)   │
+                    └──────────┬───────────────┘
+                               │
+           ┌───────────────────┼───────────────────┐
+           ▼                   ▼                   ▼
+    ┌─────────────┐   ┌──────────────┐   ┌────────────────┐
+    │ EMAIL       │   │ WHATSAPP     │   │ INTERNO        │
+    │ (SMTP)      │   │ (CallMeBot)  │   │ (NotificAção)  │
+    │             │   │ (Z-API)      │   │                │
+    └─────────────┘   └──────────────┘   └────────────────┘
+           │                   │                   │
+           ▼                   ▼                   ▼
+    ┌─────────────┐   ┌──────────────┐   ┌────────────────┐
+    │ TEMPLATE    │   │ MENSAGEM     │   │ NOTIFICAÇÃO    │
+    │ HTML        │   │ FORMATADA    │   │ INTERNA        │
+    │ (7 tipos)   │   │              │   │ (BD)           │
+    └─────────────┘   └──────────────┘   └────────────────┘
+           │                   │                   │
+           └───────────────────┼───────────────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  REGISTRAR LOG       │
+                    │  (LogNotificacao)    │
+                    │  - Status: ENVIADO   │
+                    │  - Timestamp         │
+                    │  - Dados adicionais  │
+                    └──────────────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            FLUXO DE UMA NOTIFICAÇÃO
+════════════════════════════════════════════════════════════════════════════════
+
+CENÁRIO: OS é atribuída a um técnico
+
+1. AÇÃO DO USUÁRIO
+   └─ Admin cria OrdemServico com técnico_responsavel = João
+
+2. SIGNAL DISPARA
+   └─ @receiver(post_save, sender=OrdemServico)
+      └─ Verifica: 'tecnico_responsavel_id' em update_fields
+
+3. TAREFA CELERY
+   └─ enviar_email_os_atribuida.delay(os_id)
+      └─ Task enfileirada na fila Redis
+
+4. CELERY WORKER EXECUTA
+   └─ Busca OS com ID
+   └─ Extrai dados: número, cliente, data, etc
+
+5. VERIFICAR CONFIGURAÇÃO
+   └─ ConfiguracaoNotificacao.objects.get(usuario=joao)
+   └─ Verifica: enviar_email=True, os_atribuida=INSTANTANEA
+
+6. MONTAR EMAIL
+   └─ Contexto = {numero_os, cliente, descricao, ...}
+   └─ Template = os_atribuida.html
+
+7. ENVIAR
+   └─ EmailNotificacao.enviar()
+   └─ Django SMTP envia para joao@example.com
+
+8. REGISTRAR LOG
+   └─ LogNotificacao.create(
+        tipo=OS_ATRIBUIDA,
+        destinatario=joao@example.com,
+        status=ENVIADO,
+        enviado_em=now(),
+        dados_adicionais={...}
+      )
+
+9. RESULTADO
+   └─ João recebe email em sua caixa de entrada
+   └─ Admin vê log em /admin/notificacoes/lognotificacao/
+
+
+════════════════════════════════════════════════════════════════════════════════
+                        ARQUITETURA DE CAMADAS
+════════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              API LAYER (REST)                                │
+│                          /api/v1/notificacoes/                               │
+│  └─ GET    /logs/                                                            │
+│  └─ GET    /logs/resumo/                                                     │
+│  └─ POST   /logs/testar_notificacao/                                         │
+│  └─ GET    /configuracoes/minha_configuracao/                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      ▲
+                                      │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          BUSINESS LOGIC LAYER                                │
+│              (ViewSets, Serializers, Tasks, Signals)                         │
+│  └─ LogNotificacaoViewSet                                                    │
+│  └─ ConfiguracaoNotificacaoViewSet                                           │
+│  └─ tasks.py (11 tarefas Celery)                                             │
+│  └─ signals.py (auto-trigger)                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      ▲
+                                      │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          NOTIFICATION LAYER                                  │
+│          (Email, WhatsApp, Internal Notification)                            │
+│  └─ EmailNotificacao + 7 templates HTML                                      │
+│  └─ WhatsAppNotificacao (CallMeBot/Z-API)                                    │
+│  └─ Internal Notifications                                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      ▲
+                                      │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          DATA LAYER (MODELS)                                 │
+│  └─ LogNotificacao (type, recipient, status, etc)                            │
+│  └─ ConfiguracaoNotificacao (user preferences)                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            FLUXO DE RETRY
+════════════════════════════════════════════════════════════════════════════════
+
+Email falha ao enviar (erro de SMTP, timeout, etc)
+
+        ┌─────────────────────────────┐
+        │ Status = ERRO               │
+        │ Tentativas = 1              │
+        │ Proxima Tentativa = now+5m  │
+        └────────────┬────────────────┘
+                     │
+                     ▼ (após 5 minutos)
+        ┌─────────────────────────────┐
+        │ Task: reenviar_notificacoes  │
+        │ Tenta novamente             │
+        └────────────┬────────────────┘
+                     │
+        ┌────────────┴─────────────────┐
+        │                              │
+        ▼ SUCESSO                  ▼ ERRO
+    ┌──────────┐              ┌──────────┐
+    │ ENVIADO  │              │ ERRO     │
+    │ tentativas=0            │ tentativas=2
+    └──────────┘              │ próxima=now+10m
+                              └──────────┘
+                                  │
+                                  ▼ (após 10 minutos)
+                          ┌──────────────────┐
+                          │ Tenta novamente  │
+                          └────────┬─────────┘
+                                   │
+                        ┌──────────┴──────────┐
+                        │                     │
+                    ▼ SUCESSO            ▼ ERRO
+                ┌──────────┐         ┌──────────┐
+                │ ENVIADO  │         │ ERRO     │
+                │ (3 tent) │         │ tentativas=3
+                └──────────┘         │ PARAR (máx)
+                                     └──────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+                        INTEGRAÇÃO COM OUTROS APPS
+════════════════════════════════════════════════════════════════════════════════
+
+apps.ordens
+  └─ @receiver(post_save, sender=OrdemServico)
+     ├─ Se: tecnico_responsavel mudou
+     │  └─ Task: enviar_email_os_atribuida
+     ├─ Se: status = "aprovada"
+     │  └─ Task: enviar_email_os_aprovada
+     └─ Se: status = "concluida"
+        └─ Task: enviar_email_os_finalizada
+
+apps.financeiro
+  └─ Task agendada diariamente às 09h
+     └─ Verifica: Lancamento.status = ATRASADO
+        └─ Task: enviar_notificacao_pagamentos_atrasados
+
+apps.estoque
+  └─ Task agendada toda segunda às 08h
+     └─ Verifica: Produto.estoque_atual < estoque_minimo
+        └─ Task: enviar_notificacao_estoque_baixo
+
+
+════════════════════════════════════════════════════════════════════════════════
+                        CICLO DE VIDA DE UMA NOTIFICAÇÃO
+════════════════════════════════════════════════════════════════════════════════
+
+        ┌──────────┐
+        │ PENDENTE │  ◄─── Criado, aguardando envio
+        └─────┬────┘
+              │
+              ▼
+        ┌──────────────┐
+        │ ENVIANDO...  │  ◄─── Em processamento
+        └─────┬────────┘
+              │
+        ┌─────┴──────────┐
+        │                │
+        ▼ SUCESSO    ▼ ERRO
+    ┌────────┐   ┌──────────┐
+    │ ENVIADO│   │ ERRO     │
+    │ ✓      │   │ ✗        │
+    │        │   │ Retry    │
+    └────────┘   └──────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+    ▼ 1ª  ▼ 2ª  ▼ 3ª (máx)
+  [5m] [10m] [não retentar]
+        │     │
+    ┌───┘     └──────┐
+    ▼                ▼
+┌────────┐    ┌──────────────┐
+│ENVIADO ▼   │ ERRO - FINAL  │
+└────────┘   └──────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+                        ESCALABILIDADE & PERFORMANCE
+════════════════════════════════════════════════════════════════════════════════
+
+Arquitetura Assíncrona:
+  ├─ Celery + Redis para fila
+  ├─ Worker em processo separado
+  ├─ Non-blocking (usuário não espera)
+  └─ Escalável (múltiplos workers)
+
+Otimizações:
+  ├─ Índices DB em campos frequentes
+  ├─ Batching de notificações
+  ├─ Retry inteligente (backoff exponencial)
+  ├─ Caching de configurações
+  └─ Queries otimizadas (select_related, prefetch_related)
+
+Capacidade Estimada:
+  └─ 1000+ notificações/minuto com 1 worker
+  └─ 10.000+ com múltiplos workers
+  └─ 100.000+ com Redis cluster
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            SEGURANÇA
+════════════════════════════════════════════════════════════════════════════════
+
+✓ Autenticação:
+  └─ JWT obrigatório na API
+  └─ Admin-only para testes/disparos
+
+✓ Validação:
+  └─ Emails validados antes do envio
+  └─ Números de telefone formatados
+  └─ Dados sanitizados em templates
+
+✓ Auditoria:
+  └─ Todos os eventos registrados em BD
+  └─ Timestamps de criação e envio
+  └─ Mensagens de erro armazenadas
+
+✓ Senhas & Credenciais:
+  └─ Nunca logadas
+  └─ Variáveis de ambiente (.env)
+  └─ Never committed to git
+
+
+════════════════════════════════════════════════════════════════════════════════

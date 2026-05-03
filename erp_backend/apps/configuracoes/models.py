@@ -37,3 +37,94 @@ class ConfiguracaoNotificacao(models.Model):
 
     def __str__(self):
         return self.tipo
+
+
+class ConfiguracaoOS(models.Model):
+    prefixo = models.CharField(max_length=10, default="OS")
+    proximo_numero = models.PositiveIntegerField(default=1000)
+    validade_padrao = models.PositiveIntegerField(
+        default=30, help_text="Validade em dias"
+    )
+    texto_termos = models.TextField(
+        blank=True,
+        help_text="Texto de termos padrão para novas ordens de serviço"
+    )
+    texto_condicoes = models.TextField(
+        blank=True,
+        help_text="Texto de condições de pagamento padrão"
+    )
+    incluir_logo_pdf = models.BooleanField(default=True)
+    incluir_assinatura_pdf = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Configuracao de Ordens de Servico"
+        verbose_name_plural = "Configuracoes de Ordens de Servico"
+
+    def __str__(self):
+        return f"Configuração OS (Prefixo: {self.prefixo})"
+
+    def gerar_numero_os(self):
+        """Gera o próximo número de OS e incrementa o contador"""
+        numero = self.proximo_numero
+        self.proximo_numero += 1
+        self.save(update_fields=["proximo_numero"])
+        return f"{self.prefixo}{numero:06d}"
+
+
+class ConfiguracaoFinanceira(models.Model):
+    aliquota_iss = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=5.00,
+        help_text="Alíquota padrão do ISS em percentual"
+    )
+    conta_padrao_receber = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Conta padrão para recebimentos"
+    )
+    conta_padrao_pagar = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Conta padrão para pagamentos"
+    )
+    banco_padrao = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Banco padrão para movimentações"
+    )
+    agencia_padrao = models.CharField(
+        max_length=10,
+        blank=True
+    )
+    conta_corrente_padrao = models.CharField(
+        max_length=20,
+        blank=True
+    )
+    dias_padrao_pagamento = models.PositiveIntegerField(
+        default=30,
+        help_text="Dias padrão para vencimento de compras"
+    )
+    dias_padrao_recebimento = models.PositiveIntegerField(
+        default=30,
+        help_text="Dias padrão para vencimento de vendas"
+    )
+    juros_atraso = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=2.00,
+        help_text="Juros mensais por atraso em percentual"
+    )
+    multa_atraso = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=2.00,
+        help_text="Multa por atraso em percentual"
+    )
+
+    class Meta:
+        verbose_name = "Configuracao Financeira"
+        verbose_name_plural = "Configuracoes Financeira"
+
+    def __str__(self):
+        return "Configuração Financeira"

@@ -173,6 +173,28 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
+# Configuração de agendamento de tarefas Celery Beat
+CELERY_BEAT_SCHEDULE = {
+    # Tarefa diária: Varrer lançamentos vencidos e marcar como atrasados
+    "atualizar_lancamentos_vencidos": {
+        "task": "financeiro.atualizar_lancamentos_vencidos",
+        "schedule": timedelta(days=1),
+        "options": {"queue": "default"},
+    },
+    # Tarefa diária: Notificar financeiro sobre atrasos
+    "notificar_financeiro_atrasos": {
+        "task": "financeiro.notificar_financeiro_atrasos",
+        "schedule": timedelta(days=1),
+        "options": {"queue": "default"},
+    },
+    # Tarefa diária: Recalcular saldo de todas as contas (previne inconsistências)
+    "recalcular_saldo_todas_contas": {
+        "task": "financeiro.recalcular_saldo_todas_contas",
+        "schedule": timedelta(days=1),
+        "options": {"queue": "default"},
+    },
+}
+
 USE_S3 = env("USE_S3")
 if USE_S3:
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
@@ -202,3 +224,60 @@ LOGGING = {
         },
     },
 }
+
+# ======================== CONFIGURAÇÕES DE NOTIFICAÇÕES ========================
+
+# URLs base para links nos emails
+BASE_URL = env("BASE_URL", default="http://localhost:5173")
+
+# Configurações de Email SMTP
+# Exemplo com Gmail: https://support.google.com/mail/answer/185833
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = "seu-email@gmail.com"
+# EMAIL_HOST_PASSWORD = "sua-senha-app"
+# EMAIL_USE_TLS = True
+
+# Configurações de WhatsApp (escolha um provedor)
+# WHATSAPP_PROVEDOR = "callmebot"  # ou "zapi"
+# CALLMEBOT_APIKEY = "sua-chave-api-callmebot"  # Para CallMeBot
+# ZAPI_INSTANCIA = "sua-instancia"  # Para Z-API
+# ZAPI_TOKEN = "seu-token"  # Para Z-API
+
+# Emails administrativos
+ADMIN_EMAIL = env("ADMIN_EMAIL", default="admin@example.com")
+FINANCEIRO_EMAIL = env("FINANCEIRO_EMAIL", default="financeiro@example.com")
+ESTOQUE_EMAIL = env("ESTOQUE_EMAIL", default="estoque@example.com")
+
+# ======================== CONFIGURAÇÕES DE CELERY BEAT ========================
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Lembrança de OS agendadas para amanhã (diariamente às 18h)
+    "lembranca-agendamento-diaria": {
+        "task": "apps.notificacoes.tasks.enviar_lembranca_agendamento",
+        "schedule": crontab(hour=18, minute=0),
+    },
+    # Notificação de pagamentos atrasados (diariamente às 09h)
+    "notificar-pagamentos-atrasados": {
+        "task": "apps.notificacoes.tasks.enviar_notificacao_pagamentos_atrasados",
+        "schedule": crontab(hour=9, minute=0),
+    },
+    # Notificação de estoque baixo (toda segunda-feira às 08h)
+    "notificar-estoque-baixo": {
+        "task": "apps.notificacoes.tasks.enviar_notificacao_estoque_baixo",
+        "schedule": crontab(day_of_week=1, hour=8, minute=0),
+    },
+    # Reenviar notificações falhadas (a cada 30 minutos)
+    "reenviar-notificacoes-falhadas": {
+        "task": "apps.notificacoes.tasks.reenviar_notificacoes_falhadas",
+        "schedule": timedelta(minutes=30),
+    },
+    # Inicializar sistema de notificações (uma vez ao iniciar)
+    "inicializar-notificacoes": {
+        "task": "apps.notificacoes.tasks.inicializar_sistema_notificacoes",
+        "schedule": timedelta(seconds=10),  # Executa 10 segundos após iniciar
+    },
+}
+

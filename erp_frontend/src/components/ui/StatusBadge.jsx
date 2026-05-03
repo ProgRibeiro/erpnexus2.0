@@ -1,19 +1,15 @@
+const statusConfig = {
+  lead:       { label: 'Lead',          className: 'status-lead' },
+  orcamento:  { label: 'Orçamento',     className: 'status-orcamento' },
+  aprovado:   { label: 'Aprovado',      className: 'status-aprovado' },
+  em_execucao:{ label: 'Em execução',   className: 'status-execucao' },
+  faturado:   { label: 'Faturado',      className: 'status-faturado' },
+  concluido:  { label: 'Concluído',     className: 'status-concluido' },
+  cancelado:  { label: 'Cancelado',     className: 'status-cancelado' },
+  atrasado:   { label: 'Atrasado',      className: 'status-atrasado' },
+};
+
 export default function StatusBadge({ status, label }) {
-  const statusMap = {
-    lead: { class: 'os-status-lead', label: 'Lead' },
-    orcamento: { class: 'os-status-orcamento', label: 'Orçamento' },
-    aprovado: { class: 'os-status-aprovado', label: 'Aprovado' },
-    em_execucao: { class: 'os-status-em-execucao', label: 'Em Execução' },
-    faturado: { class: 'os-status-faturado', label: 'Faturado' },
-    concluido: { class: 'os-status-concluido', label: 'Concluído' },
-    cancelado: { class: 'os-status-cancelado', label: 'Cancelado' },
-  };
-
-  const config = statusMap[status] || { class: 'os-status-lead', label: status };
-
-  return (
-    <span className={`os-status-badge ${config.class}`}>
-      {label || config.label}
-    </span>
-  );
+  const config = statusConfig[status] || statusConfig.lead;
+  return <span className={`status-badge ${config.className}`}>{label || config.label}</span>;
 }
