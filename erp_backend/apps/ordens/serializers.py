@@ -115,6 +115,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         usuario = validated_data.pop("criado_por", None)
         usuario = usuario or (request.user if request and request.user.is_authenticated else None)
         atualizado_por = validated_data.pop("atualizado_por", None) or usuario
+        validated_data = self._normalizar_dados_pedido_compra(validated_data)
         ordem = OrdemServico.objects.create(
             criado_por=usuario,
             atualizado_por=atualizado_por,
@@ -126,6 +127,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", None)
         request = self.context.get("request")
+        validated_data = self._normalizar_dados_pedido_compra(validated_data, instance=instance)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -144,6 +146,28 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             item.pop("id", None)
             ItemOrcamento.objects.create(os=ordem, **item)
         self._atualizar_totais_fiscais(ordem)
+
+    def _normalizar_dados_pedido_compra(self, validated_data, instance=None):
+        tem_pc = validated_data.get(
+            "tem_pedido_compra",
+            instance.tem_pedido_compra if instance else False,
+        )
+        if tem_pc:
+            valor_orcado = validated_data.get(
+                "valor_total_orcado",
+                getattr(instance, "valor_total_orcado", Decimal("0.00")),
+            )
+            validated_data["valor_autorizado_pc"] = valor_orcado or Decimal("0.00")
+        else:
+            validated_data["numero_pc"] = ""
+            validated_data["valor_autorizado_pc"] = Decimal("0.00")
+            validated_data["validade_pc"] = None
+            if "dados_pc_extraidos" not in validated_data:
+                validated_data["dados_pc_extraidos"] = {}
+            validated_data["resumo_pc"] = ""
+            validated_data["pc_confianca"] = Decimal("0.00")
+            validated_data["pc_ultima_analise_em"] = None
+        return validated_data
 
     def _atualizar_totais_fiscais(self, ordem):
         itens = list(ordem.itens.all())

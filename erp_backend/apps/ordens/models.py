@@ -104,6 +104,10 @@ class OrdemServico(models.Model):
     valor_autorizado_pc = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     validade_pc = models.DateField(null=True, blank=True)
     pdf_pc = models.FileField(upload_to="ordens/pedidos_compra/", blank=True, null=True)
+    dados_pc_extraidos = models.JSONField(default=dict, blank=True)
+    resumo_pc = models.TextField(blank=True)
+    pc_confianca = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    pc_ultima_analise_em = models.DateTimeField(null=True, blank=True)
     descricao_servico = models.TextField(blank=True)
     valor_total_orcado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     valor_servicos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -386,3 +390,42 @@ class AssinaturaClienteOS(models.Model):
 
     def __str__(self):
         return f"{self.os} - {self.nome_signatario}"
+
+
+class AprendizadoPedidoCompra(models.Model):
+    os = models.ForeignKey(
+        OrdemServico,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aprendizados_pc",
+    )
+    cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aprendizados_pedido_compra",
+    )
+    texto_extraido = models.TextField(blank=True)
+    descricao_confirmada = models.TextField(blank=True)
+    numero_pc_confirmado = models.CharField(max_length=80, blank=True)
+    valor_autorizado_confirmado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    validade_confirmada = models.DateField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aprendizados_pc_criados",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Aprendizado de pedido de compra"
+        verbose_name_plural = "Aprendizados de pedidos de compra"
+
+    def __str__(self):
+        numero = self.numero_pc_confirmado or "Sem número"
+        return f"{numero} - {self.cliente or 'Cliente'}"

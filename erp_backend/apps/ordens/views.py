@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 
 from .models import ChatOS, DespesaOS, FotoOS, LogStatusOS, OrdemServico
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
+from .services import PedidoCompraInteligente
 from .serializers import (
     ChatOSSerializer,
     DespesaOSSerializer,
@@ -72,10 +73,14 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(criado_por=self.request.user, atualizado_por=self.request.user)
+        ordem = serializer.save(criado_por=self.request.user, atualizado_por=self.request.user)
+        if ordem.tem_pedido_compra and ordem.pdf_pc:
+            PedidoCompraInteligente().registrar_aprendizado(ordem, usuario=self.request.user)
 
     def perform_update(self, serializer):
-        serializer.save(atualizado_por=self.request.user)
+        ordem = serializer.save(atualizado_por=self.request.user)
+        if ordem.tem_pedido_compra and ordem.pdf_pc:
+            PedidoCompraInteligente().registrar_aprendizado(ordem, usuario=self.request.user)
 
     @action(detail=True, methods=["post"], url_path="mudar-status")
     def mudar_status(self, request, pk=None):
@@ -119,6 +124,63 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 )
             )
         return Response(FotoOSSerializer(fotos, many=True).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="analisar-pedido-compra")
+    def analisar_pedido_compra(self, request, pk=None):
+        ordem = self.get_object()
+        arquivo = request.FILES.get("arquivo")
+        analisador = PedidoCompraInteligente()
+
+        try:
+            if arquivo is not None:
+                analise = analisador.analisar_arquivo(arquivo, ordem=ordem)
+            elif ordem.pdf_pc:
+                with ordem.pdf_pc.open("rb") as pdf_salvo:
+                    analise = analisador.analisar_arquivo(pdf_salvo, ordem=ordem)
+            else:
+                return Response(
+                    {"detail": "Envie um PDF do pedido de compra para análise."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as error:
+            return Response(
+                {"detail": f"Não foi possível analisar o PDF do pedido de compra: {error}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if arquivo is not None:
+            ordem.pdf_pc = arquivo
+        ordem.dados_pc_extraidos = analise
+        ordem.resumo_pc = analise.get("resumo", "")
+        ordem.pc_confianca = analise.get("confianca", "0")
+        ordem.pc_ultima_analise_em = timezone.now()
+        if not ordem.numero_pc and analise.get("numero_pc_sugerido"):
+            ordem.numero_pc = analise["numero_pc_sugerido"]
+        if not ordem.validade_pc and analise.get("validade_sugerida"):
+            ordem.validade_pc = datetime.fromisoformat(analise["validade_sugerida"]).date()
+        if ordem.tem_pedido_compra:
+            ordem.valor_autorizado_pc = ordem.valor_total_orcado
+        ordem.save(
+            update_fields=[
+                "dados_pc_extraidos",
+                "resumo_pc",
+                "pc_confianca",
+                "pc_ultima_analise_em",
+                "pdf_pc",
+                "numero_pc",
+                "validade_pc",
+                "valor_autorizado_pc",
+                "atualizado_em",
+            ]
+        )
+        analisador.registrar_aprendizado(ordem, usuario=request.user)
+
+        return Response(
+            {
+                "analise": analise,
+                "ordem": self.get_serializer(ordem).data,
+            }
+        )
 
     @action(detail=True, methods=["get", "post"], url_path="chat")
     def chat(self, request, pk=None):

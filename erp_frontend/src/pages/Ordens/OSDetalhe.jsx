@@ -33,6 +33,7 @@ import {
   CameraOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  FileSearchOutlined,
   DollarOutlined,
   EyeOutlined,
   FilePdfOutlined,
@@ -321,10 +322,13 @@ export default function OSDetalhePage() {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [expenseForm] = Form.useForm();
   const [photoModal, setPhotoModal] = useState({ open: false, tipo: "antes", arquivos: [] });
+  const [pcAnalyzing, setPcAnalyzing] = useState(false);
+  const [pcAnalysis, setPcAnalysis] = useState(null);
 
   const watchedClient = Form.useWatch("cliente", form);
   const watchedHasPc = Form.useWatch("tem_pedido_compra", form);
   const watchedValorFaturado = Form.useWatch("valor_final_faturado", form);
+  const watchedValorOrcado = Form.useWatch("valor_total_orcado", form);
 
   const isFinanceAdmin = ["admin", "gestor", "financeiro"].includes(String(user?.role || "").toLowerCase());
   const statusVisual = getStatusVisual(ordem?.status);
@@ -351,6 +355,14 @@ export default function OSDetalhePage() {
   useEffect(() => {
     carregarTela();
   }, [id]);
+
+  useEffect(() => {
+    if (!watchedHasPc) return;
+    form.setFieldValue(
+      "valor_autorizado_pc",
+      Number(watchedValorOrcado || ordem?.valor_total_orcado || 0)
+    );
+  }, [form, ordem?.valor_total_orcado, watchedHasPc, watchedValorOrcado]);
 
   const preencherFormulario = (ordemAtual) => {
     form.setFieldsValue({
@@ -422,6 +434,7 @@ export default function OSDetalhePage() {
       setClients(clientes);
       setTechnicians(tecnicos);
       setOrdem(ordemAtual);
+      setPcAnalysis(ordemAtual?.dados_pc_extraidos || null);
       preencherFormulario(ordemAtual);
 
       if (techniciansResponse.status !== "fulfilled") {
@@ -500,6 +513,54 @@ export default function OSDetalhePage() {
       return response.data;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const analisarPedidoCompra = async (arquivo = null) => {
+    try {
+      setPcAnalyzing(true);
+      const formData = new FormData();
+      if (arquivo) {
+        formData.append("arquivo", arquivo);
+      }
+      const response = await api.post(`/ordens/${id}/analisar-pedido-compra/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const analise = response.data?.analise || null;
+      const ordemAtualizada = response.data?.ordem || null;
+
+      setPcAnalysis(analise);
+      if (ordemAtualizada) {
+        setOrdem(ordemAtualizada);
+        preencherFormulario(ordemAtualizada);
+      }
+      message.success("Pedido de compra analisado.");
+    } catch (error) {
+      console.error("Erro ao analisar pedido de compra:", error);
+      message.error("Não foi possível analisar o pedido de compra.");
+    } finally {
+      setPcAnalyzing(false);
+    }
+  };
+
+  const aplicarSugestaoPedidoCompra = () => {
+    if (!pcAnalysis) return;
+    form.setFieldsValue({
+      numero_pc: pcAnalysis.numero_pc_sugerido || form.getFieldValue("numero_pc"),
+      validade_pc: pcAnalysis.validade_sugerida
+        ? dayjs(pcAnalysis.validade_sugerida)
+        : form.getFieldValue("validade_pc"),
+      descricao_servico:
+        pcAnalysis.descricao_sugerida || form.getFieldValue("descricao_servico"),
+    });
+    message.success("Sugestões do pedido de compra aplicadas na OS.");
+  };
+
+  const handlePcUploadChange = ({ fileList }) => {
+    form.setFieldValue("pdf_pc_upload", fileList);
+    const selectedFile = fileList?.[0]?.originFileObj;
+    if (watchedHasPc && selectedFile) {
+      analisarPedidoCompra(selectedFile);
     }
   };
 
@@ -837,12 +898,14 @@ export default function OSDetalhePage() {
             <Col xs={24} md={12}>
               <Form.Item label="Valor autorizado" name="valor_autorizado_pc">
                 <InputNumber
-                  min={0}
-                  step={0.01}
+                  disabled
                   style={{ width: "100%" }}
                   formatter={(value) => `R$ ${value || ""}`}
                 />
               </Form.Item>
+              <Text type="secondary" style={{ display: "block", marginTop: -8 }}>
+                Valor espelhado automaticamente do orçamento aprovado.
+              </Text>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Validade do PC" name="validade_pc">
@@ -850,16 +913,27 @@ export default function OSDetalhePage() {
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="PDF do PC" name="pdf_pc_upload" valuePropName="fileList" getValueFromEvent={(event) => event?.fileList || []}>
-                <Upload beforeUpload={() => false} maxCount={1}>
+              <Form.Item label="PDF do PC" name="pdf_pc_upload" valuePropName="fileList">
+                <Upload beforeUpload={() => false} maxCount={1} onChange={handlePcUploadChange}>
                   <Button icon={<UploadOutlined />}>Selecionar arquivo</Button>
                 </Upload>
               </Form.Item>
-              {ordem?.pdf_pc ? (
-                <Button type="link" href={ordem.pdf_pc} target="_blank" style={{ padding: 0 }}>
-                  Ver arquivo atual
+              <Space size={12} wrap>
+                {ordem?.pdf_pc ? (
+                  <Button type="link" href={ordem.pdf_pc} target="_blank" style={{ padding: 0 }}>
+                    Ver arquivo atual
+                  </Button>
+                ) : null}
+                <Button
+                  type="link"
+                  icon={<FileSearchOutlined />}
+                  style={{ padding: 0 }}
+                  loading={pcAnalyzing}
+                  onClick={() => analisarPedidoCompra()}
+                >
+                  Ler pedido de compra
                 </Button>
-              ) : null}
+              </Space>
             </Col>
           </Row>
         ) : (
@@ -871,6 +945,63 @@ export default function OSDetalhePage() {
             style={{ borderRadius: 10 }}
           />
         )}
+
+        {pcAnalysis ? (
+          <Card
+            bordered={false}
+            style={{ background: "#F8FBFF", border: "1px solid #D6E9FF", borderRadius: 12, marginTop: 16 }}
+            bodyStyle={{ padding: 16 }}
+          >
+            <Space direction="vertical" size={10} style={{ width: "100%" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div>
+                  <Text strong style={{ color: "#1B4F8A" }}>Leitura inteligente do pedido de compra</Text>
+                  <div style={{ color: "#64748B", marginTop: 4 }}>
+                    Confiança da leitura: {Number(pcAnalysis.confianca || 0).toFixed(0)}%
+                  </div>
+                </div>
+                <Button onClick={aplicarSugestaoPedidoCompra}>Aplicar descrição sugerida</Button>
+              </div>
+
+              <Descriptions size="small" column={{ xs: 1, md: 3 }}>
+                <Descriptions.Item label="Número sugerido">{pcAnalysis.numero_pc_sugerido || "-"}</Descriptions.Item>
+                <Descriptions.Item label="Validade sugerida">
+                  {pcAnalysis.validade_sugerida ? dayjs(pcAnalysis.validade_sugerida).format("DD/MM/YYYY") : "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Valor lido do PDF">
+                  {formatMoney(pcAnalysis.valor_autorizado_sugerido || 0)}
+                </Descriptions.Item>
+              </Descriptions>
+
+              {pcAnalysis.descricao_sugerida ? (
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ borderRadius: 10 }}
+                  message="Descrição sugerida"
+                  description={pcAnalysis.descricao_sugerida}
+                />
+              ) : null}
+
+              {pcAnalysis.itens_detectados?.length ? (
+                <div>
+                  <Text strong style={{ display: "block", marginBottom: 8 }}>Itens detectados</Text>
+                  <Space wrap>
+                    {pcAnalysis.itens_detectados.map((item) => (
+                      <Tag key={item} color="blue">
+                        {item}
+                      </Tag>
+                    ))}
+                  </Space>
+                </div>
+              ) : null}
+
+              <Text type="secondary">
+                O sistema guarda esse resumo e usa os exemplos confirmados pelo administrativo para melhorar as próximas sugestões do mesmo cliente.
+              </Text>
+            </Space>
+          </Card>
+        ) : null}
       </Card>
 
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
