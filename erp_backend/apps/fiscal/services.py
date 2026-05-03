@@ -157,11 +157,16 @@ class CalculadoraImpostos:
         observacao: str = "",
         total_impostos: Decimal | None = None,
         total_geral: Decimal | None = None,
+        cbs: Decimal | None = None,
+        ibs: Decimal | None = None,
     ) -> dict:
+        cbs = self._round(cbs or Decimal("0"))
+        ibs = self._round(ibs or Decimal("0"))
         if total_impostos is None:
-            total_impostos = self._round(iss + pis + cofins + irpj + csll)
+            total_impostos = self._round(iss + pis + cofins + irpj + csll + cbs + ibs)
         if total_geral is None:
             total_geral = self._round(subtotal + total_impostos)
+        valor_liquido = self._round(subtotal - total_impostos)
 
         response = {
             "subtotal_servicos": self._round(subtotal_servicos),
@@ -172,8 +177,11 @@ class CalculadoraImpostos:
             "cofins": self._round(cofins),
             "irpj": self._round(irpj),
             "csll": self._round(csll),
+            "cbs": cbs,
+            "ibs": ibs,
             "total_impostos": self._round(total_impostos),
             "total_geral": self._round(total_geral),
+            "valor_liquido": valor_liquido,
             "aliquotas": aliquotas,
             "regime": regime,
         }

@@ -172,6 +172,45 @@ class OrdemServico(models.Model):
     )
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    # ── Tributação avançada (faturamento) ──────────────────────────────────
+    aliquota_issqn = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota ISSQN (%)")
+    valor_issqn = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor ISSQN")
+    retencao_issqn = models.BooleanField(default=False, verbose_name="Retenção ISSQN pelo tomador")
+    valor_retido_issqn = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor Retido ISSQN")
+
+    aliquota_pis = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota PIS (%)")
+    valor_pis = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor PIS")
+    aliquota_cofins = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota COFINS (%)")
+    valor_cofins = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor COFINS")
+    aliquota_irpj = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota IRPJ (%)")
+    valor_irpj = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor IRPJ")
+    aliquota_csll = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota CSLL (%)")
+    valor_csll = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor CSLL")
+
+    # Nova reforma tributária (IBS/CBS — vigente a partir de 2026)
+    aliquota_cbs = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota CBS (%)")
+    valor_cbs = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor CBS")
+    aliquota_ibs = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota IBS (%)")
+    valor_ibs = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor IBS")
+
+    valor_total_retencoes = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Total Retenções")
+    valor_liquido_nf = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor Líquido NF")
+
+    descricao_servico_nf = models.TextField(blank=True, verbose_name="Descrição dos serviços para NF")
+    municipio_incidencia_issqn = models.CharField(max_length=80, blank=True, verbose_name="Município de incidência ISSQN")
+    situacao_tributaria_pis_cofins = models.CharField(max_length=20, blank=True, verbose_name="Situação Tributária PIS/COFINS")
+    tipo_regime_tributario = models.CharField(
+        max_length=30,
+        blank=True,
+        choices=[
+            ("simples", "Simples Nacional"),
+            ("lucro_presumido", "Lucro Presumido"),
+            ("lucro_real", "Lucro Real"),
+            ("mei", "MEI"),
+        ],
+        verbose_name="Regime Tributário",
+    )
+
     class Meta:
         ordering = ["-criado_em"]
         verbose_name = "Ordem de servico"
@@ -255,6 +294,69 @@ class ItemOrcamento(models.Model):
 
     def __str__(self):
         return self.descricao[:80]
+
+
+class FaturamentoAgrupado(models.Model):
+    """
+    Permite faturar N Ordens de Serviço de clientes diferentes
+    em uma única NF emitida para um CNPJ centralizador.
+    Exemplo: 10 lojas do Grupo Soma → uma única NF para a matriz.
+    """
+    STATUS_CHOICES = [
+        ("pendente", "Pendente"),
+        ("faturado", "Faturado"),
+        ("cancelado", "Cancelado"),
+    ]
+
+    ordens = models.ManyToManyField(
+        "OrdemServico",
+        blank=True,
+        related_name="faturamentos_agrupados",
+        verbose_name="Ordens de Serviço",
+    )
+    # Tomador centralizador (pode ser diferente dos clientes das OS)
+    cnpj_tomador = models.CharField(max_length=18, blank=True, verbose_name="CNPJ do tomador")
+    razao_social_tomador = models.CharField(max_length=200, blank=True, verbose_name="Razão Social do tomador")
+    endereco_tomador = models.CharField(max_length=200, blank=True)
+    email_tomador = models.CharField(max_length=120, blank=True)
+
+    # Valores consolidados
+    valor_total_bruto = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    valor_total_impostos = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    valor_liquido_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    # NF emitida
+    numero_nf = models.CharField(max_length=80, blank=True)
+    data_emissao_nf = models.DateField(null=True, blank=True)
+    data_vencimento = models.DateField(null=True, blank=True)
+    pdf_nf = models.FileField(upload_to="nfs/agrupadas/", null=True, blank=True)
+
+    observacoes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pendente")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="faturamentos_criados",
+    )
+
+    class Meta:
+        verbose_name = "Faturamento Agrupado"
+        verbose_name_plural = "Faturamentos Agrupados"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"Fat.Agrup. #{self.id} — {self.razao_social_tomador or self.cnpj_tomador}"
+
+    def recalcular_totais(self):
+        totais = self.ordens.aggregate(
+            bruto=Sum("valor_final_faturado"),
+            impostos=Sum("total_com_impostos"),
+        )
+        self.valor_total_bruto = totais["bruto"] or 0
+        self.save(update_fields=["valor_total_bruto", "valor_liquido_total"])
 
 
 class FotoOS(models.Model):

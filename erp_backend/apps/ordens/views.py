@@ -13,7 +13,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FotoChecklist, FotoOS, LogStatusOS, OrdemServico, RespostaChecklist
+from .models import ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .services import PedidoCompraInteligente
 from .serializers import (
@@ -21,6 +21,7 @@ from .serializers import (
     ChecklistItemSerializer,
     ChecklistTemplateSerializer,
     DespesaOSSerializer,
+    FaturamentoAgrupadoSerializer,
     FotoChecklistSerializer,
     FotoOSSerializer,
     MudarStatusOSSerializer,
@@ -463,6 +464,41 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             return response
         except Exception as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["get"], url_path="pendentes-faturamento")
+    def pendentes_faturamento(self, request):
+        """Lista OS que ainda não foram faturadas (status != faturada)."""
+        qs = OrdemServico.objects.exclude(status="faturada").select_related("cliente").order_by("-criado_em")
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+
+class FaturamentoAgrupadoViewSet(viewsets.ModelViewSet):
+    queryset = FaturamentoAgrupado.objects.prefetch_related("ordens").select_related("criado_por").all()
+    serializer_class = FaturamentoAgrupadoSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(criado_por=self.request.user)
+
+    @action(detail=True, methods=["post"], url_path="adicionar-ordens")
+    def adicionar_ordens(self, request, pk=None):
+        """Recebe lista de IDs de OS e as vincula ao faturamento agrupado."""
+        faturamento = self.get_object()
+        ids = request.data.get("ids", [])
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "Envie uma lista de IDs em 'ids'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ordens = OrdemServico.objects.filter(pk__in=ids)
+        if not ordens.exists():
+            return Response(
+                {"detail": "Nenhuma OS encontrada com os IDs fornecidos."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        faturamento.ordens.add(*ordens)
+        faturamento.recalcular_totais()
+        return Response(FaturamentoAgrupadoSerializer(faturamento).data)
 
 
 class ChecklistTemplateViewSet(viewsets.ModelViewSet):

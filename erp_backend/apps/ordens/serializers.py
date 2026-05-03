@@ -13,6 +13,7 @@ from .models import (
     ChecklistItem,
     ChecklistTemplate,
     DespesaOS,
+    FaturamentoAgrupado,
     FotoChecklist,
     FotoOS,
     ItemOrcamento,
@@ -336,3 +337,13 @@ class ChecklistTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChecklistTemplate
         fields = "__all__"
+
+
+class FaturamentoAgrupadoSerializer(serializers.ModelSerializer):
+    criado_por_nome = serializers.CharField(source="criado_por.nome_completo", read_only=True)
+    ordens_count = serializers.IntegerField(source="ordens.count", read_only=True)
+
+    class Meta:
+        model = FaturamentoAgrupado
+        fields = "__all__"
+        read_only_fields = ["criado_em", "atualizado_em", "criado_por"]

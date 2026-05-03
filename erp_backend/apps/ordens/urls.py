@@ -1,10 +1,11 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import ChecklistTemplateViewSet, OrdemServicoViewSet, RelatorioPublicoPDFView, RelatorioPublicoView
+from .views import ChecklistTemplateViewSet, FaturamentoAgrupadoViewSet, OrdemServicoViewSet, RelatorioPublicoPDFView, RelatorioPublicoView
 
 router = DefaultRouter()
 router.register("checklists", ChecklistTemplateViewSet, basename="checklists")
+router.register("faturamentos-agrupados", FaturamentoAgrupadoViewSet, basename="faturamento-agrupado")
 router.register("", OrdemServicoViewSet, basename="ordens")
 
 urlpatterns = [
