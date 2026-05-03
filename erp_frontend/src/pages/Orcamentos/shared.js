@@ -90,6 +90,13 @@ export const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+export function formatMoneyTrailing(value) {
+  return `${Number(value || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}R$`;
+}
+
 export function normalizeList(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.results)) return data.results;

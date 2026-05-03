@@ -25,6 +25,16 @@ def _to_file_uri(file_field):
     return ""
 
 
+def _format_brl_trailing(value):
+    valor = Decimal(str(value or 0))
+    inteiro, decimal = f"{valor:.2f}".split(".")
+    grupos = []
+    while inteiro:
+        grupos.insert(0, inteiro[-3:])
+        inteiro = inteiro[:-3]
+    return f"{'.'.join(grupos)},{decimal}R$"
+
+
 def _gerar_relatorio_pdf_reportlab(os_obj, context):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -136,6 +146,13 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
 
     story = []
     empresa = context["empresa"]
+    logo_path = context.get("logo_path")
+    if logo_path and os.path.exists(logo_path):
+        try:
+            story.append(RLImage(logo_path, width=28 * mm, height=28 * mm))
+            story.append(Spacer(1, 6))
+        except Exception:
+            pass
     story.append(Paragraph(empresa.razao_social or empresa.nome, styles["HeaderTitle"]))
     company_lines = []
     if empresa.cnpj:
@@ -184,8 +201,8 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
             item["origem_tipo"],
             item["quantidade"],
             item["unidade_referencia"],
-            f"R$ {item['valor_unitario']}",
-            f"R$ {item['valor_total']}",
+            item["valor_unitario_fmt"],
+            item["valor_total_fmt"],
         ])
     items_table = Table(item_rows, colWidths=[68 * mm, 22 * mm, 15 * mm, 18 * mm, 28 * mm, 28 * mm])
     items_table.setStyle(TableStyle([
@@ -204,11 +221,11 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
 
     story.append(Paragraph("Resumo Financeiro", styles["SectionTitle"]))
     total_rows = [
-        ["Subtotal serviços", f"R$ {context['subtotal_servicos']}"],
-        ["Subtotal materiais", f"R$ {context['subtotal_materiais']}"],
-        ["Subtotal orçamento", f"R$ {context['total']}"],
-        ["Impostos estimados", f"R$ {context['total_impostos']}"],
-        ["Total com impostos", f"R$ {context['total_geral']}"],
+        ["Subtotal serviços", context["subtotal_servicos_fmt"]],
+        ["Subtotal materiais", context["subtotal_materiais_fmt"]],
+        ["Subtotal orçamento", context["total_fmt"]],
+        ["Impostos estimados", context["total_impostos_fmt"]],
+        ["Total com impostos", context["total_geral_fmt"]],
     ]
     totals_table = Table(total_rows, colWidths=[90 * mm, 40 * mm], hAlign="RIGHT")
     totals_table.setStyle(TableStyle([
@@ -223,28 +240,12 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
     story.append(totals_table)
     story.append(Spacer(1, 12))
 
-    story.append(Paragraph("Descrição dos Impostos Pagos", styles["SectionTitle"]))
-    tax_rows = [["Imposto", "Alíquota", "Valor estimado"]]
-    for imposto in context["impostos"]:
-        tax_rows.append([
-            imposto["nome"],
-            f"{imposto['aliquota']}%",
-            f"R$ {Decimal(str(imposto['valor'] or 0)):.2f}",
-        ])
-    taxes_table = Table(tax_rows, colWidths=[70 * mm, 30 * mm, 40 * mm])
-    taxes_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F5F8FC")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#6B7C91")),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E6EDF5")),
-        ("ALIGN", (1, 1), (1, -1), "CENTER"),
-        ("ALIGN", (2, 1), (2, -1), "RIGHT"),
-        ("PADDING", (0, 0), (-1, -1), 6),
-    ]))
-    story.append(taxes_table)
-    if context.get("observacao_impostos"):
-        story.append(Spacer(1, 8))
-        story.append(Paragraph(context["observacao_impostos"], styles["Muted"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Observação Fiscal", styles["SectionTitle"]))
+    story.append(Paragraph(
+        f"Este orçamento apresenta apenas impostos estimados para fins informativos. Estimativa atual: {context['total_impostos_fmt']}.",
+        styles["Muted"],
+    ))
 
     if os_obj.observacoes_tecnicas:
         story.append(Spacer(1, 12))
@@ -353,6 +354,8 @@ def _prepare_orcamento_context(os_obj):
             'quantidade': f'{Decimal(item.quantidade or 0):.2f}'.replace('.', ',').rstrip('0').rstrip(','),
             'valor_unitario': f'{valor_unitario:.2f}',
             'valor_total': f'{valor_total:.2f}',
+            'valor_unitario_fmt': _format_brl_trailing(valor_unitario),
+            'valor_total_fmt': _format_brl_trailing(valor_total),
         }
         itens.append(item_data)
         subtotal += valor_total
@@ -419,16 +422,24 @@ def _prepare_orcamento_context(os_obj):
         'os': os_obj,
         'empresa': empresa,
         'config_os': config_os,
+        'logo_uri': _to_file_uri(empresa.logo),
+        'logo_path': empresa.logo.path if empresa.logo else '',
         'data_proposta': datetime.now().strftime('%d/%m/%Y'),
         'validade_orcamento': os_obj.validade_orcamento.strftime('%d/%m/%Y') if os_obj.validade_orcamento else 'A combinar',
         'itens': itens,
         'subtotal': f'{subtotal:.2f}',
+        'subtotal_fmt': _format_brl_trailing(subtotal),
         'subtotal_servicos': f'{subtotal_servicos:.2f}',
+        'subtotal_servicos_fmt': _format_brl_trailing(subtotal_servicos),
         'subtotal_materiais': f'{subtotal_materiais:.2f}',
+        'subtotal_materiais_fmt': _format_brl_trailing(subtotal_materiais),
         'descontos': f'{descontos:.2f}',
         'total_impostos': f'{total_impostos:.2f}',
+        'total_impostos_fmt': _format_brl_trailing(total_impostos),
         'total': f'{Decimal(os_obj.valor_total_orcado or subtotal):.2f}',
+        'total_fmt': _format_brl_trailing(Decimal(os_obj.valor_total_orcado or subtotal)),
         'total_geral': f'{total_geral:.2f}',
+        'total_geral_fmt': _format_brl_trailing(total_geral),
         'contato': contato,
         'endereco': endereco,
         'telefone': telefone,

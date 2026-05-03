@@ -5,58 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamento {{ os.numero }}</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        @page {
-            size: A4;
-            margin: 18mm 14mm;
-        }
-
+        * { box-sizing: border-box; }
+        @page { size: A4; margin: 16mm 14mm; }
         body {
             font-family: Arial, Helvetica, sans-serif;
             color: #142133;
             font-size: 12px;
-            line-height: 1.45;
+            line-height: 1.5;
             margin: 0;
         }
-
-        .page {
-            width: 100%;
-        }
-
+        .page { width: 100%; }
         .header {
             display: table;
             width: 100%;
-            padding-bottom: 18px;
             border-bottom: 3px solid #1B4F8A;
+            padding-bottom: 18px;
         }
-
-        .header-left,
-        .header-right {
+        .header-left, .header-right {
             display: table-cell;
             vertical-align: top;
         }
-
         .header-right {
-            width: 180px;
+            width: 220px;
             text-align: right;
         }
-
+        .brand-wrap {
+            display: table;
+            width: 100%;
+        }
+        .logo-box, .brand-info {
+            display: table-cell;
+            vertical-align: top;
+        }
+        .logo-box {
+            width: 88px;
+            padding-right: 14px;
+        }
+        .logo-shell {
+            width: 76px;
+            height: 76px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #1B4F8A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 24px;
+        }
+        .logo-shell img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            background: #fff;
+        }
         .company-name {
             font-size: 24px;
             font-weight: bold;
             color: #1B4F8A;
             margin-bottom: 6px;
         }
-
         .company-lines {
             color: #526173;
             font-size: 11px;
-            line-height: 1.55;
+            line-height: 1.6;
         }
-
         .document-chip {
             display: inline-block;
             padding: 8px 14px;
@@ -69,44 +83,47 @@
             text-transform: uppercase;
             margin-bottom: 10px;
         }
-
         .budget-number {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: bold;
             color: #142133;
             margin-bottom: 4px;
         }
-
         .budget-meta {
             color: #64748B;
             font-size: 11px;
+            line-height: 1.6;
         }
-
         .hero {
             margin: 20px 0 18px;
-            padding: 18px 20px;
+            padding: 20px 22px;
             border: 1px solid #DDE5EF;
-            border-radius: 14px;
-            background: linear-gradient(180deg, #FFFFFF 0%, #F7FAFD 100%);
+            border-radius: 18px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #EEF5FC 100%);
         }
-
+        .eyebrow {
+            color: #6B7C91;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
         .hero-title {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: #10233C;
             margin-bottom: 8px;
         }
-
         .hero-subtitle {
-            color: #526173;
-            font-size: 12px;
+            color: #445468;
+            font-size: 13px;
+            line-height: 1.7;
         }
-
         .section {
             margin-bottom: 18px;
             page-break-inside: avoid;
         }
-
         .section-title {
             font-size: 11px;
             font-weight: bold;
@@ -115,44 +132,33 @@
             letter-spacing: 0.08em;
             margin-bottom: 10px;
         }
-
-        .box {
-            border: 1px solid #DDE5EF;
-            border-radius: 14px;
-            overflow: hidden;
-            background: #FFFFFF;
-        }
-
-        .box-body {
-            padding: 16px 18px;
-        }
-
         .grid-two {
             display: table;
             width: 100%;
             table-layout: fixed;
         }
-
         .grid-two .col {
             display: table-cell;
             width: 50%;
             vertical-align: top;
-            padding-right: 12px;
         }
-
+        .grid-two .col:first-child {
+            padding-right: 9px;
+        }
         .grid-two .col:last-child {
-            padding-right: 0;
-            padding-left: 12px;
+            padding-left: 9px;
         }
-
+        .card {
+            border: 1px solid #DDE5EF;
+            border-radius: 18px;
+            background: #FFFFFF;
+            padding: 18px;
+            height: 100%;
+        }
         .field {
             margin-bottom: 12px;
         }
-
-        .field:last-child {
-            margin-bottom: 0;
-        }
-
+        .field:last-child { margin-bottom: 0; }
         .field-label {
             color: #6B7C91;
             font-size: 10px;
@@ -160,24 +166,21 @@
             letter-spacing: 0.08em;
             margin-bottom: 4px;
         }
-
         .field-value {
             color: #142133;
             font-size: 12px;
             font-weight: bold;
+            line-height: 1.5;
         }
-
         .field-help {
             color: #526173;
             font-size: 11px;
             font-weight: normal;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
         }
-
         thead th {
             background: #F5F8FC;
             color: #6B7C91;
@@ -189,116 +192,69 @@
             padding: 12px 14px;
             border-bottom: 1px solid #DDE5EF;
         }
-
         tbody td {
             padding: 12px 14px;
             border-bottom: 1px solid #EEF2F6;
             vertical-align: top;
             font-size: 11px;
         }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
+        tbody tr:last-child td { border-bottom: none; }
         .item-title {
             color: #142133;
             font-size: 12px;
             font-weight: bold;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
-
         .item-meta {
             color: #6B7C91;
             font-size: 10px;
+            line-height: 1.5;
         }
-
-        .summary-wrap {
-            display: table;
-            width: 100%;
-            margin-top: 16px;
-        }
-
-        .summary-left,
-        .summary-right {
-            display: table-cell;
-            vertical-align: top;
-        }
-
-        .summary-left {
-            padding-right: 16px;
-        }
-
-        .summary-right {
-            width: 240px;
-        }
-
-        .note-box {
+        .text-right { text-align: right; }
+        .summary {
             border: 1px solid #DDE5EF;
-            border-radius: 14px;
-            padding: 14px 16px;
-            background: #F8FBFF;
-            color: #445468;
-            font-size: 11px;
-            line-height: 1.6;
-        }
-
-        .totals {
-            border: 1px solid #DDE5EF;
-            border-radius: 14px;
+            border-radius: 18px;
             overflow: hidden;
-        }
-
-        .totals-row {
-            display: table;
-            width: 100%;
-            padding: 12px 14px;
-            border-bottom: 1px solid #EEF2F6;
             background: #FFFFFF;
         }
-
-        .totals-row:last-child {
-            border-bottom: none;
+        .summary-row {
+            display: table;
+            width: 100%;
+            padding: 13px 16px;
+            border-bottom: 1px solid #EEF2F6;
         }
-
-        .totals-row.primary {
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row.total {
             background: #1B4F8A;
             color: #FFFFFF;
         }
-
-        .totals-label,
-        .totals-value {
+        .summary-label, .summary-value {
             display: table-cell;
             font-size: 12px;
         }
-
-        .totals-label {
-            color: inherit;
-        }
-
-        .totals-value {
-            width: 120px;
+        .summary-value {
+            width: 150px;
             text-align: right;
             font-weight: bold;
-            color: inherit;
         }
-
-        .tax-caption {
-            margin-bottom: 10px;
+        .tax-note {
+            padding: 14px 16px;
+            background: #F8FBFF;
+            color: #5A6070;
+            font-size: 11px;
+            line-height: 1.7;
+        }
+        .note-box {
+            border: 1px solid #DDE5EF;
+            border-radius: 18px;
+            padding: 16px 18px;
+            background: #FFFFFF;
             color: #445468;
             font-size: 11px;
+            line-height: 1.8;
         }
-
         .footer {
-            margin-top: 24px;
+            margin-top: 22px;
             padding-top: 12px;
             border-top: 2px solid #DDE5EF;
             color: #6B7C91;
@@ -306,31 +262,33 @@
             display: table;
             width: 100%;
         }
-
-        .footer div {
-            display: table-cell;
-        }
-
-        .footer .center {
-            text-align: center;
-        }
-
-        .footer .right {
-            text-align: right;
-        }
+        .footer div { display: table-cell; }
+        .footer .center { text-align: center; }
+        .footer .right { text-align: right; }
     </style>
 </head>
 <body>
     <div class="page">
         <div class="header">
             <div class="header-left">
-                <div class="company-name">{{ empresa.razao_social|default:empresa.nome }}</div>
-                <div class="company-lines">
-                    {% if empresa.cnpj %}CNPJ: {{ empresa.cnpj }}<br>{% endif %}
-                    {% if empresa.endereco %}{{ empresa.endereco }}<br>{% endif %}
-                    {% if empresa.telefone %}Telefone: {{ empresa.telefone }}<br>{% endif %}
-                    {% if empresa.email %}Email: {{ empresa.email }}<br>{% endif %}
-                    {% if empresa.site %}Site: {{ empresa.site }}{% endif %}
+                <div class="brand-wrap">
+                    <div class="logo-box">
+                        {% if logo_uri %}
+                            <div class="logo-shell"><img src="{{ logo_uri }}" alt="Logo"></div>
+                        {% else %}
+                            <div class="logo-shell">{{ empresa.nome|slice:":3"|upper }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="brand-info">
+                        <div class="company-name">{{ empresa.razao_social|default:empresa.nome }}</div>
+                        <div class="company-lines">
+                            {% if empresa.cnpj %}CNPJ: {{ empresa.cnpj }}<br>{% endif %}
+                            {% if empresa.endereco %}{{ empresa.endereco }}<br>{% endif %}
+                            {% if empresa.telefone %}Telefone: {{ empresa.telefone }}<br>{% endif %}
+                            {% if empresa.email %}Email: {{ empresa.email }}<br>{% endif %}
+                            {% if empresa.site %}Site: {{ empresa.site }}{% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="header-right">
@@ -342,6 +300,7 @@
         </div>
 
         <div class="hero">
+            <div class="eyebrow">Descrição do serviço</div>
             <div class="hero-title">Orçamento para {{ os.cliente.nome }}</div>
             <div class="hero-subtitle">
                 {{ os.descricao_servico|default:"Proposta comercial referente aos serviços e materiais descritos abaixo." }}
@@ -349,40 +308,38 @@
         </div>
 
         <div class="section">
-            <div class="section-title">Empresa e Cliente</div>
-            <div class="box">
-                <div class="box-body">
-                    <div class="grid-two">
-                        <div class="col">
-                            <div class="field">
-                                <div class="field-label">Empresa</div>
-                                <div class="field-value">{{ empresa.razao_social|default:empresa.nome }}</div>
-                            </div>
-                            <div class="field">
-                                <div class="field-label">Responsável comercial</div>
-                                <div class="field-value">{{ contato }}</div>
-                            </div>
-                            <div class="field">
-                                <div class="field-label">Regime tributário</div>
-                                <div class="field-value">{{ regime_tributario|default:"-" }}</div>
-                            </div>
+            <div class="grid-two">
+                <div class="col">
+                    <div class="section-title">Dados da Empresa</div>
+                    <div class="card">
+                        <div class="field">
+                            <div class="field-label">Empresa</div>
+                            <div class="field-value">{{ empresa.razao_social|default:empresa.nome }}</div>
                         </div>
-                        <div class="col">
-                            <div class="field">
-                                <div class="field-label">Cliente</div>
-                                <div class="field-value">{{ os.cliente.nome }}</div>
-                            </div>
-                            <div class="field">
-                                <div class="field-label">Telefone / Email</div>
-                                <div class="field-value">
-                                    {{ telefone|default:"-" }}
-                                    {% if cliente_email %}<span class="field-help"><br>{{ cliente_email }}</span>{% endif %}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <div class="field-label">Endereço do serviço</div>
-                                <div class="field-value"><span class="field-help">{{ endereco }}</span></div>
-                            </div>
+                        <div class="field">
+                            <div class="field-label">CNPJ</div>
+                            <div class="field-value"><span class="field-help">{{ empresa.cnpj|default:"-" }}</span></div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">Telefone / Email</div>
+                            <div class="field-value"><span class="field-help">{{ empresa.telefone|default:"-" }}{% if empresa.email %}<br>{{ empresa.email }}{% endif %}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="section-title">Dados do Cliente</div>
+                    <div class="card">
+                        <div class="field">
+                            <div class="field-label">Cliente</div>
+                            <div class="field-value">{{ os.cliente.nome }}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">Contato responsável</div>
+                            <div class="field-value"><span class="field-help">{{ contato }}</span></div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">Endereço do serviço</div>
+                            <div class="field-value"><span class="field-help">{{ endereco }}</span></div>
                         </div>
                     </div>
                 </div>
@@ -391,16 +348,14 @@
 
         <div class="section">
             <div class="section-title">Itens do Orçamento</div>
-            <div class="box">
+            <div class="card" style="padding: 0;">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 44%">Descrição</th>
-                            <th style="width: 12%">Origem</th>
+                            <th style="width: 52%">Descrição</th>
                             <th style="width: 12%">Qtd</th>
-                            <th style="width: 12%">Unidade</th>
-                            <th style="width: 10%" class="text-right">Unitário</th>
-                            <th style="width: 10%" class="text-right">Total</th>
+                            <th style="width: 16%" class="text-right">Unitário</th>
+                            <th style="width: 20%" class="text-right">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -409,14 +364,13 @@
                             <td>
                                 <div class="item-title">{{ item.descricao }}</div>
                                 <div class="item-meta">
-                                    {% if item.codigo_referencia %}Código: {{ item.codigo_referencia }}{% else %}Sem código de referência{% endif %}
+                                    {% if item.codigo_referencia %}Código: {{ item.codigo_referencia }} | {% endif %}
+                                    {{ item.unidade_referencia }} | {{ item.origem_tipo }}
                                 </div>
                             </td>
-                            <td>{{ item.origem_tipo }}</td>
-                            <td class="text-center">{{ item.quantidade }}</td>
-                            <td class="text-center">{{ item.unidade_referencia }}</td>
-                            <td class="text-right">R$ {{ item.valor_unitario|floatformat:2 }}</td>
-                            <td class="text-right"><strong>R$ {{ item.valor_total|floatformat:2 }}</strong></td>
+                            <td>{{ item.quantidade }}</td>
+                            <td class="text-right">{{ item.valor_unitario_fmt }}</td>
+                            <td class="text-right"><strong>{{ item.valor_total_fmt }}</strong></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -424,83 +378,57 @@
             </div>
         </div>
 
-        <div class="summary-wrap">
-            <div class="summary-left">
-                <div class="section-title">Condições Comerciais</div>
-                <div class="note-box">
-                    <strong>Condição de pagamento:</strong> {{ os.condicao_pagamento|default:"A combinar" }}<br>
-                    <strong>Tipo de serviço:</strong> {{ os.get_tipo_servico_display }}<br>
-                    <strong>Validade:</strong> {{ validade_orcamento }}<br><br>
-                    {% if os.observacoes_tecnicas %}
-                        {{ os.observacoes_tecnicas }}
-                    {% elif config_os.texto_termos %}
-                        {{ config_os.texto_termos }}
-                    {% else %}
-                        Proposta sujeita à aprovação comercial e confirmação de agenda operacional.
-                    {% endif %}
-                </div>
-            </div>
-            <div class="summary-right">
-                <div class="totals">
-                    <div class="totals-row">
-                        <div class="totals-label">Subtotal serviços</div>
-                        <div class="totals-value">R$ {{ subtotal_servicos|floatformat:2 }}</div>
-                    </div>
-                    <div class="totals-row">
-                        <div class="totals-label">Subtotal materiais</div>
-                        <div class="totals-value">R$ {{ subtotal_materiais|floatformat:2 }}</div>
-                    </div>
-                    <div class="totals-row">
-                        <div class="totals-label">Subtotal orçamento</div>
-                        <div class="totals-value">R$ {{ total|floatformat:2 }}</div>
-                    </div>
-                    <div class="totals-row">
-                        <div class="totals-label">Impostos estimados</div>
-                        <div class="totals-value">R$ {{ total_impostos|floatformat:2 }}</div>
-                    </div>
-                    <div class="totals-row primary">
-                        <div class="totals-label">Total com impostos</div>
-                        <div class="totals-value">R$ {{ total_geral|floatformat:2 }}</div>
+        <div class="section">
+            <div class="grid-two">
+                <div class="col">
+                    <div class="section-title">Condições e Observações</div>
+                    <div class="note-box">
+                        <strong>Condição de pagamento:</strong> {{ os.condicao_pagamento|default:"A combinar" }}<br>
+                        <strong>Regime tributário:</strong> {{ regime_tributario|default:"-" }}<br>
+                        <strong>Validade do orçamento:</strong> {{ validade_orcamento }}<br><br>
+                        {% if os.observacoes_tecnicas %}
+                            {{ os.observacoes_tecnicas }}
+                        {% elif config_os.texto_termos %}
+                            {{ config_os.texto_termos }}
+                        {% else %}
+                            Proposta sujeita à aprovação comercial e confirmação de agenda operacional.
+                        {% endif %}
                     </div>
                 </div>
+                <div class="col">
+                    <div class="section-title">Resumo Financeiro</div>
+                    <div class="summary">
+                        <div class="summary-row">
+                            <div class="summary-label">Subtotal serviços</div>
+                            <div class="summary-value">{{ subtotal_servicos_fmt }}</div>
+                        </div>
+                        <div class="summary-row">
+                            <div class="summary-label">Subtotal produtos</div>
+                            <div class="summary-value">{{ subtotal_materiais_fmt }}</div>
+                        </div>
+                        <div class="summary-row">
+                            <div class="summary-label">Subtotal orçamento</div>
+                            <div class="summary-value">{{ total_fmt }}</div>
+                        </div>
+                        <div class="summary-row">
+                            <div class="summary-label">Impostos estimados</div>
+                            <div class="summary-value">{{ total_impostos_fmt }}</div>
+                        </div>
+                        <div class="summary-row total">
+                            <div class="summary-label">Total geral</div>
+                            <div class="summary-value">{{ total_geral_fmt }}</div>
+                        </div>
+                        <div class="tax-note">
+                            Impostos estimados para fins informativos. Eles ainda não foram recolhidos na data desta proposta.
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <div class="section" style="margin-top: 18px;">
-            <div class="section-title">Descrição dos Impostos Pagos</div>
-            <div class="tax-caption">
-                A composição tributária abaixo descreve os impostos pagos considerados neste orçamento, conforme o regime tributário configurado para a empresa.
-            </div>
-            <div class="box">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Imposto</th>
-                            <th style="width: 140px" class="text-center">Alíquota</th>
-                            <th style="width: 180px" class="text-right">Valor estimado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for imposto in impostos %}
-                        <tr>
-                            <td>{{ imposto.nome }}</td>
-                            <td class="text-center">{{ imposto.aliquota }}%</td>
-                            <td class="text-right">R$ {{ imposto.valor|floatformat:2 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% if observacao_impostos %}
-            <div class="note-box" style="margin-top: 10px;">
-                {{ observacao_impostos }}
-            </div>
-            {% endif %}
         </div>
 
         <div class="footer">
             <div>{{ empresa.nome }}</div>
-            <div class="center">Orçamento {{ os.numero }}</div>
+            <div class="center">{{ os.numero }}</div>
             <div class="right">Gerado em {{ data_proposta }}</div>
         </div>
     </div>
