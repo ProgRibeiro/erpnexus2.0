@@ -37,6 +37,7 @@ Thumbs.db
 
 # Arquivos locais de ferramentas
 .openclaude-profile.json
+.claude/worktrees/
 .env
 .env.*
 !.env.example
