@@ -187,6 +187,7 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+AUTO_GERAR_PDF_AO_FATURAR = env.bool("AUTO_GERAR_PDF_AO_FATURAR", default=False)
 
 # Configuração de agendamento de tarefas Celery Beat
 CELERY_BEAT_SCHEDULE = {

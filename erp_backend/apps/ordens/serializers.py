@@ -23,6 +23,16 @@ from .models import (
 )
 
 
+def _json_safe(value):
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
+
+
 class ItemOrcamentoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
     produto_nome = serializers.CharField(source="produto.nome", read_only=True)
@@ -218,7 +228,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
 
         ordem.valor_servicos = valor_servicos
         ordem.valor_materiais = valor_materiais
-        ordem.dados_impostos = impostos
+        ordem.dados_impostos = _json_safe(impostos)
         ordem.total_com_impostos = impostos.get("total_geral", ordem.valor_total_orcado)
         ordem.save(
             update_fields=[
