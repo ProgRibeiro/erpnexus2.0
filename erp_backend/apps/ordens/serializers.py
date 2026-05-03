@@ -194,14 +194,21 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             if item.origem_tipo == ItemOrcamento.OrigemTipo.PRODUTO
         )
 
-        empresa, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")
+        empresa = ConfiguracaoEmpresa.objects.order_by("id").first()
+        if not empresa:
+            empresa = ConfiguracaoEmpresa.objects.create(nome="ERP Nexus", razao_social="ERP Nexus")
         fiscal_config, _ = ConfiguracaoFiscal.objects.get_or_create(
             empresa=empresa,
             defaults={
                 "cnpj": empresa.cnpj,
                 "razao_social": empresa.razao_social or empresa.nome,
+                "regime_tributario": empresa.regime_tributario,
+                "aliquota_iss": empresa.aliquota_issqn_padrao,
             },
         )
+        if empresa.regime_tributario and fiscal_config.regime_tributario != empresa.regime_tributario:
+            fiscal_config.regime_tributario = empresa.regime_tributario
+            fiscal_config.save(update_fields=["regime_tributario", "atualizado_em"])
 
         impostos = CalculadoraImpostos().calcular(
             valor_servicos=valor_servicos,

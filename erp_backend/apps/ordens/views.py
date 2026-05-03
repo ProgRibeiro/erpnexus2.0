@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.auditoria.models import LogAuditoria
+
 from .models import ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .services import PedidoCompraInteligente
@@ -39,6 +41,13 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     search_fields = ["numero", "descricao_servico", "cliente__nome", "cliente__cnpj_cpf"]
     filterset_fields = ["status", "cliente", "tecnico_responsavel", "tipo_servico"]
     ordering_fields = ["criado_em", "data_agendada", "valor_total_orcado"]
+
+    def _snapshot(self, ordem):
+        return {
+            k: str(v)
+            for k, v in ordem.__dict__.items()
+            if not k.startswith("_")
+        }
 
     def get_queryset(self):
         queryset = (
@@ -79,11 +88,31 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         ordem = serializer.save(criado_por=self.request.user, atualizado_por=self.request.user)
+        LogAuditoria.objects.create(
+            usuario=self.request.user if self.request.user.is_authenticated else None,
+            acao="create",
+            modelo="OrdemServico",
+            objeto_id=str(ordem.pk),
+            ip=self.request.META.get("REMOTE_ADDR"),
+            user_agent=self.request.META.get("HTTP_USER_AGENT", "")[:500],
+            dados_depois=self._snapshot(ordem),
+        )
         if ordem.tem_pedido_compra and ordem.pdf_pc:
             PedidoCompraInteligente().registrar_aprendizado(ordem, usuario=self.request.user)
 
     def perform_update(self, serializer):
+        dados_antes = self._snapshot(serializer.instance)
         ordem = serializer.save(atualizado_por=self.request.user)
+        LogAuditoria.objects.create(
+            usuario=self.request.user if self.request.user.is_authenticated else None,
+            acao="update",
+            modelo="OrdemServico",
+            objeto_id=str(ordem.pk),
+            ip=self.request.META.get("REMOTE_ADDR"),
+            user_agent=self.request.META.get("HTTP_USER_AGENT", "")[:500],
+            dados_antes=dados_antes,
+            dados_depois=self._snapshot(ordem),
+        )
         if ordem.tem_pedido_compra and ordem.pdf_pc:
             PedidoCompraInteligente().registrar_aprendizado(ordem, usuario=self.request.user)
 

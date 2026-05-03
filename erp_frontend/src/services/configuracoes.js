@@ -52,6 +52,10 @@ const configuracoesService = {
     const response = await api.get("/configuracoes/os/");
     return response.data;
   },
+  obterConfiguracoes: async () => {
+    const response = await api.get("/configuracoes/os/");
+    return response.data;
+  },
   salvarConfiguracaoOS: async (payload) => {
     const response = await api.patch("/configuracoes/os/", payload);
     return response.data;

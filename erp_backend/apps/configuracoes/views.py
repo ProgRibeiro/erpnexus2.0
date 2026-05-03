@@ -20,6 +20,28 @@ from .serializers import (
 )
 
 
+def _sincronizar_configuracao_fiscal(empresa_obj):
+    try:
+        from apps.fiscal.models import ConfiguracaoFiscal
+
+        fiscal, _ = ConfiguracaoFiscal.objects.get_or_create(empresa=empresa_obj)
+        fiscal.cnpj = empresa_obj.cnpj or fiscal.cnpj
+        fiscal.razao_social = empresa_obj.razao_social or empresa_obj.nome
+        fiscal.regime_tributario = empresa_obj.regime_tributario or fiscal.regime_tributario
+        fiscal.aliquota_iss = empresa_obj.aliquota_issqn_padrao
+        fiscal.save(
+            update_fields=[
+                "cnpj",
+                "razao_social",
+                "regime_tributario",
+                "aliquota_iss",
+                "atualizado_em",
+            ]
+        )
+    except Exception:
+        return
+
+
 @api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
@@ -33,7 +55,8 @@ def empresa(request):
     if request.method == "PATCH":
         serializer = ConfiguracaoEmpresaSerializer(config, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        config = serializer.save()
+        _sincronizar_configuracao_fiscal(config)
         return Response(serializer.data)
     return Response(ConfiguracaoEmpresaSerializer(config).data)
 

@@ -1,6 +1,7 @@
 asgiref==3.8.1
 boto3==1.35.71
 celery==5.4.0
+cryptography>=42.0.0
 django==5.1.4
 django-celery-beat>=2.6
 django-cors-headers==4.6.0

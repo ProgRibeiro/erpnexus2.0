@@ -1,11 +1,13 @@
 from django.db.models import Q
 from rest_framework import viewsets
 
+from apps.auditoria.mixins import AuditMixin
+
 from .models import Cliente
 from .serializers import ClienteSerializer
 
 
-class ClienteViewSet(viewsets.ModelViewSet):
+class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
     search_fields = ["nome", "cnpj_cpf", "email"]
     filterset_fields = ["status", "segmento"]

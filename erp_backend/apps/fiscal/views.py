@@ -14,13 +14,36 @@ from .services import CalculadoraImpostos, ConsultaCNPJ
 
 
 def _get_empresa():
-    empresa, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")
+    empresa = ConfiguracaoEmpresa.objects.order_by("id").first()
+    if not empresa:
+        empresa = ConfiguracaoEmpresa.objects.create(nome="ERP Nexus", razao_social="ERP Nexus")
     return empresa
 
 
 def _get_configuracao_fiscal():
     empresa = _get_empresa()
-    configuracao, _ = ConfiguracaoFiscal.objects.get_or_create(empresa=empresa, defaults={"cnpj": empresa.cnpj, "razao_social": empresa.razao_social})
+    configuracao, _ = ConfiguracaoFiscal.objects.get_or_create(
+        empresa=empresa,
+        defaults={
+            "cnpj": empresa.cnpj,
+            "razao_social": empresa.razao_social or empresa.nome,
+            "regime_tributario": empresa.regime_tributario or ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL,
+            "aliquota_iss": empresa.aliquota_issqn_padrao,
+        },
+    )
+    campos_atualizar = []
+    if empresa.regime_tributario and configuracao.regime_tributario != empresa.regime_tributario:
+        configuracao.regime_tributario = empresa.regime_tributario
+        campos_atualizar.append("regime_tributario")
+    if empresa.cnpj and configuracao.cnpj != empresa.cnpj:
+        configuracao.cnpj = empresa.cnpj
+        campos_atualizar.append("cnpj")
+    if empresa.razao_social and configuracao.razao_social != empresa.razao_social:
+        configuracao.razao_social = empresa.razao_social
+        campos_atualizar.append("razao_social")
+    if campos_atualizar:
+        campos_atualizar.append("atualizado_em")
+        configuracao.save(update_fields=campos_atualizar)
     return configuracao
 
 
@@ -74,4 +97,3 @@ def configuracao(request):
         serializer.save()
         return Response(serializer.data)
     return Response(ConfiguracaoFiscalSerializer(config).data)
-

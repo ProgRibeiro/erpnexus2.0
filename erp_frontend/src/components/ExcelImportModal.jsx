@@ -12,43 +12,48 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
   const [arquivo, setArquivo] = useState(null);
 
   const endpoints = {
-    clientes: "/estoque/excel-import/importar-clientes/",
-    servicos: "/estoque/excel-import/importar-servicos/",
-    produtos: "/estoque/excel-import/importar-produtos/",
+    clientes: "/importacao/clientes/importar/",
+    servicos: "/importacao/servicos/importar/",
+    produtos: "/importacao/produtos/importar/",
+  };
+
+  const exportEndpoints = {
+    clientes: "/importacao/clientes/exportar/",
+    servicos: "/importacao/servicos/exportar/",
+    produtos: "/importacao/produtos/exportar/",
+    ordens: "/importacao/ordens/exportar/",
+    financeiro: "/importacao/financeiro/exportar/",
   };
 
   const templates = {
     clientes: [
-      "Nome Fantasia",
-      "Razão Social",
-      "CNPJ",
-      "Telefone",
-      "Email",
-      "Segmento",
-      "Status",
-      "Cidade",
-      "UF",
+      "nome",
+      "cnpj_cpf",
+      "email",
+      "telefone",
+      "status",
+      "segmento",
     ],
-    servicos: ["Nome", "Descrição", "Categoria", "Preço", "Tributação", "LC116", "Unidade"],
-    produtos: ["Nome", "Descrição", "Categoria", "Unidade", "Custo", "Venda", "Mín.", "Local"],
+    servicos: ["codigo", "nome", "descricao", "categoria", "unidade_medida", "preco_padrao", "tributacao", "codigo_lc116", "ativo"],
+    produtos: ["codigo", "nome", "descricao", "unidade_medida", "preco_custo", "preco_venda", "estoque_minimo", "ativo"],
   };
 
-  const handleDownloadTemplate = async (tipo) => {
+  const handleExport = async (tipo) => {
     try {
-      const response = await api.get(`/estoque/excel-import/template_${tipo}/`, {
+      const response = await api.get(exportEndpoints[tipo], {
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `template_${tipo}.xlsx`);
+      link.setAttribute("download", `${tipo}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-      message.success("Template baixado!");
+      message.success("Arquivo exportado.");
     } catch {
-      message.error("Erro ao baixar template");
+      message.error("Erro ao exportar dados");
     }
   };
 
@@ -68,7 +73,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
       });
 
       setResultado(response.data);
-      message.success(`${response.data.sucesso} registros importados!`);
+      message.success(`${response.data.sucesso || 0} registros processados.`);
       if (onSuccess) onSuccess();
     } catch {
       message.error("Erro ao importar arquivo");
@@ -92,13 +97,14 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
         <div>
           <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <p style={{ margin: 0 }}>Colunas: {templates.clientes.join(", ")}</p>
-            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate("clientes")} size="small">
-              Template
+            <Button icon={<DownloadOutlined />} onClick={() => handleExport("clientes")} size="small">
+              Exportar
             </Button>
           </div>
           <Dragger
             accept=".xlsx"
             maxCount={1}
+            beforeUpload={() => false}
             onChange={(info) => setArquivo(info.fileList[0]?.originFileObj)}
           >
             <p className="ant-upload-drag-icon">
@@ -116,13 +122,14 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
         <div>
           <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <p style={{ margin: 0 }}>Colunas: {templates.servicos.join(", ")}</p>
-            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate("servicos")} size="small">
-              Template
+            <Button icon={<DownloadOutlined />} onClick={() => handleExport("servicos")} size="small">
+              Exportar
             </Button>
           </div>
           <Dragger
             accept=".xlsx"
             maxCount={1}
+            beforeUpload={() => false}
             onChange={(info) => setArquivo(info.fileList[0]?.originFileObj)}
           >
             <p className="ant-upload-drag-icon">
@@ -140,13 +147,14 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
         <div>
           <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <p style={{ margin: 0 }}>Colunas: {templates.produtos.join(", ")}</p>
-            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate("produtos")} size="small">
-              Template
+            <Button icon={<DownloadOutlined />} onClick={() => handleExport("produtos")} size="small">
+              Exportar
             </Button>
           </div>
           <Dragger
             accept=".xlsx"
             maxCount={1}
+            beforeUpload={() => false}
             onChange={(info) => setArquivo(info.fileList[0]?.originFileObj)}
           >
             <p className="ant-upload-drag-icon">
@@ -161,7 +169,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
 
   return (
     <Modal
-      title="Importar dados via Excel"
+      title="Importação e exportação em lote"
       open={open}
       onCancel={handleClose}
       footer={[
@@ -187,11 +195,11 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
             title={`Importação concluída`}
             subTitle={`Sucesso: ${resultado.sucesso} | Falhas: ${resultado.falhas}`}
             extra={
-              resultado.erros.length > 0 && (
+              (resultado.erros || []).length > 0 && (
                 <div style={{ textAlign: "left", marginTop: 16 }}>
                   <h4>Erros encontrados:</h4>
                   <div style={{ maxHeight: 200, overflow: "auto", fontSize: 12 }}>
-                    {resultado.erros.map((erro, idx) => (
+                    {(resultado.erros || []).map((erro, idx) => (
                       <div key={idx} style={{ color: "#ef4444" }}>
                         {erro}
                       </div>
@@ -206,6 +214,16 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
             activeKey={tipoImport}
             onChange={setTipoImport}
             items={tabs}
+            tabBarExtraContent={
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button size="small" icon={<DownloadOutlined />} onClick={() => handleExport("ordens")}>
+                  OS
+                </Button>
+                <Button size="small" icon={<DownloadOutlined />} onClick={() => handleExport("financeiro")}>
+                  Financeiro
+                </Button>
+              </div>
+            }
             style={{ marginTop: 16 }}
           />
         )}

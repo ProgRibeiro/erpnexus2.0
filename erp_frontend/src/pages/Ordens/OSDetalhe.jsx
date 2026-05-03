@@ -361,7 +361,7 @@ export default function OSDetalhePage() {
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
   const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
   const [tributacao, setTributacao] = useState({
-    regime: "simples",
+    regime: "simples_nacional",
     issqn_aliquota: 0,
     issqn_retencao: false,
     pis_aliquota: 0,
@@ -372,6 +372,7 @@ export default function OSDetalhePage() {
     cbs_aliquota: 0,
   });
   const [autoCalcLoading, setAutoCalcLoading] = useState(false);
+  const [regimeEmpresa, setRegimeEmpresa] = useState("simples_nacional");
 
   const watchedClient = Form.useWatch("cliente", form);
   const watchedHasPc = Form.useWatch("tem_pedido_compra", form);
@@ -420,6 +421,14 @@ export default function OSDetalhePage() {
   }, [form, ordem?.valor_total_orcado, watchedHasPc, watchedValorOrcado]);
 
   useEffect(() => {
+    const valorFinalAtual = form.getFieldValue("valor_final_faturado");
+    const valorOrcado = Number(watchedValorOrcado || ordem?.valor_total_orcado || 0);
+    if (valorOrcado > 0 && (!valorFinalAtual || Number(valorFinalAtual) === 0)) {
+      form.setFieldValue("valor_final_faturado", valorOrcado);
+    }
+  }, [form, ordem?.valor_total_orcado, watchedValorOrcado]);
+
+  useEffect(() => {
     if (activeTab === "execucao" && ordem?.tipo_servico) {
       carregarChecklist(ordem.tipo_servico);
     }
@@ -453,7 +462,7 @@ export default function OSDetalhePage() {
       equipamento_modelo: ordemAtual?.equipamento_modelo || "",
       equipamento_serie: ordemAtual?.equipamento_serie || "",
       tipo_relatorio: ordemAtual?.tipo_relatorio || undefined,
-      valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.total_com_impostos || ordemAtual?.valor_total_orcado || 0),
+      valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.valor_total_orcado || 0),
       numero_nf: ordemAtual?.numero_nf || "",
       data_emissao_nf: ordemAtual?.data_emissao_nf ? dayjs(ordemAtual.data_emissao_nf) : null,
       data_vencimento: ordemAtual?.data_vencimento ? dayjs(ordemAtual.data_vencimento) : null,
@@ -474,10 +483,11 @@ export default function OSDetalhePage() {
   const carregarTela = async () => {
     try {
       setLoading(true);
-      const [ordemResponse, clientsResponse, techniciansResponse] = await Promise.allSettled([
+      const [ordemResponse, clientsResponse, techniciansResponse, empresaResponse] = await Promise.allSettled([
         api.get(`/ordens/${id}/`),
         api.get("/clientes/"),
         api.get("/auth/"),
+        api.get("/configuracoes/empresa/"),
       ]);
 
       if (ordemResponse.status !== "fulfilled") {
@@ -514,6 +524,11 @@ export default function OSDetalhePage() {
       );
       setPcAnalysis(ordemAtual?.dados_pc_extraidos || null);
       preencherFormulario(ordemAtual);
+      if (empresaResponse.status === "fulfilled") {
+        const regime = empresaResponse.value.data?.regime_tributario || "simples_nacional";
+        setRegimeEmpresa(regime);
+        setTributacao((prev) => ({ ...prev, regime }));
+      }
 
       if (techniciansResponse.status !== "fulfilled") {
         message.warning("Não foi possível carregar a lista de técnicos agora. A OS foi aberta mesmo assim.");
@@ -674,17 +689,19 @@ export default function OSDetalhePage() {
     setAutoCalcLoading(true);
     try {
       const response = await api.post("/fiscal/calcular-impostos/", {
-        regime_tributario: tributacao.regime || "simples",
-        valor_servico: valorFaturado,
+        valor_servicos: valorFaturado,
+        valor_materiais: 0,
       });
       const dados = response.data;
+      const aliquotas = dados.aliquotas || {};
       setTributacao((prev) => ({
         ...prev,
-        issqn_aliquota: dados.issqn_aliquota !== undefined ? Number(dados.issqn_aliquota) : prev.issqn_aliquota,
-        pis_aliquota: dados.pis_aliquota !== undefined ? Number(dados.pis_aliquota) : prev.pis_aliquota,
-        cofins_aliquota: dados.cofins_aliquota !== undefined ? Number(dados.cofins_aliquota) : prev.cofins_aliquota,
-        irpj_aliquota: dados.irpj_aliquota !== undefined ? Number(dados.irpj_aliquota) : prev.irpj_aliquota,
-        csll_aliquota: dados.csll_aliquota !== undefined ? Number(dados.csll_aliquota) : prev.csll_aliquota,
+        regime: dados.regime || regimeEmpresa || prev.regime,
+        issqn_aliquota: Number(aliquotas.iss ?? prev.issqn_aliquota),
+        pis_aliquota: Number(aliquotas.pis ?? prev.pis_aliquota),
+        cofins_aliquota: Number(aliquotas.cofins ?? prev.cofins_aliquota),
+        irpj_aliquota: Number(aliquotas.irpj ?? prev.irpj_aliquota),
+        csll_aliquota: Number(aliquotas.csll ?? prev.csll_aliquota),
       }));
       message.success("Impostos calculados automaticamente.");
     } catch {
@@ -1934,11 +1951,11 @@ export default function OSDetalhePage() {
             <Text strong style={{ fontSize: 13 }}>Regime tributário</Text>
             <Select
               value={tributacao.regime}
-              onChange={(val) => setTrib("regime", val)}
+              disabled
               style={{ width: "100%", marginTop: 4 }}
               options={[
                 { value: "mei", label: "MEI" },
-                { value: "simples", label: "Simples Nacional" },
+                { value: "simples_nacional", label: "Simples Nacional" },
                 { value: "lucro_presumido", label: "Lucro Presumido" },
                 { value: "lucro_real", label: "Lucro Real" },
               ]}

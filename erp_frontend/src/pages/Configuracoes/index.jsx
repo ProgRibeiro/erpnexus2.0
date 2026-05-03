@@ -560,18 +560,33 @@ export default function ConfiguracoesPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="telefone" label="Telefone">
-                      <Input />
+                    <Form.Item name="regime_tributario" label="Regime tributário da empresa">
+                      <Select
+                        options={[
+                          { value: "mei", label: "MEI" },
+                          { value: "simples_nacional", label: "Simples Nacional" },
+                          { value: "lucro_presumido", label: "Lucro Presumido" },
+                          { value: "lucro_real", label: "Lucro Real" },
+                        ]}
+                      />
                     </Form.Item>
                   </Col>
                 </Row>
 
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
+                    <Form.Item name="telefone" label="Telefone">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="email" label="Email">
                       <Input type="email" />
                     </Form.Item>
                   </Col>
+                </Row>
+
+                <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="site" label="Site">
                       <Input type="url" />
