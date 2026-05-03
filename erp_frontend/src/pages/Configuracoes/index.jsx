@@ -84,6 +84,9 @@ export default function ConfiguracoesPage() {
   const [drawerUsuarioOpen, setDrawerUsuarioOpen] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFileList, setLogoFileList] = useState([]);
+  const [logosClientes, setLogosClientes] = useState([]);
+  const [uploadingLogoCliente, setUploadingLogoCliente] = useState(false);
+  const [novoLogoNome, setNovoLogoNome] = useState("");
 
   // Carregamento inicial
   useEffect(() => {
@@ -108,7 +111,8 @@ export default function ConfiguracoesPage() {
       if (os) osForm.setFieldsValue(os);
 
       // Financeira
-      const financeira = await configuracoesService.obterConfiguracaoFinanceira();
+      const financeira =
+        await configuracoesService.obterConfiguracaoFinanceira();
       financeiraForm.setFieldsValue(financeira);
 
       // Config Fiscal
@@ -120,6 +124,10 @@ export default function ConfiguracoesPage() {
 
       // Usuários
       carregarUsuarios();
+
+      // Logos clientes
+      const logos = await configuracoesService.listarLogosClientes();
+      setLogosClientes(logos || []);
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);
     }
@@ -145,21 +153,24 @@ export default function ConfiguracoesPage() {
         logo: logoFileList[0]?.originFileObj,
       };
 
-      const empresaAtualizada = await configuracoesService.salvarEmpresa(payload);
+      const empresaAtualizada =
+        await configuracoesService.salvarEmpresa(payload);
       message.success("Empresa salva");
       setCorPrincipal(values.cor_principal);
       setLogoPreview(empresaAtualizada?.logo || logoPreview);
       setLogoFileList([]);
       document.documentElement.style.setProperty(
         "--primary-color",
-        values.cor_principal
+        values.cor_principal,
       );
     } catch (error) {
       const detail =
         error?.response?.data?.logo?.[0] ||
         error?.response?.data?.detail ||
         error?.message;
-      message.error(detail ? `Erro ao salvar empresa: ${detail}` : "Erro ao salvar empresa");
+      message.error(
+        detail ? `Erro ao salvar empresa: ${detail}` : "Erro ao salvar empresa",
+      );
     }
   };
 
@@ -209,13 +220,12 @@ export default function ConfiguracoesPage() {
 
     setLoadingCNPJ(true);
     try {
-      const data =
-        (await configuracoesService.consultarCNPJ?.(cnpjLimpo)) || {
-          razao_social: "Empresa Fictícia",
-          municipio: "São Paulo",
-          uf: "SP",
-          regime: "Simples Nacional",
-        };
+      const data = (await configuracoesService.consultarCNPJ?.(cnpjLimpo)) || {
+        razao_social: "Empresa Fictícia",
+        municipio: "São Paulo",
+        uf: "SP",
+        regime: "Simples Nacional",
+      };
 
       setCnpjData(data);
       setCnpjStatus("success");
@@ -246,20 +256,19 @@ export default function ConfiguracoesPage() {
 
     setLoadingImpostos(true);
     try {
-      const resultado =
-        (await configuracoesService.calcularImpostos?.({
-          valor_servicos: valorServicos,
-          valor_materiais: valorMateriais,
-          regime: regime || "simples_nacional",
-        })) || {
-          subtotal_servicos: valorServicos,
-          subtotal_materiais: valorMateriais,
-          iss: valorServicos * 0.05,
-          pis: (valorServicos + valorMateriais) * 0.0065,
-          cofins: (valorServicos + valorMateriais) * 0.03,
-          irpj: (valorServicos + valorMateriais) * 0.048,
-          csll: (valorServicos + valorMateriais) * 0.0288,
-        };
+      const resultado = (await configuracoesService.calcularImpostos?.({
+        valor_servicos: valorServicos,
+        valor_materiais: valorMateriais,
+        regime: regime || "simples_nacional",
+      })) || {
+        subtotal_servicos: valorServicos,
+        subtotal_materiais: valorMateriais,
+        iss: valorServicos * 0.05,
+        pis: (valorServicos + valorMateriais) * 0.0065,
+        cofins: (valorServicos + valorMateriais) * 0.03,
+        irpj: (valorServicos + valorMateriais) * 0.048,
+        csll: (valorServicos + valorMateriais) * 0.0288,
+      };
 
       const totalImpostos =
         resultado.iss +
@@ -291,6 +300,52 @@ export default function ConfiguracoesPage() {
       message.success("Configuração fiscal salva");
     } catch (error) {
       message.error("Erro ao salvar configuração fiscal");
+    }
+  };
+
+  // Logos de clientes
+  const handleUploadLogoCliente = async ({ file }) => {
+    if (!novoLogoNome.trim()) {
+      message.warning("Digite o nome da empresa antes de fazer upload");
+      return;
+    }
+    setUploadingLogoCliente(true);
+    try {
+      const novo = await configuracoesService.criarLogoCliente(novoLogoNome.trim(), file);
+      setLogosClientes((prev) => [...prev, novo]);
+      setNovoLogoNome("");
+      message.success(`Logo "${novo.nome}" adicionado`);
+    } catch {
+      message.error("Erro ao enviar logo");
+    } finally {
+      setUploadingLogoCliente(false);
+    }
+  };
+
+  const handleExcluirLogo = (id, nome) => {
+    Modal.confirm({
+      title: `Remover logo "${nome}"?`,
+      okText: "Remover",
+      okButtonProps: { danger: true },
+      cancelText: "Cancelar",
+      onOk: async () => {
+        try {
+          await configuracoesService.excluirLogoCliente(id);
+          setLogosClientes((prev) => prev.filter((l) => l.id !== id));
+          message.success("Logo removido");
+        } catch {
+          message.error("Erro ao remover logo");
+        }
+      },
+    });
+  };
+
+  const handleToggleAtivoLogo = async (id, ativo) => {
+    try {
+      const atualizado = await configuracoesService.editarLogoCliente(id, { ativo: !ativo });
+      setLogosClientes((prev) => prev.map((l) => (l.id === id ? { ...l, ativo: atualizado.ativo } : l)));
+    } catch {
+      message.error("Erro ao atualizar logo");
     }
   };
 
@@ -423,8 +478,8 @@ export default function ConfiguracoesPage() {
             role === "admin"
               ? "success"
               : role === "gestor"
-              ? "processing"
-              : "default"
+                ? "processing"
+                : "default"
           }
           text={role}
         />
@@ -480,7 +535,11 @@ export default function ConfiguracoesPage() {
             key: "empresa",
             label: "Empresa",
             children: (
-              <Form form={empresaForm} layout="vertical" onFinish={salvarEmpresa}>
+              <Form
+                form={empresaForm}
+                layout="vertical"
+                onFinish={salvarEmpresa}
+              >
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="nome" label="Nome da empresa">
@@ -576,7 +635,7 @@ export default function ConfiguracoesPage() {
                           setCorPrincipal(e.target.value);
                           empresaForm.setFieldValue(
                             "cor_principal",
-                            e.target.value
+                            e.target.value,
                           );
                         }}
                       />
@@ -690,7 +749,10 @@ export default function ConfiguracoesPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="incluir_logo_pdf" label="Incluir logo no PDF">
+                    <Form.Item
+                      name="incluir_logo_pdf"
+                      label="Incluir logo no PDF"
+                    >
                       <Switch />
                     </Form.Item>
                   </Col>
@@ -729,7 +791,11 @@ export default function ConfiguracoesPage() {
             key: "financeira",
             label: "Financeira",
             children: (
-              <Form form={financeiraForm} layout="vertical" onFinish={salvarFinanceira}>
+              <Form
+                form={financeiraForm}
+                layout="vertical"
+                onFinish={salvarFinanceira}
+              >
                 <Divider>ISS</Divider>
                 <Form.Item
                   name="aliquota_iss"
@@ -753,12 +819,18 @@ export default function ConfiguracoesPage() {
                 <Divider>Contas Padrão</Divider>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="conta_padrao_receber" label="Conta padrão receber">
+                    <Form.Item
+                      name="conta_padrao_receber"
+                      label="Conta padrão receber"
+                    >
                       <Input placeholder="Ex: 0001-1" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="conta_padrao_pagar" label="Conta padrão pagar">
+                    <Form.Item
+                      name="conta_padrao_pagar"
+                      label="Conta padrão pagar"
+                    >
                       <Input placeholder="Ex: 0002-1" />
                     </Form.Item>
                   </Col>
@@ -776,7 +848,10 @@ export default function ConfiguracoesPage() {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Form.Item name="conta_corrente_padrao" label="Conta corrente">
+                    <Form.Item
+                      name="conta_corrente_padrao"
+                      label="Conta corrente"
+                    >
                       <Input />
                     </Form.Item>
                   </Col>
@@ -804,7 +879,10 @@ export default function ConfiguracoesPage() {
 
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="juros_atraso" label="Juros mensais atraso (%)">
+                    <Form.Item
+                      name="juros_atraso"
+                      label="Juros mensais atraso (%)"
+                    >
                       <InputNumber
                         style={{ width: "100%" }}
                         step={0.01}
@@ -856,11 +934,7 @@ export default function ConfiguracoesPage() {
                 />
 
                 <Drawer
-                  title={
-                    usuarioEditando
-                      ? "Editar usuário"
-                      : "Novo usuário"
-                  }
+                  title={usuarioEditando ? "Editar usuário" : "Novo usuário"}
                   onClose={() => setDrawerUsuarioOpen(false)}
                   open={drawerUsuarioOpen}
                   width={500}
@@ -981,7 +1055,8 @@ export default function ConfiguracoesPage() {
                       message={
                         <>
                           <Badge status="success" text="CNPJ válido" />
-                          {" - Regime: " + (cnpjData.regime || "Não identificado")}
+                          {" - Regime: " +
+                            (cnpjData.regime || "Não identificado")}
                         </>
                       }
                       type="success"
@@ -992,7 +1067,9 @@ export default function ConfiguracoesPage() {
 
                   {cnpjStatus === "error" && (
                     <Alert
-                      message={<Badge status="error" text="CNPJ não encontrado" />}
+                      message={
+                        <Badge status="error" text="CNPJ não encontrado" />
+                      }
                       type="error"
                       style={{ marginBottom: 16 }}
                       showIcon
@@ -1003,21 +1080,33 @@ export default function ConfiguracoesPage() {
                   <Divider>Regime tributário</Divider>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
-                      <Form.Item name="regime_tributario" label="Regime tributário">
+                      <Form.Item
+                        name="regime_tributario"
+                        label="Regime tributário"
+                      >
                         <Select
                           placeholder="Selecione o regime"
                           onChange={setRegime}
                           options={[
                             { value: "mei", label: "MEI" },
-                            { value: "simples_nacional", label: "Simples Nacional" },
-                            { value: "lucro_presumido", label: "Lucro Presumido" },
+                            {
+                              value: "simples_nacional",
+                              label: "Simples Nacional",
+                            },
+                            {
+                              value: "lucro_presumido",
+                              label: "Lucro Presumido",
+                            },
                             { value: "lucro_real", label: "Lucro Real" },
                           ]}
                         />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12}>
-                      <Form.Item name="tipo_nota_fiscal" label="Tipo de nota fiscal">
+                      <Form.Item
+                        name="tipo_nota_fiscal"
+                        label="Tipo de nota fiscal"
+                      >
                         <Select
                           placeholder="Selecione o tipo"
                           options={[
@@ -1052,38 +1141,51 @@ export default function ConfiguracoesPage() {
                   <Divider>ISS — Imposto Sobre Serviços</Divider>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
-                      <Form.Item name="aliquota_iss" label={
-                        <span>
-                          Alíquota ISS (%)
-                          <Tooltip title="Consulte a legislação do seu município">
-                            <InfoCircleOutlined style={{ marginLeft: 8, color: '#3B82F6' }} />
-                          </Tooltip>
-                        </span>
-                      }>
+                      <Form.Item
+                        name="aliquota_iss"
+                        label={
+                          <span>
+                            Alíquota ISS (%)
+                            <Tooltip title="Consulte a legislação do seu município">
+                              <InfoCircleOutlined
+                                style={{ marginLeft: 8, color: "#3B82F6" }}
+                              />
+                            </Tooltip>
+                          </span>
+                        }
+                      >
                         <InputNumber
                           placeholder="Ex: 5.00"
                           step={0.01}
                           min={0}
                           max={100}
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12}>
-                      <Form.Item name="iss_retido_fonte" label="ISS retido na fonte?">
+                      <Form.Item
+                        name="iss_retido_fonte"
+                        label="ISS retido na fonte?"
+                      >
                         <Switch />
                       </Form.Item>
                     </Col>
                   </Row>
 
-                  <Form.Item name="codigo_servico_lc116" label={
-                    <span>
-                      Código do serviço LC 116/2003
-                      <Tooltip title="Código da lista de serviços da LC 116/2003">
-                        <InfoCircleOutlined style={{ marginLeft: 8, color: '#3B82F6' }} />
-                      </Tooltip>
-                    </span>
-                  }>
+                  <Form.Item
+                    name="codigo_servico_lc116"
+                    label={
+                      <span>
+                        Código do serviço LC 116/2003
+                        <Tooltip title="Código da lista de serviços da LC 116/2003">
+                          <InfoCircleOutlined
+                            style={{ marginLeft: 8, color: "#3B82F6" }}
+                          />
+                        </Tooltip>
+                      </span>
+                    }
+                  >
                     <Input placeholder="Ex: 14.01" />
                   </Form.Item>
 
@@ -1120,22 +1222,28 @@ export default function ConfiguracoesPage() {
                   <Divider>Preview de impostos</Divider>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
-                      <Form.Item name="valor_servicos" label="Valor de serviços (R$)">
+                      <Form.Item
+                        name="valor_servicos"
+                        label="Valor de serviços (R$)"
+                      >
                         <InputNumber
                           placeholder="0,00"
                           step={0.01}
                           min={0}
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12}>
-                      <Form.Item name="valor_materiais" label="Valor de materiais (R$)">
+                      <Form.Item
+                        name="valor_materiais"
+                        label="Valor de materiais (R$)"
+                      >
                         <InputNumber
                           placeholder="0,00"
                           step={0.01}
                           min={0}
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         />
                       </Form.Item>
                     </Col>
@@ -1149,54 +1257,71 @@ export default function ConfiguracoesPage() {
                   </Button>
 
                   {impostoPreview && (
-                    <Card style={{ backgroundColor: '#f5f5f5', marginBottom: 24 }}>
+                    <Card
+                      style={{ backgroundColor: "#f5f5f5", marginBottom: 24 }}
+                    >
                       <Row gutter={[16, 8]}>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>Subtotal serviços:</strong> R$ {impostoPreview.subtotal_servicos.toFixed(2)}
+                            <strong>Subtotal serviços:</strong> R${" "}
+                            {impostoPreview.subtotal_servicos.toFixed(2)}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>Subtotal materiais:</strong> R$ {impostoPreview.subtotal_materiais.toFixed(2)}
+                            <strong>Subtotal materiais:</strong> R${" "}
+                            {impostoPreview.subtotal_materiais.toFixed(2)}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>ISS (5%):</strong> R$ {impostoPreview.iss?.toFixed(2) || '0.00'}
+                            <strong>ISS (5%):</strong> R${" "}
+                            {impostoPreview.iss?.toFixed(2) || "0.00"}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>PIS (0,65%):</strong> R$ {impostoPreview.pis?.toFixed(2) || '0.00'}
+                            <strong>PIS (0,65%):</strong> R${" "}
+                            {impostoPreview.pis?.toFixed(2) || "0.00"}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>COFINS (3%):</strong> R$ {impostoPreview.cofins?.toFixed(2) || '0.00'}
+                            <strong>COFINS (3%):</strong> R${" "}
+                            {impostoPreview.cofins?.toFixed(2) || "0.00"}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>IRPJ (4,8%):</strong> R$ {impostoPreview.irpj?.toFixed(2) || '0.00'}
+                            <strong>IRPJ (4,8%):</strong> R${" "}
+                            {impostoPreview.irpj?.toFixed(2) || "0.00"}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
                           <div style={{ fontSize: 14 }}>
-                            <strong>CSLL (2,88%):</strong> R$ {impostoPreview.csll?.toFixed(2) || '0.00'}
+                            <strong>CSLL (2,88%):</strong> R${" "}
+                            {impostoPreview.csll?.toFixed(2) || "0.00"}
                           </div>
                         </Col>
                       </Row>
-                      <Divider style={{ margin: '16px 0' }} />
+                      <Divider style={{ margin: "16px 0" }} />
                       <Row gutter={[16, 8]}>
                         <Col xs={24} sm={12}>
-                          <div style={{ fontSize: 14, color: '#d32f2f' }}>
-                            <strong>Total impostos:</strong> R$ {impostoPreview.total_impostos.toFixed(2)}
+                          <div style={{ fontSize: 14, color: "#d32f2f" }}>
+                            <strong>Total impostos:</strong> R${" "}
+                            {impostoPreview.total_impostos.toFixed(2)}
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
-                          <div style={{ fontSize: 14, color: '#3B82F6', fontWeight: 'bold' }}>
-                            <strong>Total geral:</strong> R$ {impostoPreview.total_geral.toFixed(2)}
+                          <div
+                            style={{
+                              fontSize: 14,
+                              color: "#3B82F6",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            <strong>Total geral:</strong> R${" "}
+                            {impostoPreview.total_geral.toFixed(2)}
                           </div>
                         </Col>
                       </Row>
@@ -1205,7 +1330,11 @@ export default function ConfiguracoesPage() {
 
                   <Button
                     onClick={salvarConfigFiscal}
-                    style={{ ...btnStyle, backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                    style={{
+                      ...btnStyle,
+                      backgroundColor: "#52c41a",
+                      borderColor: "#52c41a",
+                    }}
                   >
                     Salvar configuração fiscal
                   </Button>
@@ -1237,6 +1366,165 @@ export default function ConfiguracoesPage() {
                     message.success("Dados importados com sucesso!");
                   }}
                 />
+              </div>
+            ),
+          },
+
+          // ABA: PARCEIROS / REFERÊNCIAS
+          {
+            key: "parceiros",
+            label: "Parceiros",
+            children: (
+              <div>
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
+                    borderRadius: 14,
+                    padding: "24px 28px",
+                    marginBottom: 28,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 18,
+                  }}
+                >
+                  <div>
+                    <div style={{ color: "#FFFFFF", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+                      Empresas que confiam em nós
+                    </div>
+                    <div style={{ color: "#94A3B8", fontSize: 13 }}>
+                      As logos cadastradas aqui aparecem no rodapé do orçamento impresso e no PDF gerado.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upload novo logo */}
+                <Card
+                  style={{ borderRadius: 12, border: "1px dashed #3B82F6", marginBottom: 28, background: "#F8FAFF" }}
+                  bodyStyle={{ padding: "20px 24px" }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: "#1E293B" }}>
+                    Adicionar novo parceiro
+                  </div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ fontSize: 12, color: "#64748B", marginBottom: 4 }}>Nome da empresa *</div>
+                      <Input
+                        placeholder="Ex: Empresa ABC"
+                        value={novoLogoNome}
+                        onChange={(e) => setNovoLogoNome(e.target.value)}
+                        style={{ borderRadius: 8 }}
+                      />
+                    </div>
+                    <Upload
+                      accept="image/*"
+                      showUploadList={false}
+                      beforeUpload={() => false}
+                      customRequest={handleUploadLogoCliente}
+                    >
+                      <Button
+                        icon={<UploadOutlined />}
+                        loading={uploadingLogoCliente}
+                        style={{ ...btnStyle, height: 32 }}
+                      >
+                        Selecionar logo
+                      </Button>
+                    </Upload>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 8 }}>
+                    Formatos aceitos: PNG, JPG, SVG. Fundo transparente (PNG) fica melhor.
+                  </div>
+                </Card>
+
+                {/* Grid de logos */}
+                {logosClientes.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "48px 24px",
+                      background: "#F8FAFC",
+                      borderRadius: 12,
+                      color: "#94A3B8",
+                      fontSize: 14,
+                    }}
+                  >
+                    Nenhum parceiro cadastrado ainda. Adicione o primeiro logo acima.
+                  </div>
+                ) : (
+                  <Row gutter={[16, 16]}>
+                    {logosClientes.map((item) => (
+                      <Col key={item.id} xs={12} sm={8} md={6} lg={4}>
+                        <div
+                          style={{
+                            borderRadius: 12,
+                            border: item.ativo ? "2px solid #3B82F6" : "2px solid #E2E8F0",
+                            overflow: "hidden",
+                            background: "#FFFFFF",
+                            boxShadow: item.ativo ? "0 4px 16px rgba(59,130,246,0.12)" : "none",
+                            transition: "all 0.2s",
+                            opacity: item.ativo ? 1 : 0.45,
+                          }}
+                        >
+                          <div
+                            style={{
+                              padding: 16,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              minHeight: 80,
+                              background: "#F8FAFC",
+                            }}
+                          >
+                            <img
+                              src={item.logo_url || item.logo}
+                              alt={item.nome}
+                              style={{ maxWidth: "100%", maxHeight: 64, objectFit: "contain" }}
+                            />
+                          </div>
+                          <div style={{ padding: "10px 12px", borderTop: "1px solid #F1F5F9" }}>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: "#334155",
+                                marginBottom: 8,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                              title={item.nome}
+                            >
+                              {item.nome}
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <Tooltip title={item.ativo ? "Ocultar no orçamento" : "Exibir no orçamento"}>
+                                <Switch
+                                  size="small"
+                                  checked={item.ativo}
+                                  onChange={() => handleToggleAtivoLogo(item.id, item.ativo)}
+                                />
+                              </Tooltip>
+                              <Tooltip title="Remover">
+                                <Button
+                                  size="small"
+                                  type="text"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={() => handleExcluirLogo(item.id, item.nome)}
+                                />
+                              </Tooltip>
+                            </div>
+                          </div>
+                        </div>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+
+                {logosClientes.length > 0 && (
+                  <div style={{ marginTop: 16, color: "#64748B", fontSize: 12 }}>
+                    {logosClientes.filter((l) => l.ativo).length} de {logosClientes.length} parceiro(s) ativos e visíveis nos orçamentos.
+                  </div>
+                )}
               </div>
             ),
           },

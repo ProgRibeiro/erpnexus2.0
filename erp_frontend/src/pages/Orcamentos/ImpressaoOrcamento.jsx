@@ -64,19 +64,22 @@ export default function ImpressaoOrcamento() {
   const [orcamento, setOrcamento] = useState(null);
   const [empresa, setEmpresa] = useState(null);
   const [impostosCalculados, setImpostosCalculados] = useState(null);
+  const [logosClientes, setLogosClientes] = useState([]);
 
   useEffect(() => {
     let active = true;
     async function loadData() {
       try {
         setLoading(true);
-        const [orRes, empRes] = await Promise.all([
+        const [orRes, empRes, logosRes] = await Promise.all([
           api.get(`/ordens/${id}/`),
           api.get("/configuracoes/empresa/"),
+          api.get("/configuracoes/logos-clientes/").catch(() => ({ data: [] })),
         ]);
         if (!active) return;
         setOrcamento(orRes.data);
         setEmpresa(empRes.data || {});
+        setLogosClientes((logosRes.data || []).filter((l) => l.ativo));
       } catch {
         if (active) message.error("Não foi possível carregar o orçamento.");
       } finally {
@@ -810,6 +813,63 @@ export default function ImpressaoOrcamento() {
               </div>
             </div>
           </div>
+
+          {/* ── EMPRESAS QUE CONFIAM EM NÓS ── */}
+          {logosClientes.length > 0 && (
+            <div
+              style={{
+                padding: "24px 36px",
+                borderTop: "1px solid #E2E8F0",
+                background: "#FAFBFD",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "#94A3B8",
+                  fontWeight: 700,
+                  marginBottom: 18,
+                  textAlign: "center",
+                }}
+              >
+                Empresas que confiam em nós
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "12px 28px",
+                }}
+              >
+                {logosClientes.map((item) => (
+                  <div
+                    key={item.id}
+                    title={item.nome}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "8px 14px",
+                      background: "#FFFFFF",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 8,
+                      opacity: 0.7,
+                    }}
+                  >
+                    <img
+                      src={item.logo_url || item.logo}
+                      alt={item.nome}
+                      style={{ maxHeight: 38, maxWidth: 100, objectFit: "contain", filter: "grayscale(30%)" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── RODAPÉ ── */}
           <div

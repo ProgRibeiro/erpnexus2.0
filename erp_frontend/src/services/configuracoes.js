@@ -103,6 +103,42 @@ const configuracoesService = {
       return null;
     }
   },
+
+  // Logos de clientes/parceiros de referência
+  listarLogosClientes: async () => {
+    const response = await api.get("/configuracoes/logos-clientes/");
+    return response.data;
+  },
+  criarLogoCliente: async (nome, arquivoFile) => {
+    const formData = new FormData();
+    formData.append("nome", nome);
+    formData.append("logo", arquivoFile);
+    const response = await api.post(
+      "/configuracoes/logos-clientes/",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data;
+  },
+  editarLogoCliente: async (id, payload) => {
+    const formData = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) formData.append(k, v);
+    });
+    const response = await api.patch(
+      `/configuracoes/logos-clientes/${id}/`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data;
+  },
+  excluirLogoCliente: async (id) => {
+    await api.delete(`/configuracoes/logos-clientes/${id}/`);
+  },
 };
 
 export default configuracoesService;

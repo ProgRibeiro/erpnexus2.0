@@ -139,7 +139,7 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
         bottomMargin=14 * mm,
     )
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="HeaderTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=20, textColor=colors.HexColor("#1B4F8A"), spaceAfter=6))
+    styles.add(ParagraphStyle(name="HeaderTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=20, textColor=colors.HexColor("#3B82F6"), spaceAfter=6))
     styles.add(ParagraphStyle(name="Muted", parent=styles["BodyText"], fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#5A6070"), leading=12))
     styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading4"], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#6B7C91"), spaceBefore=12, spaceAfter=6))
     styles.add(ParagraphStyle(name="HeroTitle", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=16, textColor=colors.HexColor("#10233C"), spaceAfter=6))
@@ -232,7 +232,7 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDE5EF")),
         ("FONTNAME", (0, 0), (-1, -2), "Helvetica"),
         ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#1B4F8A")),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#3B82F6")),
         ("TEXTCOLOR", (0, -1), (-1, -1), colors.white),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("PADDING", (0, 0), (-1, -1), 6),
@@ -251,6 +251,40 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
         story.append(Spacer(1, 12))
         story.append(Paragraph("Observações e Termos", styles["SectionTitle"]))
         story.append(Paragraph(os_obj.observacoes_tecnicas.replace("\n", "<br/>"), styles["Muted"]))
+
+    # Seção "Empresas que confiam em nós"
+    try:
+        from apps.configuracoes.models import LogoClienteReferencia
+        logos_ativos = list(LogoClienteReferencia.objects.filter(ativo=True).order_by("ordem", "criado_em"))
+        if logos_ativos:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Empresas que confiam em nós", styles["SectionTitle"]))
+            logo_cells = []
+            for logo_obj in logos_ativos[:10]:
+                try:
+                    logo_path = logo_obj.logo.path if logo_obj.logo else None
+                    if logo_path and os.path.exists(logo_path):
+                        logo_cells.append(RLImage(logo_path, width=22 * mm, height=12 * mm))
+                    else:
+                        logo_cells.append(Paragraph(logo_obj.nome, styles["Muted"]))
+                except Exception:
+                    logo_cells.append(Paragraph(logo_obj.nome, styles["Muted"]))
+            col_count = min(len(logo_cells), 5)
+            rows = [logo_cells[i:i + col_count] for i in range(0, len(logo_cells), col_count)]
+            if rows[-1] and len(rows[-1]) < col_count:
+                rows[-1] += [Paragraph("", styles["Muted"])] * (col_count - len(rows[-1]))
+            col_w = (181 * mm) / col_count
+            logos_table = Table(rows, colWidths=[col_w] * col_count)
+            logos_table.setStyle(TableStyle([
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+                ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#E2E8F0")),
+                ("PADDING", (0, 0), (-1, -1), 8),
+            ]))
+            story.append(logos_table)
+    except Exception:
+        pass
 
     doc.build(story)
     return buffer.getvalue()
