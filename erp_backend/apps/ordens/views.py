@@ -13,18 +13,22 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ChatOS, DespesaOS, FotoOS, LogStatusOS, OrdemServico
+from .models import ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FotoChecklist, FotoOS, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .services import PedidoCompraInteligente
 from .serializers import (
     ChatOSSerializer,
+    ChecklistItemSerializer,
+    ChecklistTemplateSerializer,
     DespesaOSSerializer,
+    FotoChecklistSerializer,
     FotoOSSerializer,
     MudarStatusOSSerializer,
     OrdemServicoSerializer,
     ReagendarOSSerializer,
     AgendaSerializer,
     RelatorioPublicoSerializer,
+    RespostaChecklistSerializer,
 )
 
 
@@ -385,6 +389,121 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             {"detail": "Erro ao salvar PDF de orçamento"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+    @action(detail=True, methods=["get", "post"], url_path="checklist")
+    def checklist(self, request, pk=None):
+        """GET retorna respostas existentes; POST salva/atualiza uma resposta."""
+        ordem = self.get_object()
+        if request.method == "GET":
+            respostas = ordem.respostas_checklist.select_related("item").prefetch_related("fotos")
+            return Response(RespostaChecklistSerializer(respostas, many=True, context={"request": request}).data)
+
+        item_id = request.data.get("item")
+        if not item_id:
+            return Response({"detail": "Campo 'item' obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+
+        resposta, _ = RespostaChecklist.objects.get_or_create(
+            os=ordem,
+            item_id=item_id,
+            defaults={"respondido_por": request.user},
+        )
+        resposta.respondido_por = request.user
+        if "valor_bool" in request.data:
+            v = request.data["valor_bool"]
+            if isinstance(v, str):
+                resposta.valor_bool = v.lower() in ("true", "1", "sim", "yes")
+            else:
+                resposta.valor_bool = bool(v)
+        if "valor_texto" in request.data:
+            resposta.valor_texto = request.data["valor_texto"]
+        if "valor_numero" in request.data:
+            resposta.valor_numero = request.data["valor_numero"] or None
+        resposta.save()
+        return Response(RespostaChecklistSerializer(resposta, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"], url_path="checklist/(?P<resposta_id>[0-9]+)/foto",
+            parser_classes=[MultiPartParser, FormParser])
+    def checklist_foto(self, request, pk=None, resposta_id=None):
+        """Upload de foto para uma resposta do checklist."""
+        ordem = self.get_object()
+        try:
+            resposta = RespostaChecklist.objects.get(pk=resposta_id, os=ordem)
+        except RespostaChecklist.DoesNotExist:
+            return Response({"detail": "Resposta não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        arquivo = request.FILES.get("arquivo")
+        if not arquivo:
+            return Response({"detail": "Envie o arquivo em 'arquivo'."}, status=status.HTTP_400_BAD_REQUEST)
+
+        foto = FotoChecklist.objects.create(
+            resposta=resposta,
+            arquivo=arquivo,
+            legenda=request.data.get("legenda", ""),
+            enviado_por=request.user,
+        )
+        return Response(FotoChecklistSerializer(foto, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="gerar-relatorio-tecnico")
+    def gerar_relatorio_tecnico(self, request, pk=None):
+        """Gera PDF do relatório técnico de execução com checklist e fotos."""
+        from .pdf_generator import gerar_relatorio_tecnico_pdf, salvar_relatorio_tecnico_pdf
+        ordem = self.get_object()
+        try:
+            pdf_bytes = gerar_relatorio_tecnico_pdf(ordem.pk)
+            if not pdf_bytes:
+                return Response({"detail": "Não foi possível gerar o relatório técnico."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            salvar_relatorio_tecnico_pdf(ordem, pdf_bytes)
+            nome = f"relatorio_tecnico_{ordem.numero or ordem.pk}.pdf"
+            response = FileResponse(
+                BytesIO(pdf_bytes),
+                as_attachment=True,
+                filename=nome,
+                content_type="application/pdf",
+            )
+            return response
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ChecklistTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD de templates de checklist (gerenciado em Configurações)."""
+    queryset = ChecklistTemplate.objects.prefetch_related("itens").all()
+    serializer_class = ChecklistTemplateSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tipo = self.request.query_params.get("tipo_servico")
+        ativo = self.request.query_params.get("ativo")
+        if tipo:
+            qs = qs.filter(tipo_servico=tipo)
+        if ativo is not None:
+            qs = qs.filter(ativo=ativo.lower() in ("true", "1"))
+        return qs
+
+    @action(detail=True, methods=["post", "put", "patch", "delete"], url_path="itens/(?P<item_id>[0-9]+)")
+    def gerenciar_item(self, request, pk=None, item_id=None):
+        """Atualizar ou deletar um item do template."""
+        template = self.get_object()
+        try:
+            item = ChecklistItem.objects.get(pk=item_id, template=template)
+        except ChecklistItem.DoesNotExist:
+            return Response({"detail": "Item não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        if request.method == "DELETE":
+            item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = ChecklistItemSerializer(item, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="itens")
+    def adicionar_item(self, request, pk=None):
+        """Adicionar um novo item ao template."""
+        template = self.get_object()
+        serializer = ChecklistItemSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(template=template)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class RelatorioPublicoView(APIView):

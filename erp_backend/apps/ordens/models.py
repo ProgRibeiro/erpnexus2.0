@@ -429,3 +429,101 @@ class AprendizadoPedidoCompra(models.Model):
     def __str__(self):
         numero = self.numero_pc_confirmado or "Sem número"
         return f"{numero} - {self.cliente or 'Cliente'}"
+
+
+class ChecklistTemplate(models.Model):
+    """Template de checklist para um tipo de serviço."""
+    class TipoServico(models.TextChoices):
+        HVAC = "hvac", "HVAC"
+        REFRIGERACAO = "refrigeracao", "Refrigeração"
+        ELETRICA = "eletrica", "Elétrica"
+        CIVIL = "civil", "Civil"
+        MANUTENCAO = "manutencao", "Manutenção Preventiva"
+        INSTALACAO = "instalacao", "Instalação"
+        CORRETIVA = "corretiva", "Manutenção Corretiva"
+        OUTRO = "outro", "Outro"
+
+    tipo_servico = models.CharField(max_length=30, choices=TipoServico.choices)
+    nome = models.CharField(max_length=150)
+    descricao = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["tipo_servico", "nome"]
+        verbose_name = "Template de Checklist"
+        verbose_name_plural = "Templates de Checklist"
+
+    def __str__(self):
+        return f"{self.get_tipo_servico_display()} — {self.nome}"
+
+
+class ChecklistItem(models.Model):
+    """Pergunta/item de um template de checklist."""
+    class TipoResposta(models.TextChoices):
+        SIM_NAO = "sim_nao", "Sim/Não"
+        TEXTO = "texto", "Texto livre"
+        NUMERO = "numero", "Número/Medida"
+        FOTO = "foto", "Foto obrigatória"
+        MULTIPLO = "multiplo", "Múltiplos tipos (sim/não + texto + foto)"
+
+    template = models.ForeignKey(ChecklistTemplate, on_delete=models.CASCADE, related_name="itens")
+    texto = models.CharField(max_length=500)
+    descricao_complementar = models.TextField(blank=True, help_text="Instrução ou detalhe sobre o item")
+    tipo_resposta = models.CharField(max_length=20, choices=TipoResposta.choices, default=TipoResposta.SIM_NAO)
+    obrigatorio = models.BooleanField(default=False)
+    ordem = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordem", "id"]
+        verbose_name = "Item de Checklist"
+        verbose_name_plural = "Itens de Checklist"
+
+    def __str__(self):
+        return f"[{self.template.nome}] {self.texto[:80]}"
+
+
+class RespostaChecklist(models.Model):
+    """Resposta de um item do checklist vinculada a uma OS."""
+    os = models.ForeignKey(OrdemServico, on_delete=models.CASCADE, related_name="respostas_checklist")
+    item = models.ForeignKey(ChecklistItem, on_delete=models.CASCADE, related_name="respostas")
+    valor_bool = models.BooleanField(null=True, blank=True)
+    valor_texto = models.TextField(blank=True)
+    valor_numero = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    respondido_em = models.DateTimeField(auto_now=True)
+    respondido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="respostas_checklist",
+    )
+
+    class Meta:
+        unique_together = [("os", "item")]
+        verbose_name = "Resposta de Checklist"
+        verbose_name_plural = "Respostas de Checklist"
+
+    def __str__(self):
+        return f"OS {self.os_id} — {self.item.texto[:60]}"
+
+
+class FotoChecklist(models.Model):
+    """Foto vinculada a uma resposta de checklist."""
+    resposta = models.ForeignKey(RespostaChecklist, on_delete=models.CASCADE, related_name="fotos")
+    arquivo = models.ImageField(upload_to="ordens/checklist_fotos/")
+    legenda = models.CharField(max_length=255, blank=True)
+    enviado_em = models.DateTimeField(auto_now_add=True)
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="fotos_checklist_enviadas",
+    )
+
+    class Meta:
+        ordering = ["enviado_em"]
+        verbose_name = "Foto do Checklist"
+        verbose_name_plural = "Fotos do Checklist"
+
+    def __str__(self):
+        return f"Foto checklist OS {self.resposta.os_id}"

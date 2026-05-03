@@ -10,11 +10,15 @@ from .models import (
     AnexoChatOS,
     AssinaturaClienteOS,
     ChatOS,
+    ChecklistItem,
+    ChecklistTemplate,
     DespesaOS,
+    FotoChecklist,
     FotoOS,
     ItemOrcamento,
     LogStatusOS,
     OrdemServico,
+    RespostaChecklist,
 )
 
 
@@ -291,3 +295,44 @@ class RelatorioPublicoSerializer(serializers.ModelSerializer):
             "criado_em",
         ]
         read_only_fields = fields
+
+
+class FotoChecklistSerializer(serializers.ModelSerializer):
+    arquivo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FotoChecklist
+        fields = "__all__"
+        read_only_fields = ["resposta", "enviado_em", "enviado_por"]
+
+    def get_arquivo_url(self, obj):
+        request = self.context.get("request")
+        if obj.arquivo and request:
+            return request.build_absolute_uri(obj.arquivo.url)
+        return obj.arquivo.url if obj.arquivo else None
+
+
+class RespostaChecklistSerializer(serializers.ModelSerializer):
+    fotos = FotoChecklistSerializer(many=True, read_only=True)
+    item_texto = serializers.CharField(source="item.texto", read_only=True)
+    item_tipo = serializers.CharField(source="item.tipo_resposta", read_only=True)
+
+    class Meta:
+        model = RespostaChecklist
+        fields = "__all__"
+        read_only_fields = ["os", "respondido_em", "respondido_por"]
+
+
+class ChecklistItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChecklistItem
+        fields = "__all__"
+        read_only_fields = ["template"]
+
+
+class ChecklistTemplateSerializer(serializers.ModelSerializer):
+    itens = ChecklistItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChecklistTemplate
+        fields = "__all__"

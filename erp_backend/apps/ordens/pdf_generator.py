@@ -485,6 +485,368 @@ def _prepare_orcamento_context(os_obj):
     return context
 
 
+def _gerar_relatorio_tecnico_reportlab(os_obj):
+    """Gera PDF profissional de relatório técnico de execução com checklist e fotos."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (
+        HRFlowable, Image as RLImage, Paragraph,
+        SimpleDocTemplate, Spacer, Table, TableStyle
+    )
+
+    PRIMARY = colors.HexColor("#0F172A")
+    ACCENT = colors.HexColor("#3B82F6")
+    LIGHT = colors.HexColor("#F8FAFC")
+    BORDER = colors.HexColor("#DDE5EF")
+    MUTED = colors.HexColor("#64748B")
+    GREEN = colors.HexColor("#10B981")
+    RED = colors.HexColor("#EF4444")
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=15 * mm,
+        rightMargin=15 * mm,
+        topMargin=15 * mm,
+        bottomMargin=15 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="DocTitle", fontName="Helvetica-Bold", fontSize=22,
+                               textColor=colors.white, spaceAfter=2))
+    styles.add(ParagraphStyle(name="DocSubtitle", fontName="Helvetica", fontSize=10,
+                               textColor=colors.HexColor("#CBD5E1"), spaceAfter=0))
+    styles.add(ParagraphStyle(name="EmpresaNome", fontName="Helvetica-Bold", fontSize=13,
+                               textColor=colors.white, spaceAfter=2))
+    styles.add(ParagraphStyle(name="EmpresaInfo", fontName="Helvetica", fontSize=8,
+                               textColor=colors.HexColor("#CBD5E1"), leading=12))
+    styles.add(ParagraphStyle(name="SecTitle", fontName="Helvetica-Bold", fontSize=9,
+                               textColor=MUTED, spaceAfter=6, spaceBefore=14,
+                               textTransform="uppercase"))
+    styles.add(ParagraphStyle(name="Body", fontName="Helvetica", fontSize=9,
+                               textColor=PRIMARY, leading=13))
+    styles.add(ParagraphStyle(name="BodyMuted", fontName="Helvetica", fontSize=9,
+                               textColor=MUTED, leading=13))
+    styles.add(ParagraphStyle(name="PerguntaTexto", fontName="Helvetica-Bold", fontSize=9,
+                               textColor=PRIMARY, leading=13, spaceBefore=8))
+    styles.add(ParagraphStyle(name="RespostaTexto", fontName="Helvetica", fontSize=9,
+                               textColor=MUTED, leading=13, leftIndent=12))
+    styles.add(ParagraphStyle(name="FooterText", fontName="Helvetica", fontSize=8,
+                               textColor=MUTED))
+
+    context = _prepare_relatorio_context(os_obj)
+    empresa = context["empresa"]
+    story = []
+
+    # ── CABEÇALHO ESCURO ──────────────────────────────────────────────────────
+    logo_elem = None
+    logo_path = context.get("logo_path")
+    if logo_path and os.path.exists(logo_path):
+        try:
+            logo_elem = RLImage(logo_path, width=20 * mm, height=20 * mm)
+        except Exception:
+            logo_elem = None
+
+    empresa_nome = empresa.razao_social or empresa.nome or "Empresa"
+    empresa_info_lines = [
+        f"CNPJ: {empresa.cnpj}" if empresa.cnpj else "",
+        empresa.endereco or "",
+        f"Tel: {empresa.telefone}" if empresa.telefone else "",
+        f"{empresa.email}" if empresa.email else "",
+    ]
+    empresa_info = " | ".join(l for l in empresa_info_lines if l)
+
+    tipo_label = os_obj.get_tipo_servico_display() if os_obj.tipo_servico else "Serviço"
+    doc_title = f"Relatório Técnico de {tipo_label}"
+    doc_subtitle = f"{os_obj.numero}  •  Emitido em {context['data_emissao']}"
+
+    if logo_elem:
+        header_left = Table(
+            [[logo_elem, Table([[Paragraph(empresa_nome, styles["EmpresaNome"])],
+                                 [Paragraph(empresa_info, styles["EmpresaInfo"])]],
+                                colWidths=[None], style=[("LEFTPADDING", (0,0),(-1,-1), 6)])]],
+            colWidths=[24 * mm, None],
+        )
+    else:
+        header_left = Table(
+            [[Paragraph(empresa_nome, styles["EmpresaNome"])],
+             [Paragraph(empresa_info, styles["EmpresaInfo"])]],
+        )
+
+    header_right = Table(
+        [[Paragraph(doc_title, styles["DocTitle"])],
+         [Paragraph(doc_subtitle, styles["DocSubtitle"])]],
+    )
+    header_table = Table(
+        [[header_left, header_right]],
+        colWidths=[70 * mm, None],
+    )
+    header_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), PRIMARY),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (0, -1), 10),
+        ("RIGHTPADDING", (-1, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 10))
+
+    # ── DADOS DA OS ──────────────────────────────────────────────────────────
+    story.append(Paragraph("Dados da Ordem de Serviço", styles["SecTitle"]))
+    dados_rows = [
+        ["Nº OS", os_obj.numero or "-", "Status", os_obj.get_status_display()],
+        ["Cliente", os_obj.cliente.nome, "Técnico", context["tecnico"]],
+        ["Endereço", context["endereco"], "Contato", context["contato"]],
+        ["Data execução", context["data_execucao"], "Horário",
+         f"{context['hora_inicio']} às {context['hora_conclusao']}"],
+        ["Tipo de serviço", tipo_label, "Prioridade", os_obj.get_prioridade_display()],
+    ]
+    if os_obj.equipamento_marca or os_obj.equipamento_modelo:
+        dados_rows.append([
+            "Equipamento",
+            f"{os_obj.equipamento_marca or ''} {os_obj.equipamento_modelo or ''}".strip(),
+            "Nº de série",
+            os_obj.equipamento_serie or "-",
+        ])
+
+    dados_table = Table(dados_rows, colWidths=[30 * mm, 60 * mm, 30 * mm, 60 * mm])
+    dados_table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.4, BORDER),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
+        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+        ("FONTNAME", (3, 0), (3, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TEXTCOLOR", (0, 0), (0, -1), MUTED),
+        ("TEXTCOLOR", (2, 0), (2, -1), MUTED),
+        ("PADDING", (0, 0), (-1, -1), 5),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.white, LIGHT]),
+    ]))
+    story.append(dados_table)
+
+    # ── DESCRIÇÃO DO SERVIÇO ──────────────────────────────────────────────────
+    if os_obj.descricao_servico:
+        story.append(Paragraph("Descrição do Serviço", styles["SecTitle"]))
+        story.append(Paragraph(os_obj.descricao_servico.replace("\n", "<br/>"), styles["Body"]))
+
+    # ── CHECKLIST TÉCNICO ──────────────────────────────────────────────────────
+    respostas = list(
+        os_obj.respostas_checklist
+        .select_related("item__template")
+        .prefetch_related("fotos")
+        .order_by("item__template_id", "item__ordem")
+    )
+
+    if respostas:
+        story.append(Paragraph("Checklist Técnico", styles["SecTitle"]))
+        story.append(HRFlowable(width="100%", thickness=1, color=ACCENT, spaceAfter=6))
+
+        template_atual = None
+        for resp in respostas:
+            if resp.item.template_id != template_atual:
+                template_atual = resp.item.template_id
+                story.append(Paragraph(resp.item.template.nome, styles["PerguntaTexto"]))
+                story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=4))
+
+            story.append(Paragraph(f"• {resp.item.texto}", styles["PerguntaTexto"]))
+
+            if resp.item.tipo_resposta == "sim_nao":
+                if resp.valor_bool is True:
+                    val_str = "✓ Sim"
+                    val_color = GREEN
+                elif resp.valor_bool is False:
+                    val_str = "✗ Não"
+                    val_color = RED
+                else:
+                    val_str = "— Não respondido"
+                    val_color = MUTED
+                story.append(Paragraph(
+                    f'<font color="{val_color.hexval()}">{val_str}</font>',
+                    styles["RespostaTexto"],
+                ))
+            elif resp.item.tipo_resposta in ("texto", "numero", "multiplo"):
+                partes = []
+                if resp.valor_bool is not None:
+                    partes.append("Sim" if resp.valor_bool else "Não")
+                if resp.valor_texto:
+                    partes.append(resp.valor_texto)
+                if resp.valor_numero is not None:
+                    partes.append(str(resp.valor_numero))
+                story.append(Paragraph(
+                    " | ".join(partes) if partes else "— Sem resposta",
+                    styles["RespostaTexto"],
+                ))
+
+            fotos_resp = list(resp.fotos.all())
+            if fotos_resp:
+                foto_row = []
+                for foto in fotos_resp[:3]:
+                    try:
+                        fpath = foto.arquivo.path
+                        if os.path.exists(fpath):
+                            foto_img = RLImage(fpath, width=40 * mm, height=28 * mm)
+                            foto_row.append(Table(
+                                [[foto_img], [Paragraph(foto.legenda or "", styles["BodyMuted"])]],
+                                style=[("ALIGN", (0,0),(-1,-1), "CENTER")]
+                            ))
+                    except Exception:
+                        pass
+                if foto_row:
+                    while len(foto_row) < 3:
+                        foto_row.append(Paragraph("", styles["Body"]))
+                    f_table = Table([foto_row], colWidths=[60 * mm, 60 * mm, 60 * mm])
+                    f_table.setStyle(TableStyle([
+                        ("VALIGN", (0,0),(-1,-1), "TOP"),
+                        ("LEFTPADDING", (0,0),(0,-1), 12),
+                    ]))
+                    story.append(f_table)
+
+            story.append(Spacer(1, 4))
+
+    # ── OBSERVAÇÕES TÉCNICAS ──────────────────────────────────────────────────
+    if os_obj.observacoes_tecnicas:
+        story.append(Paragraph("Observações Técnicas", styles["SecTitle"]))
+        story.append(Paragraph(os_obj.observacoes_tecnicas.replace("\n", "<br/>"), styles["Body"]))
+
+    # ── GALERIA DE FOTOS ──────────────────────────────────────────────────────
+    fotos_antes = context.get("fotos_antes", [])
+    fotos_depois = context.get("fotos_depois", [])
+    todas_fotos = fotos_antes + fotos_depois
+    if todas_fotos:
+        story.append(Paragraph("Registro Fotográfico", styles["SecTitle"]))
+        foto_rows = []
+        current_row = []
+        for f_data in todas_fotos[:12]:
+            fp = f_data.get("arquivo_path")
+            if fp and os.path.exists(fp):
+                try:
+                    img_cell = Table(
+                        [[RLImage(fp, width=55 * mm, height=38 * mm)],
+                         [Paragraph(f_data.get("legenda") or "", styles["BodyMuted"])]],
+                        style=[("ALIGN", (0,0),(-1,-1), "CENTER")]
+                    )
+                    current_row.append(img_cell)
+                except Exception:
+                    continue
+            if len(current_row) == 3:
+                foto_rows.append(current_row)
+                current_row = []
+        if current_row:
+            while len(current_row) < 3:
+                current_row.append(Paragraph("", styles["Body"]))
+            foto_rows.append(current_row)
+        if foto_rows:
+            gallery = Table(foto_rows, colWidths=[62 * mm, 62 * mm, 62 * mm])
+            gallery.setStyle(TableStyle([
+                ("VALIGN", (0,0),(-1,-1), "TOP"),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+            ]))
+            story.append(gallery)
+
+    # ── ASSINATURA ────────────────────────────────────────────────────────────
+    assinatura = context.get("assinatura")
+    if assinatura:
+        story.append(Paragraph("Assinatura do Cliente", styles["SecTitle"]))
+        ass_path = assinatura.get("imagem_uri", "").replace("file:///", "")
+        if ass_path and os.path.exists(ass_path):
+            try:
+                story.append(RLImage(ass_path, width=60 * mm, height=25 * mm))
+            except Exception:
+                pass
+        nome_sig = context.get("nome_signatario")
+        if nome_sig:
+            story.append(Paragraph(nome_sig, styles["Body"]))
+    else:
+        story.append(Spacer(1, 20))
+        story.append(HRFlowable(width=80 * mm, thickness=0.8, color=MUTED))
+        story.append(Paragraph("Assinatura do cliente / responsável", styles["FooterText"]))
+
+    # ── LOGOS PARCEIROS ───────────────────────────────────────────────────────
+    try:
+        from apps.configuracoes.models import LogoClienteReferencia
+        logos_ativos = list(LogoClienteReferencia.objects.filter(ativo=True).order_by("ordem", "criado_em"))
+        if logos_ativos:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Empresas que confiam em nós", styles["SecTitle"]))
+            logo_cells = []
+            for logo_obj in logos_ativos[:8]:
+                try:
+                    lpath = logo_obj.logo.path if logo_obj.logo else None
+                    if lpath and os.path.exists(lpath):
+                        logo_cells.append(RLImage(lpath, width=20 * mm, height=11 * mm))
+                    else:
+                        logo_cells.append(Paragraph(logo_obj.nome, styles["BodyMuted"]))
+                except Exception:
+                    logo_cells.append(Paragraph(logo_obj.nome, styles["BodyMuted"]))
+            col_count = min(len(logo_cells), 4)
+            rows = [logo_cells[i:i+col_count] for i in range(0, len(logo_cells), col_count)]
+            if rows and rows[-1] and len(rows[-1]) < col_count:
+                rows[-1] += [Paragraph("", styles["BodyMuted"])] * (col_count - len(rows[-1]))
+            col_w = (181 * mm) / col_count
+            logos_t = Table(rows, colWidths=[col_w] * col_count)
+            logos_t.setStyle(TableStyle([
+                ("ALIGN", (0,0),(-1,-1), "CENTER"),
+                ("VALIGN", (0,0),(-1,-1), "MIDDLE"),
+                ("GRID", (0,0),(-1,-1), 0.3, BORDER),
+                ("PADDING", (0,0),(-1,-1), 6),
+            ]))
+            story.append(logos_t)
+    except Exception:
+        pass
+
+    # ── RODAPÉ ────────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 16))
+    rodape_rows = [[
+        Paragraph(empresa_nome, styles["FooterText"]),
+        Paragraph(f"Relatório gerado em {context['data_emissao']}", styles["FooterText"]),
+        Paragraph(os_obj.numero or "", styles["FooterText"]),
+    ]]
+    rodape_t = Table(rodape_rows, colWidths=[65 * mm, 65 * mm, 51 * mm])
+    rodape_t.setStyle(TableStyle([
+        ("BACKGROUND", (0,0),(-1,-1), LIGHT),
+        ("TOPPADDING", (0,0),(-1,-1), 6),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+        ("LEFTPADDING", (0,0),(0,-1), 8),
+        ("RIGHTPADDING", (-1,0),(-1,-1), 8),
+        ("ALIGN", (1,0),(1,-1), "CENTER"),
+        ("ALIGN", (2,0),(2,-1), "RIGHT"),
+        ("FONTSIZE", (0,0),(-1,-1), 7),
+    ]))
+    story.append(rodape_t)
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def gerar_relatorio_tecnico_pdf(os_id):
+    """Gera PDF do relatório técnico de execução e retorna bytes."""
+    try:
+        os_obj = OrdemServico.objects.select_related(
+            "cliente", "tecnico_responsavel", "contato_responsavel",
+            "endereco_servico",
+        ).prefetch_related(
+            "fotos",
+            "respostas_checklist__item__template",
+            "respostas_checklist__fotos",
+        ).get(pk=os_id)
+    except OrdemServico.DoesNotExist:
+        return None
+    return _gerar_relatorio_tecnico_reportlab(os_obj)
+
+
+def salvar_relatorio_tecnico_pdf(os_obj, pdf_bytes):
+    """Salva os bytes do PDF no campo pdf_relatorio da OS."""
+    from django.core.files.base import ContentFile
+    nome = f"relatorio_tecnico_{os_obj.numero or os_obj.pk}.pdf"
+    os_obj.pdf_relatorio.save(nome, ContentFile(pdf_bytes), save=True)
+
+
 def gerar_relatorio_pdf(os_id):
     """
     Gera PDF de relatório de serviço e retorna bytes.
