@@ -206,10 +206,10 @@ export function calcItemsTotals(items) {
     0
   );
   const valorServicos = items
-    .filter((item) => item.origem_tipo === "servico")
+    .filter((item) => item.origem_tipo !== "produto")
     .reduce((sum, item) => sum + Number(item.quantidade || 0) * Number(item.valor_unitario || 0), 0);
   const valorMateriais = items
-    .filter((item) => item.origem_tipo !== "servico")
+    .filter((item) => item.origem_tipo === "produto")
     .reduce((sum, item) => sum + Number(item.quantidade || 0) * Number(item.valor_unitario || 0), 0);
 
   return {

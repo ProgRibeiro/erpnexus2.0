@@ -35,6 +35,7 @@ export default function ImpressaoOrcamento() {
   const [loading, setLoading] = useState(true);
   const [orcamento, setOrcamento] = useState(null);
   const [empresa, setEmpresa] = useState(null);
+  const [impostosCalculados, setImpostosCalculados] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -63,8 +64,44 @@ export default function ImpressaoOrcamento() {
     };
   }, [id]);
 
-  const impostos = orcamento?.dados_impostos || {};
   const itens = normalizeList(orcamento?.itens);
+  const totaisItens = useMemo(() => {
+    const subtotal = itens.reduce((sum, item) => sum + Number(item.valor_total || (Number(item.quantidade || 0) * Number(item.valor_unitario || 0))), 0);
+    const subtotalServicos = itens
+      .filter((item) => item.origem_tipo !== "produto")
+      .reduce((sum, item) => sum + Number(item.valor_total || (Number(item.quantidade || 0) * Number(item.valor_unitario || 0))), 0);
+    const subtotalProdutos = itens
+      .filter((item) => item.origem_tipo === "produto")
+      .reduce((sum, item) => sum + Number(item.valor_total || (Number(item.quantidade || 0) * Number(item.valor_unitario || 0))), 0);
+    return { subtotal, subtotalServicos, subtotalProdutos };
+  }, [itens]);
+
+  useEffect(() => {
+    if (!orcamento) return;
+    let active = true;
+
+    async function recalcularImpostos() {
+      try {
+        const response = await api.post("/fiscal/calcular-impostos/", {
+          valor_servicos: totaisItens.subtotalServicos,
+          valor_materiais: totaisItens.subtotalProdutos,
+        });
+        if (active) setImpostosCalculados(response.data || null);
+      } catch {
+        if (active) setImpostosCalculados(orcamento?.dados_impostos || null);
+      }
+    }
+
+    recalcularImpostos();
+    return () => {
+      active = false;
+    };
+  }, [orcamento, totaisItens.subtotalProdutos, totaisItens.subtotalServicos]);
+
+  const impostos = impostosCalculados || orcamento?.dados_impostos || {};
+  const subtotalOrcamento = Number(orcamento?.valor_total_orcado || totaisItens.subtotal || 0);
+  const impostoTotal = Number(impostos?.total_impostos || 0);
+  const totalComImpostos = Number(impostos?.total_geral || subtotalOrcamento + impostoTotal || 0);
 
   const itemColumns = useMemo(
     () => [
@@ -233,10 +270,10 @@ export default function ImpressaoOrcamento() {
               </Title>
               <div style={{ border: "1px solid #DDE5EF", borderRadius: 14, overflow: "hidden" }}>
                 {[
-                  ["Subtotal serviços", impostos?.subtotal_servicos || orcamento?.valor_servicos || 0],
-                  ["Subtotal produtos", impostos?.subtotal_materiais || orcamento?.valor_materiais || 0],
-                  ["Subtotal orçamento", orcamento?.valor_total_orcado || 0],
-                  ["Impostos estimados", impostos?.total_impostos || 0],
+                  ["Subtotal serviços", impostos?.subtotal_servicos || totaisItens.subtotalServicos || orcamento?.valor_servicos || 0],
+                  ["Subtotal produtos", impostos?.subtotal_materiais || totaisItens.subtotalProdutos || orcamento?.valor_materiais || 0],
+                  ["Subtotal orçamento", subtotalOrcamento],
+                  ["Imposto sobre os serviços", impostoTotal],
                 ].map(([label, value]) => (
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #EEF2F6" }}>
                     <span>{label}</span>
@@ -245,7 +282,7 @@ export default function ImpressaoOrcamento() {
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "14px", background: "#1B4F8A", color: "#fff" }}>
                   <span>Total com impostos</span>
-                  <strong>{moneyFormatter.format(Number(impostos?.total_geral || orcamento?.total_com_impostos || 0))}</strong>
+                  <strong>{moneyFormatter.format(totalComImpostos)}</strong>
                 </div>
               </div>
             </div>

@@ -150,12 +150,12 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         valor_servicos = sum(
             Decimal(item.valor_total or 0)
             for item in itens
-            if item.origem_tipo == ItemOrcamento.OrigemTipo.SERVICO
+            if item.origem_tipo != ItemOrcamento.OrigemTipo.PRODUTO
         )
         valor_materiais = sum(
             Decimal(item.valor_total or 0)
             for item in itens
-            if item.origem_tipo != ItemOrcamento.OrigemTipo.SERVICO
+            if item.origem_tipo == ItemOrcamento.OrigemTipo.PRODUTO
         )
 
         empresa, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")

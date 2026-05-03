@@ -9,6 +9,8 @@ from django.db.utils import OperationalError, ProgrammingError
 from django.template.loader import render_to_string
 
 from apps.configuracoes.models import ConfiguracaoEmpresa, ConfiguracaoOS
+from apps.fiscal.models import ConfiguracaoFiscal
+from apps.fiscal.services import CalculadoraImpostos
 from apps.ordens.models import OrdemServico
 
 
@@ -240,11 +242,42 @@ def _prepare_orcamento_context(os_obj):
         itens.append(item_data)
         subtotal += valor_total
 
+    subtotal_servicos_itens = sum(
+        Decimal(item.valor_total or 0)
+        for item in os_obj.itens.all()
+        if item.origem_tipo != "produto"
+    )
+    subtotal_materiais_itens = sum(
+        Decimal(item.valor_total or 0)
+        for item in os_obj.itens.all()
+        if item.origem_tipo == "produto"
+    )
+
     impostos = os_obj.dados_impostos or {}
-    subtotal_servicos = Decimal(str(impostos.get("subtotal_servicos", os_obj.valor_servicos or 0) or 0))
-    subtotal_materiais = Decimal(str(impostos.get("subtotal_materiais", os_obj.valor_materiais or 0) or 0))
+    should_recalculate = (
+        not impostos
+        or Decimal(str(impostos.get("total_geral", 0) or 0)) <= 0
+        or Decimal(str(impostos.get("total_impostos", 0) or 0)) <= 0
+    ) and subtotal > 0
+
+    if should_recalculate:
+        fiscal_config, _ = ConfiguracaoFiscal.objects.get_or_create(
+            empresa=empresa,
+            defaults={
+                "cnpj": empresa.cnpj,
+                "razao_social": empresa.razao_social or empresa.nome,
+            },
+        )
+        impostos = CalculadoraImpostos().calcular(
+            valor_servicos=subtotal_servicos_itens,
+            valor_materiais=subtotal_materiais_itens,
+            config=fiscal_config,
+        )
+
+    subtotal_servicos = Decimal(str(impostos.get("subtotal_servicos", subtotal_servicos_itens or os_obj.valor_servicos or 0) or 0))
+    subtotal_materiais = Decimal(str(impostos.get("subtotal_materiais", subtotal_materiais_itens or os_obj.valor_materiais or 0) or 0))
     total_impostos = Decimal(str(impostos.get("total_impostos", 0) or 0))
-    total_geral = Decimal(str(impostos.get("total_geral", os_obj.total_com_impostos or os_obj.valor_total_orcado or subtotal) or 0))
+    total_geral = Decimal(str(impostos.get("total_geral", (Decimal(os_obj.valor_total_orcado or subtotal) + total_impostos)) or 0))
     descontos = max(subtotal - Decimal(os_obj.valor_total_orcado or subtotal), Decimal("0"))
 
     contato = os_obj.contato_responsavel.nome if os_obj.contato_responsavel else os_obj.cliente.nome
