@@ -35,8 +35,8 @@ export default function Header() {
     <Layout.Header className="erp-header">
       <div className="erp-topbar">
         <div className="erp-topbar-title">
-          <span className="erp-topbar-kicker">ERP Unificado</span>
-          <span className="erp-topbar-heading">Central de Operações</span>
+          <span className="erp-topbar-kicker">ERP Nexus</span>
+          <span className="erp-topbar-heading">Sistema do prestador de serviço</span>
         </div>
         <Space size="large">
           <Tooltip title="Notificações">

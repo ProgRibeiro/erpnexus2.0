@@ -1,15 +1,32 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 
-from .models import ConfiguracaoEmpresa, ConfiguracaoNotificacao
-from .serializers import ConfiguracaoEmpresaSerializer, ConfiguracaoNotificacaoSerializer
+from .models import (
+    ConfiguracaoEmpresa,
+    ConfiguracaoNotificacao,
+    ConfiguracaoOS,
+    ConfiguracaoFinanceira,
+)
+from .serializers import (
+    ConfiguracaoEmpresaSerializer,
+    ConfiguracaoNotificacaoSerializer,
+    ConfiguracaoOSSerializer,
+    ConfiguracaoFinanceiraSerializer,
+)
 
 
 @api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
 def empresa(request):
-    config, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")
+    config = ConfiguracaoEmpresa.objects.order_by("id").first()
+    if not config:
+        config = ConfiguracaoEmpresa.objects.create(
+            nome="ERP Nexus",
+            razao_social="ERP Nexus",
+        )
     if request.method == "PATCH":
         serializer = ConfiguracaoEmpresaSerializer(config, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -33,3 +50,29 @@ def notificacoes(request):
         return Response(retorno)
     configs = ConfiguracaoNotificacao.objects.all()
     return Response(ConfiguracaoNotificacaoSerializer(configs, many=True).data)
+
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def configuracao_os(request):
+    """Gerencia configurações de Ordens de Serviço"""
+    config, _ = ConfiguracaoOS.objects.get_or_create()
+    if request.method == "PATCH":
+        serializer = ConfiguracaoOSSerializer(config, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    return Response(ConfiguracaoOSSerializer(config).data)
+
+
+@api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def configuracao_financeira(request):
+    """Gerencia configurações financeiras"""
+    config, _ = ConfiguracaoFinanceira.objects.get_or_create()
+    if request.method == "PATCH":
+        serializer = ConfiguracaoFinanceiraSerializer(config, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    return Response(ConfiguracaoFinanceiraSerializer(config).data)

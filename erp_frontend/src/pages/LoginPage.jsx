@@ -74,11 +74,11 @@ export default function LoginPage() {
               ERP
             </div>
             <h1 style={{ fontSize: "32px", fontWeight: "700", margin: "0 0 16px 0" }}>
-              ERP Produção
+              ERP Nexus
             </h1>
             <p style={{ fontSize: "16px", color: "rgba(255, 255, 255, 0.8)", margin: 0 }}>
-              Sistema de gestão para serviços de HVAC, refrigeração, elétrica e
-              civil.
+              Sistema do prestador de serviço para HVAC, refrigeração, elétrica
+              e civil.
             </p>
           </div>
         </Col>

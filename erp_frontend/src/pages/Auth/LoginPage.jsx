@@ -292,7 +292,7 @@ export default function LoginPage() {
             <ToolOutlined />
           </div>
           <div style={S.brandText(isMobile)}>
-            <p style={S.brandTitle(isMobile)}>ERP Produção</p>
+            <p style={S.brandTitle(isMobile)}>ERP Nexus</p>
             <span style={S.brandSub(isMobile)}>Gestão de Serviços</span>
           </div>
         </div>

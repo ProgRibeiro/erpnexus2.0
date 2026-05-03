@@ -22,9 +22,9 @@ body {
 
 /* Sidebar */
 .erp-sidebar-shell {
-  background: #FFFFFF !important;
-  border-right: 1px solid #E2E6EC !important;
-  box-shadow: 16px 0 44px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, #0F2746 0%, #102E52 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 18px 0 44px rgba(15, 23, 42, 0.18);
 }
 
 .erp-sidebar-shell .ant-layout-sider-children {
@@ -34,36 +34,39 @@ body {
 }
 
 .erp-brand-panel {
-  padding: 28px 24px 20px;
-  border-bottom: 1px solid #EDF0F4;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFD 100%);
+  padding: 28px 24px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(61, 149, 255, 0.24), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.00) 100%);
 }
 
 .erp-brand-mark {
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  background: #1B4F8A;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4EA1FF 0%, #1B4F8A 100%);
   color: #FFFFFF;
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 18px;
+  box-shadow: 0 14px 30px rgba(17, 76, 140, 0.34);
 }
 
 .erp-brand-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1.1;
-  font-weight: 700;
-  color: #10233C;
+  font-weight: 800;
+  color: #F8FBFF;
 }
 
 .erp-brand-subtitle {
   margin: 12px 0 0;
-  color: #5A6070;
+  color: rgba(232, 239, 248, 0.82);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -76,7 +79,7 @@ body {
 
 .erp-sidebar-menu .ant-menu-item-group-title {
   padding: 10px 12px 8px !important;
-  color: #93A0B3 !important;
+  color: rgba(189, 206, 225, 0.72) !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   text-transform: uppercase;
@@ -92,10 +95,30 @@ body {
   border-radius: 10px !important;
   font-size: 14px !important;
   font-weight: 500;
+  color: #E8EFF8 !important;
 }
 
 .erp-sidebar-menu .ant-menu-item .ant-menu-title-content {
-  color: #273548;
+  color: inherit;
+}
+
+.erp-sidebar-menu .ant-menu-item .ant-menu-item-icon,
+.erp-sidebar-menu .ant-menu-submenu-title .ant-menu-item-icon {
+  color: rgba(232, 239, 248, 0.86) !important;
+}
+
+.erp-sidebar-menu.ant-menu-inline .ant-menu-item:hover,
+.erp-sidebar-menu.ant-menu-inline .ant-menu-submenu-title:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected {
+  background: linear-gradient(90deg, rgba(78, 161, 255, 0.22) 0%, rgba(78, 161, 255, 0.10) 100%) !important;
+  border: 1px solid rgba(78, 161, 255, 0.22);
+}
+
+.erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected::after {
+  display: none !important;
 }
 
 /* Header */
@@ -109,8 +132,9 @@ body {
   line-height: normal !important;
   padding: 0 28px !important;
   border-bottom: 1px solid #E2E6EC !important;
-  background: #FFFFFF !important;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 }
 
 .erp-topbar {
@@ -128,7 +152,7 @@ body {
 }
 
 .erp-topbar-kicker {
-  color: #8A97AA;
+  color: #1B4F8A;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -137,8 +161,8 @@ body {
 
 .erp-topbar-heading {
   color: #10233C;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   line-height: 1.2;
 }
 

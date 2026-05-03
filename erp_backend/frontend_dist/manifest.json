@@ -1,7 +1,7 @@
 {
-  "name": "ERP Produção - Gestão Integrada",
-  "short_name": "ERP",
-  "description": "Sistema de gestão para serviços de HVAC, refrigeração, elétrica e civil com suporte offline completo",
+  "name": "ERP Nexus - Sistema do prestador de serviço",
+  "short_name": "ERP Nexus",
+  "description": "ERP Nexus, sistema do prestador de serviço para HVAC, refrigeração, elétrica e civil com suporte offline completo",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

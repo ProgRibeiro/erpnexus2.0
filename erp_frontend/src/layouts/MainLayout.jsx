@@ -22,12 +22,12 @@ export default function MainLayout() {
         breakpoint="lg"
         collapsedWidth={0}
         trigger={null}
-      >
+        >
         <div className="erp-brand-panel">
-          <div className="erp-brand-mark">EP</div>
-          <h2 className="erp-brand-title">ERP Produção</h2>
+          <div className="erp-brand-mark">EN</div>
+          <h2 className="erp-brand-title">ERP Nexus</h2>
           <p className="erp-brand-subtitle">
-            Operações, financeiro, CRM, estoque e campo em um fluxo único.
+            Sistema do prestador de serviço para operações, faturamento, campo e relacionamento.
           </p>
         </div>
         <Sidebar />
