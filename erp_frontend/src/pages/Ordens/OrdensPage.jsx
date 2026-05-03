@@ -303,15 +303,17 @@ function OrdensPage() {
 
     async function loadTechnicians() {
       try {
-        const response = await api.get("/usuarios/", { params: { role: "tecnico" } });
+        const response = await api.get("/auth/");
         const { rows } = normalizeList(response.data);
         if (!isMounted) return;
 
         setTechnicians(
-          rows.map((user) => ({
-            label: firstDefined(user.nome_completo, user.nome, user.username, user.email, "Técnico"),
-            value: String(user.id),
-          }))
+          rows
+            .filter((user) => String(user.role || "").toLowerCase() === "tecnico")
+            .map((user) => ({
+              label: firstDefined(user.nome_completo, user.nome, user.username, user.email, "Técnico"),
+              value: String(user.id),
+            }))
         );
       } catch {
         if (isMounted) setTechnicians([]);

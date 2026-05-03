@@ -393,23 +393,40 @@ export default function OSDetalhePage() {
   const carregarTela = async () => {
     try {
       setLoading(true);
-      const [ordemResponse, clientsResponse, techniciansResponse] = await Promise.all([
+      const [ordemResponse, clientsResponse, techniciansResponse] = await Promise.allSettled([
         api.get(`/ordens/${id}/`),
         api.get("/clientes/"),
-        api.get("/usuarios/", { params: { role: "tecnico" } }),
+        api.get("/auth/"),
       ]);
 
-      const ordemAtual = ordemResponse.data;
-      const clientes = normalizeList(clientsResponse.data);
-      const tecnicos = normalizeList(techniciansResponse.data).map((tecnico) => ({
-        label: tecnico.nome_completo || tecnico.username || tecnico.email,
-        value: tecnico.id,
-      }));
+      if (ordemResponse.status !== "fulfilled") {
+        throw ordemResponse.reason;
+      }
+
+      if (clientsResponse.status !== "fulfilled") {
+        throw clientsResponse.reason;
+      }
+
+      const ordemAtual = ordemResponse.value.data;
+      const clientes = normalizeList(clientsResponse.value.data);
+      const tecnicos =
+        techniciansResponse.status === "fulfilled"
+          ? normalizeList(techniciansResponse.value.data)
+              .filter((tecnico) => String(tecnico.role || "").toLowerCase() === "tecnico")
+              .map((tecnico) => ({
+                label: tecnico.nome_completo || tecnico.username || tecnico.email,
+                value: tecnico.id,
+              }))
+          : [];
 
       setClients(clientes);
       setTechnicians(tecnicos);
       setOrdem(ordemAtual);
       preencherFormulario(ordemAtual);
+
+      if (techniciansResponse.status !== "fulfilled") {
+        message.warning("Não foi possível carregar a lista de técnicos agora. A OS foi aberta mesmo assim.");
+      }
     } catch (error) {
       console.error("Erro ao carregar OS:", error);
       message.error("Não foi possível carregar a ordem de serviço.");
