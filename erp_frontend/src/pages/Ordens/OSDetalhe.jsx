@@ -33,6 +33,8 @@ import {
   CameraOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
   FileSearchOutlined,
   DollarOutlined,
   EyeOutlined,
@@ -324,6 +326,10 @@ export default function OSDetalhePage() {
   const [photoModal, setPhotoModal] = useState({ open: false, tipo: "antes", arquivos: [] });
   const [pcAnalyzing, setPcAnalyzing] = useState(false);
   const [pcAnalysis, setPcAnalysis] = useState(null);
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState(null);
+  const [orcamentoItens, setOrcamentoItens] = useState([]);
+  const [itemForm] = Form.useForm();
 
   const watchedClient = Form.useWatch("cliente", form);
   const watchedHasPc = Form.useWatch("tem_pedido_compra", form);
@@ -342,6 +348,10 @@ export default function OSDetalhePage() {
   const valorFaturadoAtual = Number(watchedValorFaturado ?? ordem?.valor_final_faturado ?? ordem?.total_com_impostos ?? ordem?.valor_total_orcado ?? 0);
   const margemAtual = valorFaturadoAtual - Number(expenseSummary.total || 0);
   const historyItems = useMemo(() => buildHistory(ordem), [ordem]);
+  const totalOrcamentoEditavel = useMemo(
+    () => orcamentoItens.reduce((acc, item) => acc + Number(item.valor_total || 0), 0),
+    [orcamentoItens]
+  );
 
   const beforePhotos = useMemo(
     () => (ordem?.fotos || []).filter((foto) => String(foto.tipo) === "antes"),
@@ -398,6 +408,7 @@ export default function OSDetalhePage() {
       numero_nf: ordemAtual?.numero_nf || "",
       data_emissao_nf: ordemAtual?.data_emissao_nf ? dayjs(ordemAtual.data_emissao_nf) : null,
       data_vencimento: ordemAtual?.data_vencimento ? dayjs(ordemAtual.data_vencimento) : null,
+      data_recebimento: ordemAtual?.data_recebimento ? dayjs(ordemAtual.data_recebimento) : null,
       forma_cobranca: ordemAtual?.forma_cobranca || undefined,
       observacoes_internas: "",
       pdf_pc_upload: [],
@@ -437,6 +448,15 @@ export default function OSDetalhePage() {
       setClients(clientes);
       setTechnicians(tecnicos);
       setOrdem(ordemAtual);
+      setOrcamentoItens(
+        (ordemAtual?.itens || []).map((item, index) => ({
+          ...item,
+          ordem: item.ordem ?? index,
+          quantidade: Number(item.quantidade || 0),
+          valor_unitario: Number(item.valor_unitario || 0),
+          valor_total: Number(item.valor_total || 0),
+        }))
+      );
       setPcAnalysis(ordemAtual?.dados_pc_extraidos || null);
       preencherFormulario(ordemAtual);
 
@@ -478,7 +498,20 @@ export default function OSDetalhePage() {
     numero_nf: values.numero_nf || "",
     data_emissao_nf: values.data_emissao_nf ? values.data_emissao_nf.format("YYYY-MM-DD") : null,
     data_vencimento: values.data_vencimento ? values.data_vencimento.format("YYYY-MM-DD") : null,
+    data_recebimento: values.data_recebimento ? values.data_recebimento.format("YYYY-MM-DD") : null,
     forma_cobranca: values.forma_cobranca || "",
+    itens: orcamentoItens.map((item, index) => ({
+      id: item.id,
+      origem_tipo: item.origem_tipo || "avulso",
+      produto: item.produto || null,
+      servico: item.servico || null,
+      codigo_referencia: item.codigo_referencia || "",
+      unidade_referencia: item.unidade_referencia || "",
+      descricao: item.descricao || "",
+      quantidade: Number(item.quantidade || 0),
+      valor_unitario: Number(item.valor_unitario || 0),
+      ordem: index,
+    })),
   });
 
   const salvarOS = async (extra = {}) => {
@@ -511,6 +544,15 @@ export default function OSDetalhePage() {
       }
 
       setOrdem(response.data);
+      setOrcamentoItens(
+        (response.data?.itens || []).map((item, index) => ({
+          ...item,
+          ordem: item.ordem ?? index,
+          quantidade: Number(item.quantidade || 0),
+          valor_unitario: Number(item.valor_unitario || 0),
+          valor_total: Number(item.valor_total || 0),
+        }))
+      );
       preencherFormulario(response.data);
       message.success("Ordem de serviço salva.");
       return response.data;
@@ -566,6 +608,68 @@ export default function OSDetalhePage() {
       analisarPedidoCompra(selectedFile);
     }
   };
+
+  const abrirNovoItem = () => {
+    setEditingItemIndex(null);
+    itemForm.setFieldsValue({
+      descricao: "",
+      quantidade: 1,
+      valor_unitario: 0,
+      codigo_referencia: "",
+      unidade_referencia: "un",
+      origem_tipo: "avulso",
+    });
+    setItemModalOpen(true);
+  };
+
+  const editarItem = (item, index) => {
+    setEditingItemIndex(index);
+    itemForm.setFieldsValue({
+      descricao: item.descricao,
+      quantidade: Number(item.quantidade || 0),
+      valor_unitario: Number(item.valor_unitario || 0),
+      codigo_referencia: item.codigo_referencia || "",
+      unidade_referencia: item.unidade_referencia || "un",
+      origem_tipo: item.origem_tipo || "avulso",
+    });
+    setItemModalOpen(true);
+  };
+
+  const salvarItemOrcamento = async () => {
+    const values = await itemForm.validateFields();
+    const quantidade = Number(values.quantidade || 0);
+    const valorUnitario = Number(values.valor_unitario || 0);
+    const itemNormalizado = {
+      ...(editingItemIndex !== null ? orcamentoItens[editingItemIndex] : {}),
+      descricao: values.descricao,
+      quantidade,
+      valor_unitario: valorUnitario,
+      valor_total: quantidade * valorUnitario,
+      codigo_referencia: values.codigo_referencia || "",
+      unidade_referencia: values.unidade_referencia || "",
+      origem_tipo: values.origem_tipo || "avulso",
+    };
+
+    setOrcamentoItens((current) => {
+      if (editingItemIndex === null) {
+        return [...current, { ...itemNormalizado, ordem: current.length }];
+      }
+      return current.map((item, index) => (index === editingItemIndex ? itemNormalizado : item));
+    });
+
+    setItemModalOpen(false);
+    itemForm.resetFields();
+    message.success(editingItemIndex === null ? "Item adicionado ao orçamento." : "Item atualizado.");
+  };
+
+  const removerItem = (index) => {
+    setOrcamentoItens((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    message.success("Item removido do orçamento.");
+  };
+
+  useEffect(() => {
+    form.setFieldValue("valor_total_orcado", Number(totalOrcamentoEditavel || 0));
+  }, [form, totalOrcamentoEditavel]);
 
   const gerarRelatorio = async () => {
     try {
@@ -659,6 +763,14 @@ export default function OSDetalhePage() {
   const confirmarFaturamento = async () => {
     setSendingBilling(true);
     try {
+      await form.validateFields([
+        "valor_final_faturado",
+        "numero_nf",
+        "data_emissao_nf",
+        "data_vencimento",
+        "data_recebimento",
+        "forma_cobranca",
+      ]);
       await salvarOS();
       await api.post(`/ordens/${id}/mudar-status/`, {
         status: "faturada",
@@ -692,7 +804,7 @@ export default function OSDetalhePage() {
   const topSummaryCards = [
     {
       title: "Valor orçado",
-      value: formatMoney(ordem?.valor_total_orcado),
+      value: formatMoney(watchedValorOrcado ?? ordem?.valor_total_orcado),
       icon: <DollarOutlined style={{ color: "#1B4F8A" }} />,
     },
     {
@@ -746,6 +858,17 @@ export default function OSDetalhePage() {
       key: "valor_total",
       width: 140,
       render: (value) => <Text strong>{formatMoney(value)}</Text>,
+    },
+    {
+      title: "Ações",
+      key: "acoes",
+      width: 110,
+      render: (_, item, index) => (
+        <Space size={4}>
+          <Button type="text" icon={<EditOutlined />} onClick={() => editarItem(item, index)} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removerItem(index)} />
+        </Space>
+      ),
     },
   ];
 
@@ -1042,11 +1165,23 @@ export default function OSDetalhePage() {
 
         <Divider />
 
+        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 12 }} wrap>
+          <div>
+            <Text strong style={{ color: "#10233C" }}>Itens do orçamento</Text>
+            <div style={{ color: "#64748B", fontSize: 13 }}>
+              A OS continua editável aqui. Se o orçamento mudar, você já ajusta tudo neste ponto.
+            </div>
+          </div>
+          <Button icon={<PlusOutlined />} onClick={abrirNovoItem}>
+            Adicionar item
+          </Button>
+        </Space>
+
         <Table
           columns={itemColumns}
-          dataSource={ordem?.itens || []}
+          dataSource={orcamentoItens}
           pagination={false}
-          rowKey="id"
+          rowKey={(record, index) => record.id || `item-${index}`}
           locale={{ emptyText: "Nenhum item do orçamento cadastrado" }}
         />
       </Card>
@@ -1229,12 +1364,12 @@ export default function OSDetalhePage() {
         <Space direction="vertical" size={6} style={{ width: "100%", marginBottom: 16 }}>
           <Title level={5} style={{ margin: 0 }}>Faturamento</Title>
           <Text type="secondary">
-            Aqui a funcionária registra NF, data e PDF. Ao confirmar, a OS entra no fluxo financeiro.
+            Aqui a funcionária registra NF, datas e PDF. Só depois disso a OS segue para o financeiro gerar a receita.
           </Text>
         </Space>
         <Row gutter={[16, 8]}>
           <Col xs={24} md={12}>
-            <Form.Item label="Valor final faturado" name="valor_final_faturado" rules={[{ required: true, message: "Informe o valor faturado" }]}>
+            <Form.Item label="Valor final faturado" name="valor_final_faturado">
               <InputNumber
                 min={0}
                 step={0.01}
@@ -1244,22 +1379,27 @@ export default function OSDetalhePage() {
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Número da NF-e / NFS-e" name="numero_nf" rules={[{ required: true, message: "Informe o número da nota" }]}>
+            <Form.Item label="Número da NF-e / NFS-e" name="numero_nf">
               <Input placeholder="NF-2025-00491" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Data de emissão da NF" name="data_emissao_nf" rules={[{ required: true, message: "Informe a data de emissão" }]}>
+            <Form.Item label="Data de emissão da NF" name="data_emissao_nf">
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Data de vencimento" name="data_vencimento" rules={[{ required: true, message: "Informe o vencimento" }]}>
+            <Form.Item label="Data de vencimento" name="data_vencimento">
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Forma de cobrança" name="forma_cobranca" rules={[{ required: true, message: "Selecione a forma de cobrança" }]}>
+            <Form.Item label="Data de recebimento" name="data_recebimento">
+              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label="Forma de cobrança" name="forma_cobranca">
               <Select options={formaCobrancaOptions} />
             </Form.Item>
           </Col>
@@ -1521,6 +1661,59 @@ export default function OSDetalhePage() {
         >
           <Button icon={<UploadOutlined />}>Selecionar imagens</Button>
         </Upload>
+      </Modal>
+
+      <Modal
+        open={itemModalOpen}
+        title={editingItemIndex === null ? "Adicionar item do orçamento" : "Editar item do orçamento"}
+        okText={editingItemIndex === null ? "Adicionar" : "Salvar alterações"}
+        cancelText="Cancelar"
+        onOk={salvarItemOrcamento}
+        onCancel={() => {
+          setItemModalOpen(false);
+          itemForm.resetFields();
+        }}
+      >
+        <Form form={itemForm} layout="vertical">
+          <Form.Item label="Descrição" name="descricao" rules={[{ required: true, message: "Informe a descrição do item" }]}>
+            <TextArea rows={3} />
+          </Form.Item>
+          <Row gutter={12}>
+            <Col span={8}>
+              <Form.Item label="Quantidade" name="quantidade" rules={[{ required: true, message: "Informe a quantidade" }]}>
+                <InputNumber min={0.01} step={0.01} style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="Valor unitário" name="valor_unitario" rules={[{ required: true, message: "Informe o valor unitário" }]}>
+                <InputNumber min={0} step={0.01} style={{ width: "100%" }} formatter={(value) => `R$ ${value || ""}`} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="Tipo" name="origem_tipo">
+                <Select
+                  options={[
+                    { value: "avulso", label: "Avulso" },
+                    { value: "servico", label: "Serviço" },
+                    { value: "produto", label: "Produto" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item label="Código de referência" name="codigo_referencia">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Unidade" name="unidade_referencia">
+                <Input placeholder="un, h, kg..." />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
       </Modal>
     </div>
   );
