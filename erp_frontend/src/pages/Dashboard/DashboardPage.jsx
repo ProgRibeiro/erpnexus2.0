@@ -422,7 +422,7 @@ function DashboardPage() {
   const cardHeader = (title, route) => (
     <div style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: 12 }}>
       <h2 style={sectionTitleStyle}>{title}</h2>
-      <Button type="link" onClick={() => navigate(route)} style={{ color: "#1B4F8A", paddingInline: 0 }}>
+      <Button type="link" onClick={() => navigate(route)} style={{ color: "#3B82F6", paddingInline: 0 }}>
         ver todas <ArrowRightOutlined />
       </Button>
     </div>
@@ -445,7 +445,7 @@ function DashboardPage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} xl={6}>
           <MetricCard
-            color="#1B4F8A"
+            color="#3B82F6"
             icon={<FileTextOutlined style={{ fontSize: 23 }} />}
             label="OS Abertas"
             loading={loading}
@@ -556,7 +556,7 @@ function DashboardPage() {
                           padding: 12,
                         }}
                       >
-                        <Text strong style={{ color: "#1B4F8A", fontSize: 15 }}>
+                        <Text strong style={{ color: "#3B82F6", fontSize: 15 }}>
                           {formatTime(order)}
                         </Text>
                         <div style={{ minWidth: 0 }}>
@@ -564,7 +564,7 @@ function DashboardPage() {
                             {getClienteName(order)}
                           </Text>
                           <Space size={8} style={{ marginTop: 6 }}>
-                            <Avatar size={26} style={{ background: "#1B4F8A", fontSize: 11 }}>
+                            <Avatar size={26} style={{ background: "#3B82F6", fontSize: 11 }}>
                               {getInitials(technicianName)}
                             </Avatar>
                             <Text style={{ color: "#6B7280", fontSize: 12 }}>{technicianName}</Text>

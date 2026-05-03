@@ -115,7 +115,7 @@ export default function TabelaLancamentos({
               size="small"
               icon={<EyeOutlined />}
               onClick={() => onView(record)}
-              style={{ color: "#1B4F8A" }}
+              style={{ color: "#3B82F6" }}
             />
           </Tooltip>
           <Tooltip title="Editar">

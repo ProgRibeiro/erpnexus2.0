@@ -38,8 +38,8 @@ import usuariosService from "../../services/usuariosService";
 import ExcelImportModal from "../../components/ExcelImportModal";
 
 const btnStyle = {
-  background: "#1B4F8A",
-  borderColor: "#1B4F8A",
+  background: "#3B82F6",
+  borderColor: "#3B82F6",
   color: "#ffffff",
   fontWeight: 500,
   height: "38px",
@@ -1056,7 +1056,7 @@ export default function ConfiguracoesPage() {
                         <span>
                           Alíquota ISS (%)
                           <Tooltip title="Consulte a legislação do seu município">
-                            <InfoCircleOutlined style={{ marginLeft: 8, color: '#1B4F8A' }} />
+                            <InfoCircleOutlined style={{ marginLeft: 8, color: '#3B82F6' }} />
                           </Tooltip>
                         </span>
                       }>
@@ -1080,7 +1080,7 @@ export default function ConfiguracoesPage() {
                     <span>
                       Código do serviço LC 116/2003
                       <Tooltip title="Código da lista de serviços da LC 116/2003">
-                        <InfoCircleOutlined style={{ marginLeft: 8, color: '#1B4F8A' }} />
+                        <InfoCircleOutlined style={{ marginLeft: 8, color: '#3B82F6' }} />
                       </Tooltip>
                     </span>
                   }>
@@ -1195,7 +1195,7 @@ export default function ConfiguracoesPage() {
                           </div>
                         </Col>
                         <Col xs={24} sm={12}>
-                          <div style={{ fontSize: 14, color: '#1B4F8A', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: 14, color: '#3B82F6', fontWeight: 'bold' }}>
                             <strong>Total geral:</strong> R$ {impostoPreview.total_geral.toFixed(2)}
                           </div>
                         </Col>

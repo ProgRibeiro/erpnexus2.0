@@ -8,7 +8,7 @@ export default function MetricCard({
   trend,
   trendLabel,
   icon: Icon,
-  color = '#1B4F8A'
+  color = '#3B82F6'
 }) {
   const isPositive = trend !== undefined && trend >= 0;
 

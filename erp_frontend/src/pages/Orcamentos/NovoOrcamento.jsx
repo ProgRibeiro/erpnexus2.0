@@ -810,7 +810,7 @@ export default function NovoOrcamento() {
               <Col xs={24} lg={8}>
                 <div style={itemCardStyle}>
                   <Text style={{ color: "#6B7280" }}>Total com impostos</Text>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#1B4F8A", marginTop: 6 }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#3B82F6", marginTop: 6 }}>
                     {moneyFormatter.format(Number(impostos?.total_geral || totals.subtotal || 0))}
                   </div>
                 </div>

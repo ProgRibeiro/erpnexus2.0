@@ -54,7 +54,7 @@ export default function LoginPage() {
           sm={24}
           md={12}
           style={{
-            background: "linear-gradient(135deg, #1B4F8A 0%, #0d2a4a 100%)",
+            background: "linear-gradient(135deg, #3B82F6 0%, #0d2a4a 100%)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",

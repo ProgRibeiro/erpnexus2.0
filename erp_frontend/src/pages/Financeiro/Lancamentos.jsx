@@ -496,7 +496,7 @@ export default function LancamentosPage() {
                 setDetailsData(record);
                 setDetailsVisible(true);
               }}
-              style={{ color: "#1B4F8A" }}
+              style={{ color: "#3B82F6" }}
             />
           </Tooltip>
           <Tooltip title="Editar">
@@ -569,8 +569,8 @@ export default function LancamentosPage() {
               setFormVisible(true);
             }}
             style={{
-              background: "#1B4F8A",
-              borderColor: "#1B4F8A",
+              background: "#3B82F6",
+              borderColor: "#3B82F6",
               color: "#ffffff",
               height: "40px",
               paddingLeft: "20px",
@@ -680,8 +680,8 @@ export default function LancamentosPage() {
                         setFormVisible(true);
                       }}
                       style={{
-                        background: "#1B4F8A",
-                        borderColor: "#1B4F8A",
+                        background: "#3B82F6",
+                        borderColor: "#3B82F6",
                         color: "#ffffff",
                         height: "40px",
                         paddingLeft: "20px",

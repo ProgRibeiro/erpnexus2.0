@@ -316,7 +316,7 @@ export default function OrcamentosPage() {
             event.stopPropagation();
             navigate(`/orcamentos/${record.id}`);
           }}
-          style={{ color: "#1B4F8A", fontWeight: 800, padding: 0 }}
+          style={{ color: "#3B82F6", fontWeight: 800, padding: 0 }}
         >
           {getBudgetNumber(record)}
         </Button>
@@ -385,7 +385,7 @@ export default function OrcamentosPage() {
               <Button type="text" icon={<CheckCircleOutlined />} onClick={() => handleApprove(record)} style={{ color: "#15803D" }} />
             </Tooltip>
             <Tooltip title="Gerar PDF">
-              <Button type="text" icon={<FilePdfOutlined />} onClick={() => handlePdf(record)} style={{ color: "#1B4F8A" }} />
+              <Button type="text" icon={<FilePdfOutlined />} onClick={() => handlePdf(record)} style={{ color: "#3B82F6" }} />
             </Tooltip>
           </Space>
         );
@@ -433,8 +433,8 @@ export default function OrcamentosPage() {
             icon={<PlusOutlined />}
             onClick={() => navigate("/orcamentos/novo")}
             style={{
-              background: "#1B4F8A",
-              borderColor: "#1B4F8A",
+              background: "#3B82F6",
+              borderColor: "#3B82F6",
               color: "#ffffff",
               height: "40px",
               paddingLeft: "20px",
@@ -459,7 +459,7 @@ export default function OrcamentosPage() {
             <SummaryCard color="#B91C1C" icon={<CloseCircleOutlined style={{ fontSize: 22 }} />} label="Recusados" loading={loading} value={summary.recusados} />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#1B4F8A" icon={<RiseOutlined style={{ fontSize: 22 }} />} label="Taxa de conversão %" loading={loading} value={`${summary.conversao}%`} />
+            <SummaryCard color="#3B82F6" icon={<RiseOutlined style={{ fontSize: 22 }} />} label="Taxa de conversão %" loading={loading} value={`${summary.conversao}%`} />
           </Col>
         </Row>
 
@@ -525,8 +525,8 @@ export default function OrcamentosPage() {
                       icon={<PlusOutlined />}
                       onClick={() => navigate("/orcamentos/novo")}
                       style={{
-                        background: "#1B4F8A",
-                        borderColor: "#1B4F8A",
+                        background: "#3B82F6",
+                        borderColor: "#3B82F6",
                         color: "#ffffff",
                         height: "40px",
                         paddingLeft: "20px",

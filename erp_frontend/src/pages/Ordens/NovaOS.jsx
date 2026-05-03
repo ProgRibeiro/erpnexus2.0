@@ -61,8 +61,8 @@ export default function NovaOS() {
             onClick={() => navigate("/ordens", { replace: true, state: { redirectReason: "nova-os" } })}
             style={{
               alignSelf: "flex-start",
-              background: "#1B4F8A",
-              borderColor: "#1B4F8A",
+              background: "#3B82F6",
+              borderColor: "#3B82F6",
               color: "#ffffff",
               height: "40px",
               paddingLeft: "20px",

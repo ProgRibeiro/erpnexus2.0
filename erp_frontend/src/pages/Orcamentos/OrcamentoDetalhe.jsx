@@ -597,7 +597,7 @@ export default function OrcamentoDetalhe() {
             />
             <div style={{ alignItems: "center", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, display: "flex", justifyContent: "space-between", marginTop: 12, padding: 16 }}>
               <Text style={{ color: "#1E40AF", fontSize: 16, fontWeight: 700 }}>Total com impostos</Text>
-              <Text style={{ color: "#1B4F8A", fontSize: 28, fontWeight: 800 }}>
+              <Text style={{ color: "#3B82F6", fontSize: 28, fontWeight: 800 }}>
                 {moneyFormatter.format(Number(impostos?.total_geral || order?.total_com_impostos || totals.subtotal || 0))}
               </Text>
             </div>

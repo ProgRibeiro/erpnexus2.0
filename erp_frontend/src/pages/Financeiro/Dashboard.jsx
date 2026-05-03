@@ -364,7 +364,7 @@ export default function FinanceiroDashboard() {
   }, [fluxo]);
 
   const cores = [
-    "#1B4F8A",
+    "#3B82F6",
     "#5B21B6",
     "#B45309",
     "#16a34a",
@@ -515,7 +515,7 @@ export default function FinanceiroDashboard() {
               value={formatMoney(data?.lucro)}
               change="+8% vs mês anterior"
               trend="positive"
-              color="#1B4F8A"
+              color="#3B82F6"
               loading={loading}
             />
           </Col>
@@ -604,7 +604,7 @@ export default function FinanceiroDashboard() {
                       <Line
                         type="monotone"
                         dataKey="saldo"
-                        stroke="#1B4F8A"
+                        stroke="#3B82F6"
                         strokeWidth={2}
                         dot={false}
                         name="Saldo"

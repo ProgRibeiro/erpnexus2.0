@@ -229,7 +229,7 @@ function AgingContasReceber({ data, loading }) {
       dias_61_90: "#f97316",
       dias_acima_90: "#dc2626",
     };
-    return colors[key] || "#1B4F8A";
+    return colors[key] || "#3B82F6";
   };
 
   return (
@@ -270,7 +270,7 @@ function AgingContasReceber({ data, loading }) {
             <Text type="secondary" style={{ fontSize: 12 }}>
               Total a Receber
             </Text>
-            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: "#1B4F8A" }}>
+            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: "#3B82F6" }}>
               {formatMoney(total)}
             </div>
           </Card>

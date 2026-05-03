@@ -200,7 +200,7 @@ export default function ImpressaoOrcamento() {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Voltar</Button>
         <Space wrap>
           <Button icon={<PrinterOutlined />} onClick={handlePrint}>Imprimir</Button>
-          <Button type="primary" icon={<FilePdfOutlined />} onClick={handlePdf} style={{ background: "#1B4F8A", borderColor: "#1B4F8A" }}>
+          <Button type="primary" icon={<FilePdfOutlined />} onClick={handlePdf} style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>
             Gerar PDF
           </Button>
         </Space>
@@ -216,13 +216,13 @@ export default function ImpressaoOrcamento() {
                     <img src={logoUrl} alt="Logo da empresa" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
                   </div>
                 ) : (
-                  <div style={{ width: 92, height: 92, borderRadius: 18, background: "#1B4F8A", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 26, flexShrink: 0 }}>
+                  <div style={{ width: 92, height: 92, borderRadius: 18, background: "#3B82F6", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 26, flexShrink: 0 }}>
                     {(empresa?.nome || "ERP").slice(0, 3).toUpperCase()}
                   </div>
                 )}
 
                 <div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#1B4F8A", marginBottom: 8 }}>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#3B82F6", marginBottom: 8 }}>
                     {empresa?.razao_social || empresa?.nome || "Sua empresa"}
                   </div>
                   <div style={{ color: "#5A6070", lineHeight: 1.75, fontSize: 14 }}>
@@ -330,7 +330,7 @@ export default function ImpressaoOrcamento() {
                     <strong style={{ color: "#10233C", fontSize: 15 }}>{formatMoneyTrailing(value)}</strong>
                   </div>
                 ))}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px", background: "#1B4F8A", color: "#FFFFFF" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px", background: "#3B82F6", color: "#FFFFFF" }}>
                   <span style={{ fontWeight: 700 }}>Total geral</span>
                   <strong style={{ fontSize: 22 }}>{formatMoneyTrailing(totalComImpostos)}</strong>
                 </div>

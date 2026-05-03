@@ -238,7 +238,7 @@ export default function CRMPage() {
                   <Statistic
                     title="Total de Oportunidades"
                     value={estatisticas.total}
-                    prefix={<Badge color="#1B4F8A" />}
+                    prefix={<Badge color="#3B82F6" />}
                   />
                 </Card>
               </Col>
@@ -248,7 +248,7 @@ export default function CRMPage() {
                     title="Valor em Carteira"
                     value={estatisticas.valor}
                     formatter={(value) => formatCurrency(value)}
-                    valueStyle={{ color: "#1B4F8A", fontSize: 14 }}
+                    valueStyle={{ color: "#3B82F6", fontSize: 14 }}
                   />
                 </Card>
               </Col>

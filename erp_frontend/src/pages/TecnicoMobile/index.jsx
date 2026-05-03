@@ -143,7 +143,7 @@ export default function TecnicoMobile() {
                   {ordem.fotos?.length > 0 && (
                     <Badge
                       count={ordem.fotos.length}
-                      style={{ backgroundColor: '#1B4F8A' }}
+                      style={{ backgroundColor: '#3B82F6' }}
                       className="fotos-badge"
                     />
                   )}

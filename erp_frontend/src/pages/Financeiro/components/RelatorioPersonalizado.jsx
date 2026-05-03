@@ -139,7 +139,7 @@ export default function RelatorioPersonalizado({
         <Col xs={24} sm={12} lg={6}>
           <StatisticCard
             icon={ThunderboltOutlined}
-            color="#1B4F8A"
+            color="#3B82F6"
             title="Lucro Líquido"
             value={formatMoney(relatorio.lucro)}
             subtitle={`Margem: ${relatorio.margem}%`}

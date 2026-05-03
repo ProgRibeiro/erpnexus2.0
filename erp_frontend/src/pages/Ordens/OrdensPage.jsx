@@ -82,7 +82,7 @@ const serviceTypeLabels = {
 const statusConfig = {
   lead: { label: "Lead", color: "#6B7280", background: "#F3F4F6" },
   orcamento: { label: "Orçamento", color: "#A16207", background: "#FEF3C7" },
-  aprovado: { label: "Aprovado", color: "#1B4F8A", background: "#DBEAFE" },
+  aprovado: { label: "Aprovado", color: "#3B82F6", background: "#DBEAFE" },
   em_execucao: { label: "Em execução", color: "#5B21B6", background: "#EDE9FE" },
   faturado: { label: "Faturado", color: "#1A7A4A", background: "#DCFCE7" },
   concluido: { label: "Concluído", color: "#166534", background: "#BBF7D0" },
@@ -403,7 +403,7 @@ function OrdensPage() {
             event.stopPropagation();
             goToOrder(record);
           }}
-          style={{ color: "#1B4F8A", fontWeight: 800, padding: 0 }}
+          style={{ color: "#3B82F6", fontWeight: 800, padding: 0 }}
         >
           {numero || `#${record.id}`}
         </Button>
@@ -429,7 +429,7 @@ function OrdensPage() {
         const name = getTechnicianName(record);
         return (
           <Space size={8}>
-            <Avatar size={28} style={{ background: "#1B4F8A", fontSize: 11 }}>
+            <Avatar size={28} style={{ background: "#3B82F6", fontSize: 11 }}>
               {getInitials(name)}
             </Avatar>
             <Text>{name}</Text>
@@ -481,7 +481,7 @@ function OrdensPage() {
                 type="text"
                 icon={<EyeOutlined />}
                 onClick={() => goToOrder(record)}
-                style={{ color: "#1B4F8A" }}
+                style={{ color: "#3B82F6" }}
               />
             </Tooltip>
             <Tooltip title="Editar OS">
@@ -551,8 +551,8 @@ function OrdensPage() {
             icon={<PlusOutlined />}
             onClick={() => navigate("/ordens/novo")}
             style={{
-              background: "#1B4F8A",
-              borderColor: "#1B4F8A",
+              background: "#3B82F6",
+              borderColor: "#3B82F6",
               color: "#ffffff",
               height: "40px",
               paddingLeft: "20px",
@@ -568,7 +568,7 @@ function OrdensPage() {
 
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#1B4F8A" label="OS Abertas" loading={loading} value={summary.abertas} />
+            <SummaryCard color="#3B82F6" label="OS Abertas" loading={loading} value={summary.abertas} />
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <SummaryCard color="#5B21B6" label="Em Execução" loading={loading} value={summary.execucao} />
@@ -664,8 +664,8 @@ function OrdensPage() {
                       icon={<PlusOutlined />}
                       onClick={() => navigate("/ordens/novo")}
                       style={{
-                        background: "#1B4F8A",
-                        borderColor: "#1B4F8A",
+                        background: "#3B82F6",
+                        borderColor: "#3B82F6",
                         color: "#ffffff",
                         height: "40px",
                         paddingLeft: "20px",

@@ -62,7 +62,7 @@ export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
                   <span
                     className="crm-kanban-color"
                     style={{
-                      background: coluna.cor || "#1B4F8A",
+                      background: coluna.cor || "#3B82F6",
                       width: 12,
                       height: 12,
                       borderRadius: 6,

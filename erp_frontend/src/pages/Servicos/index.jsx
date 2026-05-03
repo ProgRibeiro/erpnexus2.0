@@ -48,8 +48,8 @@ const panelStyle = {
 };
 
 const btnStyle = {
-  background: '#1B4F8A',
-  borderColor: '#1B4F8A',
+  background: '#3B82F6',
+  borderColor: '#3B82F6',
   color: '#ffffff',
   fontWeight: 500,
   height: '38px',
@@ -245,7 +245,7 @@ export default function ServicosPage() {
               type="text"
               icon={<EditOutlined />}
               onClick={() => abrirDrawer(record)}
-              style={{ color: "#1B4F8A" }}
+              style={{ color: "#3B82F6" }}
             />
           </Tooltip>
           <Tooltip title="Deletar">
@@ -308,7 +308,7 @@ export default function ServicosPage() {
               <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
                 TOTAL DE SERVIÇOS
               </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#1B4F8A", marginTop: 8 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#3B82F6", marginTop: 8 }}>
                 {resumo.total}
               </div>
             </Card>

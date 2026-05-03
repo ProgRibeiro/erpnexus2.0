@@ -41,7 +41,7 @@ const S = {
     width: isMobile ? "100%" : "40%",
     minWidth: isMobile ? "unset" : 320,
     height: isMobile ? 120 : "auto",
-    background: "linear-gradient(160deg, #1B4F8A 0%, #0d2a4a 100%)",
+    background: "linear-gradient(160deg, #3B82F6 0%, #0d2a4a 100%)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -190,8 +190,8 @@ const S = {
   submitBtn: {
     width: "100%",
     height: 44,
-    background: "#1B4F8A",
-    borderColor: "#1B4F8A",
+    background: "#3B82F6",
+    borderColor: "#3B82F6",
     borderRadius: 8,
     fontWeight: 600,
     fontSize: 15,
@@ -211,7 +211,7 @@ const S = {
   forgotLink: {
     display: "block",
     textAlign: "center",
-    color: "#1B4F8A",
+    color: "#3B82F6",
     fontSize: 13,
     marginTop: 16,
     cursor: "pointer",

@@ -1,57 +1,252 @@
-# ERP NOVO EM PRODUÇÃO — Instruções permanentes
+# ERP Nexus — Memória do Agente (Atualizado)
 
-## Contexto do projeto
+> Este arquivo é a memória permanente do projeto. Todo agente de IA deve lê-lo antes de qualquer trabalho.
+> Mantém contexto completo independente de qual ferramenta de IA está sendo usada.
 
-ERP web completo para empresa de serviços: HVAC,
-refrigeração, elétrica e civil.
+---
 
-## Stack obrigatória
+## Identidade do projeto
 
-- Backend: Python 3.11 + Django 5 + Django REST Framework
-- Frontend: React 18 + Ant Design 5 + Vite
-- Banco: PostgreSQL 15
-- Autenticação: JWT com simplejwt
-- Tarefas: Celery + Redis
-- Upload: django-storages
+**Nome**: ERP Nexus
+**Propósito**: ERP web completo para empresa de serviços (HVAC, refrigeração, elétrica, civil)
+**Ambiente**: Execução 100% local (Windows). Sem deploy em cloud.
+**Repositório**: C:\Users\lucas\Documents\ERP NOVO EM PRODUÇÃO
 
-## Regras que sempre deve seguir
+---
 
-- Responda sempre em português brasileiro
-- Crie os arquivos diretamente no projeto, nunca só mostre o código
-- Confirme o caminho de cada arquivo criado
-- Nunca sobrescreva arquivos existentes sem avisar
-- Sempre rode migrations após criar ou alterar models
-- Sempre faça commit após concluir cada fase
-- Nunca use "..." ou "resto do código aqui" — sempre código completo
+## Stack técnica
 
-## O que já foi concluído
+| Camada              | Tecnologia                                                      |
+| ------------------- | --------------------------------------------------------------- |
+| Backend             | Python 3.11 + Django 5 + Django REST Framework                  |
+| Frontend            | React 18 + Ant Design 5 + Vite                                  |
+| Banco de dados      | PostgreSQL 15                                                   |
+| Autenticação        | JWT via `djangorestframework-simplejwt`                         |
+| Tarefas assíncronas | Celery + Redis                                                  |
+| Upload de arquivos  | django-storages (local filesystem)                              |
+| PDF                 | ReportLab (WeasyPrint NÃO funciona no Windows — sem libgobject) |
+| Gráficos            | Recharts                                                        |
 
-- Fase 1: usuarios, JWT, autenticação frontend, Git
-- Fase 2: clientes e ordens
-- Fase 3: CRM Kanban
-- Fase 4: financeiro
-- Fase 5: estoque
-- Fase 6: complementos, portal, notificações
-- Fase 7: PWA mobile (manifest, service worker, offline, técnico campo)
-- Fase 8: tema visual e UI (Ant Design 5, componentes, layouts, refactoring)
-- Fase 9: geração de PDF (WeasyPrint, templates, Celery, frontend buttons)
-- Fase 10: deploy e produção removida do fluxo atual; projeto será executado localmente
+---
 
-## Módulos do projeto
+## Como executar localmente
 
-- usuarios (concluído)
-- clientes
-- ordens (coração do sistema)
-- financeiro (concluído)
-- crm (kanban estilo Trello) (concluído)
-- estoque (concluído)
-- relatorios
-- Fase 6: complementos, portal e notificações (concluído)
+```bash
+# Backend (Django)
+cd erp_backend
+python manage.py runserver 0.0.0.0:8000
 
-## Padrão de rotas
+# Frontend (Vite dev)
+cd erp_frontend
+npm run dev    # → http://127.0.0.1:5173/
 
-Todas as rotas no prefixo /api/v1/
+# Build do frontend (gera dist para Django servir)
+cd erp_frontend
+npm run build  # saída em erp_backend/frontend_dist/
+```
+
+O Django serve o frontend compilado a partir de `erp_backend/frontend_dist/`.
+Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
+
+---
+
+## Credenciais de acesso
+
+- **URL**: http://127.0.0.1:8000 (ou :5173 em dev)
+- **Login admin**: `admin@admin.com`
+- **Senha**: `admin123`
+- **Banco PostgreSQL**: usuário/senha configurados em `erp_backend/settings.py`
+
+---
+
+## Fases concluídas
+
+| Fase | Descrição                                                                      | Status |
+| ---- | ------------------------------------------------------------------------------ | ------ |
+| 1    | Usuários, JWT, autenticação frontend, Git                                      | ✅     |
+| 2    | Módulo clientes e módulo ordens (base)                                         | ✅     |
+| 3    | CRM Kanban estilo Trello                                                       | ✅     |
+| 4    | Módulo financeiro (lançamentos, dashboard)                                     | ✅     |
+| 5    | Módulo estoque                                                                 | ✅     |
+| 6    | Complementos: portal do cliente, notificações push                             | ✅     |
+| 7    | PWA mobile (manifest, service worker, modo offline, técnico campo)             | ✅     |
+| 8    | Redesign visual completo (Ant Design 5, tema moderno, layouts)                 | ✅     |
+| 9    | Geração de PDF via ReportLab, templates, botões no frontend                    | ✅     |
+| 10   | Deploy removido do escopo — projeto roda apenas localmente                     | ✅     |
+| 11   | Dashboard principal (métricas, gráfico Recharts, OS do dia, tabelas)           | ✅     |
+| 12   | Listagem de Ordens de Serviço (filtros, tabela, navegação)                     | ✅     |
+| 13   | Telas de Orçamentos (listagem, novo, detalhe, conversão para OS)               | ✅     |
+| 14   | Rebrand para ERP Nexus, correção de configuração da empresa, correção de cores | ✅     |
+
+---
+
+## Módulos do backend (`erp_backend/apps/`)
+
+| App            | Descrição                                                   | Migrations |
+| -------------- | ----------------------------------------------------------- | ---------- |
+| `usuarios`     | Usuário customizado, perfis, JWT                            | Concluídas |
+| `clientes`     | Cadastro de clientes e contatos                             | Concluídas |
+| `ordens`       | Coração do sistema — OS completa com itens, PC, fotos, chat | Até `0007` |
+| `financeiro`   | Lançamentos, categorias, dashboard, receitas automáticas    | Concluídas |
+| `crm`          | Pipeline, colunas, oportunidades (Kanban)                   | Concluídas |
+| `estoque`      | Produtos, movimentações                                     | Concluídas |
+| `relatorios`   | Geração de PDF via ReportLab                                | Concluídas |
+| `fiscal`       | Consulta CNPJ (BrasilAPI) + cálculo de impostos             | Concluídas |
+| `notificacoes` | Push notifications (portal do cliente)                      | Concluídas |
+
+---
+
+## Endpoints da API (prefixo `/api/v1/`)
+
+```
+GET/POST  /api/v1/ordens/                  # listagem e criação de OS
+GET/PATCH /api/v1/ordens/{id}/             # detalhe e edição
+POST      /api/v1/ordens/{id}/mudar-status/  # mover etapa
+POST      /api/v1/ordens/{id}/analisar-pc/ # leitura inteligente de PDF do PC
+POST      /api/v1/ordens/{id}/fotos/       # upload de fotos
+POST      /api/v1/ordens/{id}/mensagens/   # chat interno
+POST      /api/v1/ordens/{id}/confirmar-faturamento/  # gera lançamento no financeiro
+GET       /api/v1/ordens/agenda/hoje/      # OS agendadas para hoje
+GET       /api/v1/clientes/                # listagem de clientes
+GET/POST  /api/v1/financeiro/lancamentos/  # lançamentos financeiros
+GET       /api/v1/financeiro/dashboard/    # métricas do financeiro
+GET       /api/v1/auth/users/              # usuários (técnicos filtrar por role)
+GET       /api/v1/crm/pipelines/           # pipelines do CRM
+GET/POST  /api/v1/crm/oportunidades/       # cards do Kanban
+POST      /api/v1/fiscal/consultar-cnpj/   # BrasilAPI
+POST      /api/v1/fiscal/calcular-impostos/
+```
+
+---
+
+## Rotas do frontend (`erp_frontend/src/`)
+
+```
+/                  → DashboardPage.jsx (dashboard principal)
+/ordens            → OrdensPage.jsx (listagem)
+/ordens/novo       → NovaOS.jsx (redireciona para /ordens por ora)
+/ordens/:id        → OSDetalhe.jsx (coração — 1788 linhas)
+/orcamentos        → OrcamentosPage.jsx
+/orcamentos/novo   → NovoOrcamento.jsx
+/orcamentos/:id    → OrcamentoDetalhe.jsx
+/orcamentos/:id/impressao → ImpressaoOrcamento.jsx
+/financeiro        → Dashboard financeiro
+/financeiro/lancamentos → Lancamentos.jsx
+/crm               → CRM Kanban (index.jsx)
+/clientes          → ClientesPage.jsx
+/estoque           → index.jsx
+/servicos          → index.jsx
+/fiscal            → index.jsx
+/configuracoes     → index.jsx
+/tecnico           → TecnicoMobile (PWA)
+/login             → LoginPage.jsx
+```
+
+---
+
+## Sistema de design (Ant Design 5)
+
+**Arquivo do tema**: `erp_frontend/src/styles/theme.js`
+**CSS global**: `erp_frontend/src/styles/global.css`
+**ConfigProvider**: aplicado em `src/main.jsx`
+
+### Cores principais (NÃO usar #1B4F8A — cor antiga e descontinuada)
+
+| Token           | Valor     | Uso                            |
+| --------------- | --------- | ------------------------------ |
+| `colorPrimary`  | `#3B82F6` | Botões, links, ações primárias |
+| `colorSuccess`  | `#10B981` | Confirmações, status OK        |
+| `colorWarning`  | `#F59E0B` | Alertas, pendente              |
+| `colorError`    | `#EF4444` | Erros, cancelamentos           |
+| `colorBgLayout` | `#F8FAFC` | Fundo da página                |
+| sidebar bg      | `#111827` | Menu lateral                   |
+| header bg       | `#FFFFFF` | Topbar                         |
+
+### Importante
+
+- **Nunca use `#1B4F8A`** — foi substituído por `#3B82F6` em todo o projeto
+- Botões primários usam `type="primary"` sem inline style, ou inline com `background: "#3B82F6"`
+- Border-radius padrão: 10px (cards 14px)
+- Fonte: Inter
+
+---
+
+## Arquivos críticos para não sobrescrever sem avisar
+
+| Arquivo                                       | Por quê é crítico                                     |
+| --------------------------------------------- | ----------------------------------------------------- |
+| `erp_frontend/src/pages/Ordens/OSDetalhe.jsx` | 1788 linhas — coração da OS, muito trabalho acumulado |
+| `erp_frontend/src/styles/theme.js`            | Define todo o design system                           |
+| `erp_frontend/src/styles/global.css`          | CSS global — sidebar, header, badges                  |
+| `erp_backend/apps/ordens/models.py`           | Model principal com campos PC, fiscal, fotos          |
+| `erp_backend/apps/ordens/views.py`            | Endpoints críticos: PC analysis, faturamento, chat    |
+| `erp_backend/apps/fiscal/services.py`         | Consulta CNPJ e cálculo de impostos                   |
+| `erp_frontend/src/layouts/Sidebar.jsx`        | Menu de navegação principal                           |
+| `erp_frontend/src/App.jsx`                    | Todas as rotas do sistema                             |
+
+---
+
+## Funcionalidades especiais implementadas
+
+### Leitura inteligente de Pedido de Compra (PC)
+
+- Upload de PDF do cliente → endpoint `/api/v1/ordens/{id}/analisar-pc/`
+- PyPDF2 extrai número, valor, validade, itens por heurística
+- Resultado salvo em `dados_pc_extraidos` (JSONField)
+- Frontend mostra sugestões e permite aplicar à OS
+- Exemplos confirmados são salvos para melhorar sugestões futuras
+
+### Módulo fiscal
+
+- `ConsultaCNPJ` usa BrasilAPI (gratuita, sem API key)
+- `CalculadoraImpostos` suporta: MEI, Simples Nacional, Lucro Presumido, Lucro Real
+- Resultado salvo em `dados_impostos` e `total_com_impostos` na OS
+
+### CRM Pipeline
+
+- Fixture inicial em `erp_backend/apps/crm/fixtures/pipeline_inicial.json`
+- Pipeline "Comercial" com 6 colunas: Novo Lead → Ganho/Perdido
+- Carregar: `python erp_backend/manage.py loaddata erp_backend/apps/crm/fixtures/pipeline_inicial.json`
+
+### PWA / Técnico Mobile
+
+- Service worker registrado em `erp_frontend/public/sw.js`
+- Rota `/tecnico` tem UI mobile-first para técnico em campo
+- Modo offline funcional com cache de OS do dia
+
+---
+
+## Limitações conhecidas
+
+| Limitação                          | Causa                                    | Solução atual                                                                                          |
+| ---------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| WeasyPrint não funciona no Windows | Falta libgobject (biblioteca C nativa)   | ReportLab é usado automaticamente como fallback                                                        |
+| Cache do service worker            | SW cacheia bundles antigos               | Ctrl+Shift+R ou `navigator.serviceWorker.getRegistrations().then(r => r.forEach(r => r.unregister()))` |
+| Técnicos via API                   | `/api/v1/usuarios/` não existe           | Usar `/api/v1/auth/users/` e filtrar `role === "tecnico"` no frontend                                  |
+| Upload com logo                    | Deve ser `multipart/form-data`, não JSON | Já corrigido em `configuracoes/views.py`                                                               |
+| Chunk size warning no build        | Bundle único grande (Recharts + Antd)    | Aviso cosmético, não é erro                                                                            |
+
+---
+
+## Regras obrigatórias para todos os agentes
+
+1. **Responda sempre em português brasileiro**
+2. **Crie arquivos diretamente no projeto** — nunca só mostre código
+3. **Confirme o caminho de cada arquivo criado/alterado**
+4. **Nunca sobrescreva arquivos existentes sem avisar**
+5. **Sempre rode migrations após criar ou alterar models** (`python manage.py makemigrations && migrate`)
+6. **Sempre faça commit após concluir cada fase** com mensagem "Fase X: descrição"
+7. **Nunca use "..." ou "resto do código aqui"** — código sempre completo
+8. **Não use `#1B4F8A`** — cor antiga. Use `#3B82F6` para azul primário
+9. **Não crie arquivos markdown de planejamento** no repositório — use memória do agente
+10. **Todas as rotas da API** no prefixo `/api/v1/`
+
+---
 
 ## Padrão de commits
 
-"Fase X: descrição do que foi feito"
+```
+Fase X: descrição curta do que foi feito
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+```

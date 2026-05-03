@@ -133,7 +133,7 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                   <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
                     VALOR ESTIMADO
                   </span>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#1B4F8A", marginTop: 4 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#3B82F6", marginTop: 4 }}>
                     {formatCurrency(oportunidade.valor_estimado)}
                   </div>
                 </div>
@@ -280,7 +280,7 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                 renderItem={(email) => (
                   <List.Item>
                     <List.Item.Meta
-                      avatar={<MailOutlined style={{ color: "#1B4F8A" }} />}
+                      avatar={<MailOutlined style={{ color: "#3B82F6" }} />}
                       title={email.assunto}
                       description={
                         <Space wrap size="small">

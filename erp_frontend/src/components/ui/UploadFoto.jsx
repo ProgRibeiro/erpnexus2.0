@@ -147,8 +147,8 @@ export default function UploadFoto({ onPhotosChange, maxPhotos = 10 }) {
                 transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#1B4F8A';
-                e.currentTarget.style.color = '#1B4F8A';
+                e.currentTarget.style.borderColor = '#3B82F6';
+                e.currentTarget.style.color = '#3B82F6';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#d9d9d9';
@@ -175,8 +175,8 @@ export default function UploadFoto({ onPhotosChange, maxPhotos = 10 }) {
                 transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#1B4F8A';
-                e.currentTarget.style.color = '#1B4F8A';
+                e.currentTarget.style.borderColor = '#3B82F6';
+                e.currentTarget.style.color = '#3B82F6';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#d9d9d9';

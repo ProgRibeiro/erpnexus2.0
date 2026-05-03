@@ -15,8 +15,8 @@ export const panelStyle = {
 };
 
 export const btnPrimaryStyle = {
-  background: "#1B4F8A",
-  borderColor: "#1B4F8A",
+  background: "#3B82F6",
+  borderColor: "#3B82F6",
   color: "#ffffff",
   fontWeight: 500,
   height: "38px",

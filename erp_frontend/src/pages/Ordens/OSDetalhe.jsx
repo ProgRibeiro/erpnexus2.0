@@ -73,8 +73,8 @@ const panelStyle = {
 };
 
 const primaryButtonStyle = {
-  background: "#1B4F8A",
-  borderColor: "#1B4F8A",
+  background: "#3B82F6",
+  borderColor: "#3B82F6",
   color: "#FFFFFF",
   height: 40,
   paddingInline: 20,
@@ -868,7 +868,7 @@ export default function OSDetalhePage() {
     {
       title: "Valor orçado",
       value: formatMoney(watchedValorOrcado ?? ordem?.valor_total_orcado),
-      icon: <DollarOutlined style={{ color: "#1B4F8A" }} />,
+      icon: <DollarOutlined style={{ color: "#3B82F6" }} />,
     },
     {
       title: "Custos lançados",
@@ -1146,7 +1146,7 @@ export default function OSDetalhePage() {
             <Space direction="vertical" size={10} style={{ width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <div>
-                  <Text strong style={{ color: "#1B4F8A" }}>Leitura inteligente do pedido de compra</Text>
+                  <Text strong style={{ color: "#3B82F6" }}>Leitura inteligente do pedido de compra</Text>
                   <div style={{ color: "#64748B", marginTop: 4 }}>
                     Confiança da leitura: {Number(pcAnalysis.confianca || 0).toFixed(0)}%
                   </div>
@@ -1325,7 +1325,7 @@ export default function OSDetalhePage() {
           renderItem={(item) => (
             <List.Item style={{ paddingInline: 0 }}>
               <List.Item.Meta
-                avatar={<Avatar style={{ background: "#1B4F8A" }}>{makeInitials(item.usuario_nome)}</Avatar>}
+                avatar={<Avatar style={{ background: "#3B82F6" }}>{makeInitials(item.usuario_nome)}</Avatar>}
                 title={
                   <Space size={8} wrap>
                     <Text strong>{item.usuario_nome || "Equipe"}</Text>

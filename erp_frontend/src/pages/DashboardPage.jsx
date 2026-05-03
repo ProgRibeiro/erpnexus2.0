@@ -85,7 +85,7 @@ const statusConfig = {
 };
 
 const colors = {
-  azul: "#1B4F8A",
+  azul: "#3B82F6",
   roxo: "#5B21B6",
   verde: "#1A7A4A",
   laranja: "#B45309",

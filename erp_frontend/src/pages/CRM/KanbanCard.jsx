@@ -55,7 +55,7 @@ export default function KanbanCard({ oportunidade, onOpen, onDragStart }) {
         </Typography.Text>
 
         {/* Valor */}
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#1B4F8A" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#3B82F6" }}>
           {formatCurrency(oportunidade.valor_estimado)}
         </div>
 

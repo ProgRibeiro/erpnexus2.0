@@ -4,7 +4,7 @@ import api from "../../services/api";
 
 const { Text, Title } = Typography;
 
-const btnStyle = { background: "#1B4F8A", borderColor: "#1B4F8A", color: "#fff", fontWeight: 500, height: "38px", borderRadius: "8px" };
+const btnStyle = { background: "#3B82F6", borderColor: "#3B82F6", color: "#fff", fontWeight: 500, height: "38px", borderRadius: "8px" };
 
 const regimeOpcoes = [
   { label: "MEI", value: "mei" },
@@ -182,10 +182,10 @@ export default function FiscalPage() {
                     <div>IRPJ: R$ {calculo.irpj?.toFixed(2)}</div>
                     <div>CSLL: R$ {calculo.csll?.toFixed(2)}</div>
                     <Divider style={{ margin: "8px 0" }} />
-                    <div style={{ fontWeight: 600, color: "#1B4F8A", fontSize: 14 }}>
+                    <div style={{ fontWeight: 600, color: "#3B82F6", fontSize: 14 }}>
                       Total Impostos: R$ {calculo.total_impostos?.toFixed(2)}
                     </div>
-                    <div style={{ fontWeight: 600, color: "#1B4F8A", fontSize: 16 }}>
+                    <div style={{ fontWeight: 600, color: "#3B82F6", fontSize: 16 }}>
                       Total Geral: R$ {calculo.total_geral?.toFixed(2)}
                     </div>
                   </div>

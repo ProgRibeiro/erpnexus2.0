@@ -173,7 +173,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
           type="primary"
           loading={importando}
           onClick={handleImport}
-          style={{ background: "#1B4F8A", borderColor: "#1B4F8A" }}
+          style={{ background: "#3B82F6", borderColor: "#3B82F6" }}
         >
           Importar
         </Button>,
