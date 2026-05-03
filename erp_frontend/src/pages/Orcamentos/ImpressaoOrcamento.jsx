@@ -1,55 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Divider, Skeleton, Space, Table, Tag, Typography, message } from "antd";
-import { ArrowLeftOutlined, FilePdfOutlined, PrinterOutlined } from "@ant-design/icons";
+import { Button, Divider, Skeleton, Space, message } from "antd";
+import {
+  ArrowLeftOutlined,
+  FilePdfOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  PrinterOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router-dom";
 
 import api from "../../services/api";
-import { formatMoneyTrailing, normalizeList, pageStyle } from "./shared";
-
-const { Title, Text, Paragraph } = Typography;
-
-const shellStyle = {
-  ...pageStyle,
-  padding: 20,
-};
-
-const pageCardStyle = {
-  maxWidth: 1080,
-  margin: "0 auto",
-  borderRadius: 24,
-  border: "1px solid #D9E3F0",
-  boxShadow: "0 28px 60px rgba(15, 23, 42, 0.10)",
-  overflow: "hidden",
-};
-
-const sectionTitleStyle = {
-  color: "#6B7C91",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  fontSize: 12,
-  fontWeight: 700,
-  marginBottom: 12,
-};
-
-const infoCardStyle = {
-  border: "1px solid #DDE5EF",
-  borderRadius: 18,
-  background: "#FFFFFF",
-  padding: 18,
-};
-
-function formatStatus(status) {
-  if (status === "orcamento_enviado") return "Enviado";
-  if (status === "aprovada") return "Aprovado";
-  if (status === "cancelada") return "Recusado";
-  return "Rascunho";
-}
+import { formatMoneyTrailing, normalizeList } from "./shared";
 
 function getLogoUrl(empresa) {
   if (!empresa?.logo) return "";
-  if (String(empresa.logo).startsWith("http")) return empresa.logo;
-  return empresa.logo;
+  return String(empresa.logo);
+}
+
+function formatStatus(status) {
+  const map = {
+    orcamento_enviado: "Enviado",
+    aprovada: "Aprovado",
+    cancelada: "Recusado",
+    lead: "Rascunho",
+  };
+  return map[status] || "Rascunho";
+}
+
+function statusColor(status) {
+  if (status === "aprovada") return { bg: "#D1FAE5", color: "#065F46" };
+  if (status === "cancelada") return { bg: "#FEE2E2", color: "#991B1B" };
+  if (status === "orcamento_enviado")
+    return { bg: "#DBEAFE", color: "#1E40AF" };
+  return { bg: "#F1F5F9", color: "#475569" };
+}
+
+const LABEL = {
+  color: "#64748B",
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  fontWeight: 600,
+  marginBottom: 2,
+};
+
+const VALUE = { color: "#0F172A", fontSize: 14, fontWeight: 500 };
+
+function InfoRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <div style={LABEL}>{label}</div>
+      <div style={VALUE}>{value}</div>
+    </div>
+  );
 }
 
 export default function ImpressaoOrcamento() {
@@ -62,25 +67,22 @@ export default function ImpressaoOrcamento() {
 
   useEffect(() => {
     let active = true;
-
     async function loadData() {
       try {
         setLoading(true);
-        const [orcamentoResponse, empresaResponse] = await Promise.all([
+        const [orRes, empRes] = await Promise.all([
           api.get(`/ordens/${id}/`),
           api.get("/configuracoes/empresa/"),
         ]);
-
         if (!active) return;
-        setOrcamento(orcamentoResponse.data);
-        setEmpresa(empresaResponse.data || {});
+        setOrcamento(orRes.data);
+        setEmpresa(empRes.data || {});
       } catch {
-        if (active) message.error("Não foi possível carregar a página de impressão.");
+        if (active) message.error("Não foi possível carregar o orçamento.");
       } finally {
         if (active) setLoading(false);
       }
     }
-
     loadData();
     return () => {
       active = false;
@@ -88,94 +90,75 @@ export default function ImpressaoOrcamento() {
   }, [id]);
 
   const itens = normalizeList(orcamento?.itens);
+
   const totaisItens = useMemo(() => {
-    const subtotal = itens.reduce((sum, item) => sum + Number(item.valor_total || (Number(item.quantidade || 0) * Number(item.valor_unitario || 0))), 0);
-    const subtotalServicos = itens
-      .filter((item) => item.origem_tipo !== "produto")
-      .reduce((sum, item) => sum + Number(item.valor_total || (Number(item.quantidade || 0) * Number(item.valor_unitario || 0))), 0);
-    const subtotalProdutos = itens
-      .filter((item) => item.origem_tipo === "produto")
-      .reduce((sum, item) => sum + Number(item.valor_total || (Number(item.quantidade || 0) * Number(item.valor_unitario || 0))), 0);
-    return { subtotal, subtotalServicos, subtotalProdutos };
+    const calc = (filter) =>
+      itens
+        .filter(filter)
+        .reduce(
+          (s, i) =>
+            s +
+            Number(
+              i.valor_total ||
+                Number(i.quantidade || 0) * Number(i.valor_unitario || 0),
+            ),
+          0,
+        );
+    return {
+      subtotal: calc(() => true),
+      subtotalServicos: calc((i) => i.origem_tipo !== "produto"),
+      subtotalProdutos: calc((i) => i.origem_tipo === "produto"),
+    };
   }, [itens]);
 
   useEffect(() => {
     if (!orcamento) return;
     let active = true;
-
-    async function recalcularImpostos() {
-      try {
-        const response = await api.post("/fiscal/calcular-impostos/", {
-          valor_servicos: totaisItens.subtotalServicos,
-          valor_materiais: totaisItens.subtotalProdutos,
-        });
-        if (active) setImpostosCalculados(response.data || null);
-      } catch {
+    api
+      .post("/fiscal/calcular-impostos/", {
+        valor_servicos: totaisItens.subtotalServicos,
+        valor_materiais: totaisItens.subtotalProdutos,
+      })
+      .then((r) => {
+        if (active) setImpostosCalculados(r.data || null);
+      })
+      .catch(() => {
         if (active) setImpostosCalculados(orcamento?.dados_impostos || null);
-      }
-    }
-
-    recalcularImpostos();
+      });
     return () => {
       active = false;
     };
   }, [orcamento, totaisItens.subtotalProdutos, totaisItens.subtotalServicos]);
 
   const impostos = impostosCalculados || orcamento?.dados_impostos || {};
-  const subtotalOrcamento = Number(orcamento?.valor_total_orcado || totaisItens.subtotal || 0);
-  const impostoTotal = Number(impostos?.total_impostos || 0);
-  const totalComImpostos = Number(impostos?.total_geral || subtotalOrcamento + impostoTotal || 0);
-  const logoUrl = getLogoUrl(empresa);
-
-  const itemColumns = useMemo(
-    () => [
-      {
-        title: "Item",
-        dataIndex: "descricao",
-        key: "descricao",
-        render: (_, item) => (
-          <div>
-            <div style={{ fontWeight: 700, color: "#10233C", marginBottom: 4 }}>{item.descricao}</div>
-            <div style={{ color: "#6B7280", fontSize: 12, lineHeight: 1.5 }}>
-              {(item.codigo_referencia || item.produto_codigo || item.servico_codigo || "-")} | {item.unidade_referencia || "-"} | {item.origem_tipo === "servico" ? "Serviço" : item.origem_tipo === "produto" ? "Produto" : "Avulso"}
-            </div>
-          </div>
-        ),
-      },
-      {
-        title: "Qtd",
-        dataIndex: "quantidade",
-        key: "quantidade",
-        width: 90,
-        render: (value) => <span>{Number(value || 0).toLocaleString("pt-BR")}</span>,
-      },
-      {
-        title: "Unitário",
-        dataIndex: "valor_unitario",
-        key: "valor_unitario",
-        width: 140,
-        render: (value) => formatMoneyTrailing(value),
-      },
-      {
-        title: "Total",
-        dataIndex: "valor_total",
-        key: "valor_total",
-        width: 140,
-        render: (value) => <strong>{formatMoneyTrailing(value)}</strong>,
-      },
-    ],
-    []
+  const subtotalOrcamento = Number(
+    orcamento?.valor_total_orcado || totaisItens.subtotal || 0,
   );
+  const impostoTotal = Number(impostos?.total_impostos || 0);
+  const totalComImpostos = Number(
+    impostos?.total_geral || subtotalOrcamento + impostoTotal || 0,
+  );
+  const logoUrl = getLogoUrl(empresa);
+  const stColor = statusColor(orcamento?.status);
+
+  const itensProdutos = itens.filter((i) => i.origem_tipo === "produto");
+  const itensServicos = itens.filter((i) => i.origem_tipo !== "produto");
 
   const handlePrint = () => window.print();
-
   const handlePdf = async () => {
     try {
-      const response = await api.post(`/ordens/${id}/gerar-pdf-orcamento/`, {}, { responseType: "blob" });
+      const response = await api.post(
+        `/ordens/${id}/gerar-pdf-orcamento/`,
+        {},
+        { responseType: "blob" },
+      );
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `${orcamento?.numero || `orcamento-${id}`}.pdf`);
+      link.setAttribute(
+        "download",
+        `${orcamento?.numero || `orcamento-${id}`}.pdf`,
+      );
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -187,169 +170,675 @@ export default function ImpressaoOrcamento() {
   };
 
   return (
-    <div style={shellStyle}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#E8EDF4",
+        padding: "24px 16px",
+        fontFamily: "Inter, 'Segoe UI', system-ui, sans-serif",
+      }}
+    >
       <style>{`
         @media print {
           .print-toolbar { display: none !important; }
-          body { background: white !important; }
-          .print-sheet { box-shadow: none !important; border: none !important; }
+          body { background: white !important; margin: 0; }
+          .doc-sheet { box-shadow: none !important; border-radius: 0 !important; }
         }
+        .items-table th {
+          background: #F8FAFC;
+          color: #64748B;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 600;
+          padding: 10px 14px;
+          border-bottom: 1px solid #E2E8F0;
+          text-align: left;
+        }
+        .items-table td {
+          padding: 12px 14px;
+          border-bottom: 1px solid #F1F5F9;
+          font-size: 13px;
+          color: #1E293B;
+          vertical-align: top;
+        }
+        .items-table tr:last-child td { border-bottom: none; }
+        .items-table tr:hover td { background: #F8FAFC; }
       `}</style>
 
-      <div className="print-toolbar" style={{ maxWidth: 1080, margin: "0 auto 16px", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Voltar</Button>
-        <Space wrap>
-          <Button icon={<PrinterOutlined />} onClick={handlePrint}>Imprimir</Button>
-          <Button type="primary" icon={<FilePdfOutlined />} onClick={handlePdf} style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>
+      {/* Toolbar */}
+      <div
+        className="print-toolbar"
+        style={{
+          maxWidth: 900,
+          margin: "0 auto 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+          Voltar
+        </Button>
+        <Space>
+          <Button icon={<PrinterOutlined />} onClick={handlePrint}>
+            Imprimir
+          </Button>
+          <Button
+            type="primary"
+            icon={<FilePdfOutlined />}
+            onClick={handlePdf}
+            style={{ background: "#3B82F6" }}
+          >
             Gerar PDF
           </Button>
         </Space>
       </div>
 
-      <Card className="print-sheet" bordered={false} style={pageCardStyle} bodyStyle={{ padding: 0 }}>
-        <Skeleton active loading={loading} paragraph={{ rows: 12 }}>
-          <div style={{ padding: 30, background: "linear-gradient(180deg, #FFFFFF 0%, #F7FAFD 100%)", borderBottom: "1px solid #E4EBF3" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24, alignItems: "start" }}>
-              <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+      {/* Documento */}
+      <div
+        className="doc-sheet"
+        style={{
+          maxWidth: 900,
+          margin: "0 auto",
+          background: "#FFFFFF",
+          borderRadius: 16,
+          boxShadow: "0 8px 40px rgba(15,23,42,0.13)",
+          overflow: "hidden",
+        }}
+      >
+        <Skeleton
+          active
+          loading={loading}
+          paragraph={{ rows: 14 }}
+          style={{ padding: 32 }}
+        >
+          {/* ── CABEÇALHO DA EMPRESA ── */}
+          <div style={{ background: "#0F172A", padding: "28px 36px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 24,
+                flexWrap: "wrap",
+              }}
+            >
+              {/* Logo + dados empresa */}
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 {logoUrl ? (
-                  <div style={{ width: 92, height: 92, borderRadius: 18, background: "#FFFFFF", border: "1px solid #DDE5EF", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-                    <img src={logoUrl} alt="Logo da empresa" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                  <div
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 12,
+                      background: "#FFFFFF",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
                   </div>
                 ) : (
-                  <div style={{ width: 92, height: 92, borderRadius: 18, background: "#3B82F6", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 26, flexShrink: 0 }}>
-                    {(empresa?.nome || "ERP").slice(0, 3).toUpperCase()}
+                  <div
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 12,
+                      background: "#3B82F6",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      fontSize: 22,
+                      color: "#FFFFFF",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {(empresa?.razao_social || empresa?.nome || "E")
+                      .slice(0, 2)
+                      .toUpperCase()}
                   </div>
                 )}
-
                 <div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#3B82F6", marginBottom: 8 }}>
-                    {empresa?.razao_social || empresa?.nome || "Sua empresa"}
+                  <div
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 20,
+                      fontWeight: 800,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {empresa?.razao_social || empresa?.nome || "Sua Empresa"}
                   </div>
-                  <div style={{ color: "#5A6070", lineHeight: 1.75, fontSize: 14 }}>
-                    {empresa?.cnpj ? <div>CNPJ: {empresa.cnpj}</div> : null}
-                    {empresa?.endereco ? <div>{empresa.endereco}</div> : null}
-                    {empresa?.telefone ? <div>Telefone: {empresa.telefone}</div> : null}
-                    {empresa?.email ? <div>Email: {empresa.email}</div> : null}
-                    {empresa?.site ? <div>Site: {empresa.site}</div> : null}
+                  {empresa?.cnpj && (
+                    <div style={{ color: "#94A3B8", fontSize: 12 }}>
+                      CNPJ: {empresa.cnpj}
+                    </div>
+                  )}
+                  {empresa?.endereco && (
+                    <div style={{ color: "#94A3B8", fontSize: 12 }}>
+                      {empresa.endereco}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 16,
+                      marginTop: 4,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {empresa?.telefone && (
+                      <span
+                        style={{
+                          color: "#CBD5E1",
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <PhoneOutlined /> {empresa.telefone}
+                      </span>
+                    )}
+                    {empresa?.email && (
+                      <span
+                        style={{
+                          color: "#CBD5E1",
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <MailOutlined /> {empresa.email}
+                      </span>
+                    )}
+                    {empresa?.site && (
+                      <span style={{ color: "#CBD5E1", fontSize: 12 }}>
+                        {empresa.site}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div style={{ ...infoCardStyle, background: "#10233C", borderColor: "#10233C", color: "#FFFFFF" }}>
-                <Tag color="blue" style={{ borderRadius: 999, padding: "6px 10px", fontWeight: 700, marginBottom: 10 }}>
-                  PROPOSTA COMERCIAL
-                </Tag>
-                <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>{orcamento?.numero}</div>
-                <div style={{ color: "rgba(255,255,255,0.82)", lineHeight: 1.7 }}>
-                  <div>Emitido em {dayjs().format("DD/MM/YYYY")}</div>
-                  <div>Validade até {orcamento?.validade_orcamento ? dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY") : "a combinar"}</div>
-                  <div>Status: {formatStatus(orcamento?.status)}</div>
+              {/* Badge ORÇAMENTO */}
+              <div style={{ textAlign: "right" }}>
+                <div
+                  style={{
+                    display: "inline-block",
+                    background: "#3B82F6",
+                    color: "#FFFFFF",
+                    borderRadius: 8,
+                    padding: "4px 14px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                    marginBottom: 8,
+                  }}
+                >
+                  ORÇAMENTO
+                </div>
+                <div
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 26,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  {orcamento?.numero || `#${id}`}
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    alignItems: "flex-end",
+                  }}
+                >
+                  <span style={{ color: "#94A3B8", fontSize: 12 }}>
+                    Emitido em {dayjs().format("DD/MM/YYYY")}
+                  </span>
+                  {orcamento?.validade_orcamento && (
+                    <span style={{ color: "#94A3B8", fontSize: 12 }}>
+                      Válido até{" "}
+                      {dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY")}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      background: stColor.bg,
+                      color: stColor.color,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "2px 10px",
+                      borderRadius: 999,
+                      marginTop: 4,
+                    }}
+                  >
+                    {formatStatus(orcamento?.status)}
+                  </span>
                 </div>
               </div>
-            </div>
-
-            <div style={{ marginTop: 24, border: "1px solid #DDE5EF", borderRadius: 20, padding: 22, background: "linear-gradient(135deg, #FFFFFF 0%, #EEF5FC 100%)" }}>
-              <Text style={{ ...sectionTitleStyle, display: "block", marginBottom: 8 }}>Descrição do serviço</Text>
-              <Title level={3} style={{ marginTop: 0, marginBottom: 8, color: "#10233C" }}>
-                Orçamento para {orcamento?.cliente_nome || orcamento?.cliente?.nome || "Cliente"}
-              </Title>
-              <Paragraph style={{ marginBottom: 0, color: "#445468", fontSize: 15, lineHeight: 1.8 }}>
-                {orcamento?.descricao_servico || "Proposta comercial referente aos serviços e materiais descritos abaixo."}
-              </Paragraph>
             </div>
           </div>
 
-          <div style={{ padding: 30 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 24 }}>
-              <div style={infoCardStyle}>
-                <div style={sectionTitleStyle}>Dados da Empresa</div>
-                <div style={{ color: "#10233C", fontWeight: 700, marginBottom: 8 }}>{empresa?.razao_social || empresa?.nome || "-"}</div>
-                <div style={{ color: "#526173", lineHeight: 1.7 }}>
-                  <div>CNPJ: {empresa?.cnpj || "-"}</div>
-                  <div>Telefone: {empresa?.telefone || "-"}</div>
-                  <div>Email: {empresa?.email || "-"}</div>
-                </div>
-              </div>
+          {/* ── DADOS DO CLIENTE ── */}
+          <div
+            style={{
+              padding: "24px 36px",
+              borderBottom: "1px solid #F1F5F9",
+              background: "#FAFBFD",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "#3B82F6",
+                fontWeight: 700,
+                marginBottom: 14,
+              }}
+            >
+              Dados do Cliente
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "12px 32px",
+              }}
+            >
+              <InfoRow
+                label="Cliente"
+                value={orcamento?.cliente_nome || orcamento?.cliente?.nome}
+              />
+              <InfoRow label="Contato" value={orcamento?.contato_nome} />
+              <InfoRow
+                label="Condição de pagamento"
+                value={orcamento?.condicao_pagamento}
+              />
+              <InfoRow
+                label="Tipo de serviço"
+                value={orcamento?.tipo_servico}
+              />
+              <InfoRow label="Segmento" value={orcamento?.segmento} />
+            </div>
+          </div>
 
-              <div style={infoCardStyle}>
-                <div style={sectionTitleStyle}>Dados do Cliente</div>
-                <div style={{ color: "#10233C", fontWeight: 700, marginBottom: 8 }}>{orcamento?.cliente_nome || orcamento?.cliente?.nome || "-"}</div>
-                <div style={{ color: "#526173", lineHeight: 1.7 }}>
-                  <div>Contato: {orcamento?.contato_nome || orcamento?.cliente_nome || "-"}</div>
-                  <div>Condição de pagamento: {orcamento?.condicao_pagamento || "-"}</div>
-                  <div>Regime tributário: {String(impostos?.regime || "-").replaceAll("_", " ")}</div>
-                </div>
+          {/* ── DESCRIÇÃO DO SERVIÇO ── */}
+          <div
+            style={{ padding: "20px 36px", borderBottom: "1px solid #F1F5F9" }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "#3B82F6",
+                fontWeight: 700,
+                marginBottom: 10,
+              }}
+            >
+              Descrição do Serviço
+            </div>
+            <div style={{ color: "#334155", fontSize: 14, lineHeight: 1.8 }}>
+              {orcamento?.descricao_servico ||
+                "Proposta comercial referente aos serviços e materiais descritos abaixo."}
+            </div>
+          </div>
+
+          {/* ── ITENS: SERVIÇOS ── */}
+          {itensServicos.length > 0 && (
+            <div
+              style={{
+                padding: "20px 36px",
+                borderBottom: "1px solid #F1F5F9",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "#3B82F6",
+                  fontWeight: 700,
+                  marginBottom: 12,
+                }}
+              >
+                Serviços
+              </div>
+              <div
+                style={{
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <table
+                  className="items-table"
+                  style={{ width: "100%", borderCollapse: "collapse" }}
+                >
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th style={{ width: 80 }}>Qtd</th>
+                      <th style={{ width: 100 }}>Unidade</th>
+                      <th style={{ width: 130, textAlign: "right" }}>
+                        Unitário
+                      </th>
+                      <th style={{ width: 130, textAlign: "right" }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {itensServicos.map((item, idx) => {
+                      const total = Number(
+                        item.valor_total ||
+                          Number(item.quantidade || 0) *
+                            Number(item.valor_unitario || 0),
+                      );
+                      return (
+                        <tr key={item.id || idx}>
+                          <td>
+                            <div style={{ fontWeight: 600, color: "#0F172A" }}>
+                              {item.descricao}
+                            </div>
+                            {item.codigo_referencia && (
+                              <div
+                                style={{
+                                  color: "#94A3B8",
+                                  fontSize: 11,
+                                  marginTop: 2,
+                                }}
+                              >
+                                Cód: {item.codigo_referencia}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            {Number(item.quantidade || 0).toLocaleString(
+                              "pt-BR",
+                            )}
+                          </td>
+                          <td style={{ color: "#64748B" }}>
+                            {item.unidade_referencia || "uni"}
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            {formatMoneyTrailing(item.valor_unitario)}
+                          </td>
+                          <td style={{ textAlign: "right", fontWeight: 700 }}>
+                            {formatMoneyTrailing(total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── ITENS: PRODUTOS / MATERIAIS ── */}
+          {itensProdutos.length > 0 && (
+            <div
+              style={{
+                padding: "20px 36px",
+                borderBottom: "1px solid #F1F5F9",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "#3B82F6",
+                  fontWeight: 700,
+                  marginBottom: 12,
+                }}
+              >
+                Materiais e Produtos
+              </div>
+              <div
+                style={{
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <table
+                  className="items-table"
+                  style={{ width: "100%", borderCollapse: "collapse" }}
+                >
+                  <thead>
+                    <tr>
+                      <th>Descrição</th>
+                      <th style={{ width: 80 }}>Qtd</th>
+                      <th style={{ width: 100 }}>Unidade</th>
+                      <th style={{ width: 130, textAlign: "right" }}>
+                        Unitário
+                      </th>
+                      <th style={{ width: 130, textAlign: "right" }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {itensProdutos.map((item, idx) => {
+                      const total = Number(
+                        item.valor_total ||
+                          Number(item.quantidade || 0) *
+                            Number(item.valor_unitario || 0),
+                      );
+                      return (
+                        <tr key={item.id || idx}>
+                          <td>
+                            <div style={{ fontWeight: 600, color: "#0F172A" }}>
+                              {item.descricao}
+                            </div>
+                            {item.codigo_referencia && (
+                              <div
+                                style={{
+                                  color: "#94A3B8",
+                                  fontSize: 11,
+                                  marginTop: 2,
+                                }}
+                              >
+                                Cód: {item.codigo_referencia}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            {Number(item.quantidade || 0).toLocaleString(
+                              "pt-BR",
+                            )}
+                          </td>
+                          <td style={{ color: "#64748B" }}>
+                            {item.unidade_referencia || "un"}
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            {formatMoneyTrailing(item.valor_unitario)}
+                          </td>
+                          <td style={{ textAlign: "right", fontWeight: 700 }}>
+                            {formatMoneyTrailing(total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── RESUMO FINANCEIRO + OBSERVAÇÕES ── */}
+          <div
+            style={{
+              padding: "24px 36px",
+              display: "grid",
+              gridTemplateColumns: "1fr 340px",
+              gap: 24,
+              alignItems: "start",
+            }}
+          >
+            {/* Observações */}
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "#3B82F6",
+                  fontWeight: 700,
+                  marginBottom: 10,
+                }}
+              >
+                Observações e Condições
+              </div>
+              <div
+                style={{
+                  color: "#475569",
+                  fontSize: 13,
+                  lineHeight: 1.85,
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 10,
+                  padding: 16,
+                  minHeight: 80,
+                }}
+              >
+                {orcamento?.observacoes_tecnicas ||
+                  "Proposta sujeita à aprovação comercial e confirmação de agenda operacional. Valores válidos conforme prazo de validade indicado."}
+              </div>
+              <div
+                style={{
+                  marginTop: 12,
+                  fontSize: 12,
+                  color: "#94A3B8",
+                  fontStyle: "italic",
+                }}
+              >
+                * Impostos estimados para fins informativos, ainda não
+                recolhidos na data desta proposta.
               </div>
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <div style={sectionTitleStyle}>Itens do orçamento</div>
-              <div style={{ border: "1px solid #DDE5EF", borderRadius: 18, overflow: "hidden" }}>
-                <Table
-                  columns={itemColumns}
-                  dataSource={itens}
-                  rowKey={(item) => item.id || item.key}
-                  pagination={false}
-                  style={{ marginBottom: 0 }}
-                />
+            {/* Resumo financeiro */}
+            <div
+              style={{
+                border: "1px solid #E2E8F0",
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "12px 16px",
+                  background: "#F8FAFC",
+                  borderBottom: "1px solid #E2E8F0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "#64748B",
+                    fontWeight: 700,
+                  }}
+                >
+                  Resumo Financeiro
+                </div>
+              </div>
+              {[
+                ["Serviços", totaisItens.subtotalServicos, false],
+                ["Materiais e produtos", totaisItens.subtotalProdutos, false],
+                ["Impostos estimados", impostoTotal, false],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 16px",
+                    borderBottom: "1px solid #F1F5F9",
+                  }}
+                >
+                  <span style={{ color: "#64748B", fontSize: 13 }}>
+                    {label}
+                  </span>
+                  <span
+                    style={{ color: "#0F172A", fontWeight: 500, fontSize: 13 }}
+                  >
+                    {formatMoneyTrailing(value)}
+                  </span>
+                </div>
+              ))}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "14px 16px",
+                  background: "#3B82F6",
+                }}
+              >
+                <span
+                  style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 14 }}
+                >
+                  Total Geral
+                </span>
+                <span
+                  style={{ color: "#FFFFFF", fontWeight: 800, fontSize: 20 }}
+                >
+                  {formatMoneyTrailing(totalComImpostos)}
+                </span>
               </div>
             </div>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 18 }}>
-              <div style={infoCardStyle}>
-                <div style={sectionTitleStyle}>Condições e observações</div>
-                <Paragraph style={{ color: "#445468", lineHeight: 1.8, marginBottom: 12 }}>
-                  {orcamento?.observacoes_tecnicas || "Proposta sujeita à aprovação comercial e confirmação de agenda operacional."}
-                </Paragraph>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div style={{ border: "1px solid #E7EDF5", borderRadius: 14, padding: 14, background: "#F9FBFD" }}>
-                    <div style={{ color: "#6B7C91", fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>Tipo de serviço</div>
-                    <div style={{ color: "#10233C", fontWeight: 700 }}>{orcamento?.tipo_servico || "-"}</div>
-                  </div>
-                  <div style={{ border: "1px solid #E7EDF5", borderRadius: 14, padding: 14, background: "#F9FBFD" }}>
-                    <div style={{ color: "#6B7C91", fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>Validade</div>
-                    <div style={{ color: "#10233C", fontWeight: 700 }}>
-                      {orcamento?.validade_orcamento ? dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY") : "-"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ ...infoCardStyle, padding: 0, overflow: "hidden" }}>
-                <div style={{ padding: 18, borderBottom: "1px solid #E8EEF6" }}>
-                  <div style={sectionTitleStyle}>Resumo financeiro</div>
-                </div>
-                {[
-                  ["Subtotal serviços", impostos?.subtotal_servicos || totaisItens.subtotalServicos || orcamento?.valor_servicos || 0],
-                  ["Subtotal produtos", impostos?.subtotal_materiais || totaisItens.subtotalProdutos || orcamento?.valor_materiais || 0],
-                  ["Subtotal orçamento", subtotalOrcamento],
-                  ["Impostos estimados", impostoTotal],
-                ].map(([label, value]) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: "1px solid #EEF2F6" }}>
-                    <span style={{ color: "#445468" }}>{label}</span>
-                    <strong style={{ color: "#10233C", fontSize: 15 }}>{formatMoneyTrailing(value)}</strong>
-                  </div>
-                ))}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 18px", background: "#3B82F6", color: "#FFFFFF" }}>
-                  <span style={{ fontWeight: 700 }}>Total geral</span>
-                  <strong style={{ fontSize: 22 }}>{formatMoneyTrailing(totalComImpostos)}</strong>
-                </div>
-                <div style={{ padding: 16, background: "#F8FBFF", color: "#5A6070", fontSize: 12, lineHeight: 1.7 }}>
-                  Impostos estimados para fins informativos, ainda não recolhidos na data desta proposta.
-                </div>
-              </div>
-            </div>
-
-            <Divider style={{ margin: "26px 0 18px" }} />
-
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, color: "#6B7C91", fontSize: 12, flexWrap: "wrap" }}>
-              <div>{empresa?.nome || "ERP"} </div>
-              <div>{orcamento?.numero}</div>
-              <div>Gerado em {dayjs().format("DD/MM/YYYY")}</div>
+          {/* ── RODAPÉ ── */}
+          <div
+            style={{
+              background: "#F8FAFC",
+              borderTop: "1px solid #E2E8F0",
+              padding: "14px 36px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                color: "#94A3B8",
+                fontSize: 11,
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <span>
+                {empresa?.razao_social || empresa?.nome || "ERP Nexus"}
+              </span>
+              <span>{orcamento?.numero}</span>
+              <span>Gerado em {dayjs().format("DD/MM/YYYY [às] HH:mm")}</span>
             </div>
           </div>
         </Skeleton>
-      </Card>
+      </div>
     </div>
   );
 }
