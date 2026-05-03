@@ -1,133 +1,151 @@
 export const theme = {
   token: {
-    colorPrimary: '#0F5A88',
-    colorSuccess: '#1A7A4A',
-    colorWarning: '#D08A2F',
-    colorError: '#B91C1C',
-    colorInfo: '#1D78B8',
+    // Cor primária — azul moderno
+    colorPrimary: "#3B82F6",
+    colorPrimaryHover: "#2563EB",
+    colorPrimaryActive: "#1D4ED8",
 
+    // Cor de sucesso — esmeralda
+    colorSuccess: "#10B981",
+    colorSuccessHover: "#059669",
+
+    // Cor de atenção — âmbar
+    colorWarning: "#F59E0B",
+
+    // Cor de erro — vermelho
+    colorError: "#EF4444",
+
+    // Tipografia
+    fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
     fontSize: 14,
-    fontFamily: '"Manrope", "Segoe UI", system-ui, -apple-system, sans-serif',
+    fontSizeSM: 12,
+    fontSizeLG: 16,
+    fontSizeXL: 20,
+    fontWeightStrong: 600,
 
+    // Bordas — levemente mais arredondadas
     borderRadius: 10,
-    borderRadiusLG: 18,
-    borderRadiusSM: 4,
-    borderRadiusXS: 2,
+    borderRadiusLG: 14,
+    borderRadiusSM: 7,
+    borderRadiusXS: 4,
 
-    controlHeight: 38,
-    controlHeightLG: 44,
+    // Espaçamentos — mais generosos
+    padding: 20,
+    paddingLG: 28,
+    paddingSM: 14,
+    paddingXS: 8,
+
+    // Sombras mínimas
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    boxShadowSecondary: "0 4px 8px rgba(0,0,0,0.06)",
+
+    // Cores de fundo — neutro limpo
+    colorBgContainer: "#FFFFFF",
+    colorBgLayout: "#F8FAFC",
+    colorBgElevated: "#FFFFFF",
+
+    // Texto
+    colorText: "#0F172A",
+    colorTextSecondary: "#475569",
+    colorTextTertiary: "#94A3B8",
+    colorTextQuaternary: "#CBD5E1",
+
+    // Bordas — mais suaves
+    colorBorder: "#E2E8F0",
+    colorBorderSecondary: "#F1F5F9",
+
+    // Linha
+    lineWidth: 1,
+    lineType: "solid",
+
+    // Altura dos controles
+    controlHeight: 40,
+    controlHeightLG: 46,
     controlHeightSM: 32,
 
-    colorBgContainer: '#ffffff',
-    colorBgElevated: '#fbfdff',
-    colorBgLayout: '#eef3f9',
-
-    colorBorder: 'rgba(24, 55, 87, 0.14)',
-    colorBorderSecondary: 'rgba(24, 55, 87, 0.08)',
-
-    colorText: '#1a2a3a',
-    colorTextSecondary: '#5d7186',
-    colorTextTertiary: '#7b8ea3',
-    colorTextQuaternary: '#bfbfbf',
-
-    lineHeight: 1.5714285714,
-    lineHeightHeading1: 1.2,
-    lineHeightHeading2: 1.35,
+    // Motion
+    motionDurationMid: "0.15s",
+    motionDurationSlow: "0.2s",
+    motionEaseInOut: "cubic-bezier(0.4, 0, 0.2, 1)",
   },
-
   components: {
+    // Botões
     Button: {
-      controlHeight: 38,
-      primaryColor: '#0F5A88',
+      primaryShadow: "none",
+      defaultShadow: "none",
+      fontWeight: 500,
       borderRadius: 10,
-      fontWeight: 600,
-      controlOutline: 'rgba(15, 90, 136, 0.12)',
     },
-
+    // Cards
     Card: {
-      borderRadiusLG: 18,
-      boxShadow: '0 20px 50px rgba(15, 46, 76, 0.08)',
-      boxShadowSecondary: '0 20px 50px rgba(15, 46, 76, 0.08)',
+      headerBg: "#FFFFFF",
+      borderRadius: 14,
     },
-
+    // Tabela
     Table: {
-      headerBg: '#f5f5f5',
-      headerColor: '#262626',
-      headerFontWeight: 600,
-      borderColor: '#f0f0f0',
-      rowHoverBg: '#fafafa',
+      headerBg: "#F8FAFC",
+      headerColor: "#64748B",
+      headerSortActiveBg: "#F1F5F9",
+      rowHoverBg: "#F8FAFC",
+      borderColor: "#E2E8F0",
+      fontSize: 13,
     },
-
+    // Menu lateral
     Menu: {
-      itemBg: 'transparent',
-      itemHoverColor: '#0F5A88',
-      itemHoverBg: '#eef6fb',
-      itemSelectedColor: '#0F5A88',
-      itemSelectedBg: '#e4f0f8',
-      itemSelectedFontWeight: 600,
-      itemBorderRadius: 10,
+      itemBorderRadius: 9,
+      itemMarginInline: 8,
+      subMenuItemBg: "transparent",
+      itemSelectedBg: "rgba(59,130,246,0.1)",
+      itemSelectedColor: "#3B82F6",
+      itemHoverBg: "rgba(255,255,255,0.07)",
+      itemHoverColor: "#FFFFFF",
     },
-
+    // Inputs
     Input: {
-      controlHeight: 38,
       borderRadius: 10,
-      controlOutline: 'rgba(15, 90, 136, 0.12)',
-      colorTextPlaceholder: '#bfbfbf',
+      activeShadow: "0 0 0 3px rgba(59,130,246,0.15)",
+      hoverBorderColor: "#3B82F6",
     },
-
+    // Select
     Select: {
-      controlHeight: 38,
       borderRadius: 10,
-      controlOutline: 'rgba(15, 90, 136, 0.12)',
     },
-
+    // Tags / badges
     Tag: {
-      borderRadiusSM: 6,
-      fontWeight: 600,
+      borderRadius: 6,
+      fontSizeSM: 11,
     },
-
+    // Tabs
     Tabs: {
-      itemColor: '#7b8ea3',
-      itemHoverColor: '#0F5A88',
-      itemSelectedColor: '#0F5A88',
-      itemSelectedBg: '#ffffff',
-      itemActiveWithIcon: '#0F5A88',
-      inkBarColor: '#0F5A88',
+      inkBarColor: "#3B82F6",
+      itemSelectedColor: "#3B82F6",
+      itemHoverColor: "#3B82F6",
+      titleFontSize: 13,
+      fontWeightStrong: 600,
     },
-
+    // Layout
     Layout: {
-      headerBg: 'rgba(255, 255, 255, 0.82)',
-      headerHeight: 60,
-      headerPadding: '0 24px',
-      headerColor: '#1a2a3a',
-      siderBg: 'rgba(255, 255, 255, 0.92)',
-      bodyBg: '#eef3f9',
-      footerBg: '#ffffff',
-      footerPadding: '16px 50px',
+      siderBg: "#111827",
+      headerBg: "#FFFFFF",
+      bodyBg: "#F8FAFC",
     },
-
+    // Modal
     Modal: {
-      borderRadiusLG: 18,
-      boxShadow: '0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
-      contentBg: '#ffffff',
+      borderRadius: 16,
     },
-
-    Steps: {
-      colorPrimary: '#1B4F8A',
-      controlHeight: 32,
-      borderRadiusSM: 6,
-    },
-
-    Empty: {
-      colorTextDisabled: '#bfbfbf',
-    },
-
+    // Drawer
     Drawer: {
-      boxShadow: '-3px 0px 6px -4px rgba(0, 0, 0, 0.12)',
+      borderRadius: 0,
     },
-
-    Notification: {
-      borderRadiusLG: 18,
+    // Steps
+    Steps: {
+      colorPrimary: "#3B82F6",
+      fontSize: 12,
+    },
+    // Statistic
+    Statistic: {
+      titleFontSize: 12,
+      contentFontSize: 26,
     },
   },
 };
