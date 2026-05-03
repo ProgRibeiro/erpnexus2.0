@@ -358,10 +358,13 @@ export default function OSDetalhePage() {
 
   useEffect(() => {
     if (!watchedHasPc) return;
-    form.setFieldValue(
-      "valor_autorizado_pc",
-      Number(watchedValorOrcado || ordem?.valor_total_orcado || 0)
-    );
+    const valorAtual = form.getFieldValue("valor_autorizado_pc");
+    if (valorAtual === undefined || valorAtual === null || Number(valorAtual) === 0) {
+      form.setFieldValue(
+        "valor_autorizado_pc",
+        Number(watchedValorOrcado || ordem?.valor_total_orcado || 0)
+      );
+    }
   }, [form, ordem?.valor_total_orcado, watchedHasPc, watchedValorOrcado]);
 
   const preencherFormulario = (ordemAtual) => {
@@ -898,13 +901,15 @@ export default function OSDetalhePage() {
             <Col xs={24} md={12}>
               <Form.Item label="Valor autorizado" name="valor_autorizado_pc">
                 <InputNumber
-                  disabled
+                  min={0}
+                  step={0.01}
                   style={{ width: "100%" }}
                   formatter={(value) => `R$ ${value || ""}`}
+                  parser={(value) => String(value || "").replace(/[^\d,.-]/g, "").replace(",", ".")}
                 />
               </Form.Item>
               <Text type="secondary" style={{ display: "block", marginTop: -8 }}>
-                Valor espelhado automaticamente do orçamento aprovado.
+                Vem preenchido com o valor do orçamento, mas você pode ajustar se o pedido de compra trouxer outro limite aprovado.
               </Text>
             </Col>
             <Col xs={24} md={12}>

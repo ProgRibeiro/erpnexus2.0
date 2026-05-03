@@ -158,7 +158,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             ordem.numero_pc = analise["numero_pc_sugerido"]
         if not ordem.validade_pc and analise.get("validade_sugerida"):
             ordem.validade_pc = datetime.fromisoformat(analise["validade_sugerida"]).date()
-        if ordem.tem_pedido_compra:
+        if ordem.tem_pedido_compra and not ordem.valor_autorizado_pc:
             ordem.valor_autorizado_pc = ordem.valor_total_orcado
         ordem.save(
             update_fields=[

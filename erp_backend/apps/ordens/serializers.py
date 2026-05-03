@@ -157,7 +157,14 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
                 "valor_total_orcado",
                 getattr(instance, "valor_total_orcado", Decimal("0.00")),
             )
-            validated_data["valor_autorizado_pc"] = valor_orcado or Decimal("0.00")
+            valor_autorizado = validated_data.get(
+                "valor_autorizado_pc",
+                getattr(instance, "valor_autorizado_pc", None),
+            )
+            if valor_autorizado in (None, "", 0, Decimal("0.00")):
+                validated_data["valor_autorizado_pc"] = valor_orcado or Decimal("0.00")
+            else:
+                validated_data["valor_autorizado_pc"] = valor_autorizado
         else:
             validated_data["numero_pc"] = ""
             validated_data["valor_autorizado_pc"] = Decimal("0.00")
