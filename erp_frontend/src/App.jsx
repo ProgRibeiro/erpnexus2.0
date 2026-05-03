@@ -33,6 +33,7 @@ import ProfilePage from "./pages/ProfilePage";
 import TecnicoMobilePage from "./pages/TecnicoMobile";
 import OSCampoPage from "./pages/TecnicoMobile/OSCampo";
 import FiscalPage from "./pages/Fiscal";
+import FaturamentoPage from "./pages/Faturamento";
 import ServicosPage from "./pages/Servicos";
 
 export default function App() {
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
             <Route path="/servicos" element={<ServicosPage />} />
             <Route path="/fiscal" element={<FiscalPage />} />
+            <Route path="/faturamento" element={<FaturamentoPage />} />
             <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
           </Route>

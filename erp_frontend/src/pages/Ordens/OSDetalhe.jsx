@@ -23,6 +23,7 @@ import {
   Skeleton,
   Space,
   Spin,
+  Switch,
   Table,
   Tabs,
   Tag,
@@ -49,6 +50,7 @@ import {
   MoreOutlined,
   PaperClipOutlined,
   PlusOutlined,
+  InfoCircleOutlined,
   QuestionCircleOutlined,
   SaveOutlined,
   SendOutlined,
@@ -358,6 +360,18 @@ export default function OSDetalhePage() {
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
   const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
+  const [tributacao, setTributacao] = useState({
+    regime: "simples",
+    issqn_aliquota: 0,
+    issqn_retencao: false,
+    pis_aliquota: 0,
+    cofins_aliquota: 0,
+    irpj_aliquota: 0,
+    csll_aliquota: 0,
+    ibs_aliquota: 0,
+    cbs_aliquota: 0,
+  });
+  const [autoCalcLoading, setAutoCalcLoading] = useState(false);
 
   const watchedClient = Form.useWatch("cliente", form);
   const watchedHasPc = Form.useWatch("tem_pedido_compra", form);
@@ -439,7 +453,7 @@ export default function OSDetalhePage() {
       equipamento_modelo: ordemAtual?.equipamento_modelo || "",
       equipamento_serie: ordemAtual?.equipamento_serie || "",
       tipo_relatorio: ordemAtual?.tipo_relatorio || undefined,
-      valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.total_com_impostos || 0),
+      valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.total_com_impostos || ordemAtual?.valor_total_orcado || 0),
       numero_nf: ordemAtual?.numero_nf || "",
       data_emissao_nf: ordemAtual?.data_emissao_nf ? dayjs(ordemAtual.data_emissao_nf) : null,
       data_vencimento: ordemAtual?.data_vencimento ? dayjs(ordemAtual.data_vencimento) : null,
@@ -448,7 +462,13 @@ export default function OSDetalhePage() {
       observacoes_internas: "",
       pdf_pc_upload: [],
       pdf_nf_upload: [],
+      descricao_servico_nf: ordemAtual?.descricao_servico_nf || "",
+      municipio_issqn: ordemAtual?.municipio_issqn || "",
+      situacao_tributaria_pis_cofins: ordemAtual?.situacao_tributaria_pis_cofins || "",
     });
+    if (ordemAtual?.dados_impostos && typeof ordemAtual.dados_impostos === "object") {
+      setTributacao((prev) => ({ ...prev, ...ordemAtual.dados_impostos }));
+    }
   };
 
   const carregarTela = async () => {
@@ -535,6 +555,10 @@ export default function OSDetalhePage() {
     data_vencimento: values.data_vencimento ? values.data_vencimento.format("YYYY-MM-DD") : null,
     data_recebimento: values.data_recebimento ? values.data_recebimento.format("YYYY-MM-DD") : null,
     forma_cobranca: values.forma_cobranca || "",
+    descricao_servico_nf: values.descricao_servico_nf || "",
+    municipio_issqn: values.municipio_issqn || "",
+    situacao_tributaria_pis_cofins: values.situacao_tributaria_pis_cofins || "",
+    dados_impostos: tributacao,
     itens: orcamentoItens.map((item, index) => ({
       id: item.id,
       origem_tipo: item.origem_tipo || "avulso",
@@ -641,6 +665,32 @@ export default function OSDetalhePage() {
     const selectedFile = fileList?.[0]?.originFileObj;
     if (watchedHasPc && selectedFile) {
       analisarPedidoCompra(selectedFile);
+    }
+  };
+
+  const autoCalcImpostos = async () => {
+    const valorFaturado = form.getFieldValue("valor_final_faturado") || Number(ordem?.valor_total_orcado || 0);
+    if (!valorFaturado) return;
+    setAutoCalcLoading(true);
+    try {
+      const response = await api.post("/fiscal/calcular-impostos/", {
+        regime_tributario: tributacao.regime || "simples",
+        valor_servico: valorFaturado,
+      });
+      const dados = response.data;
+      setTributacao((prev) => ({
+        ...prev,
+        issqn_aliquota: dados.issqn_aliquota !== undefined ? Number(dados.issqn_aliquota) : prev.issqn_aliquota,
+        pis_aliquota: dados.pis_aliquota !== undefined ? Number(dados.pis_aliquota) : prev.pis_aliquota,
+        cofins_aliquota: dados.cofins_aliquota !== undefined ? Number(dados.cofins_aliquota) : prev.cofins_aliquota,
+        irpj_aliquota: dados.irpj_aliquota !== undefined ? Number(dados.irpj_aliquota) : prev.irpj_aliquota,
+        csll_aliquota: dados.csll_aliquota !== undefined ? Number(dados.csll_aliquota) : prev.csll_aliquota,
+      }));
+      message.success("Impostos calculados automaticamente.");
+    } catch {
+      message.warning("Não foi possível calcular os impostos automaticamente.");
+    } finally {
+      setAutoCalcLoading(false);
     }
   };
 
@@ -1733,13 +1783,58 @@ export default function OSDetalhePage() {
     </Space>
   );
 
+  const setTrib = (field, value) => setTributacao((prev) => ({ ...prev, [field]: value }));
+  const calcTribImposto = (aliquota) => Number(((valorFaturadoAtual * Number(aliquota || 0)) / 100).toFixed(2));
+  const valorCalcISSQN = calcTribImposto(tributacao.issqn_aliquota);
+  const valorRetidoISSQN = tributacao.issqn_retencao ? valorCalcISSQN : 0;
+  const valorCalcPIS = calcTribImposto(tributacao.pis_aliquota);
+  const valorCalcCOFINS = calcTribImposto(tributacao.cofins_aliquota);
+  const valorCalcIRPJ = calcTribImposto(tributacao.irpj_aliquota);
+  const valorCalcCSLL = calcTribImposto(tributacao.csll_aliquota);
+  const valorCalcIBS = calcTribImposto(tributacao.ibs_aliquota);
+  const valorCalcCBS = calcTribImposto(tributacao.cbs_aliquota);
+  const totalRetencoesTrib = valorRetidoISSQN + valorCalcPIS + valorCalcCOFINS + valorCalcIRPJ + valorCalcCSLL;
+  const valorLiquidoNF = valorFaturadoAtual - totalRetencoesTrib;
+
+  const aliquotaRow = (label, field, valorCalculado, tooltip) => (
+    <Row gutter={[8, 0]} align="middle" style={{ marginBottom: 8 }} key={field}>
+      <Col xs={24} sm={7}>
+        <Space size={4}>
+          <Text style={{ fontSize: 13 }}>{label}</Text>
+          {tooltip && (
+            <Tooltip title={tooltip}>
+              <InfoCircleOutlined style={{ color: "#94A3B8", fontSize: 12 }} />
+            </Tooltip>
+          )}
+        </Space>
+      </Col>
+      <Col xs={12} sm={6}>
+        <InputNumber
+          min={0}
+          max={100}
+          step={0.01}
+          value={tributacao[field]}
+          onChange={(val) => setTrib(field, val ?? 0)}
+          formatter={(v) => `${v}%`}
+          parser={(v) => v?.replace("%", "")}
+          style={{ width: "100%" }}
+          size="small"
+        />
+      </Col>
+      <Col xs={12} sm={6}>
+        <Text style={{ fontSize: 13, color: "#64748B" }}>{formatMoney(valorCalculado)}</Text>
+      </Col>
+    </Row>
+  );
+
   const faturamentoTab = (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      {/* Dados NF */}
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Space direction="vertical" size={6} style={{ width: "100%", marginBottom: 16 }}>
           <Title level={5} style={{ margin: 0 }}>Faturamento</Title>
           <Text type="secondary">
-            Aqui a funcionária registra NF, datas e PDF. Só depois disso a OS segue para o financeiro gerar a receita.
+            Registre NF, datas, PDF e tributação. Após salvar e confirmar, a OS gera receita no financeiro.
           </Text>
         </Space>
         <Row gutter={[16, 8]}>
@@ -1749,13 +1844,17 @@ export default function OSDetalhePage() {
                 min={0}
                 step={0.01}
                 style={{ width: "100%" }}
-                formatter={(value) => `R$ ${value || ""}`}
+                formatter={(v) => `R$ ${v || ""}`}
+                parser={(v) => v?.replace(/R\$\s?/, "")}
               />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item label="Número da NF-e / NFS-e" name="numero_nf">
-              <Input placeholder="NF-2025-00491" />
+              <Input
+                placeholder="NF-2025-00491"
+                onChange={(e) => { if (e.target.value) autoCalcImpostos(); }}
+              />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
@@ -1778,6 +1877,31 @@ export default function OSDetalhePage() {
               <Select options={formaCobrancaOptions} />
             </Form.Item>
           </Col>
+          <Col xs={24}>
+            <Form.Item label="Descrição do serviço na NF" name="descricao_servico_nf">
+              <TextArea rows={3} placeholder="Descrição conforme será impressa na nota fiscal..." />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label="Município de incidência do ISSQN" name="municipio_issqn">
+              <Input placeholder="Ex: São Paulo / SP" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label="Situação tributária PIS/COFINS" name="situacao_tributaria_pis_cofins">
+              <Select
+                placeholder="Selecione..."
+                allowClear
+                options={[
+                  { value: "07", label: "07 – Operação Isenta da Contribuição" },
+                  { value: "49", label: "49 – Outras Operações de Saída" },
+                  { value: "50", label: "50 – Operação com Direito a Crédito" },
+                  { value: "70", label: "70 – Operação de Aquisição sem Direito a Crédito" },
+                  { value: "99", label: "99 – Outras Operações" },
+                ]}
+              />
+            </Form.Item>
+          </Col>
           <Col xs={24} md={12}>
             <Form.Item label="PDF da nota fiscal" name="pdf_nf_upload" valuePropName="fileList" getValueFromEvent={(event) => event?.fileList || []}>
               <Upload beforeUpload={() => false} maxCount={1}>
@@ -1791,16 +1915,115 @@ export default function OSDetalhePage() {
             ) : null}
           </Col>
         </Row>
+      </Card>
 
+      {/* Tributação Detalhada */}
+      <Card
+        bordered={false}
+        style={sectionCardStyle}
+        bodyStyle={{ padding: 20 }}
+        title={<Space><Text strong>Tributação Detalhada</Text>{autoCalcLoading && <Spin size="small" />}</Space>}
+        extra={
+          <Button size="small" onClick={autoCalcImpostos} loading={autoCalcLoading} icon={<DollarOutlined />}>
+            Calcular impostos
+          </Button>
+        }
+      >
+        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+          <Col xs={24} md={12}>
+            <Text strong style={{ fontSize: 13 }}>Regime tributário</Text>
+            <Select
+              value={tributacao.regime}
+              onChange={(val) => setTrib("regime", val)}
+              style={{ width: "100%", marginTop: 4 }}
+              options={[
+                { value: "mei", label: "MEI" },
+                { value: "simples", label: "Simples Nacional" },
+                { value: "lucro_presumido", label: "Lucro Presumido" },
+                { value: "lucro_real", label: "Lucro Real" },
+              ]}
+            />
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: "8px 0 14px" }} />
+
+        <Row gutter={[8, 0]} style={{ marginBottom: 10 }}>
+          <Col xs={24} sm={7}><Text type="secondary" style={{ fontSize: 12 }}>Imposto</Text></Col>
+          <Col xs={12} sm={6}><Text type="secondary" style={{ fontSize: 12 }}>Alíquota (%)</Text></Col>
+          <Col xs={12} sm={6}><Text type="secondary" style={{ fontSize: 12 }}>Valor calculado</Text></Col>
+        </Row>
+
+        {aliquotaRow("ISSQN", "issqn_aliquota", valorCalcISSQN)}
+        <Row gutter={[8, 0]} align="middle" style={{ marginBottom: 14, paddingLeft: 2 }}>
+          <Col xs={24} sm={18}>
+            <Space size={8}>
+              <Switch
+                size="small"
+                checked={tributacao.issqn_retencao}
+                onChange={(checked) => setTrib("issqn_retencao", checked)}
+              />
+              <Text style={{ fontSize: 12 }}>Retenção ISSQN na fonte</Text>
+              {tributacao.issqn_retencao && (
+                <Text style={{ fontSize: 12, color: "#D97706" }}>
+                  (retido: {formatMoney(valorRetidoISSQN)})
+                </Text>
+              )}
+            </Space>
+          </Col>
+        </Row>
+
+        {aliquotaRow("PIS", "pis_aliquota", valorCalcPIS)}
+        {aliquotaRow("COFINS", "cofins_aliquota", valorCalcCOFINS)}
+        {aliquotaRow("IRPJ", "irpj_aliquota", valorCalcIRPJ)}
+        {aliquotaRow("CSLL", "csll_aliquota", valorCalcCSLL)}
+        {aliquotaRow(
+          "IBS",
+          "ibs_aliquota",
+          valorCalcIBS,
+          "Imposto sobre Bens e Serviços – vigência progressiva 2026-2033 (Reforma Tributária)"
+        )}
+        {aliquotaRow(
+          "CBS",
+          "cbs_aliquota",
+          valorCalcCBS,
+          "Contribuição sobre Bens e Serviços – vigência progressiva 2026-2033 (Reforma Tributária)"
+        )}
+
+        <Divider style={{ margin: "12px 0" }} />
+
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={8}>
+            <div style={{ background: "#FEF3C7", borderRadius: 8, padding: "10px 14px" }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Total retenções</Text>
+              <Text strong style={{ color: "#D97706", fontSize: 15 }}>{formatMoney(totalRetencoesTrib)}</Text>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <div style={{ background: "#DBEAFE", borderRadius: 8, padding: "10px 14px" }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Valor faturado</Text>
+              <Text strong style={{ color: "#1D4ED8", fontSize: 15 }}>{formatMoney(valorFaturadoAtual)}</Text>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <div style={{ background: "#DCFCE7", borderRadius: 8, padding: "10px 14px" }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Valor líquido NF</Text>
+              <Text strong style={{ color: "#15803D", fontSize: 15 }}>{formatMoney(valorLiquidoNF)}</Text>
+            </div>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Resumo e ações */}
+      <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Alert
           type="success"
           showIcon
-          style={{ borderRadius: 12, marginTop: 6 }}
+          style={{ borderRadius: 12, marginBottom: 16 }}
           message="Resumo financeiro da OS"
           description={`Valor faturado: ${formatMoney(valorFaturadoAtual)} • Custos lançados: ${formatMoney(expenseSummary.total)} • Margem atual: ${formatMoney(margemAtual)}`}
         />
-
-        <Space wrap style={{ marginTop: 18 }}>
+        <Space wrap>
           <Button type="primary" icon={<CheckCircleOutlined />} style={primaryButtonStyle} onClick={confirmarFaturamento} loading={sendingBilling}>
             Confirmar faturamento e ir para o financeiro
           </Button>

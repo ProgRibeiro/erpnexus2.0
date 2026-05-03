@@ -72,6 +72,12 @@ export default function Sidebar() {
           onClick: () => navigate('/financeiro'),
         },
         {
+          key: 'faturamento',
+          icon: <FileTextOutlined />,
+          label: 'Faturamento',
+          onClick: () => navigate('/faturamento'),
+        },
+        {
           key: 'crm',
           icon: <TeamOutlined />,
           label: 'CRM',
@@ -108,6 +114,7 @@ export default function Sidebar() {
     if (location.pathname.startsWith('/servicos')) return 'servicos';
     if (location.pathname.startsWith('/estoque')) return 'estoque';
     if (location.pathname.startsWith('/financeiro')) return 'financeiro';
+    if (location.pathname.startsWith('/faturamento')) return 'faturamento';
     if (location.pathname.startsWith('/crm')) return 'crm';
     if (location.pathname.startsWith('/fiscal')) return 'fiscal';
     if (location.pathname.startsWith('/configuracoes')) return 'configuracoes';
