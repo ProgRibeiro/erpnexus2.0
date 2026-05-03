@@ -14,6 +14,104 @@ from apps.fiscal.services import CalculadoraImpostos
 from apps.ordens.models import OrdemServico
 
 
+def _to_file_uri(file_field):
+    if not file_field:
+        return ""
+    try:
+        if getattr(file_field, "path", None):
+            return Path(file_field.path).as_uri()
+    except Exception:
+        return ""
+    return ""
+
+
+def _gerar_relatorio_pdf_reportlab(os_obj, context):
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=14 * mm,
+        rightMargin=14 * mm,
+        topMargin=14 * mm,
+        bottomMargin=14 * mm,
+    )
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="HeaderTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=18, textColor=colors.HexColor("#1B4F8A"), spaceAfter=6))
+    styles.add(ParagraphStyle(name="Muted", parent=styles["BodyText"], fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#5A6070"), leading=12))
+    styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading4"], fontName="Helvetica-Bold", fontSize=10, textColor=colors.white, backColor=colors.HexColor("#1B4F8A"), spaceBefore=12, spaceAfter=6, leftIndent=0, borderPadding=6))
+
+    story = []
+    empresa = context["empresa"]
+    logo_path = context.get("logo_path")
+    if logo_path and os.path.exists(logo_path):
+        try:
+            story.append(RLImage(logo_path, width=28 * mm, height=28 * mm))
+        except Exception:
+            pass
+    story.append(Paragraph(empresa.razao_social or empresa.nome, styles["HeaderTitle"]))
+    empresa_linhas = [linha for linha in [
+        f"CNPJ: {empresa.cnpj}" if empresa.cnpj else "",
+        empresa.endereco or "",
+        f"Telefone: {empresa.telefone}" if empresa.telefone else "",
+        f"Email: {empresa.email}" if empresa.email else "",
+    ] if linha]
+    story.append(Paragraph("<br/>".join(empresa_linhas) or empresa.nome, styles["Muted"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(f"Relatório de Serviço - {os_obj.numero}", styles["HeaderTitle"]))
+    story.append(Paragraph(f"Emitido em {context['data_emissao']}", styles["Muted"]))
+    story.append(Spacer(1, 10))
+
+    tabela_dados = Table(
+        [
+            ["Cliente", os_obj.cliente.nome, "Técnico", context["tecnico"]],
+            ["Contato", context["contato"], "Tipo de serviço", os_obj.get_tipo_servico_display()],
+            ["Endereço", context["endereco"], "Status", os_obj.get_status_display()],
+            ["Horário", f"{context['hora_inicio']} às {context['hora_conclusao']}", "Data execução", context["data_execucao"]],
+        ],
+        colWidths=[28 * mm, 67 * mm, 28 * mm, 58 * mm],
+    )
+    tabela_dados.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDE5EF")),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
+        ("PADDING", (0, 0), (-1, -1), 6),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(tabela_dados)
+    story.append(Spacer(1, 12))
+
+    if os_obj.descricao_servico:
+        story.append(Paragraph("Descrição do Serviço", styles["SectionTitle"]))
+        story.append(Paragraph(os_obj.descricao_servico.replace("\n", "<br/>"), styles["Muted"]))
+
+    if os_obj.observacoes_tecnicas:
+        story.append(Paragraph("Observações Técnicas", styles["SectionTitle"]))
+        story.append(Paragraph(os_obj.observacoes_tecnicas.replace("\n", "<br/>"), styles["Muted"]))
+
+    fotos = context.get("fotos_antes", []) + context.get("fotos_depois", [])
+    if fotos:
+        story.append(Paragraph("Registro Fotográfico", styles["SectionTitle"]))
+        for foto in fotos[:6]:
+            foto_path = foto.get("arquivo_path")
+            if foto_path and os.path.exists(foto_path):
+                try:
+                    story.append(RLImage(foto_path, width=80 * mm, height=55 * mm))
+                    story.append(Paragraph(foto.get("legenda") or "Foto", styles["Muted"]))
+                    story.append(Spacer(1, 6))
+                except Exception:
+                    continue
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
 def _gerar_orcamento_pdf_reportlab(os_obj, context):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -170,6 +268,11 @@ def fetch_url(url):
 
 def _prepare_relatorio_context(os_obj):
     """Prepara contexto para template relatorio_servico.html"""
+    empresa, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")
+    try:
+        config_os, _ = ConfiguracaoOS.objects.get_or_create()
+    except (OperationalError, ProgrammingError):
+        config_os = None
     fotos_antes = []
     fotos_depois = []
 
@@ -177,6 +280,8 @@ def _prepare_relatorio_context(os_obj):
         foto_data = {
             'legenda': foto.legenda or f'Foto {foto.tipo}',
             'arquivo_url': foto.arquivo.url if foto.arquivo else '',
+            'arquivo_path': foto.arquivo.path if foto.arquivo else '',
+            'arquivo_uri': _to_file_uri(foto.arquivo),
         }
         if foto.tipo == 'antes':
             fotos_antes.append(foto_data)
@@ -189,15 +294,25 @@ def _prepare_relatorio_context(os_obj):
     if assinatura:
         assinatura_data = {
             'imagem_url': assinatura.imagem_assinatura.url if assinatura.imagem_assinatura else '',
+            'imagem_uri': _to_file_uri(assinatura.imagem_assinatura),
         }
         nome_signatario = assinatura.nome_signatario
 
-    tecnico = os_obj.tecnico_responsavel.nome if os_obj.tecnico_responsavel else 'Não definido'
+    tecnico = (
+        getattr(os_obj.tecnico_responsavel, "nome_completo", "")
+        or getattr(os_obj.tecnico_responsavel, "username", "")
+        or getattr(os_obj.tecnico_responsavel, "email", "")
+        or "Não definido"
+    ) if os_obj.tecnico_responsavel else 'Não definido'
     contato = os_obj.contato_responsavel.nome if os_obj.contato_responsavel else os_obj.cliente.nome
     endereco = str(os_obj.endereco_servico) if os_obj.endereco_servico else 'Não definido'
 
     context = {
         'os': os_obj,
+        'empresa': empresa,
+        'config_os': config_os,
+        'logo_uri': _to_file_uri(empresa.logo),
+        'logo_path': empresa.logo.path if empresa.logo else '',
         'data_execucao': os_obj.data_agendada.strftime('%d/%m/%Y') if os_obj.data_agendada else datetime.now().strftime('%d/%m/%Y'),
         'data_emissao': datetime.now().strftime('%d/%m/%Y %H:%M'),
         'tecnico': tecnico,
@@ -336,32 +451,33 @@ def gerar_relatorio_pdf(os_id):
         bytes do PDF ou None em caso de erro
     """
     try:
-        from weasyprint import WeasyPrint
-    except ImportError:
-        print("WeasyPrint não está instalado ou suas dependências não estão disponíveis")
-        return None
-
-    try:
         os_obj = OrdemServico.objects.get(pk=os_id)
     except OrdemServico.DoesNotExist:
         return None
 
+    context = None
     try:
         context = _prepare_relatorio_context(os_obj)
+        from weasyprint import HTML
 
         html_string = render_to_string('pdfs/relatorio_servico.html', context)
 
-        pdf_bytes = WeasyPrint(
+        pdf_bytes = HTML(
             string=html_string,
             base_url=str(settings.BASE_DIR),
-            url_fetcher=fetch_url,
         ).write_pdf()
 
         return pdf_bytes
 
     except Exception as e:
-        print(f"Erro ao gerar PDF de relatório para OS {os_id}: {str(e)}")
-        return None
+        print(f"WeasyPrint indisponível para relatório {os_id}, usando fallback ReportLab: {str(e)}")
+        try:
+            if context is None:
+                context = _prepare_relatorio_context(os_obj)
+            return _gerar_relatorio_pdf_reportlab(os_obj, context)
+        except Exception as fallback_error:
+            print(f"Erro ao gerar PDF de relatório para OS {os_id}: {str(fallback_error)}")
+            return None
 
 
 def gerar_orcamento_pdf(os_id):
@@ -382,14 +498,13 @@ def gerar_orcamento_pdf(os_id):
     context = _prepare_orcamento_context(os_obj)
 
     try:
-        from weasyprint import WeasyPrint
+        from weasyprint import HTML
 
         html_string = render_to_string('pdfs/orcamento.html', context)
 
-        pdf_bytes = WeasyPrint(
+        pdf_bytes = HTML(
             string=html_string,
             base_url=str(settings.BASE_DIR),
-            url_fetcher=fetch_url,
         ).write_pdf()
 
         return pdf_bytes

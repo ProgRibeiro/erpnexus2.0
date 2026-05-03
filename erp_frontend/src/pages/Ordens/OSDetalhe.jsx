@@ -9,6 +9,7 @@ import {
   DatePicker,
   Descriptions,
   Divider,
+  Dropdown,
   Empty,
   Form,
   Image,
@@ -94,6 +95,21 @@ const sectionCardStyle = {
 };
 
 const stageOrder = ["lead", "orcamento", "aprovado", "execucao", "faturamento", "receita"];
+const stageStatusMap = {
+  lead: "aberta",
+  orcamento: "orcamento_enviado",
+  aprovado: "aprovada",
+  execucao: "em_execucao",
+  faturamento: "faturada",
+};
+const stageTabMap = {
+  lead: "dados-gerais",
+  orcamento: "dados-gerais",
+  aprovado: "dados-gerais",
+  execucao: "execucao",
+  faturamento: "faturamento",
+  receita: "faturamento",
+};
 
 const stageMeta = {
   lead: { label: "Lead", doneBg: "#E8F3D6", activeBg: "#DDEECC", activeColor: "#507B17" },
@@ -316,6 +332,7 @@ export default function OSDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingBilling, setSendingBilling] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [ordem, setOrdem] = useState(null);
   const [clients, setClients] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -673,6 +690,7 @@ export default function OSDetalhePage() {
 
   const gerarRelatorio = async () => {
     try {
+      setReportLoading(true);
       const response = await api.post(`/ordens/${id}/gerar-pdf-relatorio/`, {}, { responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -686,6 +704,8 @@ export default function OSDetalhePage() {
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);
       message.error("Não foi possível gerar o relatório.");
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -799,6 +819,49 @@ export default function OSDetalhePage() {
       console.error("Erro ao atualizar status:", error);
       message.error("Não foi possível atualizar o status.");
     }
+  };
+
+  const moverParaEtapa = async (stageKey) => {
+    const targetTab = stageTabMap[stageKey];
+    if (targetTab) {
+      setActiveTab(targetTab);
+    }
+
+    if (stageKey === "receita") {
+      message.info("A etapa Receita depende do faturamento confirmado e do recebimento no financeiro.");
+      return;
+    }
+
+    const targetStatus = stageStatusMap[stageKey];
+    if (!targetStatus || ordem?.status === targetStatus) {
+      return;
+    }
+
+    await salvarOS();
+    await changeStatus(targetStatus, `Movida pela barra operacional para ${stageMeta[stageKey].label}.`);
+  };
+
+  const menuAcoesRapidas = {
+    items: [
+      { key: "lead", label: "Mover para Lead" },
+      { key: "orcamento", label: "Mover para Orçamento" },
+      { key: "aprovado", label: "Mover para Aprovado" },
+      { key: "execucao", label: "Mover para Em execução" },
+      { type: "divider" },
+      { key: "faturamento", label: "Ir para Faturamento" },
+      { key: "historico", label: "Abrir Histórico" },
+    ],
+    onClick: async ({ key }) => {
+      if (key === "historico") {
+        setActiveTab("historico");
+        return;
+      }
+      if (key === "faturamento") {
+        setActiveTab("faturamento");
+        return;
+      }
+      await moverParaEtapa(key);
+    },
   };
 
   const topSummaryCards = [
@@ -1527,7 +1590,7 @@ export default function OSDetalhePage() {
             </div>
 
             <Space wrap>
-              <Button icon={<FilePdfOutlined />} style={subtleButtonStyle} onClick={gerarRelatorio}>
+              <Button icon={<FilePdfOutlined />} style={subtleButtonStyle} onClick={gerarRelatorio} loading={reportLoading}>
                 Gerar relatório
               </Button>
               <Button icon={<DollarOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("faturamento")}>
@@ -1536,7 +1599,9 @@ export default function OSDetalhePage() {
               <Button type="primary" icon={<SaveOutlined />} style={primaryButtonStyle} onClick={() => salvarOS()} loading={saving}>
                 Salvar
               </Button>
-              <Button shape="circle" icon={<MoreOutlined />} />
+              <Dropdown menu={menuAcoesRapidas} trigger={["click"]}>
+                <Button shape="circle" icon={<MoreOutlined />} />
+              </Dropdown>
             </Space>
           </div>
 
@@ -1554,11 +1619,13 @@ export default function OSDetalhePage() {
                 return (
                   <div
                     key={stageKey}
+                    onClick={() => moverParaEtapa(stageKey)}
                     style={{
                       alignItems: "center",
                       background: isActive ? meta.activeBg : isDone ? meta.doneBg : "#F8FAFC",
                       borderRight: index === stageOrder.length - 1 ? "none" : "1px solid #E5E7EB",
                       color: isActive || isDone ? meta.activeColor : "#64748B",
+                      cursor: "pointer",
                       display: "flex",
                       fontSize: 14,
                       fontWeight: isActive ? 700 : 600,

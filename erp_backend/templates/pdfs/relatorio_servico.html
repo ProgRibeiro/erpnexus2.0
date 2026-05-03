@@ -264,20 +264,26 @@
         <!-- CABEÇALHO -->
         <div class="header">
             <div class="header-info">
-                <div class="company-name">ERP Prod Serviços</div>
+                <div class="company-name">{{ empresa.razao_social|default:empresa.nome }}</div>
                 <div class="company-details">
-                    Av. Principal, 1000 - Centro<br>
-                    Tel: (11) 3000-0000<br>
-                    Email: contato@erpprod.com.br<br>
-                    CNPJ: 00.000.000/0000-00
+                    {% if empresa.endereco %}{{ empresa.endereco }}<br>{% endif %}
+                    {% if empresa.telefone %}Tel: {{ empresa.telefone }}<br>{% endif %}
+                    {% if empresa.email %}Email: {{ empresa.email }}<br>{% endif %}
+                    {% if empresa.cnpj %}CNPJ: {{ empresa.cnpj }}{% endif %}
                 </div>
             </div>
-            <div class="logo">ERPp</div>
+            {% if config_os.incluir_logo_pdf and logo_uri %}
+            <div class="logo" style="background: transparent; border-radius: 0;">
+                <img src="{{ logo_uri }}" alt="Logo da empresa" style="max-width: 80px; max-height: 80px;">
+            </div>
+            {% else %}
+            <div class="logo">{{ empresa.nome|slice:":3"|upper }}</div>
+            {% endif %}
         </div>
 
         <!-- TÍTULO -->
         <div class="title">
-            RELATÓRIO DE SERVIÇO / MANUTENÇÃO PREVENTIVA
+            RELATÓRIO DE SERVIÇO / {{ os.get_tipo_servico_display|upper }}
         </div>
 
         <!-- DADOS PRINCIPAIS -->
@@ -382,7 +388,7 @@
             <div class="photos-grid">
                 {% for foto in fotos_antes %}
                 <div class="photo-item">
-                    <img src="{{ foto.arquivo_url }}" class="photo-img" alt="Foto antes">
+                    <img src="{{ foto.arquivo_uri|default:foto.arquivo_url }}" class="photo-img" alt="Foto antes">
                     <div class="photo-caption">{{ foto.legenda }}</div>
                 </div>
                 {% endfor %}
@@ -397,7 +403,7 @@
             <div class="photos-grid">
                 {% for foto in fotos_depois %}
                 <div class="photo-item">
-                    <img src="{{ foto.arquivo_url }}" class="photo-img" alt="Foto depois">
+                    <img src="{{ foto.arquivo_uri|default:foto.arquivo_url }}" class="photo-img" alt="Foto depois">
                     <div class="photo-caption">{{ foto.legenda }}</div>
                 </div>
                 {% endfor %}
@@ -410,7 +416,7 @@
             <div class="signature-box">
                 <div class="signature-line">
                     {% if assinatura %}
-                    <img src="{{ assinatura.imagem_url }}" style="max-width: 100%; max-height: 60px;">
+                    <img src="{{ assinatura.imagem_uri|default:assinatura.imagem_url }}" style="max-width: 100%; max-height: 60px;">
                     {% endif %}
                 </div>
                 <div class="signature-label">Assinatura do Cliente</div>
