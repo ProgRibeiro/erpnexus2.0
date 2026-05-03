@@ -17,14 +17,17 @@ import {
   InputNumber,
   List,
   Modal,
+  Progress,
   Row,
   Select,
   Skeleton,
   Space,
+  Spin,
   Table,
   Tabs,
   Tag,
   Timeline,
+  Tooltip,
   Typography,
   Upload,
   message,
@@ -33,7 +36,9 @@ import {
   CalendarOutlined,
   CameraOutlined,
   CheckCircleOutlined,
+  CheckOutlined,
   ClockCircleOutlined,
+  CloseOutlined,
   DeleteOutlined,
   EditOutlined,
   FileSearchOutlined,
@@ -44,6 +49,7 @@ import {
   MoreOutlined,
   PaperClipOutlined,
   PlusOutlined,
+  QuestionCircleOutlined,
   SaveOutlined,
   SendOutlined,
   ToolOutlined,
@@ -347,6 +353,11 @@ export default function OSDetalhePage() {
   const [editingItemIndex, setEditingItemIndex] = useState(null);
   const [orcamentoItens, setOrcamentoItens] = useState([]);
   const [itemForm] = Form.useForm();
+  const [checklistTemplate, setChecklistTemplate] = useState(null);
+  const [checklistRespostas, setChecklistRespostas] = useState({});
+  const [checklistLoading, setChecklistLoading] = useState(false);
+  const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
+  const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
 
   const watchedClient = Form.useWatch("cliente", form);
   const watchedHasPc = Form.useWatch("tem_pedido_compra", form);
@@ -393,6 +404,13 @@ export default function OSDetalhePage() {
       );
     }
   }, [form, ordem?.valor_total_orcado, watchedHasPc, watchedValorOrcado]);
+
+  useEffect(() => {
+    if (activeTab === "execucao" && ordem?.tipo_servico) {
+      carregarChecklist(ordem.tipo_servico);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, ordem?.tipo_servico]);
 
   const preencherFormulario = (ordemAtual) => {
     form.setFieldsValue({
@@ -779,6 +797,112 @@ export default function OSDetalhePage() {
       message.error("Não foi possível enviar as fotos.");
     }
   };
+
+  const carregarChecklist = async (tipoServico) => {
+    if (!tipoServico) return;
+    try {
+      setChecklistLoading(true);
+      const [templatesRes, respostasRes] = await Promise.all([
+        api.get(`/ordens/checklists/?tipo_servico=${tipoServico}&ativo=true`),
+        api.get(`/ordens/${id}/checklist/`),
+      ]);
+      const templates = Array.isArray(templatesRes.data)
+        ? templatesRes.data
+        : templatesRes.data?.results || [];
+      if (templates.length > 0) {
+        setChecklistTemplate(templates[0]);
+      }
+      const respostasMap = {};
+      const respostasArr = Array.isArray(respostasRes.data)
+        ? respostasRes.data
+        : respostasRes.data?.results || [];
+      respostasArr.forEach((resp) => {
+        respostasMap[resp.item] = resp;
+      });
+      setChecklistRespostas(respostasMap);
+    } catch (err) {
+      console.error("Erro ao carregar checklist:", err);
+    } finally {
+      setChecklistLoading(false);
+    }
+  };
+
+  const salvarRespostaChecklist = async (itemId, valores) => {
+    try {
+      const response = await api.post(`/ordens/${id}/checklist/`, {
+        item: itemId,
+        ...valores,
+      });
+      setChecklistRespostas((prev) => ({ ...prev, [itemId]: response.data }));
+    } catch (err) {
+      console.error("Erro ao salvar resposta:", err);
+      message.error("Não foi possível salvar a resposta.");
+    }
+  };
+
+  const enviarFotoChecklist = async () => {
+    if (!checklistFotoModal.arquivos.length) {
+      message.warning("Selecione ao menos uma foto.");
+      return;
+    }
+    try {
+      const resposta = checklistRespostas[checklistFotoModal.itemId];
+      let respostaId = resposta?.id;
+      if (!respostaId) {
+        const novo = await api.post(`/ordens/${id}/checklist/`, {
+          item: checklistFotoModal.itemId,
+        });
+        respostaId = novo.data.id;
+        setChecklistRespostas((prev) => ({ ...prev, [checklistFotoModal.itemId]: novo.data }));
+      }
+      for (const fileObj of checklistFotoModal.arquivos) {
+        const formData = new FormData();
+        formData.append("arquivo", fileObj.originFileObj || fileObj);
+        formData.append("legenda", fileObj.name || "");
+        const res = await api.post(`/ordens/${id}/checklist/${respostaId}/foto/`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setChecklistRespostas((prev) => ({
+          ...prev,
+          [checklistFotoModal.itemId]: {
+            ...prev[checklistFotoModal.itemId],
+            fotos: [...(prev[checklistFotoModal.itemId]?.fotos || []), res.data],
+          },
+        }));
+      }
+      message.success("Foto(s) adicionada(s) ao checklist.");
+      setChecklistFotoModal({ open: false, respostaId: null, itemId: null, arquivos: [] });
+    } catch (err) {
+      console.error("Erro ao enviar foto do checklist:", err);
+      message.error("Não foi possível enviar a foto.");
+    }
+  };
+
+  const gerarRelatorioTecnico = async () => {
+    try {
+      setGerandoRelatorioTecnico(true);
+      const response = await api.post(
+        `/ordens/${id}/gerar-relatorio-tecnico/`,
+        {},
+        { responseType: "blob" }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `relatorio_tecnico_${ordem?.numero || id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      message.success("Relatório técnico gerado com sucesso!");
+    } catch (err) {
+      console.error("Erro ao gerar relatório técnico:", err);
+      message.error("Não foi possível gerar o relatório técnico.");
+    } finally {
+      setGerandoRelatorioTecnico(false);
+    }
+  };
+
 
   const confirmarFaturamento = async () => {
     setSendingBilling(true);
@@ -1251,12 +1375,151 @@ export default function OSDetalhePage() {
     </Space>
   );
 
+  const renderChecklistItem = (item) => {
+    const resposta = checklistRespostas[item.id] || {};
+    const fotos = resposta.fotos || [];
+
+    const handleBool = (val) => {
+      salvarRespostaChecklist(item.id, { valor_bool: val });
+    };
+
+    const handleTexto = (val) => {
+      salvarRespostaChecklist(item.id, { valor_texto: val });
+    };
+
+    const handleNumero = (val) => {
+      if (val !== null && val !== undefined) {
+        salvarRespostaChecklist(item.id, { valor_numero: val });
+      }
+    };
+
+    const abrirFotoModal = () => {
+      setChecklistFotoModal({ open: true, respostaId: resposta?.id, itemId: item.id, arquivos: [] });
+    };
+
+    const isRespondido = resposta?.valor_bool !== null && resposta?.valor_bool !== undefined
+      || !!(resposta?.valor_texto)
+      || resposta?.valor_numero !== null && resposta?.valor_numero !== undefined
+      || fotos.length > 0;
+
+    return (
+      <div key={item.id} style={{
+        padding: "14px 16px",
+        borderRadius: 10,
+        border: "1px solid",
+        borderColor: isRespondido ? "#D1FAE5" : "#E5E7EB",
+        background: isRespondido ? "#F0FDF4" : "#FAFAFA",
+        marginBottom: 10,
+        transition: "all 0.2s",
+      }}>
+        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 8 }} wrap>
+          <Space>
+            {isRespondido
+              ? <CheckCircleOutlined style={{ color: "#10B981", fontSize: 15 }} />
+              : <QuestionCircleOutlined style={{ color: "#9CA3AF", fontSize: 15 }} />
+            }
+            <Text strong style={{ fontSize: 13, color: "#1E293B" }}>
+              {item.obrigatorio && <span style={{ color: "#EF4444", marginRight: 4 }}>*</span>}
+              {item.pergunta}
+            </Text>
+            {item.tipo_resposta && (
+              <Tag color="blue" style={{ fontSize: 11 }}>
+                {item.tipo_resposta === "sim_nao" ? "Sim/Não"
+                  : item.tipo_resposta === "texto" ? "Texto"
+                  : item.tipo_resposta === "numero" ? "Número"
+                  : item.tipo_resposta === "foto" ? "Foto"
+                  : "Múltiplo"}
+              </Tag>
+            )}
+          </Space>
+        </Space>
+
+        {/* Boolean */}
+        {(item.tipo_resposta === "sim_nao" || item.tipo_resposta === "multiplo") && (
+          <Space style={{ marginBottom: 8 }}>
+            <Button
+              size="small"
+              type={resposta?.valor_bool === true ? "primary" : "default"}
+              icon={<CheckOutlined />}
+              style={resposta?.valor_bool === true ? { background: "#10B981", borderColor: "#10B981" } : {}}
+              onClick={() => handleBool(true)}
+            >
+              Sim
+            </Button>
+            <Button
+              size="small"
+              danger={resposta?.valor_bool === false}
+              type={resposta?.valor_bool === false ? "primary" : "default"}
+              icon={<CloseOutlined />}
+              onClick={() => handleBool(false)}
+            >
+              Não
+            </Button>
+          </Space>
+        )}
+
+        {/* Texto */}
+        {(item.tipo_resposta === "texto" || item.tipo_resposta === "multiplo") && (
+          <Input.TextArea
+            rows={2}
+            placeholder={item.placeholder || "Informe aqui..."}
+            defaultValue={resposta?.valor_texto || ""}
+            onBlur={(e) => handleTexto(e.target.value)}
+            style={{ marginBottom: 8, borderRadius: 8 }}
+          />
+        )}
+
+        {/* Número */}
+        {item.tipo_resposta === "numero" && (
+          <InputNumber
+            style={{ width: 160, marginBottom: 8 }}
+            placeholder="0,00"
+            defaultValue={resposta?.valor_numero}
+            onBlur={(e) => handleNumero(parseFloat(e.target.value))}
+            step={0.1}
+          />
+        )}
+
+        {/* Fotos do item */}
+        {(item.tipo_resposta === "foto" || item.tipo_resposta === "multiplo") && (
+          <div style={{ marginTop: 8 }}>
+            {fotos.length > 0 && (
+              <Image.PreviewGroup>
+                <Space wrap style={{ marginBottom: 8 }}>
+                  {fotos.map((f, fi) => (
+                    <Image key={fi} src={f.arquivo || f.url} width={72} height={72}
+                      style={{ objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB" }}
+                    />
+                  ))}
+                </Space>
+              </Image.PreviewGroup>
+            )}
+            <Button size="small" icon={<CameraOutlined />} onClick={abrirFotoModal} style={{ borderRadius: 6 }}>
+              {fotos.length > 0 ? `${fotos.length} foto(s)` : "Adicionar foto"}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const execucaoTab = (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: "#6B7280", textTransform: "uppercase" }}>
-          Execução do serviço
-        </Title>
+        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
+          <Title level={5} style={{ marginTop: 0, marginBottom: 0, color: "#6B7280", textTransform: "uppercase" }}>
+            Execução do serviço
+          </Title>
+          <Button
+            type="primary"
+            icon={<FilePdfOutlined />}
+            loading={gerandoRelatorioTecnico}
+            onClick={gerarRelatorioTecnico}
+            style={{ background: "#0F172A", borderColor: "#0F172A", borderRadius: 8 }}
+          >
+            Gerar Relatório Técnico
+          </Button>
+        </Space>
         <Row gutter={[16, 8]}>
           <Col xs={24} md={12}>
             <Form.Item label="Técnico responsável" name="tecnico_responsavel">
@@ -1304,6 +1567,55 @@ export default function OSDetalhePage() {
             </Form.Item>
           </Col>
         </Row>
+      </Card>
+
+      {/* Checklist técnico */}
+      <Card
+        bordered={false}
+        style={sectionCardStyle}
+        bodyStyle={{ padding: 20 }}
+      >
+        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
+          <div>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 2, color: "#0F172A" }}>
+              <ToolOutlined style={{ marginRight: 8, color: "#3B82F6" }} />
+              Checklist Técnico
+            </Title>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {checklistTemplate
+                ? checklistTemplate.nome
+                : ordem?.tipo_servico
+                ? `Nenhum template configurado para "${ordem.tipo_servico}"`
+                : "Selecione o tipo de serviço na aba Dados Gerais para carregar o checklist"}
+            </Text>
+          </div>
+          {checklistTemplate && (() => {
+            const total = checklistTemplate.itens?.length || 0;
+            const respondidos = (checklistTemplate.itens || []).filter((it) => {
+              const r = checklistRespostas[it.id];
+              return r && (r.valor_bool !== null && r.valor_bool !== undefined || r.valor_texto || r.valor_numero !== null && r.valor_numero !== undefined || (r.fotos?.length || 0) > 0);
+            }).length;
+            const pct = total > 0 ? Math.round((respondidos / total) * 100) : 0;
+            return (
+              <Tooltip title={`${respondidos}/${total} itens respondidos`}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Progress type="circle" percent={pct} size={44} strokeColor="#10B981" />
+                  <Text style={{ fontSize: 12, color: "#6B7280" }}>{respondidos}/{total}</Text>
+                </div>
+              </Tooltip>
+            );
+          })()}
+        </Space>
+
+        {checklistLoading ? (
+          <Spin tip="Carregando checklist..." style={{ display: "block", textAlign: "center", padding: 32 }} />
+        ) : !checklistTemplate ? (
+          <Empty description="Nenhum checklist disponível para este tipo de serviço" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ) : (
+          <div>
+            {(checklistTemplate.itens || []).map(renderChecklistItem)}
+          </div>
+        )}
       </Card>
 
       {renderPhotoGallery("Fotos antes do serviço", beforePhotos, "antes")}
@@ -1727,6 +2039,26 @@ export default function OSDetalhePage() {
           listType="picture"
         >
           <Button icon={<UploadOutlined />}>Selecionar imagens</Button>
+        </Upload>
+      </Modal>
+
+      <Modal
+        open={checklistFotoModal.open}
+        title="Adicionar foto ao item do checklist"
+        okText="Enviar foto(s)"
+        cancelText="Cancelar"
+        onOk={enviarFotoChecklist}
+        onCancel={() => setChecklistFotoModal({ open: false, respostaId: null, itemId: null, arquivos: [] })}
+      >
+        <Upload
+          multiple
+          beforeUpload={() => false}
+          fileList={checklistFotoModal.arquivos}
+          onChange={({ fileList }) => setChecklistFotoModal((c) => ({ ...c, arquivos: fileList }))}
+          listType="picture"
+          accept="image/*"
+        >
+          <Button icon={<CameraOutlined />}>Selecionar foto(s)</Button>
         </Upload>
       </Modal>
 
