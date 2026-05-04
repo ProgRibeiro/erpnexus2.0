@@ -214,6 +214,14 @@ const reportTypeOptions = [
   { value: "fotografico", label: "Visita técnica" },
 ];
 
+const checklistTypeOptions = [
+  { value: "corretiva", label: "Manutenção corretiva geral" },
+  { value: "eletrica", label: "Preventiva elétrica" },
+  { value: "refrigeracao", label: "Preventiva ar condicionado" },
+  { value: "hvac", label: "Preventiva HVAC" },
+  { value: "civil", label: "Manutenção civil" },
+];
+
 const expenseTypeOptions = [
   { value: "material", label: "Material comprado" },
   { value: "deslocamento", label: "Combustível" },
@@ -358,6 +366,7 @@ export default function OSDetalhePage() {
   const [orcamentoItens, setOrcamentoItens] = useState([]);
   const [itemForm] = Form.useForm();
   const [checklistTemplate, setChecklistTemplate] = useState(null);
+  const [checklistTipoSelecionado, setChecklistTipoSelecionado] = useState(null);
   const [checklistRespostas, setChecklistRespostas] = useState({});
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
@@ -438,11 +447,21 @@ export default function OSDetalhePage() {
   }, [form, ordem?.valor_total_orcado, watchedValorOrcado]);
 
   useEffect(() => {
-    if (activeTab === "execucao" && ordem?.tipo_servico) {
-      carregarChecklist(ordem.tipo_servico);
+    if (!ordem?.tipo_servico || checklistTipoSelecionado) return;
+    const tipoPadrao = ordem.tipo_relatorio === "simples"
+      ? "corretiva"
+      : ordem.tipo_servico === "manutencao" || ordem.tipo_servico === "instalacao" || ordem.tipo_servico === "outro"
+      ? "corretiva"
+      : ordem.tipo_servico;
+    setChecklistTipoSelecionado(tipoPadrao);
+  }, [checklistTipoSelecionado, ordem?.tipo_relatorio, ordem?.tipo_servico]);
+
+  useEffect(() => {
+    if (activeTab === "execucao" && checklistTipoSelecionado) {
+      carregarChecklist(checklistTipoSelecionado);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, ordem?.tipo_servico]);
+  }, [activeTab, checklistTipoSelecionado]);
 
   const preencherFormulario = (ordemAtual) => {
     form.setFieldsValue({
@@ -903,6 +922,8 @@ export default function OSDetalhePage() {
         : templatesRes.data?.results || [];
       if (templates.length > 0) {
         setChecklistTemplate(templates[0]);
+      } else {
+        setChecklistTemplate(null);
       }
       const respostasMap = {};
       const respostasArr = Array.isArray(respostasRes.data)
@@ -1515,7 +1536,7 @@ export default function OSDetalhePage() {
             }
             <Text strong style={{ fontSize: 13, color: "#1E293B" }}>
               {item.obrigatorio && <span style={{ color: "#EF4444", marginRight: 4 }}>*</span>}
-              {item.pergunta}
+              {item.texto}
             </Text>
             {item.tipo_resposta && (
               <Tag color="blue" style={{ fontSize: 11 }}>
@@ -1656,6 +1677,16 @@ export default function OSDetalhePage() {
               <Select allowClear options={reportTypeOptions} />
             </Form.Item>
           </Col>
+          <Col xs={24} md={16}>
+            <Form.Item label="Checklist técnico aplicado">
+              <Select
+                value={checklistTipoSelecionado}
+                options={checklistTypeOptions}
+                onChange={setChecklistTipoSelecionado}
+                placeholder="Selecione o checklist para este atendimento"
+              />
+            </Form.Item>
+          </Col>
           <Col xs={24}>
             <Form.Item label="Observações técnicas" name="observacoes_tecnicas">
               <TextArea rows={4} />
@@ -1679,9 +1710,9 @@ export default function OSDetalhePage() {
             <Text type="secondary" style={{ fontSize: 12 }}>
               {checklistTemplate
                 ? checklistTemplate.nome
-                : ordem?.tipo_servico
-                ? `Nenhum template configurado para "${ordem.tipo_servico}"`
-                : "Selecione o tipo de serviço na aba Dados Gerais para carregar o checklist"}
+                : checklistTipoSelecionado
+                ? `Nenhum template configurado para "${checklistTipoSelecionado}"`
+                : "Selecione o checklist técnico aplicado"}
             </Text>
           </div>
           {checklistTemplate && (() => {
