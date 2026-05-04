@@ -146,6 +146,10 @@ export function createEmptyItem(index = 0) {
     descricao: "",
     quantidade: 1,
     valor_unitario: 0,
+    terceiro: null,
+    custo_terceiro: 0,
+    markup_terceiro: 0,
+    gerar_contas_pagar_terceiro: false,
   };
 }
 
@@ -160,6 +164,10 @@ export function mapProdutoToItem(produto) {
     descricao: produto.nome,
     quantidade: 1,
     valor_unitario: Number(produto.preco_venda || 0),
+    terceiro: null,
+    custo_terceiro: 0,
+    markup_terceiro: 0,
+    gerar_contas_pagar_terceiro: false,
   };
 }
 
@@ -174,6 +182,10 @@ export function mapServicoToItem(servico) {
     descricao: servico.nome,
     quantidade: 1,
     valor_unitario: Number(servico.preco_padrao || 0),
+    terceiro: null,
+    custo_terceiro: 0,
+    markup_terceiro: 0,
+    gerar_contas_pagar_terceiro: false,
   };
 }
 
@@ -189,6 +201,12 @@ export function mapBackendItem(item, index = 0) {
     descricao: item.descricao || "",
     quantidade: Number(item.quantidade || 0),
     valor_unitario: Number(item.valor_unitario || 0),
+    terceiro: item.terceiro || null,
+    terceiro_nome: item.terceiro_nome || "",
+    custo_terceiro: Number(item.custo_terceiro || 0),
+    markup_terceiro: Number(item.markup_terceiro || 0),
+    gerar_contas_pagar_terceiro: Boolean(item.gerar_contas_pagar_terceiro),
+    lancamento_terceiro_status: item.lancamento_terceiro_status || "",
   };
 }
 
@@ -203,6 +221,10 @@ export function buildItemsPayload(items) {
     descricao: item.descricao || `Item ${index + 1}`,
     quantidade: Number(item.quantidade || 0),
     valor_unitario: Number(item.valor_unitario || 0),
+    terceiro: item.terceiro || null,
+    custo_terceiro: Number(item.custo_terceiro || 0),
+    markup_terceiro: Number(item.markup_terceiro || 0),
+    gerar_contas_pagar_terceiro: Boolean(item.gerar_contas_pagar_terceiro),
     ordem: index,
   }));
 }

@@ -132,6 +132,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             from apps.estoque.services import MotorEstoqueOS
 
             estoque_resultado = MotorEstoqueOS().processar_conclusao_os(ordem, usuario=request.user)
+        if status_novo in [OrdemServico.Status.APROVADA, OrdemServico.Status.EM_EXECUCAO, OrdemServico.Status.CONCLUIDA]:
+            from apps.terceiros.services import criar_contas_pagar_terceiros
+
+            criar_contas_pagar_terceiros(ordem, usuario=request.user)
         LogStatusOS.objects.create(
             os=ordem,
             status_anterior=status_anterior,

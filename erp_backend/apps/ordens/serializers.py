@@ -39,6 +39,8 @@ class ItemOrcamentoSerializer(serializers.ModelSerializer):
     produto_codigo = serializers.CharField(source="produto.codigo", read_only=True)
     servico_nome = serializers.CharField(source="servico.nome", read_only=True)
     servico_codigo = serializers.CharField(source="servico.codigo", read_only=True)
+    terceiro_nome = serializers.CharField(source="terceiro.nome", read_only=True)
+    lancamento_terceiro_status = serializers.CharField(source="lancamento_terceiro.status", read_only=True)
 
     class Meta:
         model = ItemOrcamento

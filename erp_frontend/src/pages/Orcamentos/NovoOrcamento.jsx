@@ -16,6 +16,7 @@ import {
   Row,
   Select,
   Space,
+  Switch,
   Table,
   Tag,
   Typography,
@@ -127,6 +128,7 @@ export default function NovoOrcamento() {
   const [approvePayload, setApprovePayload] = useState(null);
   const [produtos, setProdutos] = useState([]);
   const [servicos, setServicos] = useState([]);
+  const [terceiros, setTerceiros] = useState([]);
   const [impostos, setImpostos] = useState(null);
   const [calculandoImpostos, setCalculandoImpostos] = useState(false);
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
@@ -168,6 +170,10 @@ export default function NovoOrcamento() {
   );
 
   const totals = useMemo(() => calcItemsTotals(items), [items]);
+  const totalTerceiros = useMemo(
+    () => items.reduce((sum, item) => sum + Number(item.custo_terceiro || 0), 0),
+    [items]
+  );
 
   useEffect(() => {
     form.setFieldsValue({
@@ -183,11 +189,12 @@ export default function NovoOrcamento() {
     async function bootstrap() {
       try {
         setLoading(true);
-        const [clientsResponse, budgetsResponse, produtosResponse, servicosResponse] = await Promise.all([
+        const [clientsResponse, budgetsResponse, produtosResponse, servicosResponse, terceirosResponse] = await Promise.all([
           api.get("/clientes/"),
           api.get("/ordens/"),
           api.get("/estoque/produtos/"),
           api.get("/estoque/servicos/"),
+          api.get("/terceiros/terceirizados/", { params: { status: "ativo" } }),
         ]);
 
         if (!active) return;
@@ -218,6 +225,7 @@ export default function NovoOrcamento() {
         setBudgetNumber(buildBudgetNumber(budgetRows.length + 1));
         setProdutos(normalizeList(produtosResponse.data));
         setServicos(normalizeList(servicosResponse.data));
+        setTerceiros(normalizeList(terceirosResponse.data));
       } catch {
         if (active) message.warning("Não foi possível carregar os dados iniciais do orçamento.");
       } finally {
@@ -350,7 +358,25 @@ export default function NovoOrcamento() {
   };
 
   const updateItem = (key, field, value) => {
-    setItems((current) => current.map((item) => (item.key === key ? { ...item, [field]: value } : item)));
+    setItems((current) =>
+      current.map((item) => {
+        if (item.key !== key) return item;
+        const next = { ...item, [field]: value };
+        if (field === "terceiro") {
+          const terceiro = terceiros.find((record) => record.id === value);
+          next.markup_terceiro = Number(terceiro?.markup_padrao || next.markup_terceiro || 0);
+          next.gerar_contas_pagar_terceiro = Boolean(value);
+        }
+        if (field === "custo_terceiro" || field === "markup_terceiro") {
+          const custo = Number(field === "custo_terceiro" ? value : next.custo_terceiro || 0);
+          const markup = Number(field === "markup_terceiro" ? value : next.markup_terceiro || 0);
+          if (custo > 0) {
+            next.valor_unitario = Number((custo * (1 + markup / 100)).toFixed(2));
+          }
+        }
+        return next;
+      })
+    );
   };
 
   const removeItem = (key) => {
@@ -600,6 +626,56 @@ export default function NovoOrcamento() {
       ),
     },
     {
+      title: "Terceiro / custo interno",
+      key: "terceiro",
+      width: 280,
+      render: (_, item) => (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Select
+            allowClear
+            showSearch
+            value={item.terceiro || undefined}
+            placeholder="Terceirizado"
+            optionFilterProp="label"
+            onChange={(value) => updateItem(item.key, "terceiro", value || null)}
+            options={terceiros.map((terceiro) => ({
+              value: terceiro.id,
+              label: `${terceiro.nome_fantasia || terceiro.nome} ${terceiro.estado_base ? `- ${terceiro.estado_base}` : ""}`,
+            }))}
+          />
+          <Space size={8} wrap>
+            <InputNumber
+              min={0}
+              step={0.01}
+              value={item.custo_terceiro}
+              placeholder="Custo"
+              onChange={(value) => updateItem(item.key, "custo_terceiro", value || 0)}
+              style={{ width: 105 }}
+            />
+            <InputNumber
+              min={0}
+              step={1}
+              addonAfter="%"
+              value={item.markup_terceiro}
+              placeholder="Markup"
+              onChange={(value) => updateItem(item.key, "markup_terceiro", value || 0)}
+              style={{ width: 105 }}
+            />
+            <Switch
+              size="small"
+              checked={Boolean(item.gerar_contas_pagar_terceiro)}
+              onChange={(checked) => updateItem(item.key, "gerar_contas_pagar_terceiro", checked)}
+            />
+          </Space>
+          {item.terceiro && (
+            <Text style={{ fontSize: 12, color: "#6B7280" }}>
+              Interno: {moneyFormatter.format(Number(item.custo_terceiro || 0))}. Cliente vê apenas seu valor.
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
       title: "Total",
       key: "total",
       width: 140,
@@ -794,7 +870,7 @@ export default function NovoOrcamento() {
             </Space>
 
             <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-              <Col xs={24} lg={8}>
+              <Col xs={24} lg={6}>
                 <div style={itemCardStyle}>
                   <Text style={{ color: "#6B7280" }}>Subtotal serviços</Text>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#10233C", marginTop: 6 }}>
@@ -802,7 +878,7 @@ export default function NovoOrcamento() {
                   </div>
                 </div>
               </Col>
-              <Col xs={24} lg={8}>
+              <Col xs={24} lg={6}>
                 <div style={itemCardStyle}>
                   <Text style={{ color: "#6B7280" }}>Subtotal produtos/materiais</Text>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#10233C", marginTop: 6 }}>
@@ -810,7 +886,15 @@ export default function NovoOrcamento() {
                   </div>
                 </div>
               </Col>
-              <Col xs={24} lg={8}>
+              <Col xs={24} lg={6}>
+                <div style={itemCardStyle}>
+                  <Text style={{ color: "#6B7280" }}>Custo interno terceiros</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#B45309", marginTop: 6 }}>
+                    {moneyFormatter.format(totalTerceiros)}
+                  </div>
+                </div>
+              </Col>
+              <Col xs={24} lg={6}>
                 <div style={itemCardStyle}>
                   <Text style={{ color: "#6B7280" }}>Total com impostos</Text>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#3B82F6", marginTop: 6 }}>

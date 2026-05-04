@@ -53,6 +53,12 @@ export default function Sidebar() {
           label: 'Serviços',
           onClick: () => navigate('/servicos'),
         },
+        {
+          key: 'terceiros',
+          icon: <TeamOutlined />,
+          label: 'Terceirizados',
+          onClick: () => navigate('/terceiros'),
+        },
       ],
     },
     {
@@ -112,6 +118,7 @@ export default function Sidebar() {
     if (location.pathname.startsWith('/clientes')) return 'clientes';
     if (location.pathname.startsWith('/agenda')) return 'agenda';
     if (location.pathname.startsWith('/servicos')) return 'servicos';
+    if (location.pathname.startsWith('/terceiros')) return 'terceiros';
     if (location.pathname.startsWith('/estoque')) return 'estoque';
     if (location.pathname.startsWith('/financeiro')) return 'financeiro';
     if (location.pathname.startsWith('/faturamento')) return 'faturamento';

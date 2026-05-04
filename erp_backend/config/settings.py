@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.fiscal",
     "apps.importacao",
     "apps.auditoria",
+    "apps.terceiros",
 ]
 
 MIDDLEWARE = [

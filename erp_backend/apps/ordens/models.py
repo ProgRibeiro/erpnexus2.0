@@ -273,6 +273,23 @@ class ItemOrcamento(models.Model):
         blank=True,
         related_name="itens_orcamento",
     )
+    terceiro = models.ForeignKey(
+        "terceiros.Terceirizado",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itens_orcamento",
+    )
+    custo_terceiro = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    markup_terceiro = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    gerar_contas_pagar_terceiro = models.BooleanField(default=False)
+    lancamento_terceiro = models.ForeignKey(
+        "financeiro.Lancamento",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itens_terceirizados",
+    )
     codigo_referencia = models.CharField(max_length=30, blank=True)
     unidade_referencia = models.CharField(max_length=20, blank=True)
     descricao = models.TextField()
