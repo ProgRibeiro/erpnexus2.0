@@ -20,6 +20,8 @@ import {
   Drawer,
   Form,
   InputNumber,
+  Upload,
+  Alert,
 } from "antd";
 import {
   DeleteOutlined,
@@ -28,6 +30,9 @@ import {
   PlusOutlined,
   SearchOutlined,
   CheckCircleOutlined,
+  UploadOutlined,
+  FileTextOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -72,11 +77,15 @@ function formatDate(value) {
   return date.toLocaleDateString("pt-BR");
 }
 
+function normFile(event) {
+  return Array.isArray(event) ? event : event?.fileList || [];
+}
+
 function getStatusColor(status) {
   const statusConfig = {
     pendente: { color: "#EA8C55", background: "#FEF3C7" },
     pago: { color: "#16a34a", background: "#DCFCE7" },
-    vencido: { color: "#dc2626", background: "#FEE2E2" },
+    atrasado: { color: "#dc2626", background: "#FEE2E2" },
     cancelado: { color: "#9CA3AF", background: "#F3F4F6" },
   };
   return statusConfig[status] || statusConfig.pendente;
@@ -87,7 +96,7 @@ function StatusBadge({ status }) {
   const labels = {
     pendente: "Pendente",
     pago: "Pago",
-    vencido: "Vencido",
+    atrasado: "Atrasado",
     cancelado: "Cancelado",
   };
   return (
@@ -243,7 +252,7 @@ function FormularioLancamento({
 
         <Form.Item
           label="Conta Bancária"
-          name="conta"
+          name="conta_bancaria"
           rules={[{ required: true, message: "Conta é obrigatória" }]}
         >
           <Select
@@ -291,6 +300,157 @@ function FormularioLancamento({
   );
 }
 
+function BaixaPagamentoModal({ visible, lancamento, contas, onConfirm, onClose }) {
+  const [form] = Form.useForm();
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (visible && lancamento) {
+      form.setFieldsValue({
+        conta_bancaria: lancamento.conta_bancaria,
+        data_pagamento: dayjs(),
+        arquivos: [],
+      });
+    } else if (visible) {
+      form.resetFields();
+    }
+  }, [visible, lancamento, form]);
+
+  const handleSubmit = async (values) => {
+    setConfirming(true);
+    try {
+      const formData = new FormData();
+      formData.append("conta_bancaria", values.conta_bancaria);
+      formData.append("data_pagamento", values.data_pagamento.format("YYYY-MM-DD"));
+      (values.arquivos || []).forEach((arquivo) => {
+        formData.append("arquivos", arquivo.originFileObj || arquivo);
+      });
+      await onConfirm(lancamento.id, formData);
+      form.resetFields();
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={lancamento?.tipo === "despesa" ? "Dar baixa em conta a pagar" : "Dar baixa em conta a receber"}
+      open={visible}
+      onCancel={onClose}
+      footer={null}
+      destroyOnClose
+    >
+      {lancamento && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={`${lancamento.descricao} - ${formatMoney(lancamento.valor)}`}
+        />
+      )}
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form.Item
+          label="Conta onde caiu/saiu o dinheiro"
+          name="conta_bancaria"
+          rules={[{ required: true, message: "Selecione a conta" }]}
+        >
+          <Select
+            options={(contas || []).map((c) => ({ label: c.nome, value: c.id }))}
+            placeholder="Selecione a conta"
+          />
+        </Form.Item>
+        <Form.Item
+          label="Data do pagamento"
+          name="data_pagamento"
+          rules={[{ required: true, message: "Informe a data" }]}
+        >
+          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+        </Form.Item>
+        <Form.Item
+          label="Comprovantes"
+          name="arquivos"
+          valuePropName="fileList"
+          getValueFromEvent={normFile}
+        >
+          <Upload beforeUpload={() => false} multiple maxCount={6}>
+            <Button icon={<UploadOutlined />}>Anexar comprovante</Button>
+          </Upload>
+        </Form.Item>
+        <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button type="primary" htmlType="submit" loading={confirming} icon={<CheckCircleOutlined />}>
+            Confirmar baixa
+          </Button>
+        </Space>
+      </Form>
+    </Modal>
+  );
+}
+
+function ImportarExtratoModal({ visible, contas, onImport, onClose }) {
+  const [form] = Form.useForm();
+  const [importing, setImporting] = useState(false);
+
+  const handleSubmit = async (values) => {
+    setImporting(true);
+    try {
+      await onImport({
+        conta_bancaria: values.conta_bancaria,
+        arquivo: values.arquivo?.[0],
+      });
+      form.resetFields();
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Importar extrato bancário"
+      open={visible}
+      onCancel={onClose}
+      footer={null}
+      destroyOnClose
+    >
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form.Item
+          label="Conta bancária"
+          name="conta_bancaria"
+          rules={[{ required: true, message: "Selecione a conta do extrato" }]}
+        >
+          <Select
+            options={(contas || []).map((c) => ({ label: c.nome, value: c.id }))}
+            placeholder="Selecione a conta"
+          />
+        </Form.Item>
+        <Form.Item
+          label="Arquivo CSV ou XLSX"
+          name="arquivo"
+          valuePropName="fileList"
+          getValueFromEvent={normFile}
+          rules={[{ required: true, message: "Anexe o extrato" }]}
+        >
+          <Upload beforeUpload={() => false} maxCount={1} accept=".csv,.xlsx">
+            <Button icon={<UploadOutlined />}>Selecionar extrato</Button>
+          </Upload>
+        </Form.Item>
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="O sistema procura colunas como data, descricao, valor e documento. Valores positivos viram receitas; negativos viram despesas."
+        />
+        <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button type="primary" htmlType="submit" loading={importing} icon={<BankOutlined />}>
+            Importar e conciliar
+          </Button>
+        </Space>
+      </Form>
+    </Modal>
+  );
+}
+
 export default function LancamentosPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -310,6 +470,14 @@ export default function LancamentosPage() {
   const [selectedLancamento, setSelectedLancamento] = useState(null);
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [detailsData, setDetailsData] = useState(null);
+  const [baixaVisible, setBaixaVisible] = useState(false);
+  const [baixaLancamento, setBaixaLancamento] = useState(null);
+  const [importVisible, setImportVisible] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const recarregarLancamentos = () => {
+    setReloadKey((current) => current + 1);
+  };
 
   // Carrega dados iniciais
   useEffect(() => {
@@ -347,9 +515,8 @@ export default function LancamentosPage() {
         if (filters.periodo?.[1])
           params.data_vencimento_fim = filters.periodo[1].format("YYYY-MM-DD");
 
-        const response = await financeiroService.listarLancamentos(params);
-        const data = Array.isArray(response) ? response : response.results || [];
-        setLancamentos(data);
+        const data = await financeiroService.listarLancamentos(params);
+        setLancamentos(Array.isArray(data) ? data : []);
       } catch (error) {
         message.error("Erro ao carregar lançamentos");
       } finally {
@@ -358,7 +525,7 @@ export default function LancamentosPage() {
     };
 
     carregar();
-  }, [filters, pagination]);
+  }, [filters, pagination, reloadKey]);
 
   const handleSaveLancamento = async (payload) => {
     try {
@@ -375,6 +542,7 @@ export default function LancamentosPage() {
       setFormVisible(false);
       setSelectedLancamento(null);
       setPagination({ current: 1, pageSize: 20 });
+      recarregarLancamentos();
     } catch (error) {
       message.error(
         selectedLancamento ? "Erro ao atualizar" : "Erro ao criar lançamento"
@@ -382,22 +550,31 @@ export default function LancamentosPage() {
     }
   };
 
-  const handleConfirmarPagamento = async (id) => {
-    Modal.confirm({
-      title: "Confirmar Pagamento",
-      content: "Tem certeza que deseja confirmar o pagamento deste lançamento?",
-      okText: "Confirmar",
-      cancelText: "Cancelar",
-      onOk: async () => {
-        try {
-          await financeiroService.confirmarPagamento(id);
-          message.success("Pagamento confirmado");
-          setPagination({ current: 1, pageSize: 20 });
-        } catch (error) {
-          message.error("Erro ao confirmar pagamento");
-        }
-      },
-    });
+  const handleConfirmarPagamento = async (id, payload) => {
+    try {
+      await financeiroService.confirmarPagamento(id, payload);
+      message.success("Baixa registrada com sucesso");
+      setBaixaVisible(false);
+      setBaixaLancamento(null);
+      setPagination({ current: 1, pageSize: 20 });
+      recarregarLancamentos();
+    } catch (error) {
+      message.error("Erro ao dar baixa no lançamento");
+    }
+  };
+
+  const handleImportarExtrato = async (payload) => {
+    try {
+      const resultado = await financeiroService.importarExtrato(payload);
+      message.success(
+        `Extrato importado: ${resultado.conciliados} conciliado(s), ${resultado.criados} criado(s), ${resultado.ignorados} ignorado(s).`
+      );
+      setImportVisible(false);
+      setPagination({ current: 1, pageSize: 20 });
+      recarregarLancamentos();
+    } catch (error) {
+      message.error("Erro ao importar extrato");
+    }
   };
 
   const handleDeleteLancamento = (id) => {
@@ -413,6 +590,7 @@ export default function LancamentosPage() {
           await financeiroService.removerLancamento(id);
           message.success("Lançamento deletado");
           setPagination({ current: 1, pageSize: 20 });
+          recarregarLancamentos();
         } catch (error) {
           message.error("Erro ao deletar lançamento");
         }
@@ -512,12 +690,15 @@ export default function LancamentosPage() {
             />
           </Tooltip>
           {record.status !== "pago" && (
-            <Tooltip title="Confirmar Pagamento">
+            <Tooltip title="Dar baixa">
               <Button
                 type="text"
                 size="small"
                 icon={<CheckCircleOutlined />}
-                onClick={() => handleConfirmarPagamento(record.id)}
+                onClick={() => {
+                  setBaixaLancamento(record);
+                  setBaixaVisible(true);
+                }}
                 style={{ color: "#16a34a" }}
               />
             </Tooltip>
@@ -561,27 +742,36 @@ export default function LancamentosPage() {
           <Title level={1} style={{ color: "#111827", fontSize: 24, fontWeight: 800, margin: 0 }}>
             Lançamentos
           </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setSelectedLancamento(null);
-              setFormVisible(true);
-            }}
-            style={{
-              background: "#3B82F6",
-              borderColor: "#3B82F6",
-              color: "#ffffff",
-              height: "40px",
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              fontWeight: 500,
-              fontSize: "14px",
-              borderRadius: "8px",
-            }}
-          >
-            Novo Lançamento
-          </Button>
+          <Space>
+            <Button
+              icon={<BankOutlined />}
+              onClick={() => setImportVisible(true)}
+              style={{ height: 40, borderRadius: 8, fontWeight: 600 }}
+            >
+              Importar extrato
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setSelectedLancamento(null);
+                setFormVisible(true);
+              }}
+              style={{
+                background: "#3B82F6",
+                borderColor: "#3B82F6",
+                color: "#ffffff",
+                height: "40px",
+                paddingLeft: "20px",
+                paddingRight: "20px",
+                fontWeight: 500,
+                fontSize: "14px",
+                borderRadius: "8px",
+              }}
+            >
+              Novo Lançamento
+            </Button>
+          </Space>
         </div>
 
         {/* Filtros */}
@@ -631,7 +821,7 @@ export default function LancamentosPage() {
                 options={[
                   { label: "Pendente", value: "pendente" },
                   { label: "Pago", value: "pago" },
-                  { label: "Vencido", value: "vencido" },
+                  { label: "Atrasado", value: "atrasado" },
                   { label: "Cancelado", value: "cancelado" },
                 ]}
                 placeholder="Status"
@@ -718,6 +908,24 @@ export default function LancamentosPage() {
             setFormVisible(false);
             setSelectedLancamento(null);
           }}
+        />
+
+        <BaixaPagamentoModal
+          visible={baixaVisible}
+          lancamento={baixaLancamento}
+          contas={contas}
+          onConfirm={handleConfirmarPagamento}
+          onClose={() => {
+            setBaixaVisible(false);
+            setBaixaLancamento(null);
+          }}
+        />
+
+        <ImportarExtratoModal
+          visible={importVisible}
+          contas={contas}
+          onImport={handleImportarExtrato}
+          onClose={() => setImportVisible(false)}
         />
 
         {/* Drawer de detalhes */}
@@ -831,6 +1039,30 @@ export default function LancamentosPage() {
                   </div>
                 </div>
               )}
+
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Comprovantes
+                </Text>
+                <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
+                  {(detailsData.anexos || []).length === 0 ? (
+                    <Text type="secondary">Nenhum comprovante anexado.</Text>
+                  ) : (
+                    detailsData.anexos.map((anexo) => (
+                      <Button
+                        key={anexo.id}
+                        icon={<FileTextOutlined />}
+                        href={anexo.arquivo_url || anexo.arquivo}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ justifyContent: "flex-start", width: "100%" }}
+                      >
+                        {anexo.nome_original}
+                      </Button>
+                    ))
+                  )}
+                </Space>
+              </div>
             </Space>
           )}
         </Drawer>

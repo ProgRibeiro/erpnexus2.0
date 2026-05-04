@@ -26,10 +26,19 @@ class CategoriaFinanceiraSerializer(serializers.ModelSerializer):
 
 
 class AnexoLancamentoSerializer(serializers.ModelSerializer):
+    arquivo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = AnexoLancamento
-        fields = "__all__"
+        fields = ["id", "lancamento", "arquivo", "arquivo_url", "nome_original"]
         read_only_fields = ["lancamento"]
+
+    def get_arquivo_url(self, obj):
+        if not obj.arquivo:
+            return ""
+        request = self.context.get("request")
+        url = obj.arquivo.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class LancamentoSerializer(serializers.ModelSerializer):

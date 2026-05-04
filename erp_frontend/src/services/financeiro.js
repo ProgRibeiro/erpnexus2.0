@@ -35,6 +35,29 @@ const financeiroService = {
     );
     return response.data;
   },
+  anexarComprovantes: async (id, arquivos = []) => {
+    const formData = new FormData();
+    arquivos.forEach((arquivo) => {
+      formData.append("arquivos", arquivo.originFileObj || arquivo);
+    });
+    const response = await api.post(
+      `/financeiro/lancamentos/${id}/anexos/`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  },
+  importarExtrato: async ({ conta_bancaria, arquivo }) => {
+    const formData = new FormData();
+    formData.append("conta_bancaria", conta_bancaria);
+    formData.append("arquivo", arquivo.originFileObj || arquivo);
+    const response = await api.post(
+      "/financeiro/lancamentos/importar-extrato/",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  },
   listarContas: async () => {
     const response = await api.get("/financeiro/contas-bancarias/");
     return unwrap(response.data);
