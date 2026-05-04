@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.configuracoes.models import ConfiguracaoEmpresa
+from apps.configuracoes.models import get_empresa_configurada
 
 from .models import ConfiguracaoFiscal
 from .serializers import (
@@ -14,10 +14,7 @@ from .services import CalculadoraImpostos, ConsultaCNPJ
 
 
 def _get_empresa():
-    empresa = ConfiguracaoEmpresa.objects.order_by("id").first()
-    if not empresa:
-        empresa = ConfiguracaoEmpresa.objects.create(nome="ERP Nexus", razao_social="ERP Nexus")
-    return empresa
+    return get_empresa_configurada()
 
 
 def _get_configuracao_fiscal():

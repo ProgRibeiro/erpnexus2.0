@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.configuracoes.models import ConfiguracaoEmpresa
+from apps.configuracoes.models import get_empresa_configurada
 from apps.fiscal.models import ConfiguracaoFiscal
 from apps.fiscal.services import CalculadoraImpostos
 
@@ -204,9 +204,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             if item.origem_tipo == ItemOrcamento.OrigemTipo.PRODUTO
         )
 
-        empresa = ConfiguracaoEmpresa.objects.order_by("id").first()
-        if not empresa:
-            empresa = ConfiguracaoEmpresa.objects.create(nome="ERP Nexus", razao_social="ERP Nexus")
+        empresa = get_empresa_configurada()
         fiscal_config, _ = ConfiguracaoFiscal.objects.get_or_create(
             empresa=empresa,
             defaults={

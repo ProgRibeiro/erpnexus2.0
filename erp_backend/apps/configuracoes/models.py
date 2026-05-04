@@ -1,5 +1,39 @@
 from django.core.validators import RegexValidator
+from django.db.models import Q
 from django.db import models
+
+
+NOMES_RESERVADOS_SISTEMA = {"ERP Nexus", "ERP Servicos", "ERP Serviços"}
+
+
+def get_empresa_configurada():
+    """
+    Retorna a empresa contratante que usa o ERP.
+
+    ERP Nexus e nomes genéricos são identidade do sistema/fallback, não da
+    empresa responsável pelos relatórios, orçamentos e documentos fiscais.
+    """
+    empresas = ConfiguracaoEmpresa.objects.order_by("id")
+    empresa_real = (
+        empresas.exclude(nome__in=NOMES_RESERVADOS_SISTEMA)
+        .filter(Q(cnpj__gt="") | Q(razao_social__gt="") | Q(logo__gt=""))
+        .first()
+    )
+    if empresa_real:
+        return empresa_real
+
+    empresa_com_dados = empresas.filter(Q(cnpj__gt="") | Q(razao_social__gt="") | Q(logo__gt="")).first()
+    if empresa_com_dados:
+        return empresa_com_dados
+
+    empresa = empresas.exclude(nome__in=NOMES_RESERVADOS_SISTEMA).first()
+    if empresa:
+        return empresa
+
+    return ConfiguracaoEmpresa.objects.create(
+        nome="Empresa contratante",
+        razao_social="",
+    )
 
 
 class ConfiguracaoEmpresa(models.Model):

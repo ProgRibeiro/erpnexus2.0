@@ -10,6 +10,7 @@ from .models import (
     ConfiguracaoOS,
     ConfiguracaoFinanceira,
     LogoClienteReferencia,
+    get_empresa_configurada,
 )
 from .serializers import (
     ConfiguracaoEmpresaSerializer,
@@ -46,12 +47,7 @@ def _sincronizar_configuracao_fiscal(empresa_obj):
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def empresa(request):
-    config = ConfiguracaoEmpresa.objects.order_by("id").first()
-    if not config:
-        config = ConfiguracaoEmpresa.objects.create(
-            nome="ERP Nexus",
-            razao_social="ERP Nexus",
-        )
+    config = get_empresa_configurada()
     if request.method == "PATCH":
         serializer = ConfiguracaoEmpresaSerializer(config, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.template.loader import render_to_string
 
-from apps.configuracoes.models import ConfiguracaoEmpresa, ConfiguracaoOS
+from apps.configuracoes.models import ConfiguracaoOS, get_empresa_configurada
 from apps.fiscal.models import ConfiguracaoFiscal
 from apps.fiscal.services import CalculadoraImpostos
 from apps.ordens.models import OrdemServico
@@ -303,7 +303,7 @@ def fetch_url(url):
 
 def _prepare_relatorio_context(os_obj):
     """Prepara contexto para template relatorio_servico.html"""
-    empresa, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")
+    empresa = get_empresa_configurada()
     try:
         config_os, _ = ConfiguracaoOS.objects.get_or_create()
     except (OperationalError, ProgrammingError):
@@ -365,7 +365,7 @@ def _prepare_relatorio_context(os_obj):
 
 def _prepare_orcamento_context(os_obj):
     """Prepara contexto para template orcamento.html"""
-    empresa, _ = ConfiguracaoEmpresa.objects.get_or_create(nome="ERP Servicos")
+    empresa = get_empresa_configurada()
     try:
         config_os, _ = ConfiguracaoOS.objects.get_or_create()
     except (OperationalError, ProgrammingError):
