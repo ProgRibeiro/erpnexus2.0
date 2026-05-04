@@ -188,14 +188,37 @@ function MetricCard({
   );
 }
 
-function TabelaContasReceber({ data, loading, onEdit, onBaixa }) {
+function TabelaContasReceber({ data, loading, onEdit, onBaixa, onOpenList }) {
   const columns = [
     {
       title: "Descrição",
       dataIndex: "descricao",
       key: "descricao",
       ellipsis: true,
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text, record) => (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Button
+            type="link"
+            onClick={() => onEdit(record)}
+            style={{ fontWeight: 800, height: "auto", padding: 0, textAlign: "left" }}
+          >
+            {text}
+          </Button>
+          <Space size={6} wrap>
+            <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
+              Editar
+            </Button>
+            <Button
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => onBaixa(record)}
+              style={{ color: "#16a34a", borderColor: "#86efac" }}
+            >
+              Baixar
+            </Button>
+          </Space>
+        </Space>
+      ),
     },
     {
       title: "Vencimento",
@@ -219,28 +242,18 @@ function TabelaContasReceber({ data, loading, onEdit, onBaixa }) {
       width: 100,
       render: statusBadge,
     },
-    {
-      title: "Ação",
-      key: "acao",
-      width: 160,
-      render: (_, record) => (
-        <Space size={6}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
-            Editar
-          </Button>
-          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => onBaixa(record)} style={{ color: "#16a34a", borderColor: "#86efac" }}>
-            Baixar
-          </Button>
-        </Space>
-      ),
-    },
   ];
 
   return (
     <Card bordered={false} style={cardStyle}>
-      <Title level={4} style={{ marginTop: 0, marginBottom: 16 }}>
-        Contas a Receber
-      </Title>
+      <div style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>
+          Contas a Receber
+        </Title>
+        <Button size="small" onClick={onOpenList}>
+          Ver todos
+        </Button>
+      </div>
       <Skeleton active loading={loading} paragraph={{ rows: 5 }} title={false}>
         <Table
           columns={columns}
@@ -249,20 +262,44 @@ function TabelaContasReceber({ data, loading, onEdit, onBaixa }) {
           pagination={false}
           locale={{ emptyText: <Empty description="Nenhuma conta a receber" /> }}
           size="small"
+          scroll={{ x: 680 }}
         />
       </Skeleton>
     </Card>
   );
 }
 
-function TabelaContasPagar({ data, loading, onEdit, onBaixa }) {
+function TabelaContasPagar({ data, loading, onEdit, onBaixa, onOpenList }) {
   const columns = [
     {
       title: "Descrição",
       dataIndex: "descricao",
       key: "descricao",
       ellipsis: true,
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text, record) => (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Button
+            type="link"
+            onClick={() => onEdit(record)}
+            style={{ fontWeight: 800, height: "auto", padding: 0, textAlign: "left" }}
+          >
+            {text}
+          </Button>
+          <Space size={6} wrap>
+            <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
+              Editar
+            </Button>
+            <Button
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => onBaixa(record)}
+              style={{ color: "#16a34a", borderColor: "#86efac" }}
+            >
+              Baixar
+            </Button>
+          </Space>
+        </Space>
+      ),
     },
     {
       title: "Vencimento",
@@ -286,28 +323,18 @@ function TabelaContasPagar({ data, loading, onEdit, onBaixa }) {
       width: 100,
       render: statusBadge,
     },
-    {
-      title: "Ação",
-      key: "acao",
-      width: 160,
-      render: (_, record) => (
-        <Space size={6}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
-            Editar
-          </Button>
-          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => onBaixa(record)} style={{ color: "#16a34a", borderColor: "#86efac" }}>
-            Baixar
-          </Button>
-        </Space>
-      ),
-    },
   ];
 
   return (
     <Card bordered={false} style={cardStyle}>
-      <Title level={4} style={{ marginTop: 0, marginBottom: 16 }}>
-        Contas a Pagar
-      </Title>
+      <div style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>
+          Contas a Pagar
+        </Title>
+        <Button size="small" onClick={onOpenList}>
+          Ver todos
+        </Button>
+      </div>
       <Skeleton active loading={loading} paragraph={{ rows: 5 }} title={false}>
         <Table
           columns={columns}
@@ -316,6 +343,7 @@ function TabelaContasPagar({ data, loading, onEdit, onBaixa }) {
           pagination={false}
           locale={{ emptyText: <Empty description="Nenhuma conta a pagar" /> }}
           size="small"
+          scroll={{ x: 680 }}
         />
       </Skeleton>
     </Card>
@@ -693,6 +721,7 @@ export default function FinanceiroDashboard() {
               loading={loading}
               onEdit={(record) => abrirLancamento(record, "editar")}
               onBaixa={(record) => abrirLancamento(record, "baixar")}
+              onOpenList={() => navigate("/financeiro/lancamentos?tipo=receita&status=pendente")}
             />
           </Col>
           <Col xs={24} lg={12}>
@@ -701,6 +730,7 @@ export default function FinanceiroDashboard() {
               loading={loading}
               onEdit={(record) => abrirLancamento(record, "editar")}
               onBaixa={(record) => abrirLancamento(record, "baixar")}
+              onOpenList={() => navigate("/financeiro/lancamentos?tipo=despesa&status=pendente")}
             />
           </Col>
         </Row>
