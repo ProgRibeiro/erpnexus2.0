@@ -496,7 +496,7 @@ function OrdensPage() {
               <Button
                 type="text"
                 icon={<DollarOutlined />}
-                onClick={() => navigate(`/financeiro/lancamentos/novo?os=${record.id}`)}
+                onClick={() => navigate(`/ordens/${record.id}?tab=faturamento`)}
                 style={{ color: "#1A7A4A" }}
               />
             </Tooltip>

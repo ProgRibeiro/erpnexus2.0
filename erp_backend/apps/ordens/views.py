@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.http import FileResponse
 from django.utils import timezone
 from reportlab.pdfgen import canvas
@@ -134,6 +135,77 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             observacao=serializer.validated_data.get("observacao", ""),
         )
         return Response(self.get_serializer(ordem).data)
+
+    @action(detail=True, methods=["post"], url_path="confirmar-faturamento")
+    def confirmar_faturamento(self, request, pk=None):
+        from apps.financeiro.models import CategoriaFinanceira, ContaBancaria, Lancamento
+        from apps.financeiro.serializers import LancamentoSerializer
+
+        ordem = self.get_object()
+        conta_id = request.data.get("conta_bancaria")
+        if conta_id:
+            try:
+                conta = ContaBancaria.objects.get(pk=conta_id, ativo=True)
+            except ContaBancaria.DoesNotExist:
+                return Response(
+                    {"detail": "Conta/banco de recebimento não encontrado ou inativo."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            conta, _ = ContaBancaria.objects.get_or_create(
+                nome="Caixa principal",
+                defaults={
+                    "banco": "Caixa interno",
+                    "tipo": ContaBancaria.Tipo.CAIXA,
+                    "saldo_inicial": 0,
+                    "ativo": True,
+                },
+            )
+
+        with transaction.atomic():
+            status_anterior = ordem.status
+            ordem.status = OrdemServico.Status.FATURADA
+            ordem.atualizado_por = request.user
+            ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
+
+            if status_anterior != ordem.status:
+                LogStatusOS.objects.create(
+                    os=ordem,
+                    status_anterior=status_anterior,
+                    status_novo=ordem.status,
+                    alterado_por=request.user,
+                    observacao="Faturamento confirmado pela tela operacional da OS.",
+                )
+
+            categoria, _ = CategoriaFinanceira.objects.get_or_create(
+                nome="Receita de servicos",
+                tipo=Lancamento.Tipo.RECEITA,
+                defaults={"cor": "#3B82F6"},
+            )
+            lancamento, _ = Lancamento.objects.update_or_create(
+                os=ordem,
+                tipo=Lancamento.Tipo.RECEITA,
+                defaults={
+                    "descricao": f"Faturamento {ordem.numero}",
+                    "valor": ordem.valor_final_faturado or ordem.valor_total_orcado,
+                    "data_competencia": ordem.data_emissao_nf or timezone.localdate(),
+                    "data_vencimento": ordem.data_vencimento or timezone.localdate(),
+                    "status": Lancamento.Status.PENDENTE,
+                    "conta_bancaria": conta,
+                    "categoria": categoria,
+                    "fornecedor_cliente": ordem.cliente.nome if ordem.cliente else "",
+                    "numero_documento": ordem.numero_nf,
+                    "criado_por": request.user,
+                },
+            )
+
+        ordem.refresh_from_db()
+        return Response(
+            {
+                "ordem": self.get_serializer(ordem).data,
+                "lancamento": LancamentoSerializer(lancamento).data,
+            }
+        )
 
     @action(detail=True, methods=["post"], url_path="upload-fotos")
     def upload_fotos(self, request, pk=None):

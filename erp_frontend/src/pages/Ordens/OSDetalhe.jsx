@@ -58,7 +58,7 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
@@ -335,6 +335,7 @@ function createUploadValue(file) {
 export default function OSDetalhePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
@@ -344,6 +345,7 @@ export default function OSDetalhePage() {
   const [ordem, setOrdem] = useState(null);
   const [clients, setClients] = useState([]);
   const [technicians, setTechnicians] = useState([]);
+  const [contasRecebimento, setContasRecebimento] = useState([]);
   const [activeTab, setActiveTab] = useState("dados-gerais");
   const [chatMessage, setChatMessage] = useState("");
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
@@ -408,6 +410,13 @@ export default function OSDetalhePage() {
   useEffect(() => {
     carregarTela();
   }, [id]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!watchedHasPc) return;
@@ -483,11 +492,12 @@ export default function OSDetalhePage() {
   const carregarTela = async () => {
     try {
       setLoading(true);
-      const [ordemResponse, clientsResponse, techniciansResponse, empresaResponse] = await Promise.allSettled([
+      const [ordemResponse, clientsResponse, techniciansResponse, empresaResponse, contasResponse] = await Promise.allSettled([
         api.get(`/ordens/${id}/`),
         api.get("/clientes/"),
         api.get("/auth/"),
         api.get("/configuracoes/empresa/"),
+        api.get("/financeiro/contas-bancarias/", { params: { ativo: true } }),
       ]);
 
       if (ordemResponse.status !== "fulfilled") {
@@ -512,6 +522,21 @@ export default function OSDetalhePage() {
 
       setClients(clientes);
       setTechnicians(tecnicos);
+      if (contasResponse.status === "fulfilled") {
+        let contas = normalizeList(contasResponse.value.data);
+        if (!contas.length) {
+          const novaConta = await api.post("/financeiro/contas-bancarias/", {
+            nome: "Caixa principal",
+            banco: "Caixa interno",
+            tipo: "caixa",
+            saldo_inicial: 0,
+            ativo: true,
+          });
+          contas = [novaConta.data];
+        }
+        setContasRecebimento(contas);
+        form.setFieldValue("conta_recebimento", contas[0].id);
+      }
       setOrdem(ordemAtual);
       setOrcamentoItens(
         (ordemAtual?.itens || []).map((item, index) => ({
@@ -981,17 +1006,20 @@ export default function OSDetalhePage() {
         "data_vencimento",
         "data_recebimento",
         "forma_cobranca",
+        "conta_recebimento",
       ]);
       await salvarOS();
-      await api.post(`/ordens/${id}/mudar-status/`, {
-        status: "faturada",
-        observacao: "Faturamento confirmado pela tela operacional da OS.",
+      const response = await api.post(`/ordens/${id}/confirmar-faturamento/`, {
+        conta_bancaria: form.getFieldValue("conta_recebimento"),
       });
-      message.success("Faturamento confirmado. Redirecionando para o financeiro.");
-      navigate(`/financeiro/lancamentos/novo?os=${id}`);
+      if (response.data?.ordem) {
+        setOrdem(response.data.ordem);
+        preencherFormulario(response.data.ordem);
+      }
+      message.success("Faturamento confirmado e lançamento financeiro criado com a conta escolhida.");
     } catch (error) {
       console.error("Erro ao confirmar faturamento:", error);
-      message.error("Não foi possível confirmar o faturamento.");
+      message.error(error?.response?.data?.detail || "Não foi possível confirmar o faturamento.");
     } finally {
       setSendingBilling(false);
     }
@@ -1892,6 +1920,23 @@ export default function OSDetalhePage() {
           <Col xs={24} md={12}>
             <Form.Item label="Forma de cobrança" name="forma_cobranca">
               <Select options={formaCobrancaOptions} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Banco/conta de recebimento"
+              name="conta_recebimento"
+              rules={[{ required: true, message: "Selecione onde o dinheiro vai cair." }]}
+            >
+              <Select
+                placeholder="Selecione a conta"
+                options={contasRecebimento.map((conta) => ({
+                  value: conta.id,
+                  label: conta.banco
+                    ? `${conta.nome} - ${conta.banco}`
+                    : conta.nome,
+                }))}
+              />
             </Form.Item>
           </Col>
           <Col xs={24}>
