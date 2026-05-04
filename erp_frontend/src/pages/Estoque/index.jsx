@@ -77,6 +77,8 @@ export default function EstoquePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [novaCategoria, setNovaCategoria] = useState("");
+  const [salvandoCategoria, setSalvandoCategoria] = useState(false);
   const [form] = Form.useForm();
   const formValues = Form.useWatch([], form) || {};
 
@@ -165,6 +167,31 @@ export default function EstoquePage() {
       message.error(detail);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const cadastrarCategoria = async () => {
+    const nome = novaCategoria.trim();
+    if (!nome) {
+      message.warning("Informe o nome da categoria");
+      return;
+    }
+
+    setSalvandoCategoria(true);
+    try {
+      const categoria = await estoqueService.salvarCategoria({
+        nome,
+        descricao: "Categoria criada manualmente pelo cliente do ERP.",
+        ativo: true,
+      });
+      setCategorias((current) => [...current, categoria].sort((a, b) => a.nome.localeCompare(b.nome)));
+      form.setFieldValue("categoria", categoria.id);
+      setNovaCategoria("");
+      message.success("Categoria criada e selecionada");
+    } catch {
+      message.error("Erro ao criar categoria");
+    } finally {
+      setSalvandoCategoria(false);
     }
   };
 
@@ -270,7 +297,33 @@ export default function EstoquePage() {
           <Row gutter={12}>
             <Col xs={24} md={16}><Form.Item name="nome" label="Nome do produto" rules={[{ required: true, message: "Informe o produto" }]}><Input /></Form.Item></Col>
             <Col xs={24} md={8}><Form.Item name="unidade_medida" label="Unidade"><Select options={unidades} /></Form.Item></Col>
-            <Col xs={24} md={12}><Form.Item name="categoria" label="Categoria"><Select allowClear options={categorias.map((c) => ({ value: c.id, label: c.nome }))} /></Form.Item></Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="categoria" label="Categoria">
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Selecione ou cadastre"
+                  optionFilterProp="label"
+                  options={categorias.map((c) => ({ value: c.id, label: c.nome }))}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <div style={{ borderTop: "1px solid #E5E7EB", display: "flex", gap: 8, padding: 8 }}>
+                        <Input
+                          placeholder="Nova categoria"
+                          value={novaCategoria}
+                          onChange={(event) => setNovaCategoria(event.target.value)}
+                          onPressEnter={cadastrarCategoria}
+                        />
+                        <Button type="primary" loading={salvandoCategoria} onClick={cadastrarCategoria} style={btnPrimary}>
+                          Criar
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                />
+              </Form.Item>
+            </Col>
             <Col xs={24} md={12}><Form.Item name="tipo_suprimento" label="Suprimento"><Select options={suprimentos} /></Form.Item></Col>
             <Col xs={24}><Form.Item name="descricao" label="Descrição"><Input.TextArea rows={3} /></Form.Item></Col>
           </Row>
