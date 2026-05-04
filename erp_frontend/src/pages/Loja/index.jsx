@@ -75,6 +75,11 @@ export default function LojaPage() {
   const [caixas, setCaixas] = useState([]);
   const [entregas, setEntregas] = useState([]);
   const [formas, setFormas] = useState([]);
+  const [relatorios, setRelatorios] = useState({
+    curvaAbc: [],
+    vendasVendedor: [],
+    produtosMaisVendidos: [],
+  });
   const [loading, setLoading] = useState(false);
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
@@ -95,6 +100,17 @@ export default function LojaPage() {
       setCaixas(normalizeList(caixasResp.data));
       setEntregas(normalizeList(entregasResp.data));
       setFormas(normalizeList(formasResp.data));
+
+      const [curvaResp, vendedoresResp, vendidosResp] = await Promise.allSettled([
+        api.get("/loja/relatorios/curva-abc/"),
+        api.get("/loja/relatorios/vendas-por-vendedor/"),
+        api.get("/loja/relatorios/produtos-mais-vendidos/"),
+      ]);
+      setRelatorios({
+        curvaAbc: curvaResp.status === "fulfilled" ? normalizeList(curvaResp.value.data) : [],
+        vendasVendedor: vendedoresResp.status === "fulfilled" ? normalizeList(vendedoresResp.value.data) : [],
+        produtosMaisVendidos: vendidosResp.status === "fulfilled" ? normalizeList(vendidosResp.value.data) : [],
+      });
     } catch {
       message.warning("Não foi possível carregar todas as conexões do Modo Loja agora.");
     } finally {
@@ -120,6 +136,17 @@ export default function LojaPage() {
   const produtosComAlerta = useMemo(() => {
     return produtos.filter((item) => item.produto_dados?.em_alerta || Number(item.estoque_atual || 0) <= Number(item.produto_dados?.estoque_minimo || 0));
   }, [produtos]);
+
+  const produtosFiscalPendente = useMemo(() => {
+    return produtos.filter((item) => !item.ncm || !item.cfop_padrao);
+  }, [produtos]);
+
+  const produtosRecompra = useMemo(() => {
+    return produtosComAlerta.map((item) => ({
+      ...item,
+      sugestao_compra: Math.max(Number(item.produto_dados?.estoque_minimo || 0) * 2 - Number(item.estoque_atual || 0), 1),
+    }));
+  }, [produtosComAlerta]);
 
   const abrirCaixa = async () => {
     try {
@@ -204,7 +231,7 @@ export default function LojaPage() {
     { titulo: "Estoque", texto: `${produtos.length} produtos vinculados`, ok: true },
     { titulo: "Financeiro", texto: "Receitas geradas ao finalizar venda", ok: true },
     { titulo: "Caixa", texto: `${caixas.length} caixa(s) aberto(s)`, ok: caixas.length > 0 },
-    { titulo: "Fiscal", texto: "NCM, CEST, CFOP e origem no cadastro", ok: produtos.every((item) => item.ncm && item.cfop_padrao) },
+    { titulo: "Fiscal", texto: `${produtosFiscalPendente.length} produto(s) com fiscal pendente`, ok: produtosFiscalPendente.length === 0 },
   ];
 
   const menuOptions = [
@@ -259,7 +286,12 @@ export default function LojaPage() {
             dataSource={formas}
             renderItem={(forma) => (
               <List.Item>
-                <Text>{forma.nome}</Text>
+                <Space direction="vertical" size={0}>
+                  <Text>{forma.nome}</Text>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>
+                    Taxa {Number(forma.taxa_percentual || 0).toFixed(2)}% - recebe em {forma.prazo_recebimento_dias || 0} dia(s)
+                  </Text>
+                </Space>
                 <Tag>{forma.tipo}</Tag>
               </List.Item>
             )}
@@ -285,18 +317,36 @@ export default function LojaPage() {
   );
 
   const renderCaixa = () => (
-    <Card title="Gestão de caixa" extra={<Button type="primary" icon={<DollarOutlined />} style={{ background: lojaBlue }} onClick={abrirCaixa}>Abrir caixa</Button>}>
-      <Table
-        rowKey="id"
-        dataSource={caixas}
-        columns={[
-          { title: "Caixa", dataIndex: "nome" },
-          { title: "Responsável", dataIndex: "responsavel_nome" },
-          { title: "Saldo", dataIndex: "saldo_atual", render: currency },
-          { title: "Abertura", dataIndex: "abertura" },
-        ]}
-      />
-    </Card>
+    <Row gutter={[16, 16]}>
+      <Col xs={24} lg={16}>
+        <Card title="Gestão de caixa" extra={<Button type="primary" icon={<DollarOutlined />} style={{ background: lojaBlue }} onClick={abrirCaixa}>Abrir caixa</Button>}>
+          <Table
+            rowKey="id"
+            dataSource={caixas}
+            columns={[
+              { title: "Caixa", dataIndex: "nome" },
+              { title: "Responsável", dataIndex: "responsavel_nome" },
+              { title: "Saldo", dataIndex: "saldo_atual", render: currency },
+              { title: "Abertura", dataIndex: "abertura" },
+            ]}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} lg={8}>
+        <Card title="Rotina operacional">
+          <List
+            dataSource={[
+              "Abrir caixa com valor inicial conferido",
+              "Registrar vendas por forma de pagamento",
+              "Usar sangria para retirada de dinheiro",
+              "Usar suprimento para reforço de caixa",
+              "Fechar caixa conferindo saldo físico e sistema",
+            ]}
+            renderItem={(item) => <List.Item><CheckCircleOutlined style={{ color: "#10B981" }} /> <Text>{item}</Text></List.Item>}
+          />
+        </Card>
+      </Col>
+    </Row>
   );
 
   const renderEntregas = () => (
@@ -315,6 +365,78 @@ export default function LojaPage() {
     </Card>
   );
 
+  const renderCompras = () => (
+    <Card title="Sugestão de compras e reposição">
+      <Alert
+        type={produtosRecompra.length ? "warning" : "success"}
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={produtosRecompra.length ? "Há produtos abaixo do mínimo." : "Nenhum produto abaixo do mínimo agora."}
+        description="A sugestão considera estoque mínimo e quantidade atual para ajudar no pedido de compra."
+      />
+      <Table
+        rowKey="id"
+        dataSource={produtosRecompra}
+        columns={[
+          { title: "Produto", render: (_, item) => getProdutoNome(item) },
+          { title: "Estoque atual", dataIndex: "estoque_atual" },
+          { title: "Mínimo", render: (_, item) => item.produto_dados?.estoque_minimo || 0 },
+          { title: "Comprar sugerido", dataIndex: "sugestao_compra", render: (value) => <Tag color="orange">{value}</Tag> },
+          { title: "Custo estimado", render: (_, item) => currency(Number(item.produto_dados?.preco_custo || 0) * Number(item.sugestao_compra || 0)) },
+        ]}
+      />
+    </Card>
+  );
+
+  const renderRelatorios = () => (
+    <Row gutter={[16, 16]}>
+      <Col xs={24} xl={8}>
+        <Card title="Curva ABC">
+          <Table
+            size="small"
+            pagination={false}
+            rowKey={(row, index) => `${row.produto__produto__nome}-${index}`}
+            dataSource={relatorios.curvaAbc.slice(0, 8)}
+            columns={[
+              { title: "Produto", dataIndex: "produto__produto__nome" },
+              { title: "Faturamento", dataIndex: "total", render: currency },
+            ]}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} xl={8}>
+        <Card title="Produtos mais vendidos">
+          <Table
+            size="small"
+            pagination={false}
+            rowKey={(row, index) => `${row.produto__produto__nome}-${index}`}
+            dataSource={relatorios.produtosMaisVendidos.slice(0, 8)}
+            columns={[
+              { title: "Produto", dataIndex: "produto__produto__nome" },
+              { title: "Qtd", dataIndex: "total" },
+              { title: "Valor", dataIndex: "faturamento", render: currency },
+            ]}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} xl={8}>
+        <Card title="Vendas por vendedor">
+          <Table
+            size="small"
+            pagination={false}
+            rowKey={(row, index) => `${row.codigo_vendedor}-${index}`}
+            dataSource={relatorios.vendasVendedor.slice(0, 8)}
+            columns={[
+              { title: "Vendedor", dataIndex: "codigo_vendedor" },
+              { title: "Vendas", dataIndex: "vendas" },
+              { title: "Total", dataIndex: "total", render: currency },
+            ]}
+          />
+        </Card>
+      </Col>
+    </Row>
+  );
+
   const renderResumo = () => (
     <Row gutter={[16, 16]}>
       <Col xs={24} md={8}><Card><Statistic title="Vendas do dia" value={Number(dashboard.vendas_dia || 0)} prefix="R$" precision={2} valueStyle={{ color: lojaBlue }} /></Card></Col>
@@ -328,8 +450,8 @@ export default function LojaPage() {
     produtos: renderProdutos,
     caixa: renderCaixa,
     entregas: renderEntregas,
-    compras: renderResumo,
-    relatorios: renderResumo,
+    compras: renderCompras,
+    relatorios: renderRelatorios,
   };
 
   return (
@@ -393,8 +515,58 @@ export default function LojaPage() {
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={8}><Card><Statistic title="Vendas do dia" value={Number(dashboard.vendas_dia || 0)} prefix="R$" precision={2} valueStyle={{ color: lojaBlue }} /></Card></Col>
-            <Col xs={24} md={8}><Card><Statistic title="Ticket médio" value={Number(dashboard.ticket_medio || 0)} prefix="R$" precision={2} valueStyle={{ color: "#10B981" }} /></Card></Col>
+            <Col xs={24} md={8}><Card><Statistic title="Vendas realizadas" value={Number(dashboard.quantidade_vendas || 0)} suffix="hoje" valueStyle={{ color: "#10B981" }} /></Card></Col>
             <Col xs={24} md={8}><Card><Statistic title="Caixas abertos" value={caixas.length} prefix={<ThunderboltOutlined />} /></Card></Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={8}>
+              <Card title="Alertas de estoque">
+                <List
+                  dataSource={produtosComAlerta.slice(0, 5)}
+                  locale={{ emptyText: "Sem alerta de estoque" }}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <Space direction="vertical" size={0}>
+                        <Text strong>{getProdutoNome(item)}</Text>
+                        <Text style={{ color: "#64748B", fontSize: 12 }}>Atual {Number(item.estoque_atual || 0)} - mínimo {item.produto_dados?.estoque_minimo || 0}</Text>
+                      </Space>
+                      <Tag color="red">Repor</Tag>
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              <Card title="Pendências fiscais">
+                <List
+                  dataSource={produtosFiscalPendente.slice(0, 5)}
+                  locale={{ emptyText: "Fiscal dos produtos em ordem" }}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <Space direction="vertical" size={0}>
+                        <Text strong>{getProdutoNome(item)}</Text>
+                        <Text style={{ color: "#64748B", fontSize: 12 }}>Informe NCM e CFOP antes de emitir NFC-e/NF-e.</Text>
+                      </Space>
+                      <Tag color="orange">Fiscal</Tag>
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              <Card title="Indicadores rápidos">
+                <List
+                  dataSource={[
+                    { label: "Ticket médio", value: currency(dashboard.ticket_medio) },
+                    { label: "Produtos cadastrados", value: produtos.length },
+                    { label: "Formas de pagamento", value: formas.length },
+                    { label: "Entregas abertas", value: entregas.filter((item) => !["entregue", "devolvido"].includes(item.status)).length },
+                  ]}
+                  renderItem={(item) => <List.Item><Text>{item.label}</Text><Text strong>{item.value}</Text></List.Item>}
+                />
+              </Card>
+            </Col>
           </Row>
 
           <Card>
