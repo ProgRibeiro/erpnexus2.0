@@ -487,6 +487,8 @@ def _prepare_orcamento_context(os_obj):
 
 def _gerar_relatorio_tecnico_reportlab(os_obj):
     """Gera PDF profissional de relatório técnico de execução com checklist e fotos."""
+    from html import escape
+
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -496,11 +498,20 @@ def _gerar_relatorio_tecnico_reportlab(os_obj):
         SimpleDocTemplate, Spacer, Table, TableStyle
     )
 
+    context = _prepare_relatorio_context(os_obj)
+    empresa = context["empresa"]
+
+    cor_empresa = (empresa.cor_principal or "#3B82F6").strip()
+    if cor_empresa.upper() == "#1B4F8A" or not cor_empresa.startswith("#") or len(cor_empresa) != 7:
+        cor_empresa = "#3B82F6"
+
     PRIMARY = colors.HexColor("#0F172A")
+    BRAND = colors.HexColor(cor_empresa)
     ACCENT = colors.HexColor("#3B82F6")
     LIGHT = colors.HexColor("#F8FAFC")
     BORDER = colors.HexColor("#DDE5EF")
     MUTED = colors.HexColor("#64748B")
+    DARK_MUTED = colors.HexColor("#334155")
     GREEN = colors.HexColor("#10B981")
     RED = colors.HexColor("#EF4444")
 
@@ -515,17 +526,22 @@ def _gerar_relatorio_tecnico_reportlab(os_obj):
     )
 
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="DocTitle", fontName="Helvetica-Bold", fontSize=22,
-                               textColor=colors.white, spaceAfter=2))
+    styles.add(ParagraphStyle(name="DocLabel", fontName="Helvetica-Bold", fontSize=8,
+                               textColor=colors.HexColor("#BFDBFE"), spaceAfter=4,
+                               uppercase=True))
+    styles.add(ParagraphStyle(name="DocTitle", fontName="Helvetica-Bold", fontSize=17,
+                               textColor=colors.white, leading=20, spaceAfter=3))
     styles.add(ParagraphStyle(name="DocSubtitle", fontName="Helvetica", fontSize=10,
                                textColor=colors.HexColor("#CBD5E1"), spaceAfter=0))
-    styles.add(ParagraphStyle(name="EmpresaNome", fontName="Helvetica-Bold", fontSize=13,
-                               textColor=colors.white, spaceAfter=2))
+    styles.add(ParagraphStyle(name="EmpresaNome", fontName="Helvetica-Bold", fontSize=15,
+                               textColor=PRIMARY, leading=18, spaceAfter=3))
     styles.add(ParagraphStyle(name="EmpresaInfo", fontName="Helvetica", fontSize=8,
-                               textColor=colors.HexColor("#CBD5E1"), leading=12))
+                               textColor=MUTED, leading=11))
     styles.add(ParagraphStyle(name="SecTitle", fontName="Helvetica-Bold", fontSize=9,
-                               textColor=MUTED, spaceAfter=6, spaceBefore=14,
+                               textColor=DARK_MUTED, spaceAfter=6, spaceBefore=14,
                                textTransform="uppercase"))
+    styles.add(ParagraphStyle(name="CardTitle", fontName="Helvetica-Bold", fontSize=10,
+                               textColor=PRIMARY, leading=13, spaceAfter=4))
     styles.add(ParagraphStyle(name="Body", fontName="Helvetica", fontSize=9,
                                textColor=PRIMARY, leading=13))
     styles.add(ParagraphStyle(name="BodyMuted", fontName="Helvetica", fontSize=9,
@@ -537,64 +553,154 @@ def _gerar_relatorio_tecnico_reportlab(os_obj):
     styles.add(ParagraphStyle(name="FooterText", fontName="Helvetica", fontSize=8,
                                textColor=MUTED))
 
-    context = _prepare_relatorio_context(os_obj)
-    empresa = context["empresa"]
     story = []
 
-    # ── CABEÇALHO ESCURO ──────────────────────────────────────────────────────
+    def p(value):
+        return escape(str(value or "-")).replace("\n", "<br/>")
+
+    def compact_lines(lines):
+        return "<br/>".join(p(line) for line in lines if line)
+
+    # ── CAPA / CABEÇALHO CORPORATIVO ─────────────────────────────────────────
     logo_elem = None
     logo_path = context.get("logo_path")
     if logo_path and os.path.exists(logo_path):
         try:
-            logo_elem = RLImage(logo_path, width=20 * mm, height=20 * mm)
+            logo_elem = RLImage(logo_path, width=26 * mm, height=20 * mm)
         except Exception:
             logo_elem = None
 
     empresa_nome = empresa.razao_social or empresa.nome or "Empresa"
+    empresa_site = getattr(empresa, "site", "") or ""
     empresa_info_lines = [
         f"CNPJ: {empresa.cnpj}" if empresa.cnpj else "",
         empresa.endereco or "",
         f"Tel: {empresa.telefone}" if empresa.telefone else "",
-        f"{empresa.email}" if empresa.email else "",
+        f"E-mail: {empresa.email}" if empresa.email else "",
+        empresa_site,
     ]
-    empresa_info = " | ".join(l for l in empresa_info_lines if l)
+    empresa_info = compact_lines(empresa_info_lines)
 
     tipo_label = os_obj.get_tipo_servico_display() if os_obj.tipo_servico else "Serviço"
-    doc_title = f"Relatório Técnico de {tipo_label}"
-    doc_subtitle = f"{os_obj.numero}  •  Emitido em {context['data_emissao']}"
+    doc_title = f"Relatório Técnico<br/>{p(tipo_label)}"
+    doc_subtitle = f"{p(os_obj.numero)}  |  Emitido em {p(context['data_emissao'])}"
 
     if logo_elem:
         header_left = Table(
-            [[logo_elem, Table([[Paragraph(empresa_nome, styles["EmpresaNome"])],
+            [[logo_elem, Table([[Paragraph(p(empresa_nome), styles["EmpresaNome"])],
                                  [Paragraph(empresa_info, styles["EmpresaInfo"])]],
-                                colWidths=[None], style=[("LEFTPADDING", (0,0),(-1,-1), 6)])]],
-            colWidths=[24 * mm, None],
+                                colWidths=[82 * mm], style=[
+                                    ("LEFTPADDING", (0,0),(-1,-1), 8),
+                                    ("VALIGN", (0,0),(-1,-1), "MIDDLE"),
+                                ])]],
+            colWidths=[30 * mm, 86 * mm],
         )
     else:
         header_left = Table(
-            [[Paragraph(empresa_nome, styles["EmpresaNome"])],
+            [[Paragraph(p(empresa_nome), styles["EmpresaNome"])],
              [Paragraph(empresa_info, styles["EmpresaInfo"])]],
+            colWidths=[116 * mm],
         )
 
     header_right = Table(
-        [[Paragraph(doc_title, styles["DocTitle"])],
+        [[Paragraph("DOCUMENTO TECNICO", styles["DocLabel"])],
+         [Paragraph(doc_title, styles["DocTitle"])],
          [Paragraph(doc_subtitle, styles["DocSubtitle"])]],
+        colWidths=[64 * mm],
     )
     header_table = Table(
         [[header_left, header_right]],
-        colWidths=[70 * mm, None],
+        colWidths=[116 * mm, 64 * mm],
     )
     header_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), PRIMARY),
+        ("BACKGROUND", (0, 0), (0, 0), colors.white),
+        ("BACKGROUND", (1, 0), (1, 0), PRIMARY),
+        ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+        ("LINEBEFORE", (1, 0), (1, 0), 4, BRAND),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (0, -1), 10),
-        ("RIGHTPADDING", (-1, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (0, -1), 12),
+        ("RIGHTPADDING", (0, 0), (0, -1), 12),
+        ("LEFTPADDING", (1, 0), (1, -1), 12),
+        ("RIGHTPADDING", (1, 0), (1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 14),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
     ]))
     story.append(header_table)
+    story.append(Spacer(1, 12))
+
+    cliente = os_obj.cliente
+    cliente_info = compact_lines([
+        cliente.nome,
+        f"Documento: {cliente.cnpj_cpf}" if getattr(cliente, "cnpj_cpf", "") else "",
+        f"Telefone: {cliente.telefone}" if getattr(cliente, "telefone", "") else "",
+        f"WhatsApp: {cliente.whatsapp}" if getattr(cliente, "whatsapp", "") else "",
+        f"E-mail: {cliente.email}" if getattr(cliente, "email", "") else "",
+        f"Endereço do serviço: {context['endereco']}" if context.get("endereco") else "",
+    ])
+    empresa_card = Table(
+        [[
+            Paragraph("Empresa responsável", styles["CardTitle"]),
+            Paragraph("Cliente contratante", styles["CardTitle"]),
+        ], [
+            Paragraph(empresa_info or p(empresa_nome), styles["BodyMuted"]),
+            Paragraph(cliente_info, styles["BodyMuted"]),
+        ]],
+        colWidths=[90 * mm, 90 * mm],
+    )
+    empresa_card.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), LIGHT),
+        ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.4, BORDER),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(empresa_card)
+
+    resumo_rows = [[
+        Paragraph(f"<b>{p(os_obj.numero)}</b><br/><font color='#64748B'>Ordem de serviço</font>", styles["Body"]),
+        Paragraph(f"<b>{p(os_obj.get_status_display())}</b><br/><font color='#64748B'>Status</font>", styles["Body"]),
+        Paragraph(f"<b>{p(context['tecnico'])}</b><br/><font color='#64748B'>Técnico</font>", styles["Body"]),
+        Paragraph(f"<b>{p(context['data_execucao'])}</b><br/><font color='#64748B'>Execução</font>", styles["Body"]),
+    ]]
+    resumo_table = Table(resumo_rows, colWidths=[45 * mm] * 4)
+    resumo_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EFF6FF")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BFDBFE")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#BFDBFE")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
     story.append(Spacer(1, 10))
+    story.append(resumo_table)
+    story.append(Spacer(1, 10))
+
+    apresentacao = (
+        "Este relatório técnico consolida as evidências do atendimento, "
+        "condições encontradas, checklist executado, registros fotográficos "
+        "e informações de rastreabilidade da ordem de serviço. O documento "
+        "foi emitido para análise operacional, validação do contratante e "
+        "histórico técnico da manutenção."
+    )
+    apresentacao_table = Table(
+        [[Paragraph("Apresentação do relatório", styles["CardTitle"])],
+         [Paragraph(apresentacao, styles["BodyMuted"])]],
+        colWidths=[180 * mm],
+    )
+    apresentacao_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F1F5F9")),
+        ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
+    story.append(apresentacao_table)
 
     # ── DADOS DA OS ──────────────────────────────────────────────────────────
     story.append(Paragraph("Dados da Ordem de Serviço", styles["SecTitle"]))
@@ -633,7 +739,7 @@ def _gerar_relatorio_tecnico_reportlab(os_obj):
     # ── DESCRIÇÃO DO SERVIÇO ──────────────────────────────────────────────────
     if os_obj.descricao_servico:
         story.append(Paragraph("Descrição do Serviço", styles["SecTitle"]))
-        story.append(Paragraph(os_obj.descricao_servico.replace("\n", "<br/>"), styles["Body"]))
+        story.append(Paragraph(p(os_obj.descricao_servico), styles["Body"]))
 
     # ── CHECKLIST TÉCNICO ──────────────────────────────────────────────────────
     respostas = list(
