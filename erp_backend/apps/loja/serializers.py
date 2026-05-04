@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.estoque.models import CategoriaProduto, MovimentacaoEstoque, Produto
 from apps.estoque.serializers import ProdutoSerializer
 
 from .models import (
@@ -48,10 +49,72 @@ class ProdutoLojaSerializer(serializers.ModelSerializer):
     imagens = ImagemProdutoSerializer(many=True, read_only=True)
     preco_vigente = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     estoque_atual = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    nome = serializers.CharField(write_only=True, required=False)
+    descricao = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    categoria_nome = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    unidade_medida = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    preco_custo = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True, required=False)
+    preco_venda = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True, required=False)
+    markup_percentual = serializers.DecimalField(max_digits=7, decimal_places=2, write_only=True, required=False)
+    aliquota_impostos_percentual = serializers.DecimalField(max_digits=7, decimal_places=2, write_only=True, required=False)
+    despesas_operacionais_percentual = serializers.DecimalField(max_digits=7, decimal_places=2, write_only=True, required=False)
+    estoque_minimo = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True, required=False)
+    estoque_inicial = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True, required=False)
+    localizacao = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    tipo_suprimento = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = ProdutoLoja
         fields = "__all__"
+        extra_kwargs = {"produto": {"required": False}}
+
+    def create(self, validated_data):
+        produto_fields = {}
+        estoque_inicial = validated_data.pop("estoque_inicial", 0)
+        categoria_nome = validated_data.pop("categoria_nome", "")
+
+        for field in [
+            "nome",
+            "descricao",
+            "unidade_medida",
+            "preco_custo",
+            "preco_venda",
+            "markup_percentual",
+            "aliquota_impostos_percentual",
+            "despesas_operacionais_percentual",
+            "estoque_minimo",
+            "localizacao",
+            "tipo_suprimento",
+        ]:
+            if field in validated_data:
+                produto_fields[field] = validated_data.pop(field)
+
+        if not validated_data.get("produto"):
+            if not produto_fields.get("nome"):
+                raise serializers.ValidationError({"nome": "Informe o nome do produto."})
+            if categoria_nome:
+                categoria, _ = CategoriaProduto.objects.get_or_create(nome=categoria_nome)
+                produto_fields["categoria"] = categoria
+            if produto_fields.get("preco_venda"):
+                produto_fields["preco_manual"] = True
+            produto = Produto.objects.create(**produto_fields)
+            validated_data["produto"] = produto
+        else:
+            produto = validated_data["produto"]
+
+        produto_loja = super().create(validated_data)
+
+        if estoque_inicial:
+            MovimentacaoEstoque.objects.create(
+                produto=produto,
+                tipo=MovimentacaoEstoque.Tipo.ENTRADA,
+                quantidade=estoque_inicial,
+                valor_unitario=produto.preco_custo,
+                motivo=MovimentacaoEstoque.Motivo.COMPRA,
+                observacoes="Estoque inicial cadastrado pelo Modo Loja",
+            )
+
+        return produto_loja
 
 
 class VendedorSerializer(serializers.ModelSerializer):
