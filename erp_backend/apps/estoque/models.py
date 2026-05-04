@@ -32,6 +32,10 @@ class Produto(models.Model):
         PAR = "par", "Par"
         CAIXA = "caixa", "Caixa"
 
+    class TipoSuprimento(models.TextChoices):
+        ESTOQUE = "estoque", "Alocado no estoque"
+        FUTURO = "futuro", "Produto futuro / sob compra"
+
     codigo = models.CharField(max_length=30, unique=True, blank=True, null=True)
     nome = models.CharField(max_length=255)
     descricao = models.TextField(blank=True)
@@ -49,6 +53,16 @@ class Produto(models.Model):
     )
     preco_custo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     preco_venda = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    preco_venda_sugerido = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    markup_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    aliquota_impostos_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    despesas_operacionais_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    preco_manual = models.BooleanField(default=False)
+    tipo_suprimento = models.CharField(
+        max_length=20,
+        choices=TipoSuprimento.choices,
+        default=TipoSuprimento.ESTOQUE,
+    )
     estoque_minimo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     localizacao = models.CharField(max_length=120, blank=True)
     ativo = models.BooleanField(default=True)
@@ -62,43 +76,12 @@ class Produto(models.Model):
     def __str__(self):
         return f"{self.codigo} - {self.nome}"
 
-
-class AlertaEstoque(models.Model):
-    class TipoAlerta(models.TextChoices):
-        ESTOQUE_BAIXO = "estoque_baixo", "Estoque Baixo"
-        SEM_ESTOQUE = "sem_estoque", "Sem Estoque"
-        FORA_MINIMO = "fora_minimo", "Fora do Mínimo"
-
-    produto = models.ForeignKey(
-        Produto,
-        on_delete=models.CASCADE,
-        related_name="alertas"
-    )
-    tipo = models.CharField(
-        max_length=50,
-        choices=TipoAlerta.choices,
-        default=TipoAlerta.ESTOQUE_BAIXO
-    )
-    descricao = models.TextField()
-    lido = models.BooleanField(default=False)
-    criado_em = models.DateTimeField(auto_now_add=True)
-    resolvido_em = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Alerta de Estoque"
-        verbose_name_plural = "Alertas de Estoque"
-        ordering = ["-criado_em"]
-        indexes = [
-            models.Index(fields=["lido", "-criado_em"]),
-            models.Index(fields=["produto"]),
-        ]
-
-    def __str__(self):
-        return f"{self.produto.nome} - {self.tipo}"
-
     def save(self, *args, **kwargs):
         if not self.codigo:
             self.codigo = self._gerar_codigo()
+        self.preco_venda_sugerido = self.calcular_preco_venda_sugerido()
+        if not self.preco_manual or not self.preco_venda:
+            self.preco_venda = self.preco_venda_sugerido
         super().save(*args, **kwargs)
 
     @classmethod
@@ -136,6 +119,52 @@ class AlertaEstoque(models.Model):
         if self.preco_custo > 0:
             return ((self.preco_venda - self.preco_custo) / self.preco_custo) * 100
         return 0
+
+    @property
+    def total_percentual_formacao(self):
+        return self.markup_percentual + self.aliquota_impostos_percentual + self.despesas_operacionais_percentual
+
+    @property
+    def lucro_unitario_estimado(self):
+        return self.preco_venda - self.preco_custo
+
+    def calcular_preco_venda_sugerido(self):
+        percentual = self.total_percentual_formacao
+        return self.preco_custo + (self.preco_custo * percentual / 100)
+
+
+class AlertaEstoque(models.Model):
+    class TipoAlerta(models.TextChoices):
+        ESTOQUE_BAIXO = "estoque_baixo", "Estoque Baixo"
+        SEM_ESTOQUE = "sem_estoque", "Sem Estoque"
+        FORA_MINIMO = "fora_minimo", "Fora do Mínimo"
+
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.CASCADE,
+        related_name="alertas"
+    )
+    tipo = models.CharField(
+        max_length=50,
+        choices=TipoAlerta.choices,
+        default=TipoAlerta.ESTOQUE_BAIXO
+    )
+    descricao = models.TextField()
+    lido = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    resolvido_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Alerta de Estoque"
+        verbose_name_plural = "Alertas de Estoque"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["lido", "-criado_em"]),
+            models.Index(fields=["produto"]),
+        ]
+
+    def __str__(self):
+        return f"{self.produto.nome} - {self.tipo}"
 
 
 class MovimentacaoEstoque(models.Model):

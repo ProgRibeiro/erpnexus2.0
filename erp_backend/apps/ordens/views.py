@@ -127,6 +127,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         ordem.status = status_novo
         ordem.atualizado_por = request.user
         ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
+        estoque_resultado = []
+        if status_novo == OrdemServico.Status.CONCLUIDA:
+            from apps.estoque.services import MotorEstoqueOS
+
+            estoque_resultado = MotorEstoqueOS().processar_conclusao_os(ordem, usuario=request.user)
         LogStatusOS.objects.create(
             os=ordem,
             status_anterior=status_anterior,
@@ -134,7 +139,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             alterado_por=request.user,
             observacao=serializer.validated_data.get("observacao", ""),
         )
-        return Response(self.get_serializer(ordem).data)
+        data = self.get_serializer(ordem).data
+        data["estoque_processado"] = estoque_resultado
+        return Response(data)
 
     @action(detail=True, methods=["post"], url_path="confirmar-faturamento")
     def confirmar_faturamento(self, request, pk=None):

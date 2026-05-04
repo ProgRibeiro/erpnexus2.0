@@ -37,10 +37,8 @@ class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
             "realizado_por",
             "realizado_por_nome",
             "data_movimentacao",
-            "criado_em",
-            "atualizado_em",
         ]
-        read_only_fields = ["id", "realizado_por", "criado_em", "atualizado_em", "valor_total"]
+        read_only_fields = ["id", "realizado_por", "valor_total"]
 
     def validate_quantidade(self, value):
         if value <= 0:
@@ -92,6 +90,12 @@ class ProdutoSerializer(serializers.ModelSerializer):
             "unidade_medida",
             "preco_custo",
             "preco_venda",
+            "preco_venda_sugerido",
+            "markup_percentual",
+            "aliquota_impostos_percentual",
+            "despesas_operacionais_percentual",
+            "preco_manual",
+            "tipo_suprimento",
             "estoque_minimo",
             "localizacao",
             "ativo",
@@ -99,6 +103,8 @@ class ProdutoSerializer(serializers.ModelSerializer):
             "em_alerta",
             "margem_unitaria",
             "margem_percentual",
+            "total_percentual_formacao",
+            "lucro_unitario_estimado",
             "criado_em",
         ]
         read_only_fields = [
@@ -109,6 +115,9 @@ class ProdutoSerializer(serializers.ModelSerializer):
             "em_alerta",
             "margem_unitaria",
             "margem_percentual",
+            "preco_venda_sugerido",
+            "total_percentual_formacao",
+            "lucro_unitario_estimado",
         ]
 
     def get_estoque_atual(self, obj):

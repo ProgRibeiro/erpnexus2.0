@@ -35,6 +35,10 @@ const estoqueService = {
     const response = await api.get("/estoque/movimentacoes/", { params });
     return unwrap(response.data);
   },
+  dashboard: async () => {
+    const response = await api.get("/estoque/dashboard/");
+    return response.data;
+  },
   relatorio: async (params) => {
     const response = await api.get("/estoque/relatorio/", { params });
     return response.data;
