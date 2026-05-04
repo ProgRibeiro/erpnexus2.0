@@ -36,6 +36,7 @@ import dayjs from "dayjs";
 import configuracoesService from "../../services/configuracoes";
 import usuariosService from "../../services/usuariosService";
 import ExcelImportModal from "../../components/ExcelImportModal";
+import GuiaLucroPresumido from "../Fiscal/components/GuiaLucroPresumido";
 
 const btnStyle = {
   background: "#3B82F6",
@@ -76,6 +77,7 @@ export default function ConfiguracoesPage() {
   const [cnpjStatus, setCnpjStatus] = useState(null);
   const [cnpjData, setCnpjData] = useState(null);
   const [regime, setRegime] = useState(null);
+  const [fiscalSnapshot, setFiscalSnapshot] = useState({});
   const [loadingImpostos, setLoadingImpostos] = useState(false);
   const [impostoPreview, setImpostoPreview] = useState(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -118,7 +120,18 @@ export default function ConfiguracoesPage() {
       // Config Fiscal
       const fiscal = await configuracoesService.obterConfigFiscal?.();
       if (fiscal) {
-        fiscalForm.setFieldsValue(fiscal);
+        const fiscalFormValues = {
+          ...fiscal,
+          tipo_nota_fiscal:
+            fiscal.tipo_nota === "nfse"
+              ? "nfs_e"
+              : fiscal.tipo_nota === "nfe"
+                ? "nf_e"
+                : fiscal.tipo_nota,
+          codigo_ibge: fiscal.codigo_municipio_ibge,
+        };
+        fiscalForm.setFieldsValue(fiscalFormValues);
+        setFiscalSnapshot(fiscalFormValues);
         setRegime(fiscal.regime_tributario);
       }
 
@@ -229,11 +242,14 @@ export default function ConfiguracoesPage() {
 
       setCnpjData(data);
       setCnpjStatus("success");
-      fiscalForm.setFieldsValue({
+      const cnpjValues = {
         razao_social: data.razao_social,
         municipio: data.municipio,
         uf: data.uf,
-      });
+        codigo_ibge: data.codigo_ibge || data.codigo_municipio_ibge,
+      };
+      fiscalForm.setFieldsValue(cnpjValues);
+      setFiscalSnapshot((current) => ({ ...current, ...cnpjValues }));
       message.success("CNPJ consultado com sucesso");
     } catch (error) {
       setCnpjStatus("error");
@@ -296,7 +312,21 @@ export default function ConfiguracoesPage() {
   const salvarConfigFiscal = async () => {
     try {
       const values = fiscalForm.getFieldsValue();
-      await configuracoesService.salvarConfigFiscal?.(values);
+      const fiscalAtualizada = await configuracoesService.salvarConfigFiscal?.(values);
+      if (fiscalAtualizada) {
+        const fiscalFormValues = {
+          ...fiscalAtualizada,
+          tipo_nota_fiscal:
+            fiscalAtualizada.tipo_nota === "nfse"
+              ? "nfs_e"
+              : fiscalAtualizada.tipo_nota === "nfe"
+                ? "nf_e"
+                : fiscalAtualizada.tipo_nota,
+          codigo_ibge: fiscalAtualizada.codigo_municipio_ibge,
+        };
+        fiscalForm.setFieldsValue(fiscalFormValues);
+        setFiscalSnapshot(fiscalFormValues);
+      }
       message.success("Configuração fiscal salva");
     } catch (error) {
       message.error("Erro ao salvar configuração fiscal");
@@ -1034,7 +1064,16 @@ export default function ConfiguracoesPage() {
             label: "Fiscal",
             children: (
               <Spin spinning={loadingImpostos}>
-                <Form form={fiscalForm} layout="vertical">
+                <Form
+                  form={fiscalForm}
+                  layout="vertical"
+                  onValuesChange={(changedValues, allValues) => {
+                    if (changedValues.regime_tributario) {
+                      setRegime(changedValues.regime_tributario);
+                    }
+                    setFiscalSnapshot(allValues);
+                  }}
+                >
                   {/* SEÇÃO: Consulta automática por CNPJ */}
                   <Divider>Consulta automática por CNPJ</Divider>
                   <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -1203,6 +1242,14 @@ export default function ConfiguracoesPage() {
                   >
                     <Input placeholder="Ex: 14.01" />
                   </Form.Item>
+
+                  <div style={{ marginBottom: 24 }}>
+                    <GuiaLucroPresumido
+                      config={fiscalSnapshot}
+                      valorReferencia={fiscalForm.getFieldValue("valor_servicos") || 10000}
+                      compact
+                    />
+                  </div>
 
                   {/* SEÇÃO: Alíquotas — Lucro Presumido */}
                   {regime === "lucro_presumido" && (

@@ -21,6 +21,31 @@ function buildEmpresaFormData(payload = {}) {
   return formData;
 }
 
+function normalizeFiscalPayload(payload = {}) {
+  const normalized = { ...payload };
+
+  if (normalized.tipo_nota_fiscal && !normalized.tipo_nota) {
+    normalized.tipo_nota =
+      normalized.tipo_nota_fiscal === "nfs_e"
+        ? "nfse"
+        : normalized.tipo_nota_fiscal === "nf_e"
+          ? "nfe"
+          : normalized.tipo_nota_fiscal;
+  }
+
+  if (normalized.codigo_ibge && !normalized.codigo_municipio_ibge) {
+    normalized.codigo_municipio_ibge = normalized.codigo_ibge;
+  }
+
+  delete normalized.tipo_nota_fiscal;
+  delete normalized.codigo_ibge;
+  delete normalized.cnpj_consulta;
+  delete normalized.valor_servicos;
+  delete normalized.valor_materiais;
+
+  return normalized;
+}
+
 const configuracoesService = {
   // Empresa
   obterEmpresa: async () => {
@@ -74,7 +99,7 @@ const configuracoesService = {
   // Métodos auxiliares mantidos
   consultarCNPJ: async (cnpj) => {
     try {
-      const response = await api.get(`/fiscal/consultar-cnpj/${cnpj}/`);
+      const response = await api.post("/fiscal/consultar-cnpj/", { cnpj });
       return response.data;
     } catch {
       return null;
@@ -101,7 +126,10 @@ const configuracoesService = {
 
   salvarConfigFiscal: async (payload) => {
     try {
-      const response = await api.patch("/fiscal/configuracao/", payload);
+      const response = await api.patch(
+        "/fiscal/configuracao/",
+        normalizeFiscalPayload(payload),
+      );
       return response.data;
     } catch {
       return null;

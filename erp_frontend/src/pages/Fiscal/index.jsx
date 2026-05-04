@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Space, Spin, Table, Tag, Typography, message } from "antd";
 import api from "../../services/api";
+import GuiaLucroPresumido from "./components/GuiaLucroPresumido";
 
 const { Text, Title } = Typography;
 
@@ -96,7 +97,13 @@ export default function FiscalPage() {
               </Button>
             </div>
 
-            <Form form={form} layout="vertical" disabled={!editando} onFinish={salvarConfig}>
+            <Form
+              form={form}
+              layout="vertical"
+              disabled={!editando}
+              onFinish={salvarConfig}
+              onValuesChange={(_, allValues) => setConfig((current) => ({ ...(current || {}), ...allValues }))}
+            >
               <Form.Item label="Regime Tributário" name="regime_tributario">
                 <Select options={regimeOpcoes} />
               </Form.Item>
@@ -213,6 +220,13 @@ export default function FiscalPage() {
           />
         </Card>
       )}
+
+      <div style={{ marginTop: 16 }}>
+        <GuiaLucroPresumido
+          config={config || {}}
+          valorReferencia={valores.valor_servicos || 10000}
+        />
+      </div>
     </div>
   );
 }
