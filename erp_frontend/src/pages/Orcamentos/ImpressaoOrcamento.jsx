@@ -183,9 +183,18 @@ export default function ImpressaoOrcamento() {
     >
       <style>{`
         @media print {
+          @page { size: A4; margin: 10mm; }
+          html, body, #root { width: 100% !important; min-height: auto !important; overflow: visible !important; }
           .print-toolbar { display: none !important; }
-          body { background: white !important; margin: 0; }
-          .doc-sheet { box-shadow: none !important; border-radius: 0 !important; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          .print-page { background: white !important; padding: 0 !important; min-height: auto !important; }
+          .doc-sheet {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+          }
         }
         .items-table th {
           background: #F8FAFC;
@@ -259,8 +268,9 @@ export default function ImpressaoOrcamento() {
         >
           {/* ── CABEÇALHO DA EMPRESA ── */}
           <div style={{ background: "#0F172A", padding: "28px 36px" }}>
-            <div
-              style={{
+    <div
+      className="print-page"
+      style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",

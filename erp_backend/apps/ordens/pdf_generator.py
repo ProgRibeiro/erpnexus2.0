@@ -123,11 +123,13 @@ def _gerar_relatorio_pdf_reportlab(os_obj, context):
 
 
 def _gerar_orcamento_pdf_reportlab(os_obj, context):
+    from html import escape
+
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import mm
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -143,43 +145,86 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
     styles.add(ParagraphStyle(name="Muted", parent=styles["BodyText"], fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#5A6070"), leading=12))
     styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading4"], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#6B7C91"), spaceBefore=12, spaceAfter=6))
     styles.add(ParagraphStyle(name="HeroTitle", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=16, textColor=colors.HexColor("#10233C"), spaceAfter=6))
+    styles.add(ParagraphStyle(name="HeaderWhite", parent=styles["BodyText"], fontName="Helvetica-Bold", fontSize=13, textColor=colors.white, leading=16))
+    styles.add(ParagraphStyle(name="HeaderMuted", parent=styles["BodyText"], fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#CBD5E1"), leading=11))
+    styles.add(ParagraphStyle(name="SmallLabel", parent=styles["BodyText"], fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#64748B"), leading=10))
+    styles.add(ParagraphStyle(name="SmallValue", parent=styles["BodyText"], fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#0F172A"), leading=10))
+
+    def p(value):
+        return escape(str(value or "-")).replace("\n", "<br/>")
 
     story = []
     empresa = context["empresa"]
     logo_path = context.get("logo_path")
+    company_lines = [
+        f"CNPJ: {empresa.cnpj}" if empresa.cnpj else "",
+        empresa.endereco or "",
+        f"Telefone: {empresa.telefone}" if empresa.telefone else "",
+        f"Email: {empresa.email}" if empresa.email else "",
+        empresa.site or "",
+    ]
+    company_info = "<br/>".join(p(line) for line in company_lines if line)
+
     if logo_path and os.path.exists(logo_path):
         try:
-            story.append(RLImage(logo_path, width=28 * mm, height=28 * mm))
-            story.append(Spacer(1, 6))
+            logo_cell = RLImage(logo_path, width=22 * mm, height=22 * mm)
         except Exception:
-            pass
-    story.append(Paragraph(empresa.razao_social or empresa.nome, styles["HeaderTitle"]))
-    company_lines = []
-    if empresa.cnpj:
-      company_lines.append(f"CNPJ: {empresa.cnpj}")
-    if empresa.endereco:
-      company_lines.append(empresa.endereco)
-    if empresa.telefone:
-      company_lines.append(f"Telefone: {empresa.telefone}")
-    if empresa.email:
-      company_lines.append(f"Email: {empresa.email}")
-    story.append(Paragraph("<br/>".join(company_lines) or empresa.nome, styles["Muted"]))
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(f"Orçamento {os_obj.numero}", styles["HeroTitle"]))
-    story.append(Paragraph(f"Emitido em {context['data_proposta']} | Validade {context['validade_orcamento']}", styles["Muted"]))
+            logo_cell = Paragraph(p((empresa.razao_social or empresa.nome or "EN")[:2]).upper(), styles["HeaderWhite"])
+    else:
+        logo_cell = Paragraph(p((empresa.razao_social or empresa.nome or "EN")[:2]).upper(), styles["HeaderWhite"])
+
+    company_header = Table(
+        [[logo_cell, [
+            Paragraph(p(empresa.razao_social or empresa.nome), styles["HeaderWhite"]),
+            Paragraph(company_info or p(empresa.nome), styles["HeaderMuted"]),
+        ]]],
+        colWidths=[28 * mm, 88 * mm],
+    )
+    company_header.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+
+    doc_header = Table(
+        [[
+            company_header,
+            [
+                Paragraph("ORÇAMENTO", styles["HeaderMuted"]),
+                Paragraph(p(os_obj.numero), styles["HeaderWhite"]),
+                Paragraph(f"Emitido em {p(context['data_proposta'])}<br/>Válido até {p(context['validade_orcamento'])}", styles["HeaderMuted"]),
+            ],
+        ]],
+        colWidths=[122 * mm, 55 * mm],
+    )
+    doc_header.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#0F172A")),
+        ("BOX", (0, 0), (-1, -1), 0, colors.HexColor("#0F172A")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 14),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+    ]))
+    story.append(doc_header)
     story.append(Spacer(1, 12))
-    story.append(Paragraph(f"Orçamento para {os_obj.cliente.nome}", styles["HeroTitle"]))
-    story.append(Paragraph(os_obj.descricao_servico or "Proposta comercial referente aos serviços e materiais descritos abaixo.", styles["Muted"]))
+
+    story.append(Paragraph(f"Orçamento para {p(os_obj.cliente.nome)}", styles["HeroTitle"]))
+    story.append(Paragraph(p(os_obj.descricao_servico or "Proposta comercial referente aos serviços e materiais descritos abaixo."), styles["Muted"]))
     story.append(Spacer(1, 12))
 
     story.append(Paragraph("Empresa e Cliente", styles["SectionTitle"]))
     info_table = Table(
         [
-            ["Empresa", empresa.razao_social or empresa.nome, "Cliente", os_obj.cliente.nome],
-            ["Contato", context["contato"], "Telefone", context["telefone"] or "-"],
-            ["Regime tributário", str(context["regime_tributario"]).replace("_", " "), "Condição de pagamento", os_obj.condicao_pagamento or "-"],
+            [Paragraph("Empresa", styles["SmallLabel"]), Paragraph(p(empresa.razao_social or empresa.nome), styles["SmallValue"]), Paragraph("Cliente", styles["SmallLabel"]), Paragraph(p(os_obj.cliente.nome), styles["SmallValue"])],
+            [Paragraph("Contato", styles["SmallLabel"]), Paragraph(p(context["contato"]), styles["SmallValue"]), Paragraph("Telefone", styles["SmallLabel"]), Paragraph(p(context["telefone"] or "-"), styles["SmallValue"])],
+            [Paragraph("Email", styles["SmallLabel"]), Paragraph(p(context.get("cliente_email") or "-"), styles["SmallValue"]), Paragraph("Endereço", styles["SmallLabel"]), Paragraph(p(context["endereco"]), styles["SmallValue"])],
+            [Paragraph("Regime tributário", styles["SmallLabel"]), Paragraph(p(str(context["regime_tributario"]).replace("_", " ")), styles["SmallValue"]), Paragraph("Condição de pagamento", styles["SmallLabel"]), Paragraph(p(os_obj.condicao_pagamento or "-"), styles["SmallValue"])],
         ],
-        colWidths=[30 * mm, 60 * mm, 35 * mm, 55 * mm],
+        colWidths=[30 * mm, 58 * mm, 34 * mm, 58 * mm],
     )
     info_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.white),
@@ -197,12 +242,12 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
     item_rows = [["Descrição", "Origem", "Qtd", "Un.", "Unitário", "Total"]]
     for item in context["itens"]:
         item_rows.append([
-            f"{item['descricao']}\n{item['codigo_referencia'] or '-'}",
-            item["origem_tipo"],
-            item["quantidade"],
-            item["unidade_referencia"],
-            item["valor_unitario_fmt"],
-            item["valor_total_fmt"],
+            Paragraph(f"<b>{p(item['descricao'])}</b><br/><font color='#94A3B8'>Cód: {p(item['codigo_referencia'] or '-')}</font>", styles["SmallValue"]),
+            Paragraph(p(item["origem_tipo"]), styles["SmallValue"]),
+            Paragraph(p(item["quantidade"]), styles["SmallValue"]),
+            Paragraph(p(item["unidade_referencia"]), styles["SmallValue"]),
+            Paragraph(p(item["valor_unitario_fmt"]), styles["SmallValue"]),
+            Paragraph(p(item["valor_total_fmt"]), styles["SmallValue"]),
         ])
     items_table = Table(item_rows, colWidths=[68 * mm, 22 * mm, 15 * mm, 18 * mm, 28 * mm, 28 * mm])
     items_table.setStyle(TableStyle([

@@ -9,7 +9,12 @@ export default function BottomNavigationBar() {
   const isMobile = useIsMobile(768);
   const hiddenPaths = ['/login'];
 
-  if (!isMobile || hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/relatorio/')) {
+  if (
+    !isMobile ||
+    hiddenPaths.includes(location.pathname) ||
+    location.pathname.startsWith('/relatorio/') ||
+    location.pathname.includes('/impressao')
+  ) {
     return null;
   }
 

@@ -51,6 +51,7 @@ export default function App() {
           <Route path="/tecnico-mobile" element={<TecnicoMobilePage />} />
           <Route path="/tecnico-mobile/os-campo/:osId" element={<OSCampoPage />} />
           <Route path="/loja" element={<LojaPage />} />
+          <Route path="/orcamentos/:id/impressao" element={<ImpressaoOrcamento />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -61,7 +62,6 @@ export default function App() {
             <Route path="/orcamentos" element={<OrcamentosPage />} />
             <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
             <Route path="/orcamentos/:id" element={<OrcamentoDetalhe />} />
-            <Route path="/orcamentos/:id/impressao" element={<ImpressaoOrcamento />} />
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
             <Route path="/crm" element={<CRMPage />} />
