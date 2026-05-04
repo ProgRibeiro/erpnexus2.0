@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Badge,
   Button,
   Card,
-  Checkbox,
   Col,
   ConfigProvider,
   Divider,
@@ -12,7 +10,6 @@ import {
   Empty,
   Form,
   Input,
-  InputNumber,
   Row,
   Select,
   Space,
@@ -28,11 +25,9 @@ import {
   CloseCircleOutlined,
   DeleteOutlined,
   EditOutlined,
-  EyeOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
 
 import clienteService from "../services/clienteService";
 
@@ -89,6 +84,18 @@ const maskCEP = (value) => {
     .substring(0, 9);
 };
 
+const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
+
+const inferSegmento = (atividade = "") => {
+  const texto = atividade.toLowerCase();
+  if (texto.includes("condom")) return "condominio";
+  if (texto.includes("resid")) return "residencial";
+  if (texto.includes("comerc") || texto.includes("varej") || texto.includes("atacad")) return "comercio";
+  if (texto.includes("industr") || texto.includes("fabric")) return "industria";
+  if (texto.includes("administra") || texto.includes("publica") || texto.includes("municip")) return "governo";
+  return "servicos";
+};
+
 const segmentOptions = [
   { label: "Indústria", value: "industria" },
   { label: "Comércio", value: "comercio" },
@@ -119,6 +126,8 @@ export default function ClientesPage() {
   const [consultandoCNPJ, setConsultandoCNPJ] = useState(false);
   const [cnpjValido, setCnpjValido] = useState(false);
   const [cnpjErro, setCnpjErro] = useState(false);
+  const ultimaConsultaCNPJ = useRef("");
+  const debounceCNPJ = useRef(null);
 
   const [filtros, setFiltros] = useState({
     busca: "",
@@ -159,11 +168,34 @@ export default function ClientesPage() {
     };
   }, [clientes]);
 
-  const consultarCNPJ = async () => {
-    const cnpj = form.getFieldValue("cnpj");
-    const cnpjLimpo = cnpj.replace(/\D/g, "");
+  const aplicarDadosCNPJ = (data) => {
+    const nomeFantasiaAtual = form.getFieldValue("nome_fantasia");
+    const telefone = maskPhone(data.telefone || "");
+    const cidade = data.municipio || data.cidade || "";
+    const uf = data.uf || "";
+
+    form.setFieldsValue({
+      razao_social: data.razao_social || "",
+      nome_fantasia: nomeFantasiaAtual || data.nome_fantasia || data.razao_social || "",
+      email: form.getFieldValue("email") || data.email || "",
+      telefone: form.getFieldValue("telefone") || telefone,
+      whatsapp: form.getFieldValue("whatsapp") || telefone,
+      cep: data.cep ? maskCEP(data.cep) : form.getFieldValue("cep"),
+      logradouro: data.logradouro || form.getFieldValue("logradouro") || "",
+      numero: data.numero || form.getFieldValue("numero") || "",
+      complemento: data.complemento || form.getFieldValue("complemento") || "",
+      bairro: data.bairro || form.getFieldValue("bairro") || "",
+      cidade: cidade || form.getFieldValue("cidade") || "",
+      uf: uf || form.getFieldValue("uf") || "",
+      segmento: form.getFieldValue("segmento") || inferSegmento(data.atividade_principal),
+    });
+  };
+
+  const consultarCNPJ = async (cnpjValue, silencioso = false) => {
+    const cnpj = cnpjValue || form.getFieldValue("cnpj_cpf") || "";
+    const cnpjLimpo = onlyDigits(cnpj);
     if (cnpjLimpo.length !== 14) {
-      message.warning("CNPJ deve ter 14 dígitos");
+      if (!silencioso) message.warning("CNPJ deve ter 14 dígitos");
       return;
     }
 
@@ -175,17 +207,54 @@ export default function ClientesPage() {
       const response = await clienteService.consultarCNPJ(cnpjLimpo);
       const data = response;
 
-      form.setFieldsValue({
-        razao_social: data.razao_social || "",
-      });
+      aplicarDadosCNPJ(data);
+      ultimaConsultaCNPJ.current = cnpjLimpo;
       setCnpjValido(true);
-      message.success("CNPJ consultado com sucesso!");
+      if (!silencioso) message.success("CNPJ consultado com sucesso!");
     } catch {
       setCnpjErro(true);
-      message.error("CNPJ não encontrado");
+      if (!silencioso) message.error("CNPJ não encontrado");
     } finally {
       setConsultandoCNPJ(false);
     }
+  };
+
+  const consultarCNPJAutomatico = (value) => {
+    const masked = maskCNPJ(value);
+    form.setFieldValue("cnpj_cpf", masked);
+    setCnpjValido(false);
+    setCnpjErro(false);
+
+    const cnpjLimpo = onlyDigits(masked);
+    if (debounceCNPJ.current) clearTimeout(debounceCNPJ.current);
+    if (cnpjLimpo.length !== 14 || cnpjLimpo === ultimaConsultaCNPJ.current) return;
+
+    debounceCNPJ.current = setTimeout(() => {
+      consultarCNPJ(masked, true);
+    }, 450);
+  };
+
+  const selecionarClientePrincipal = (clienteId) => {
+    const clientePrincipal = clientes.find((cliente) => cliente.id === clienteId);
+    form.setFieldsValue({
+      cliente_principal: clienteId,
+      cnpj_principal_grupo: clientePrincipal?.cnpj_cpf ? maskCNPJ(clientePrincipal.cnpj_cpf) : "",
+    });
+  };
+
+  const ajustarCNPJPrincipalGrupo = (value) => {
+    const masked = maskCNPJ(value);
+    const cnpjLimpo = onlyDigits(masked);
+    const clientePrincipal = clientes.find(
+      (cliente) =>
+        cliente.id !== clienteSelecionado?.id &&
+        onlyDigits(cliente.cnpj_cpf) === cnpjLimpo
+    );
+
+    form.setFieldsValue({
+      cnpj_principal_grupo: masked,
+      cliente_principal: clientePrincipal?.id,
+    });
   };
 
   const consultarCEP = async (cepValue) => {
@@ -211,12 +280,31 @@ export default function ClientesPage() {
   };
 
   const abrirDrawer = (cliente = null) => {
+    ultimaConsultaCNPJ.current = "";
+    if (debounceCNPJ.current) clearTimeout(debounceCNPJ.current);
     if (cliente) {
       setClienteSelecionado(cliente);
-      form.setFieldsValue(cliente);
+      const endereco = cliente.endereco_principal || cliente.enderecos?.[0] || {};
+      form.setFieldsValue({
+        ...cliente,
+        nome_fantasia: cliente.nome_fantasia || cliente.nome || "",
+        cnpj_cpf: maskCNPJ(cliente.cnpj_cpf || ""),
+        cnpj_principal_grupo: maskCNPJ(cliente.cnpj_principal_grupo || cliente.cliente_principal_cnpj || ""),
+        cep: maskCEP(endereco.cep || ""),
+        logradouro: endereco.logradouro || "",
+        numero: endereco.numero || "",
+        complemento: endereco.complemento || "",
+        bairro: endereco.bairro || "",
+        cidade: endereco.cidade || cliente.cidade || "",
+        uf: endereco.estado || cliente.uf || "",
+        status: cliente.status || "ativo",
+      });
+      setCnpjValido(onlyDigits(cliente.cnpj_cpf).length === 14);
+      setCnpjErro(false);
     } else {
       setClienteSelecionado(null);
       form.resetFields();
+      form.setFieldsValue({ tipo_pessoa: "juridica", status: "ativo" });
       setCnpjValido(false);
       setCnpjErro(false);
     }
@@ -226,11 +314,23 @@ export default function ClientesPage() {
   const salvarCliente = async (values) => {
     setSalvando(true);
     try {
+      const payload = {
+        ...values,
+        tipo_pessoa: values.tipo_pessoa || "juridica",
+        nome: values.nome_fantasia || values.razao_social || values.nome,
+        cnpj_cpf: onlyDigits(values.cnpj_cpf),
+        cnpj_principal_grupo: onlyDigits(values.cnpj_principal_grupo),
+        telefone: maskPhone(values.telefone),
+        whatsapp: maskPhone(values.whatsapp),
+        cep: maskCEP(values.cep),
+        uf: values.uf?.toUpperCase() || "",
+        status: values.status || "ativo",
+      };
       if (clienteSelecionado) {
-        await clienteService.atualizar(clienteSelecionado.id, values);
+        await clienteService.atualizar(clienteSelecionado.id, payload);
         message.success("Cliente atualizado com sucesso!");
       } else {
-        await clienteService.criar(values);
+        await clienteService.criar(payload);
         message.success("Cliente criado com sucesso!");
       }
       setDrawerAberto(false);
@@ -278,7 +378,9 @@ export default function ClientesPage() {
     {
       title: "Cidade",
       dataIndex: "cidade",
-      render: (text) => <Text>{text || "-"}</Text>,
+      render: (text, record) => (
+        <Text>{text || record.endereco_principal?.cidade || "-"}</Text>
+      ),
     },
     {
       title: "Segmento",
@@ -498,8 +600,7 @@ export default function ClientesPage() {
                         <Input
                           placeholder="XX.XXX.XXX/XXXX-XX"
                           onChange={(e) => {
-                            const masked = maskCNPJ(e.target.value);
-                            form.setFieldValue("cnpj_cpf", masked);
+                            consultarCNPJAutomatico(e.target.value);
                           }}
                           maxLength={18}
                         />
@@ -551,6 +652,38 @@ export default function ClientesPage() {
 
             <Form.Item label="Segmento" name="segmento">
               <Select placeholder="Selecione" options={segmentOptions} allowClear />
+            </Form.Item>
+
+            <Divider />
+
+            <Text strong style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 12 }}>
+              GRUPO ECONÔMICO
+            </Text>
+
+            <Form.Item label="Empresa principal do grupo" name="cliente_principal">
+              <Select
+                allowClear
+                showSearch
+                placeholder="Selecione se este cliente pertence a um grupo"
+                optionFilterProp="label"
+                onChange={selecionarClientePrincipal}
+                options={clientes
+                  .filter((cliente) => cliente.id !== clienteSelecionado?.id)
+                  .map((cliente) => ({
+                    value: cliente.id,
+                    label: `${cliente.nome_fantasia || cliente.nome} ${cliente.cnpj_cpf ? `- ${maskCNPJ(cliente.cnpj_cpf)}` : ""}`,
+                  }))}
+              />
+            </Form.Item>
+
+            <Form.Item label="CNPJ principal do grupo" name="cnpj_principal_grupo">
+              <Input
+                placeholder="XX.XXX.XXX/XXXX-XX"
+                onChange={(e) => {
+                  ajustarCNPJPrincipalGrupo(e.target.value);
+                }}
+                maxLength={18}
+              />
             </Form.Item>
 
             <Divider />
@@ -656,8 +789,8 @@ export default function ClientesPage() {
 
             <Divider />
 
-            <Form.Item name="status" valuePropName="checked" initialValue="ativo">
-              <Checkbox>Ativo</Checkbox>
+            <Form.Item label="Status" name="status" initialValue="ativo">
+              <Select options={statusOptions} />
             </Form.Item>
 
             <Space style={{ width: "100%", justifyContent: "flex-end", marginTop: 24 }}>

@@ -34,9 +34,18 @@ class ConsultaCNPJ:
         return {
             "cnpj": documento,
             "razao_social": data.get("razao_social") or data.get("nome_fantasia") or "",
+            "nome_fantasia": data.get("nome_fantasia") or "",
             "municipio": data.get("municipio") or "",
             "uf": data.get("uf") or "",
             "codigo_municipio": str(data.get("codigo_municipio_ibge") or ""),
+            "codigo_municipio_ibge": str(data.get("codigo_municipio_ibge") or ""),
+            "cep": data.get("cep") or "",
+            "logradouro": data.get("logradouro") or "",
+            "numero": data.get("numero") or "",
+            "complemento": data.get("complemento") or "",
+            "bairro": data.get("bairro") or "",
+            "email": data.get("email") or "",
+            "telefone": data.get("ddd_telefone_1") or data.get("ddd_telefone_2") or "",
             "atividade_principal": atividade_principal,
         }
 

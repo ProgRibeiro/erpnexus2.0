@@ -19,7 +19,17 @@ class Cliente(models.Model):
         default=TipoPessoa.JURIDICA,
     )
     nome = models.CharField(max_length=255)
+    nome_fantasia = models.CharField(max_length=255, blank=True)
+    razao_social = models.CharField(max_length=255, blank=True)
     cnpj_cpf = models.CharField(max_length=20, blank=True, db_index=True)
+    cliente_principal = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="unidades_grupo",
+    )
+    cnpj_principal_grupo = models.CharField(max_length=20, blank=True, db_index=True)
     email = models.EmailField(blank=True)
     telefone = models.CharField(max_length=30, blank=True)
     whatsapp = models.CharField(max_length=30, blank=True)
@@ -41,7 +51,7 @@ class Cliente(models.Model):
         verbose_name_plural = "Clientes"
 
     def __str__(self):
-        return self.nome
+        return self.nome_fantasia or self.nome
 
 
 class EnderecoCliente(models.Model):

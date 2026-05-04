@@ -14,7 +14,7 @@ class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
     ordering_fields = ["nome", "criado_em", "status", "segmento"]
 
     def get_queryset(self):
-        queryset = Cliente.objects.prefetch_related("enderecos", "contatos", "historicos")
+        queryset = Cliente.objects.select_related("cliente_principal").prefetch_related("enderecos", "contatos", "historicos")
         status = self.request.query_params.get("status")
         segmento = self.request.query_params.get("segmento")
         busca = self.request.query_params.get("busca") or self.request.query_params.get("search")
