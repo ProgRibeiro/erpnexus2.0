@@ -1,53 +1,66 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Avatar,
   Badge,
+  Button,
   Calendar,
   Card,
-  List,
-  Typography,
-  Row,
   Col,
-  Select,
-  Button,
-  Space,
-  Table,
-  Tag,
+  DatePicker,
   Empty,
-  Spin,
-  Dropdown,
-  message,
-  Modal,
   Form,
   Input,
-  DatePicker,
+  List,
+  Modal,
+  Progress,
+  Row,
+  Segmented,
+  Select,
+  Space,
+  Spin,
+  Statistic,
+  Table,
+  Tag,
   TimePicker,
+  Tooltip,
+  Typography,
+  message,
 } from "antd";
 import {
-  DeleteOutlined,
-  EditOutlined,
-  EnvironmentOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
   ClockCircleOutlined,
+  CompassOutlined,
+  EnvironmentOutlined,
+  EyeOutlined,
+  FieldTimeOutlined,
+  FilterOutlined,
+  ReloadOutlined,
+  RocketOutlined,
+  TeamOutlined,
   UserOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
 import "dayjs/locale/pt-br";
+import { useNavigate } from "react-router-dom";
 
-import ordemService from "../../services/ordemService";
 import agendaService from "../../services/agenda";
+import api from "../../services/api";
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
 dayjs.locale("pt-br");
+
+const { Text, Title } = Typography;
+
+const primaryBlue = "#3B82F6";
 
 const statusMap = {
   rascunho: { color: "default", label: "Rascunho" },
   aberta: { color: "blue", label: "Aberta" },
-  orcamento_enviado: { color: "cyan", label: "Orçamento Enviado" },
+  orcamento_enviado: { color: "cyan", label: "Orçamento enviado" },
   aprovada: { color: "green", label: "Aprovada" },
   agendada: { color: "geekblue", label: "Agendada" },
-  em_execucao: { color: "orange", label: "Em Execução" },
+  em_execucao: { color: "orange", label: "Em execução" },
   concluida: { color: "green", label: "Concluída" },
   faturada: { color: "green", label: "Faturada" },
   cancelada: { color: "red", label: "Cancelada" },
@@ -63,68 +76,95 @@ const tiposServico = [
   { label: "Outro", value: "outro" },
 ];
 
+const visoes = [
+  { label: "Despacho", value: "despacho" },
+  { label: "Hoje", value: "hoje" },
+  { label: "Semanal", value: "semanal" },
+  { label: "Mensal", value: "mensal" },
+];
+
+function normalizeList(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+}
+
+function tecnicoNome(tecnico) {
+  return tecnico?.nome || tecnico?.nome_completo || tecnico?.username || tecnico?.email || "Sem técnico";
+}
+
+function osCliente(os) {
+  return os?.cliente_nome || os?.cliente_dados?.nome || os?.cliente?.nome || "Cliente não informado";
+}
+
+function osEndereco(os) {
+  return os?.endereco_servico_texto || os?.endereco_servico || os?.cliente_dados?.endereco_completo || "Endereço não definido";
+}
+
+function horaCurta(value) {
+  if (!value) return "--:--";
+  return String(value).slice(0, 5);
+}
+
+function getStatus(os) {
+  return statusMap[os?.status] || { color: "default", label: os?.status || "Sem status" };
+}
+
 export default function AgendaPage() {
-  const [visao, setVisao] = useState("mensal"); // mensal, semanal, hoje
-  const [ordens, setOrdens] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [visao, setVisao] = useState("despacho");
+  const [agenda, setAgenda] = useState([]);
+  const [ordensHoje, setOrdensHoje] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [filtroTecnico, setFiltroTecnico] = useState(null);
   const [filtroTipo, setFiltroTipo] = useState(null);
-  const [dataInicio, setDataInicio] = useState(dayjs().startOf("month"));
-  const [dataFim, setDataFim] = useState(dayjs().endOf("month"));
+  const [periodo, setPeriodo] = useState([dayjs().startOf("week"), dayjs().endOf("week")]);
   const [osEmEdicao, setOsEmEdicao] = useState(null);
   const [modalEditarVisivel, setModalEditarVisivel] = useState(false);
   const [form] = Form.useForm();
 
-  // Carregar agenda
+  const carregarTecnicos = async () => {
+    try {
+      const response = await api.get("/auth/users/");
+      const usuarios = normalizeList(response.data)
+        .filter((usuario) => String(usuario.role || "").toLowerCase() === "tecnico")
+        .map((usuario) => ({
+          id: usuario.id,
+          nome: usuario.nome_completo || usuario.username || usuario.email,
+          nome_completo: usuario.nome_completo || usuario.username || usuario.email,
+          username: usuario.username,
+          email: usuario.email,
+        }));
+      setTecnicos(usuarios);
+    } catch {
+      setTecnicos([]);
+    }
+  };
+
   const carregarAgenda = async () => {
     setLoading(true);
     try {
-      let data = [];
+      const inicio = (periodo?.[0] || dayjs().startOf("week")).format("YYYY-MM-DD");
+      const fim = (periodo?.[1] || dayjs().endOf("week")).format("YYYY-MM-DD");
+      const [agendaPeriodo, hoje] = await Promise.all([
+        agendaService.listarPorPeriodo(inicio, fim, filtroTecnico, filtroTipo),
+        agendaService.agendaHoje(),
+      ]);
+      setAgenda(normalizeList(agendaPeriodo));
+      setOrdensHoje(normalizeList(hoje));
 
-      if (visao === "hoje") {
-        data = await agendaService.agendaHoje();
-      } else {
-        const inicio = dataInicio.format("YYYY-MM-DD");
-        const fim = dataFim.format("YYYY-MM-DD");
-        data = await agendaService.listarPorPeriodo(
-          inicio,
-          fim,
-          filtroTecnico,
-          filtroTipo
-        );
-      }
-
-      setOrdens(data);
-
-      // Extrair técnicos únicos
-      const tecSet = new Set();
-      if (Array.isArray(data)) {
-        if (data[0]?.tecnicos) {
-          // Resposta agrupada por data
-          data.forEach((item) => {
-            if (item.tecnicos) {
-              item.tecnicos.forEach((t) => {
-                if (t.id) tecSet.add(JSON.stringify({ id: t.id, nome: t.nome_completo }));
-              });
+      if (!tecnicos.length) {
+        const extraidos = [];
+        normalizeList(agendaPeriodo).forEach((dia) => {
+          (dia.tecnicos || []).forEach((tecnico) => {
+            if (tecnico.id && !extraidos.some((item) => item.id === tecnico.id)) {
+              extraidos.push({ ...tecnico, nome: tecnicoNome(tecnico) });
             }
           });
-        } else {
-          // Resposta simples de lista
-          data.forEach((os) => {
-            if (os.tecnico_responsavel) {
-              tecSet.add(
-                JSON.stringify({
-                  id: os.tecnico_responsavel,
-                  nome: os.tecnico_nome,
-                })
-              );
-            }
-          });
-        }
+        });
+        if (extraidos.length) setTecnicos(extraidos);
       }
-
-      setTecnicos(Array.from(tecSet).map((t) => JSON.parse(t)));
     } catch (erro) {
       console.error("Erro ao carregar agenda:", erro);
       message.error("Erro ao carregar agenda");
@@ -134,188 +174,46 @@ export default function AgendaPage() {
   };
 
   useEffect(() => {
+    carregarTecnicos();
+  }, []);
+
+  useEffect(() => {
     carregarAgenda();
-  }, [visao, dataInicio, dataFim, filtroTecnico, filtroTipo]);
+  }, [periodo, filtroTecnico, filtroTipo]);
 
-  // Visualização Mensal
-  const renderMensal = () => {
-    const porData = useMemo(() => {
-      return ordens.reduce((acc, item) => {
-        if (item.tecnicos) {
-          // Resposta agrupada
-          const data = item.data;
-          acc[data] = item;
-        }
-        return acc;
-      }, {});
-    }, [ordens]);
-
-    return (
-      <Calendar
-        fullscreen={true}
-        cellRender={(value) => {
-          const dataStr = value.format("YYYY-MM-DD");
-          const item = porData[dataStr];
-
-          if (!item) return null;
-
-          return (
-            <div style={{ fontSize: "12px" }}>
-              {item.tecnicos?.map((tec) => (
-                <div key={tec.id} style={{ marginBottom: "4px" }}>
-                  <Badge
-                    count={tec.total_os}
-                    style={{ backgroundColor: "#52c41a" }}
-                  />
-                  <span style={{ marginLeft: "4px", fontWeight: "bold" }}>
-                    {tec.nome_completo?.split(" ")[0]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          );
-        }}
-      />
-    );
-  };
-
-  // Visualização Semanal
-  const renderSemanal = () => {
-    const semanaInicio = dataInicio.startOf("week");
-    const semanaFim = semanaInicio.add(6, "days");
-
-    const horariosOcupados = {};
-
-    ordens.forEach((item) => {
-      if (item.tecnicos) {
-        item.tecnicos.forEach((tec) => {
-          tec.ordens?.forEach((os) => {
-            if (os.hora_inicio) {
-              const key = `${tec.id}_${os.hora_inicio}`;
-              horariosOcupados[key] = os;
-            }
+  const ordensPeriodo = useMemo(() => {
+    const lista = [];
+    agenda.forEach((dia) => {
+      (dia.tecnicos || []).forEach((tecnico) => {
+        (tecnico.ordens || []).forEach((os) => {
+          lista.push({
+            ...os,
+            data_agendada: os.data_agendada || dia.data,
+            tecnico_agenda_id: tecnico.id,
+            tecnico_agenda_nome: tecnicoNome(tecnico),
           });
         });
-      }
+      });
     });
+    return lista;
+  }, [agenda]);
 
-    const horas = Array.from({ length: 8 }, (_, i) => `${8 + i}:00`);
+  const ordensDaVisao = visao === "hoje" || visao === "despacho" ? ordensHoje : ordensPeriodo;
+  const totalHoje = ordensHoje.length;
+  const emExecucao = ordensDaVisao.filter((os) => os.status === "em_execucao").length;
+  const concluidas = ordensDaVisao.filter((os) => ["concluida", "faturada"].includes(os.status)).length;
+  const semTecnico = ordensDaVisao.filter((os) => !os.tecnico_responsavel && !os.tecnico_agenda_id).length;
+  const produtividade = ordensDaVisao.length ? Math.round((concluidas / ordensDaVisao.length) * 100) : 0;
 
-    return (
-      <div style={{ overflowX: "auto" }}>
-        <Table
-          columns={[
-            {
-              title: "Horário",
-              key: "hora",
-              width: 100,
-              render: (_, __, index) => horas[index],
-            },
-            ...tecnicos.map((tec) => ({
-              title: tec.nome,
-              key: `tec_${tec.id}`,
-              render: (_, record, rowIndex) => {
-                const hora = horas[rowIndex];
-                const key = `${tec.id}_${hora}`;
-                const os = horariosOcupados[key];
-
-                if (!os) return "-";
-
-                return (
-                  <Card
-                    size="small"
-                    style={{ backgroundColor: "#e6f7ff", cursor: "pointer" }}
-                    onClick={() => {
-                      setOsEmEdicao(os);
-                      form.setFieldsValue({
-                        data_agendada: dayjs(os.data_agendada),
-                        hora_inicio: os.hora_inicio ? dayjs(os.hora_inicio, "HH:mm") : null,
-                      });
-                      setModalEditarVisivel(true);
-                    }}
-                  >
-                    <div style={{ fontSize: "11px" }}>
-                      <strong>{os.numero}</strong>
-                      <br />
-                      {os.cliente_nome}
-                    </div>
-                  </Card>
-                );
-              },
-            })),
-          ]}
-          dataSource={horas.map((h) => ({ hora: h }))}
-          pagination={false}
-          size="small"
-        />
-      </div>
-    );
-  };
-
-  // Visualização Hoje
-  const renderHoje = () => {
-    const ordensList = Array.isArray(ordens)
-      ? ordens.filter((o) => !o.tecnicos)
-      : [];
-
-    if (ordensList.length === 0) {
-      return <Empty description="Nenhuma OS agendada para hoje" />;
-    }
-
-    return (
-      <List
-        dataSource={ordensList}
-        renderItem={(os) => (
-          <List.Item
-            key={os.id}
-            style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}
-          >
-            <List.Item.Meta
-              avatar={<UserOutlined />}
-              title={
-                <div>
-                  <strong>{os.numero}</strong>
-                  <Tag color={statusMap[os.status]?.color} style={{ marginLeft: "8px" }}>
-                    {statusMap[os.status]?.label}
-                  </Tag>
-                </div>
-              }
-              description={
-                <div>
-                  <div style={{ marginTop: "8px", fontSize: "14px" }}>
-                    <strong>Cliente:</strong> {os.cliente_nome}
-                  </div>
-                  <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <EnvironmentOutlined />
-                    {os.endereco_servico_texto}
-                  </div>
-                  {os.hora_inicio && (
-                    <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <ClockCircleOutlined />
-                      {os.hora_inicio}
-                      {os.hora_conclusao && ` até ${os.hora_conclusao}`}
-                    </div>
-                  )}
-                  {os.descricao_servico && (
-                    <div style={{ marginTop: "4px", color: "#666" }}>
-                      {os.descricao_servico}
-                    </div>
-                  )}
-                </div>
-              }
-            />
-            <Button
-              type="primary"
-              href={`https://www.google.com/maps/search/${os.endereco_servico_texto}`}
-              target="_blank"
-              size="small"
-            >
-              Como chegar
-            </Button>
-          </List.Item>
-        )}
-      />
-    );
+  const abrirEdicao = (os) => {
+    setOsEmEdicao(os);
+    form.setFieldsValue({
+      data_agendada: os.data_agendada ? dayjs(os.data_agendada) : dayjs(),
+      hora_inicio: os.hora_inicio ? dayjs(os.hora_inicio, "HH:mm:ss") : null,
+      tecnico_responsavel: os.tecnico_responsavel || os.tecnico_agenda_id || null,
+      observacao: "",
+    });
+    setModalEditarVisivel(true);
   };
 
   const handleSalvarEdicao = async (valores) => {
@@ -324,128 +222,329 @@ export default function AgendaPage() {
       await agendaService.reagendar(osEmEdicao.id, {
         data_agendada: valores.data_agendada.format("YYYY-MM-DD"),
         hora_inicio: valores.hora_inicio ? valores.hora_inicio.format("HH:mm:ss") : null,
+        tecnico_responsavel: valores.tecnico_responsavel || null,
       });
-      message.success("OS reagendada com sucesso!");
+      message.success("OS reagendada com sucesso.");
       setModalEditarVisivel(false);
       carregarAgenda();
-    } catch (erro) {
+    } catch {
       message.error("Erro ao reagendar OS");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div style={{ padding: "24px" }}>
-      <Card>
-        <Row gutter={[16, 16]} align="middle" justify="space-between">
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              Agenda de Técnicos
-            </Typography.Title>
-          </Col>
-          <Col>
-            <Space>
-              <Button
-                type={visao === "mensal" ? "primary" : "default"}
-                onClick={() => setVisao("mensal")}
-              >
-                Mensal
-              </Button>
-              <Button
-                type={visao === "semanal" ? "primary" : "default"}
-                onClick={() => setVisao("semanal")}
-              >
-                Semanal
-              </Button>
-              <Button
-                type={visao === "hoje" ? "primary" : "default"}
-                onClick={() => setVisao("hoje")}
-              >
-                Hoje
-              </Button>
+  const OsCard = ({ os, compact = false }) => {
+    const status = getStatus(os);
+    return (
+      <Card
+        size="small"
+        hoverable
+        style={{
+          border: "1px solid #E2E8F0",
+          borderLeft: `4px solid ${os.status === "em_execucao" ? "#F59E0B" : primaryBlue}`,
+          borderRadius: 8,
+          marginBottom: 10,
+        }}
+        bodyStyle={{ padding: compact ? 10 : 14 }}
+        onClick={() => abrirEdicao(os)}
+      >
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Space style={{ justifyContent: "space-between", width: "100%" }} align="start">
+            <Space direction="vertical" size={0}>
+              <Text strong>{os.numero}</Text>
+              <Text style={{ color: "#64748B", fontSize: 12 }}>{osCliente(os)}</Text>
             </Space>
-          </Col>
-        </Row>
-
-        <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              placeholder="Filtrar por técnico"
-              value={filtroTecnico}
-              onChange={setFiltroTecnico}
-              allowClear
-              style={{ width: "100%" }}
-              options={tecnicos.map((t) => ({
-                label: t.nome,
-                value: t.id,
-              }))}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              placeholder="Filtrar por tipo"
-              value={filtroTipo}
-              onChange={setFiltroTipo}
-              allowClear
-              style={{ width: "100%" }}
-              options={tiposServico}
-            />
-          </Col>
-          {visao === "mensal" && (
-            <>
-              <Col xs={12} sm={12} md={6}>
-                <DatePicker
-                  value={dataInicio}
-                  onChange={setDataInicio}
-                  format="DD/MM/YYYY"
-                  placeholder="Data início"
-                  style={{ width: "100%" }}
-                />
-              </Col>
-              <Col xs={12} sm={12} md={6}>
-                <DatePicker
-                  value={dataFim}
-                  onChange={setDataFim}
-                  format="DD/MM/YYYY"
-                  placeholder="Data fim"
-                  style={{ width: "100%" }}
-                />
-              </Col>
-            </>
+            <Tag color={status.color}>{status.label}</Tag>
+          </Space>
+          <Space wrap size={8}>
+            <Tag icon={<ClockCircleOutlined />} color="blue">{horaCurta(os.hora_inicio)} {os.hora_conclusao ? `- ${horaCurta(os.hora_conclusao)}` : ""}</Tag>
+            <Tag>{os.tipo_servico || "Serviço"}</Tag>
+          </Space>
+          {!compact && (
+            <Space direction="vertical" size={4} style={{ width: "100%" }}>
+              <Text style={{ color: "#475569", fontSize: 12 }} ellipsis>
+                <EnvironmentOutlined /> {osEndereco(os)}
+              </Text>
+              {os.descricao_servico && (
+                <Text style={{ color: "#64748B", fontSize: 12 }} ellipsis>{os.descricao_servico}</Text>
+              )}
+            </Space>
           )}
-        </Row>
+          <Space style={{ justifyContent: "space-between", width: "100%" }}>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/ordens/${os.id}`);
+              }}
+            >
+              OS
+            </Button>
+            <Button
+              size="small"
+              icon={<CompassOutlined />}
+              href={`https://www.google.com/maps/search/${encodeURIComponent(osEndereco(os))}`}
+              target="_blank"
+              onClick={(event) => event.stopPropagation()}
+            >
+              Rota
+            </Button>
+          </Space>
+        </Space>
+      </Card>
+    );
+  };
 
-        <div style={{ marginTop: "24px" }}>
-          <Spin spinning={loading}>
-            {visao === "mensal" && renderMensal()}
-            {visao === "semanal" && renderSemanal()}
-            {visao === "hoje" && renderHoje()}
-          </Spin>
+  const renderDespacho = () => {
+    const tecnicosOperacao = tecnicos.length ? tecnicos : [{ id: "sem_tecnico", nome: "Sem técnico" }];
+    return (
+      <Row gutter={[16, 16]}>
+        {tecnicosOperacao.map((tecnico) => {
+          const ordensTecnico = ordensHoje.filter((os) => String(os.tecnico_responsavel || os.tecnico_agenda_id || "sem_tecnico") === String(tecnico.id));
+          const concluidasTec = ordensTecnico.filter((os) => ["concluida", "faturada"].includes(os.status)).length;
+          const progresso = ordensTecnico.length ? Math.round((concluidasTec / ordensTecnico.length) * 100) : 0;
+          return (
+            <Col xs={24} md={12} xl={8} xxl={6} key={tecnico.id}>
+              <Card
+                title={
+                  <Space>
+                    <Avatar style={{ background: primaryBlue }} icon={<UserOutlined />} />
+                    <Space direction="vertical" size={0}>
+                      <Text strong>{tecnicoNome(tecnico)}</Text>
+                      <Text style={{ color: "#64748B", fontSize: 12 }}>{ordensTecnico.length} atendimento(s) hoje</Text>
+                    </Space>
+                  </Space>
+                }
+                extra={<Progress type="circle" percent={progresso} size={42} strokeColor="#10B981" />}
+                style={{ minHeight: 430 }}
+              >
+                {ordensTecnico.length ? (
+                  ordensTecnico.map((os) => <OsCard key={os.id} os={os} compact />)
+                ) : (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sem OS hoje" />
+                )}
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    );
+  };
+
+  const renderHoje = () => (
+    <Row gutter={[16, 16]}>
+      <Col xs={24} xl={16}>
+        <Card title="Linha do tempo de hoje">
+          {ordensHoje.length ? (
+            ordensHoje
+              .slice()
+              .sort((a, b) => String(a.hora_inicio || "99:99").localeCompare(String(b.hora_inicio || "99:99")))
+              .map((os) => <OsCard key={os.id} os={os} />)
+          ) : (
+            <Empty description="Nenhuma OS agendada para hoje" />
+          )}
+        </Card>
+      </Col>
+      <Col xs={24} xl={8}>
+        <Card title="Operação do dia">
+          <List
+            dataSource={[
+              { icon: <CalendarOutlined />, label: "Serviços planejados", value: totalHoje },
+              { icon: <FieldTimeOutlined />, label: "Em execução", value: emExecucao },
+              { icon: <CheckCircleOutlined />, label: "Concluídos", value: concluidas },
+              { icon: <WarningOutlined />, label: "Sem técnico", value: semTecnico },
+            ]}
+            renderItem={(item) => (
+              <List.Item>
+                <Space>{item.icon}<Text>{item.label}</Text></Space>
+                <Text strong>{item.value}</Text>
+              </List.Item>
+            )}
+          />
+        </Card>
+      </Col>
+    </Row>
+  );
+
+  const renderSemanal = () => {
+    const dias = Array.from({ length: 7 }, (_, index) => (periodo?.[0] || dayjs().startOf("week")).startOf("week").add(index, "day"));
+    return (
+      <Card title="Planejamento semanal por dia">
+        <div style={{ overflowX: "auto" }}>
+          <Row gutter={12} style={{ minWidth: 980 }}>
+            {dias.map((dia) => {
+              const ordensDia = ordensPeriodo.filter((os) => os.data_agendada === dia.format("YYYY-MM-DD"));
+              return (
+                <Col flex="1" key={dia.format("YYYY-MM-DD")}>
+                  <Card
+                    size="small"
+                    title={
+                      <Space direction="vertical" size={0}>
+                        <Text strong>{dia.format("ddd")}</Text>
+                        <Text style={{ color: "#64748B", fontSize: 12 }}>{dia.format("DD/MM")}</Text>
+                      </Space>
+                    }
+                    style={{ minHeight: 420 }}
+                  >
+                    {ordensDia.length ? ordensDia.map((os) => <OsCard key={os.id} os={os} compact />) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Livre" />}
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
         </div>
       </Card>
+    );
+  };
+
+  const renderMensal = () => {
+    const porData = agenda.reduce((acc, dia) => {
+      acc[dia.data] = dia;
+      return acc;
+    }, {});
+    return (
+      <Card title="Mapa mensal da operação">
+        <Calendar
+          fullscreen
+          cellRender={(value) => {
+            const dataStr = value.format("YYYY-MM-DD");
+            const item = porData[dataStr];
+            if (!item) return null;
+            const total = (item.tecnicos || []).reduce((sum, tecnico) => sum + Number(tecnico.total_os || 0), 0);
+            return (
+              <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                <Badge count={total} style={{ backgroundColor: primaryBlue }} />
+                {(item.tecnicos || []).slice(0, 3).map((tec) => (
+                  <Tooltip title={tecnicoNome(tec)} key={tec.id}>
+                    <Tag style={{ maxWidth: "100%" }}>{tecnicoNome(tec).split(" ")[0]}: {tec.total_os}</Tag>
+                  </Tooltip>
+                ))}
+              </Space>
+            );
+          }}
+        />
+      </Card>
+    );
+  };
+
+  return (
+    <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100%" }}>
+      <Space direction="vertical" size={18} style={{ width: "100%" }}>
+        <Card style={{ border: "1px solid #E2E8F0" }}>
+          <Row gutter={[20, 20]} align="middle" justify="space-between">
+            <Col xs={24} lg={12}>
+              <Space direction="vertical" size={4}>
+                <Text style={{ color: "#64748B", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Agenda e despacho de campo
+                </Text>
+                <Title level={2} style={{ margin: 0 }}>Planeje e acompanhe sua equipe em tempo real</Title>
+                <Text style={{ color: "#64748B" }}>
+                  Visão inspirada em operação de campo: técnicos, rotas, OS do dia, produtividade e reagendamento rápido.
+                </Text>
+              </Space>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Row gutter={[12, 12]}>
+                <Col xs={12} md={6}><Card size="small"><Statistic title="Hoje" value={totalHoje} prefix={<CalendarOutlined />} /></Card></Col>
+                <Col xs={12} md={6}><Card size="small"><Statistic title="Execução" value={emExecucao} prefix={<RocketOutlined />} valueStyle={{ color: "#F59E0B" }} /></Card></Col>
+                <Col xs={12} md={6}><Card size="small"><Statistic title="Equipe" value={tecnicos.length} prefix={<TeamOutlined />} valueStyle={{ color: primaryBlue }} /></Card></Col>
+                <Col xs={12} md={6}><Card size="small"><Statistic title="Produtividade" value={produtividade} suffix="%" valueStyle={{ color: "#10B981" }} /></Card></Col>
+              </Row>
+            </Col>
+          </Row>
+        </Card>
+
+        <Card>
+          <Row gutter={[12, 12]} align="middle">
+            <Col xs={24} lg={8}>
+              <Segmented block size="large" value={visao} onChange={setVisao} options={visoes} />
+            </Col>
+            <Col xs={24} md={8} lg={5}>
+              <Select
+                allowClear
+                placeholder="Técnico"
+                value={filtroTecnico}
+                onChange={setFiltroTecnico}
+                style={{ width: "100%" }}
+                suffixIcon={<FilterOutlined />}
+                options={tecnicos.map((tecnico) => ({ value: tecnico.id, label: tecnicoNome(tecnico) }))}
+              />
+            </Col>
+            <Col xs={24} md={8} lg={5}>
+              <Select
+                allowClear
+                placeholder="Tipo de serviço"
+                value={filtroTipo}
+                onChange={setFiltroTipo}
+                style={{ width: "100%" }}
+                options={tiposServico}
+              />
+            </Col>
+            <Col xs={24} md={8} lg={4}>
+              <DatePicker.RangePicker
+                value={periodo}
+                onChange={(value) => setPeriodo(value || [dayjs().startOf("week"), dayjs().endOf("week")])}
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+              />
+            </Col>
+            <Col xs={24} lg={2}>
+              <Button block icon={<ReloadOutlined />} onClick={carregarAgenda}>Atualizar</Button>
+            </Col>
+          </Row>
+        </Card>
+
+        <Spin spinning={loading}>
+          {visao === "despacho" && renderDespacho()}
+          {visao === "hoje" && renderHoje()}
+          {visao === "semanal" && renderSemanal()}
+          {visao === "mensal" && renderMensal()}
+        </Spin>
+
+        <Card title="Tabela operacional" extra={<Text style={{ color: "#64748B" }}>{ordensDaVisao.length} OS na visão atual</Text>}>
+          <Table
+            rowKey="id"
+            dataSource={ordensDaVisao}
+            columns={[
+              { title: "OS", dataIndex: "numero", render: (value, os) => <Button type="link" onClick={() => navigate(`/ordens/${os.id}`)}>{value}</Button> },
+              { title: "Cliente", render: (_, os) => osCliente(os) },
+              { title: "Técnico", render: (_, os) => os.tecnico_nome || os.tecnico_agenda_nome || "Sem técnico" },
+              { title: "Data", dataIndex: "data_agendada", render: (value) => value ? dayjs(value).format("DD/MM/YYYY") : "-" },
+              { title: "Hora", dataIndex: "hora_inicio", render: horaCurta },
+              { title: "Status", render: (_, os) => <Tag color={getStatus(os).color}>{getStatus(os).label}</Tag> },
+              { title: "Ações", render: (_, os) => <Button size="small" onClick={() => abrirEdicao(os)}>Reagendar</Button> },
+            ]}
+          />
+        </Card>
+      </Space>
 
       <Modal
-        title="Editar Agendamento"
+        title="Reagendar atendimento"
         open={modalEditarVisivel}
         onCancel={() => setModalEditarVisivel(false)}
         onOk={() => form.submit()}
         confirmLoading={loading}
+        okText="Salvar agenda"
+        cancelText="Cancelar"
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSalvarEdicao}
-        >
-          <Form.Item
-            label="Nova Data"
-            name="data_agendada"
-            rules={[{ required: true, message: "Data é obrigatória" }]}
-          >
+        <Form form={form} layout="vertical" onFinish={handleSalvarEdicao}>
+          <Form.Item label="Data" name="data_agendada" rules={[{ required: true, message: "Data é obrigatória" }]}>
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item label="Horário de Início" name="hora_inicio">
+          <Form.Item label="Horário de início" name="hora_inicio">
             <TimePicker format="HH:mm" style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="Técnico responsável" name="tecnico_responsavel">
+            <Select
+              allowClear
+              placeholder="Selecionar técnico"
+              options={tecnicos.map((tecnico) => ({ value: tecnico.id, label: tecnicoNome(tecnico) }))}
+            />
+          </Form.Item>
+          <Form.Item label="Observação interna" name="observacao">
+            <Input.TextArea rows={3} placeholder="Ex: cliente solicitou atendimento no período da manhã" />
           </Form.Item>
         </Form>
       </Modal>
