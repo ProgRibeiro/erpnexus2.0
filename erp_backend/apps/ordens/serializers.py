@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from apps.configuracoes.models import get_empresa_configurada
 from apps.fiscal.models import ConfiguracaoFiscal
-from apps.fiscal.services import CalculadoraImpostos
+from apps.fiscal.services import MotorFiscalEspecialista
 
 from .models import (
     AnexoChatOS,
@@ -153,6 +153,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         if itens_data is not None:
             instance.itens.all().delete()
             self._salvar_itens(instance, itens_data)
+        else:
+            self._atualizar_totais_fiscais(instance)
 
         return instance
 
@@ -192,18 +194,6 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         return validated_data
 
     def _atualizar_totais_fiscais(self, ordem):
-        itens = list(ordem.itens.all())
-        valor_servicos = sum(
-            Decimal(item.valor_total or 0)
-            for item in itens
-            if item.origem_tipo != ItemOrcamento.OrigemTipo.PRODUTO
-        )
-        valor_materiais = sum(
-            Decimal(item.valor_total or 0)
-            for item in itens
-            if item.origem_tipo == ItemOrcamento.OrigemTipo.PRODUTO
-        )
-
         empresa = get_empresa_configurada()
         fiscal_config, _ = ConfiguracaoFiscal.objects.get_or_create(
             empresa=empresa,
@@ -218,22 +208,36 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             fiscal_config.regime_tributario = empresa.regime_tributario
             fiscal_config.save(update_fields=["regime_tributario", "atualizado_em"])
 
-        impostos = CalculadoraImpostos().calcular(
-            valor_servicos=valor_servicos,
-            valor_materiais=valor_materiais,
-            config=fiscal_config,
-        )
-
-        ordem.valor_servicos = valor_servicos
-        ordem.valor_materiais = valor_materiais
-        ordem.dados_impostos = _json_safe(impostos)
-        ordem.total_com_impostos = impostos.get("total_geral", ordem.valor_total_orcado)
+        motor = MotorFiscalEspecialista()
+        impostos = motor.aplicar_em_ordem(ordem, fiscal_config)
+        motor.aplicar_campos_ordem(ordem, impostos, fiscal_config)
         ordem.save(
             update_fields=[
                 "valor_servicos",
                 "valor_materiais",
                 "dados_impostos",
                 "total_com_impostos",
+                "aliquota_issqn",
+                "valor_issqn",
+                "retencao_issqn",
+                "valor_retido_issqn",
+                "aliquota_pis",
+                "valor_pis",
+                "aliquota_cofins",
+                "valor_cofins",
+                "aliquota_irpj",
+                "valor_irpj",
+                "aliquota_csll",
+                "valor_csll",
+                "aliquota_cbs",
+                "valor_cbs",
+                "aliquota_ibs",
+                "valor_ibs",
+                "valor_total_retencoes",
+                "valor_liquido_nf",
+                "descricao_servico_nf",
+                "municipio_incidencia_issqn",
+                "tipo_regime_tributario",
                 "atualizado_em",
             ]
         )

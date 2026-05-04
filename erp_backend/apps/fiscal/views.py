@@ -10,7 +10,7 @@ from .serializers import (
     ConfiguracaoFiscalSerializer,
     ConsultaCNPJSerializer,
 )
-from .services import CalculadoraImpostos, ConsultaCNPJ
+from .services import ConsultaCNPJ, MotorFiscalEspecialista
 
 
 def _get_empresa():
@@ -75,11 +75,17 @@ def calcular_impostos(request):
     serializer = CalcularImpostosSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     config = _get_configuracao_fiscal()
-    calculadora = CalculadoraImpostos()
-    resultado = calculadora.calcular(
+    motor = MotorFiscalEspecialista()
+    resultado = motor.calcular_operacao(
         valor_servicos=serializer.validated_data["valor_servicos"],
         valor_materiais=serializer.validated_data.get("valor_materiais", 0),
         config=config,
+        contexto={
+            "tipo_servico": serializer.validated_data.get("tipo_servico", ""),
+            "descricao_servico": serializer.validated_data.get("descricao_servico", ""),
+            "municipio_execucao": serializer.validated_data.get("municipio_execucao", ""),
+            "uf_execucao": serializer.validated_data.get("uf_execucao", ""),
+        },
     )
     return Response(resultado)
 

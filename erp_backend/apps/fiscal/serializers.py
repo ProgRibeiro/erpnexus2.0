@@ -25,4 +25,7 @@ class ConsultaCNPJSerializer(serializers.Serializer):
 class CalcularImpostosSerializer(serializers.Serializer):
     valor_servicos = serializers.DecimalField(max_digits=12, decimal_places=2)
     valor_materiais = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
-
+    tipo_servico = serializers.CharField(required=False, allow_blank=True)
+    descricao_servico = serializers.CharField(required=False, allow_blank=True)
+    municipio_execucao = serializers.CharField(required=False, allow_blank=True)
+    uf_execucao = serializers.CharField(required=False, allow_blank=True)

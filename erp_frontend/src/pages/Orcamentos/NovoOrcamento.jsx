@@ -38,6 +38,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import FiscalIntelligenceAlert from "./components/FiscalIntelligenceAlert";
 import {
   buildBudgetNumber,
   buildItemsPayload,
@@ -238,6 +239,8 @@ export default function NovoOrcamento() {
         const response = await api.post("/fiscal/calcular-impostos/", {
           valor_servicos: totals.valorServicos,
           valor_materiais: totals.valorMateriais,
+          tipo_servico: form.getFieldValue("tipo_servico") || "",
+          descricao_servico: form.getFieldValue("descricao_servico") || "",
         });
         if (active) {
           setImpostos(response.data || null);
@@ -843,6 +846,7 @@ export default function NovoOrcamento() {
                 )
               }
             />
+            <FiscalIntelligenceAlert impostos={impostos} />
           </Card>
 
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>

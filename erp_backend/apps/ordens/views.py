@@ -182,12 +182,17 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 tipo=Lancamento.Tipo.RECEITA,
                 defaults={"cor": "#3B82F6"},
             )
+            valor_receber = ordem.valor_final_faturado or ordem.valor_total_orcado
+            motor_fiscal = ordem.dados_impostos.get("motor_fiscal", {}) if isinstance(ordem.dados_impostos, dict) else {}
+            financeiro_fiscal = motor_fiscal.get("financeiro", {}) if isinstance(motor_fiscal, dict) else {}
+            if financeiro_fiscal.get("criar_contas_receber_por") == "valor_liquido" and ordem.valor_liquido_nf:
+                valor_receber = ordem.valor_liquido_nf
             lancamento, _ = Lancamento.objects.update_or_create(
                 os=ordem,
                 tipo=Lancamento.Tipo.RECEITA,
                 defaults={
                     "descricao": f"Faturamento {ordem.numero}",
-                    "valor": ordem.valor_final_faturado or ordem.valor_total_orcado,
+                    "valor": valor_receber,
                     "data_competencia": ordem.data_emissao_nf or timezone.localdate(),
                     "data_vencimento": ordem.data_vencimento or timezone.localdate(),
                     "status": Lancamento.Status.PENDENTE,
