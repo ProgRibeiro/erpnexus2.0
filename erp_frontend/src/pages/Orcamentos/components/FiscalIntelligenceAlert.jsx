@@ -19,6 +19,7 @@ export default function FiscalIntelligenceAlert({ impostos }) {
   const riscos = motor.riscos || [];
   const alertas = motor.alertas || [];
   const recomendacoes = motor.recomendacoes || [];
+  const automacoes = motor.automacoes_aplicadas || [];
   const type = riscos.length ? "error" : alertas.length ? "warning" : "success";
 
   return (
@@ -38,10 +39,11 @@ export default function FiscalIntelligenceAlert({ impostos }) {
       }
       description={
         <Space direction="vertical" size={6}>
+          {automacoes.map(renderItem)}
           {riscos.map(renderItem)}
           {alertas.map(renderItem)}
           {!riscos.length && !alertas.length ? (
-            <span>Cálculo fiscal validado automaticamente para esta operação.</span>
+            <span>Cálculo fiscal aplicado automaticamente para esta operação.</span>
           ) : null}
           {recomendacoes.slice(0, 2).map(renderItem)}
           {motor.reforma_tributaria?.status ? (

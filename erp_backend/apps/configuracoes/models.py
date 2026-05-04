@@ -53,7 +53,7 @@ class ConfiguracaoEmpresa(models.Model):
     regime_tributario = models.CharField(
         max_length=30,
         blank=True,
-        default="simples_nacional",
+        default="lucro_presumido",
         choices=[
             ("simples_nacional", "Simples Nacional"),
             ("lucro_presumido", "Lucro Presumido"),

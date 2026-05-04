@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
+from types import SimpleNamespace
 
 import requests
 
@@ -226,8 +227,21 @@ class MotorFiscalEspecialista:
         contexto: dict | None = None,
     ) -> dict:
         contexto = contexto or {}
-        impostos = self.calculadora.calcular(valor_servicos, valor_materiais, config)
-        inteligencia = self.analisar_operacao(impostos, config, contexto)
+        config_efetiva, automacoes = self._resolver_configuracao_efetiva(
+            valor_servicos=Decimal(valor_servicos or 0),
+            valor_materiais=Decimal(valor_materiais or 0),
+            config=config,
+            contexto=contexto,
+        )
+        impostos = self.calculadora.calcular(valor_servicos, valor_materiais, config_efetiva)
+        inteligencia = self.analisar_operacao(impostos, config_efetiva, contexto)
+        inteligencia["automacoes_aplicadas"] = automacoes
+        inteligencia["configuracao_original"] = {
+            "regime_tributario": config.regime_tributario,
+            "tipo_nota": config.tipo_nota,
+            "codigo_servico_lc116": config.codigo_servico_lc116,
+            "aliquota_iss": config.aliquota_iss,
+        }
         impostos["motor_fiscal"] = inteligencia
         impostos["observacao"] = self._observacao_resumida(impostos, inteligencia)
         return impostos
@@ -250,7 +264,10 @@ class MotorFiscalEspecialista:
         municipio_incidencia = self._sugerir_municipio_incidencia(config, codigo_sugerido, contexto)
         iss_retido = bool(config.iss_retido_fonte)
 
-        if config.regime_tributario != ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO:
+        automacoes = contexto.get("automacoes_aplicadas") or []
+        regime_aplicado_automaticamente = any(item.get("campo") == "regime_tributario" for item in automacoes)
+
+        if config.regime_tributario != ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO and not regime_aplicado_automaticamente:
             alertas.append(
                 self._item(
                     "regime_tributario",
@@ -349,6 +366,83 @@ class MotorFiscalEspecialista:
             "financeiro": self._analisar_financeiro(impostos, config),
             "reforma_tributaria": self._reforma_tributaria(),
         }
+
+    def _resolver_configuracao_efetiva(
+        self,
+        valor_servicos: Decimal,
+        valor_materiais: Decimal,
+        config: ConfiguracaoFiscal,
+        contexto: dict,
+    ):
+        texto_operacao = (
+            f"{contexto.get('tipo_servico', '')} {contexto.get('descricao_servico', '')} {contexto.get('descricao', '')}"
+        ).lower()
+        codigo_sugerido = self._sugerir_codigo_servico(texto_operacao, config)
+        automacoes = []
+
+        regime = config.regime_tributario
+        if valor_servicos > 0 and regime == ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL:
+            regime = ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO
+            automacoes.append(
+                self._item(
+                    "regime_tributario",
+                    "success",
+                    "Lucro Presumido aplicado automaticamente na operação.",
+                    "A operação de serviço foi enquadrada no perfil fiscal padrão solicitado para este ERP.",
+                )
+            )
+
+        tipo_nota = config.tipo_nota
+        tipo_sugerido = self._sugerir_tipo_nota(valor_servicos, valor_materiais, config)
+        if tipo_sugerido and tipo_sugerido != tipo_nota:
+            tipo_nota = tipo_sugerido
+            automacoes.append(
+                self._item(
+                    "tipo_nota",
+                    "success",
+                    f"Tipo de nota ajustado para {tipo_sugerido.upper()}.",
+                    "O motor fiscal aplicou a natureza da operação pelos itens do orçamento.",
+                )
+            )
+
+        codigo_servico = config.codigo_servico_lc116 or codigo_sugerido
+        if codigo_sugerido and not config.codigo_servico_lc116:
+            automacoes.append(
+                self._item(
+                    "codigo_servico_lc116",
+                    "success",
+                    f"Código LC 116 {codigo_sugerido} aplicado automaticamente.",
+                    "A classificação foi sugerida pela descrição/tipo de serviço.",
+                )
+            )
+
+        aliquota_iss = Decimal(config.aliquota_iss or 0)
+        if valor_servicos > 0 and (aliquota_iss < Decimal("2") or aliquota_iss > Decimal("5")):
+            aliquota_iss = Decimal("5.00")
+            automacoes.append(
+                self._item(
+                    "aliquota_iss",
+                    "success",
+                    "ISS ajustado automaticamente para 5,00%.",
+                    "Use a alíquota municipal correta em Configurações quando houver regra específica.",
+                )
+            )
+
+        config_efetiva = SimpleNamespace(
+            regime_tributario=regime,
+            tipo_nota=tipo_nota,
+            cnpj=config.cnpj,
+            razao_social=config.razao_social,
+            municipio=config.municipio,
+            codigo_municipio_ibge=config.codigo_municipio_ibge,
+            uf=config.uf,
+            aliquota_iss=aliquota_iss,
+            iss_retido_fonte=config.iss_retido_fonte,
+            codigo_servico_lc116=codigo_servico,
+            ativo=config.ativo,
+        )
+        contexto["automacoes_aplicadas"] = automacoes
+        return config_efetiva, automacoes
 
     def aplicar_em_ordem(self, ordem, config: ConfiguracaoFiscal, itens=None) -> dict:
         itens = list(itens if itens is not None else ordem.itens.all())
