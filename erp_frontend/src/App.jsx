@@ -37,6 +37,7 @@ import FaturamentoPage from "./pages/Faturamento";
 import ServicosPage from "./pages/Servicos";
 import TerceirosPage from "./pages/Terceiros";
 import PortalTerceiroPage from "./pages/Terceiros/PortalTerceiro";
+import LojaPage from "./pages/Loja";
 
 export default function App() {
   useBootstrapAuth();
@@ -75,6 +76,7 @@ export default function App() {
             <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
             <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
             <Route path="/servicos" element={<ServicosPage />} />
+            <Route path="/loja" element={<LojaPage />} />
             <Route path="/terceiros" element={<TerceirosPage />} />
             <Route path="/terceiros/portal" element={<PortalTerceiroPage />} />
             <Route path="/fiscal" element={<FiscalPage />} />

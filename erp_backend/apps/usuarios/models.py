@@ -49,6 +49,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         TECNICO = "tecnico", "Tecnico"
         ESTOQUISTA = "estoquista", "Estoquista"
         SUPORTE = "suporte", "Suporte"
+        VENDEDOR_LOJA = "vendedor_loja", "Vendedor loja"
+        GERENTE_LOJA = "gerente_loja", "Gerente loja"
 
     class Status(models.TextChoices):
         ATIVO = "ativo", "Ativo"

@@ -1,0 +1,86 @@
+[
+  {
+    "model": "loja.formapagamento",
+    "pk": 1,
+    "fields": {
+      "nome": "Dinheiro",
+      "tipo": "dinheiro",
+      "aceita_troco": true,
+      "taxa_percentual": "0.00",
+      "prazo_recebimento_dias": 0,
+      "ativo": true
+    }
+  },
+  {
+    "model": "loja.formapagamento",
+    "pk": 2,
+    "fields": {
+      "nome": "Pix",
+      "tipo": "pix",
+      "aceita_troco": false,
+      "taxa_percentual": "0.00",
+      "prazo_recebimento_dias": 0,
+      "ativo": true
+    }
+  },
+  {
+    "model": "loja.formapagamento",
+    "pk": 3,
+    "fields": {
+      "nome": "Cartão Crédito",
+      "tipo": "cartao_credito",
+      "aceita_troco": false,
+      "taxa_percentual": "3.49",
+      "prazo_recebimento_dias": 30,
+      "ativo": true
+    }
+  },
+  {
+    "model": "loja.formapagamento",
+    "pk": 4,
+    "fields": {
+      "nome": "Cartão Débito",
+      "tipo": "cartao_debito",
+      "aceita_troco": false,
+      "taxa_percentual": "1.99",
+      "prazo_recebimento_dias": 1,
+      "ativo": true
+    }
+  },
+  {
+    "model": "loja.formapagamento",
+    "pk": 5,
+    "fields": {
+      "nome": "Boleto",
+      "tipo": "boleto",
+      "aceita_troco": false,
+      "taxa_percentual": "0.00",
+      "prazo_recebimento_dias": 2,
+      "ativo": true
+    }
+  },
+  {
+    "model": "loja.formapagamento",
+    "pk": 6,
+    "fields": {
+      "nome": "Crediário",
+      "tipo": "crediario",
+      "aceita_troco": false,
+      "taxa_percentual": "0.00",
+      "prazo_recebimento_dias": 30,
+      "ativo": true
+    }
+  },
+  {
+    "model": "loja.formapagamento",
+    "pk": 7,
+    "fields": {
+      "nome": "Cheque",
+      "tipo": "cheque",
+      "aceita_troco": false,
+      "taxa_percentual": "0.00",
+      "prazo_recebimento_dias": 3,
+      "ativo": true
+    }
+  }
+]

@@ -1,5 +1,5 @@
 import { Layout, Space, Button, Dropdown, Avatar, Badge, Tooltip } from 'antd';
-import { BellOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { BellOutlined, LogoutOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import AvatarUsuario from '../components/ui/AvatarUsuario';
@@ -39,6 +39,15 @@ export default function Header() {
           <span className="erp-topbar-heading">Sistema do prestador de serviço</span>
         </div>
         <Space size="large">
+          <Button
+            type="primary"
+            icon={<ShopOutlined />}
+            onClick={() => navigate('/loja')}
+            style={{ background: '#3B82F6', borderColor: '#3B82F6', fontWeight: 700 }}
+          >
+            Modo Loja
+          </Button>
+
           <Tooltip title="Notificações">
             <Badge count={0}>
               <Button
