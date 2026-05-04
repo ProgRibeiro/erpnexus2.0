@@ -474,6 +474,7 @@ export default function LancamentosPage() {
   const [baixaLancamento, setBaixaLancamento] = useState(null);
   const [importVisible, setImportVisible] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [handledQueryAction, setHandledQueryAction] = useState("");
 
   const recarregarLancamentos = () => {
     setReloadKey((current) => current + 1);
@@ -527,6 +528,41 @@ export default function LancamentosPage() {
     carregar();
   }, [filters, pagination, reloadKey]);
 
+  useEffect(() => {
+    const editarId = searchParams.get("editar");
+    const baixaId = searchParams.get("baixar");
+    const novo = searchParams.get("novo");
+    const importar = searchParams.get("importar");
+    const actionKey = `${novo || ""}:${importar || ""}:${editarId || ""}:${baixaId || ""}:${lancamentos.length}`;
+    if ((!novo && !importar && !editarId && !baixaId) || handledQueryAction === actionKey) return;
+
+    if (novo) {
+      setSelectedLancamento(null);
+      setFormVisible(true);
+      setHandledQueryAction(actionKey);
+      return;
+    }
+    if (importar) {
+      setImportVisible(true);
+      setHandledQueryAction(actionKey);
+      return;
+    }
+
+    const targetId = Number(editarId || baixaId);
+    const target = lancamentos.find((item) => item.id === targetId);
+    if (!target) return;
+
+    if (editarId) {
+      setSelectedLancamento(target);
+      setFormVisible(true);
+    }
+    if (baixaId) {
+      setBaixaLancamento(target);
+      setBaixaVisible(true);
+    }
+    setHandledQueryAction(actionKey);
+  }, [searchParams, lancamentos, handledQueryAction]);
+
   const handleSaveLancamento = async (payload) => {
     try {
       if (selectedLancamento) {
@@ -541,6 +577,7 @@ export default function LancamentosPage() {
       }
       setFormVisible(false);
       setSelectedLancamento(null);
+      navigate("/financeiro/lancamentos", { replace: true });
       setPagination({ current: 1, pageSize: 20 });
       recarregarLancamentos();
     } catch (error) {
@@ -556,6 +593,7 @@ export default function LancamentosPage() {
       message.success("Baixa registrada com sucesso");
       setBaixaVisible(false);
       setBaixaLancamento(null);
+      navigate("/financeiro/lancamentos", { replace: true });
       setPagination({ current: 1, pageSize: 20 });
       recarregarLancamentos();
     } catch (error) {
@@ -570,6 +608,7 @@ export default function LancamentosPage() {
         `Extrato importado: ${resultado.conciliados} conciliado(s), ${resultado.criados} criado(s), ${resultado.ignorados} ignorado(s).`
       );
       setImportVisible(false);
+      navigate("/financeiro/lancamentos", { replace: true });
       setPagination({ current: 1, pageSize: 20 });
       recarregarLancamentos();
     } catch (error) {
@@ -660,48 +699,42 @@ export default function LancamentosPage() {
     {
       title: "Ações",
       key: "acoes",
-      width: 160,
-      align: "center",
+      width: 260,
       fixed: "right",
       render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title="Visualizar">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => {
-                setDetailsData(record);
-                setDetailsVisible(true);
-              }}
-              style={{ color: "#3B82F6" }}
-            />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => {
-                setSelectedLancamento(record);
-                setFormVisible(true);
-              }}
-              style={{ color: "#374151" }}
-            />
-          </Tooltip>
+        <Space size={6} wrap>
+          <Button
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setDetailsData(record);
+              setDetailsVisible(true);
+            }}
+          >
+            Detalhes
+          </Button>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setSelectedLancamento(record);
+              setFormVisible(true);
+            }}
+          >
+            Editar
+          </Button>
           {record.status !== "pago" && (
-            <Tooltip title="Dar baixa">
-              <Button
-                type="text"
-                size="small"
-                icon={<CheckCircleOutlined />}
-                onClick={() => {
-                  setBaixaLancamento(record);
-                  setBaixaVisible(true);
-                }}
-                style={{ color: "#16a34a" }}
-              />
-            </Tooltip>
+            <Button
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => {
+                setBaixaLancamento(record);
+                setBaixaVisible(true);
+              }}
+              style={{ color: "#16a34a", borderColor: "#86efac" }}
+            >
+              Baixar
+            </Button>
           )}
           <Tooltip title="Deletar">
             <Button
@@ -907,6 +940,7 @@ export default function LancamentosPage() {
           onClose={() => {
             setFormVisible(false);
             setSelectedLancamento(null);
+            navigate("/financeiro/lancamentos", { replace: true });
           }}
         />
 
@@ -918,6 +952,7 @@ export default function LancamentosPage() {
           onClose={() => {
             setBaixaVisible(false);
             setBaixaLancamento(null);
+            navigate("/financeiro/lancamentos", { replace: true });
           }}
         />
 
@@ -925,7 +960,10 @@ export default function LancamentosPage() {
           visible={importVisible}
           contas={contas}
           onImport={handleImportarExtrato}
-          onClose={() => setImportVisible(false)}
+          onClose={() => {
+            setImportVisible(false);
+            navigate("/financeiro/lancamentos", { replace: true });
+          }}
         />
 
         {/* Drawer de detalhes */}

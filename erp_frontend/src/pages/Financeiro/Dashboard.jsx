@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
+  Alert,
   Card,
   Col,
   ConfigProvider,
@@ -14,11 +16,19 @@ import {
   Typography,
   Button,
   message,
+  Progress,
 } from "antd";
 import {
   DownloadOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  BankOutlined,
+  CheckCircleOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  ReconciliationOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import {
   Bar,
@@ -75,6 +85,30 @@ function formatDate(value) {
   const date = new Date(safeValue);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("pt-BR");
+}
+
+function statusBadge(status) {
+  const statusConfig = {
+    pendente: { color: "#EA8C55", label: "Pendente" },
+    pago: { color: "#16a34a", label: "Pago" },
+    atrasado: { color: "#dc2626", label: "Atrasado" },
+    cancelado: { color: "#9CA3AF", label: "Cancelado" },
+  };
+  const config = statusConfig[status] || statusConfig.pendente;
+  return (
+    <span
+      style={{
+        background: `${config.color}14`,
+        color: config.color,
+        padding: "4px 8px",
+        borderRadius: 4,
+        fontSize: 12,
+        fontWeight: 600,
+      }}
+    >
+      {config.label}
+    </span>
+  );
 }
 
 function MetricCard({
@@ -154,7 +188,7 @@ function MetricCard({
   );
 }
 
-function TabelaContasReceber({ data, loading }) {
+function TabelaContasReceber({ data, loading, onEdit, onBaixa }) {
   const columns = [
     {
       title: "Descrição",
@@ -183,28 +217,22 @@ function TabelaContasReceber({ data, loading }) {
       dataIndex: "status",
       key: "status",
       width: 100,
-      render: (status) => {
-        const statusConfig = {
-          pendente: { color: "#EA8C55", label: "Pendente" },
-          pago: { color: "#16a34a", label: "Pago" },
-          vencido: { color: "#dc2626", label: "Vencido" },
-        };
-        const config = statusConfig[status] || statusConfig.pendente;
-        return (
-          <span
-            style={{
-              background: `${config.color}14`,
-              color: config.color,
-              padding: "4px 8px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            {config.label}
-          </span>
-        );
-      },
+      render: statusBadge,
+    },
+    {
+      title: "Ação",
+      key: "acao",
+      width: 160,
+      render: (_, record) => (
+        <Space size={6}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
+            Editar
+          </Button>
+          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => onBaixa(record)} style={{ color: "#16a34a", borderColor: "#86efac" }}>
+            Baixar
+          </Button>
+        </Space>
+      ),
     },
   ];
 
@@ -227,7 +255,7 @@ function TabelaContasReceber({ data, loading }) {
   );
 }
 
-function TabelaContasPagar({ data, loading }) {
+function TabelaContasPagar({ data, loading, onEdit, onBaixa }) {
   const columns = [
     {
       title: "Descrição",
@@ -256,28 +284,22 @@ function TabelaContasPagar({ data, loading }) {
       dataIndex: "status",
       key: "status",
       width: 100,
-      render: (status) => {
-        const statusConfig = {
-          pendente: { color: "#EA8C55", label: "Pendente" },
-          pago: { color: "#16a34a", label: "Pago" },
-          vencido: { color: "#dc2626", label: "Vencido" },
-        };
-        const config = statusConfig[status] || statusConfig.pendente;
-        return (
-          <span
-            style={{
-              background: `${config.color}14`,
-              color: config.color,
-              padding: "4px 8px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            {config.label}
-          </span>
-        );
-      },
+      render: statusBadge,
+    },
+    {
+      title: "Ação",
+      key: "acao",
+      width: 160,
+      render: (_, record) => (
+        <Space size={6}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
+            Editar
+          </Button>
+          <Button size="small" icon={<CheckCircleOutlined />} onClick={() => onBaixa(record)} style={{ color: "#16a34a", borderColor: "#86efac" }}>
+            Baixar
+          </Button>
+        </Space>
+      ),
     },
   ];
 
@@ -301,6 +323,7 @@ function TabelaContasPagar({ data, loading }) {
 }
 
 export default function FinanceiroDashboard() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [fluxo, setFluxo] = useState([]);
   const [contas, setContas] = useState([]);
@@ -374,6 +397,17 @@ export default function FinanceiroDashboard() {
     "#7c3aed",
   ];
 
+  const receita = Number(data?.receita || 0);
+  const despesa = Number(data?.despesa || 0);
+  const contasReceber = Number(data?.contas_receber || 0);
+  const contasPagar = Number(data?.contas_pagar || 0);
+  const margem = receita > 0 ? Math.round(((receita - despesa) / receita) * 100) : 0;
+  const cobertura = contasPagar > 0 ? Math.min(100, Math.round((contasReceber / contasPagar) * 100)) : 100;
+
+  const abrirLancamento = (record, action) => {
+    navigate(`/financeiro/lancamentos?${action}=${record.id}`);
+  };
+
   return (
     <ConfigProvider
       theme={{
@@ -397,16 +431,42 @@ export default function FinanceiroDashboard() {
           }}
         >
           <Title level={1} style={{ color: "#111827", fontSize: 24, fontWeight: 800, margin: 0 }}>
-            Dashboard Financeiro
+            Central Financeira
           </Title>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={() => message.info("Recurso em desenvolvimento")}
-            style={{ borderRadius: 8 }}
-          >
-            Exportar
-          </Button>
+          <Space wrap>
+            <Button icon={<FileTextOutlined />} onClick={() => navigate("/financeiro/lancamentos")}>
+              Lançamentos
+            </Button>
+            <Button icon={<BankOutlined />} onClick={() => navigate("/financeiro/contas")}>
+              Contas bancárias
+            </Button>
+            <Button icon={<ReconciliationOutlined />} onClick={() => navigate("/financeiro/lancamentos?importar=1")}>
+              Importar extrato
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/financeiro/lancamentos?novo=1")}>
+              Novo lançamento
+            </Button>
+          </Space>
         </div>
+
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} lg={16}>
+            <Alert
+              type={contasPagar > contasReceber ? "warning" : "success"}
+              showIcon
+              message="Resumo executivo"
+              description={`Margem operacional de ${margem}% no período. Existem ${formatMoney(contasReceber)} em aberto para receber e ${formatMoney(contasPagar)} para pagar.`}
+            />
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card bordered={false} style={cardStyle} bodyStyle={{ padding: 16 }}>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Text strong>Cobertura de compromissos</Text>
+                <Progress percent={cobertura} strokeColor={cobertura >= 80 ? "#10B981" : "#F59E0B"} />
+              </Space>
+            </Card>
+          </Col>
+        </Row>
 
         {/* Filtros */}
         <Card bordered={false} style={filterStyle} bodyStyle={{ padding: 16 }}>
@@ -497,6 +557,7 @@ export default function FinanceiroDashboard() {
               trend="positive"
               color="#16a34a"
               loading={loading}
+              icon={ArrowUpOutlined}
             />
           </Col>
           <Col xs={24} sm={12} lg={8} xl={4}>
@@ -507,6 +568,7 @@ export default function FinanceiroDashboard() {
               trend="negative"
               color="#dc2626"
               loading={loading}
+              icon={ArrowDownOutlined}
             />
           </Col>
           <Col xs={24} sm={12} lg={8} xl={4}>
@@ -517,6 +579,7 @@ export default function FinanceiroDashboard() {
               trend="positive"
               color="#3B82F6"
               loading={loading}
+              icon={WalletOutlined}
             />
           </Col>
           <Col xs={24} sm={12} lg={8} xl={4}>
@@ -525,6 +588,7 @@ export default function FinanceiroDashboard() {
               value={formatMoney(data?.contas_receber)}
               color="#EA8C55"
               loading={loading}
+              icon={FileTextOutlined}
             />
           </Col>
           <Col xs={24} sm={12} lg={8} xl={4}>
@@ -533,6 +597,7 @@ export default function FinanceiroDashboard() {
               value={formatMoney(data?.contas_pagar)}
               color="#5B21B6"
               loading={loading}
+              icon={ReconciliationOutlined}
             />
           </Col>
           <Col xs={24} sm={12} lg={8} xl={4}>
@@ -541,6 +606,7 @@ export default function FinanceiroDashboard() {
               value={formatMoney(data?.saldo_total)}
               color="#0891b2"
               loading={loading}
+              icon={BankOutlined}
             />
           </Col>
         </Row>
@@ -622,10 +688,20 @@ export default function FinanceiroDashboard() {
         {/* Tabelas */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} lg={12}>
-            <TabelaContasReceber data={data} loading={loading} />
+            <TabelaContasReceber
+              data={data}
+              loading={loading}
+              onEdit={(record) => abrirLancamento(record, "editar")}
+              onBaixa={(record) => abrirLancamento(record, "baixar")}
+            />
           </Col>
           <Col xs={24} lg={12}>
-            <TabelaContasPagar data={data} loading={loading} />
+            <TabelaContasPagar
+              data={data}
+              loading={loading}
+              onEdit={(record) => abrirLancamento(record, "editar")}
+              onBaixa={(record) => abrirLancamento(record, "baixar")}
+            />
           </Col>
         </Row>
 
