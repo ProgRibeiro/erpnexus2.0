@@ -68,6 +68,21 @@ function calcularPrecoSugerido(values = {}) {
   return custo + (custo * percentual) / 100;
 }
 
+function arredondarMoeda(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+function formatarErroApi(error) {
+  const data = error?.response?.data;
+  if (!data) return "Erro ao salvar produto";
+  if (typeof data === "string") return data;
+  if (data.detail) return data.detail;
+  const campo = Object.keys(data)[0];
+  const valor = data[campo];
+  const mensagem = Array.isArray(valor) ? valor[0] : valor;
+  return campo ? `${campo}: ${mensagem}` : "Erro ao salvar produto";
+}
+
 export default function EstoquePage() {
   const [produtos, setProdutos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -142,7 +157,11 @@ export default function EstoquePage() {
     try {
       const payload = {
         ...values,
-        preco_venda: values.preco_manual ? values.preco_venda : precoSugerido,
+        preco_custo: arredondarMoeda(values.preco_custo),
+        preco_venda: arredondarMoeda(values.preco_manual ? values.preco_venda : precoSugerido),
+        markup_percentual: arredondarMoeda(values.markup_percentual),
+        aliquota_impostos_percentual: arredondarMoeda(values.aliquota_impostos_percentual),
+        despesas_operacionais_percentual: arredondarMoeda(values.despesas_operacionais_percentual),
       };
       const estoqueInicial = Number(payload.estoque_inicial || 0);
       delete payload.estoque_inicial;
@@ -163,8 +182,7 @@ export default function EstoquePage() {
       setDrawerOpen(false);
       carregar();
     } catch (error) {
-      const detail = error?.response?.data?.detail || "Erro ao salvar produto";
-      message.error(detail);
+      message.error(formatarErroApi(error));
     } finally {
       setSaving(false);
     }
