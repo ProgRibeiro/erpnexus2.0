@@ -30,11 +30,13 @@ import {
   CarOutlined,
   CheckCircleOutlined,
   DashboardOutlined,
+  DeleteOutlined,
   DollarOutlined,
   LeftOutlined,
   PlusOutlined,
   ProductOutlined,
   ReloadOutlined,
+  PrinterOutlined,
   ShoppingCartOutlined,
   ThunderboltOutlined,
   WarningOutlined,
@@ -82,8 +84,13 @@ export default function LojaPage() {
   });
   const [loading, setLoading] = useState(false);
   const [salvandoProduto, setSalvandoProduto] = useState(false);
+  const [finalizandoVenda, setFinalizandoVenda] = useState(false);
   const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
+  const [modalPdvAberto, setModalPdvAberto] = useState(false);
   const [busca, setBusca] = useState("");
+  const [buscaPdv, setBuscaPdv] = useState("");
+  const [carrinho, setCarrinho] = useState([]);
+  const [formaPagamentoId, setFormaPagamentoId] = useState(null);
 
   const carregar = async () => {
     try {
@@ -132,6 +139,21 @@ export default function LojaPage() {
       return nome.includes(termo) || codigo.includes(termo) || ncm.includes(termo);
     });
   }, [busca, produtos]);
+
+  const produtosPdvFiltrados = useMemo(() => {
+    const termo = buscaPdv.trim().toLowerCase();
+    if (!termo) return produtos;
+    return produtos.filter((item) => {
+      const nome = getProdutoNome(item).toLowerCase();
+      const codigo = getProdutoCodigo(item).toLowerCase();
+      const ncm = String(item.ncm || "").toLowerCase();
+      return nome.includes(termo) || codigo.includes(termo) || ncm.includes(termo);
+    });
+  }, [buscaPdv, produtos]);
+
+  const totalCarrinho = useMemo(() => {
+    return carrinho.reduce((total, item) => total + Number(item.quantidade || 0) * Number(item.valor_unitario || 0), 0);
+  }, [carrinho]);
 
   const produtosComAlerta = useMemo(() => {
     return produtos.filter((item) => item.produto_dados?.em_alerta || Number(item.estoque_atual || 0) <= Number(item.produto_dados?.estoque_minimo || 0));
@@ -200,6 +222,159 @@ export default function LojaPage() {
     }
   };
 
+  const abrirPdv = () => {
+    if (!caixas.length) {
+      message.warning("Abra um caixa antes de iniciar uma venda.");
+      setView("caixa");
+      return;
+    }
+    setCarrinho([]);
+    setBuscaPdv("");
+    setFormaPagamentoId(formas[0]?.id || null);
+    setModalPdvAberto(true);
+  };
+
+  const adicionarProdutoCarrinho = (produto) => {
+    if (!produto.vendido_loja) {
+      message.warning("Produto oculto para venda na loja.");
+      return;
+    }
+    if (Number(produto.estoque_atual || 0) <= 0 && produto.produto_dados?.tipo_suprimento !== "futuro") {
+      message.warning("Produto sem estoque disponível.");
+      return;
+    }
+    setCarrinho((atual) => {
+      const existente = atual.find((item) => item.produto.id === produto.id);
+      if (existente) {
+        return atual.map((item) => (item.produto.id === produto.id ? { ...item, quantidade: Number(item.quantidade || 0) + 1 } : item));
+      }
+      return [
+        ...atual,
+        {
+          produto,
+          quantidade: 1,
+          valor_unitario: Number(produto.preco_vigente || produto.produto_dados?.preco_venda || 0),
+        },
+      ];
+    });
+  };
+
+  const atualizarItemCarrinho = (produtoId, campo, valor) => {
+    setCarrinho((atual) => atual.map((item) => (item.produto.id === produtoId ? { ...item, [campo]: valor } : item)));
+  };
+
+  const removerItemCarrinho = (produtoId) => {
+    setCarrinho((atual) => atual.filter((item) => item.produto.id !== produtoId));
+  };
+
+  const gerarComprovanteHtml = (venda) => {
+    const itens = venda.itens || [];
+    const pagamentos = venda.pagamentos || [];
+    return `
+      <html>
+        <head>
+          <title>Comprovante ${venda.numero}</title>
+          <style>
+            body { font-family: Arial, sans-serif; width: 280px; margin: 0; padding: 12px; color: #111827; }
+            h1 { font-size: 16px; margin: 0 0 4px; text-align: center; }
+            .muted { color: #64748B; font-size: 11px; text-align: center; }
+            .line { border-top: 1px dashed #94A3B8; margin: 10px 0; }
+            .row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; margin: 4px 0; }
+            .item { font-size: 12px; margin-bottom: 8px; }
+            .total { font-weight: 700; font-size: 15px; }
+            @media print { body { width: 280px; } }
+          </style>
+        </head>
+        <body>
+          <h1>ERP Nexus Loja</h1>
+          <div class="muted">Comprovante de venda</div>
+          <div class="muted">${venda.numero || ""}</div>
+          <div class="muted">${new Date().toLocaleString("pt-BR")}</div>
+          <div class="line"></div>
+          ${itens
+            .map(
+              (item) => `
+                <div class="item">
+                  <div>${item.produto_nome || "Produto"}</div>
+                  <div class="row"><span>${Number(item.quantidade || 0)} x ${currency(item.valor_unitario)}</span><strong>${currency(item.valor_total)}</strong></div>
+                </div>
+              `
+            )
+            .join("")}
+          <div class="line"></div>
+          <div class="row"><span>Subtotal</span><span>${currency(venda.subtotal)}</span></div>
+          <div class="row"><span>Desconto</span><span>${currency(venda.desconto_total)}</span></div>
+          <div class="row total"><span>Total</span><span>${currency(venda.valor_total)}</span></div>
+          <div class="line"></div>
+          ${pagamentos.map((pag) => `<div class="row"><span>${pag.forma_nome}</span><span>${currency(pag.valor)}</span></div>`).join("")}
+          <div class="line"></div>
+          <div class="muted">Obrigado pela preferência.</div>
+        </body>
+      </html>
+    `;
+  };
+
+  const imprimirComprovante = (venda) => {
+    const janela = window.open("", "_blank", "width=360,height=640");
+    if (!janela) {
+      message.warning("Permita pop-ups para imprimir o comprovante.");
+      return;
+    }
+    janela.document.write(gerarComprovanteHtml(venda));
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => janela.print(), 300);
+  };
+
+  const finalizarVendaPdv = async () => {
+    if (!caixas.length) {
+      message.warning("Abra um caixa antes de vender.");
+      return;
+    }
+    if (!carrinho.length) {
+      message.warning("Adicione pelo menos um produto ao carrinho.");
+      return;
+    }
+    if (!formaPagamentoId) {
+      message.warning("Selecione a forma de pagamento.");
+      return;
+    }
+
+    try {
+      setFinalizandoVenda(true);
+      const vendaResp = await api.post("/loja/vendas/", {
+        caixa: caixas[0].id,
+        canal: "balcao",
+        observacoes: "Venda balcão pelo PDV do Modo Loja",
+      });
+      const vendaId = vendaResp.data.id;
+
+      for (const item of carrinho) {
+        await api.post(`/loja/vendas/${vendaId}/adicionar-item/`, {
+          produto: item.produto.id,
+          quantidade: item.quantidade,
+          valor_unitario: item.valor_unitario,
+          desconto_item: 0,
+        });
+      }
+
+      const finalizadaResp = await api.post(`/loja/vendas/${vendaId}/finalizar/`, {
+        pagamentos: [{ forma: formaPagamentoId, valor: totalCarrinho, parcelas: 1 }],
+      });
+
+      message.success("Venda finalizada. Estoque, caixa e financeiro atualizados.");
+      setModalPdvAberto(false);
+      setCarrinho([]);
+      imprimirComprovante(finalizadaResp.data);
+      carregar();
+    } catch (error) {
+      const detalhe = error.response?.data?.detail || "Não foi possível finalizar a venda.";
+      message.error(detalhe);
+    } finally {
+      setFinalizandoVenda(false);
+    }
+  };
+
   const precoSugerido = Form.useWatch([], form);
   const valorSugerido = useMemo(() => {
     const custo = Number(precoSugerido?.preco_custo || 0);
@@ -225,6 +400,14 @@ export default function LojaPage() {
     { title: "Margem", render: (_, item) => `${Number(item.produto_dados?.margem_percentual || 0).toFixed(2)}%` },
     { title: "Fiscal", render: (_, item) => `${item.ncm || "NCM pendente"} / CFOP ${item.cfop_padrao || "-"}` },
     { title: "Status", render: (_, item) => <Badge status={item.vendido_loja ? "success" : "default"} text={item.vendido_loja ? "Vendendo" : "Oculto"} /> },
+    {
+      title: "PDV",
+      render: (_, item) => (
+        <Button size="small" icon={<PlusOutlined />} onClick={() => adicionarProdutoCarrinho(item)}>
+          Adicionar
+        </Button>
+      ),
+    },
   ];
 
   const conexoes = [
@@ -276,7 +459,7 @@ export default function LojaPage() {
               message={caixas.length ? "Caixa conectado" : "Abra um caixa para vender"}
               description={caixas.length ? "O PDV está pronto para registrar vendas e gerar financeiro." : "Sem caixa aberto o sistema bloqueia a venda."}
             />
-            <Button type="primary" size="large" block disabled={!caixas.length} style={{ background: lojaBlue }}>
+            <Button type="primary" size="large" block disabled={!caixas.length} style={{ background: lojaBlue }} onClick={abrirPdv}>
               Iniciar venda
             </Button>
           </Space>
@@ -574,7 +757,10 @@ export default function LojaPage() {
               block
               size="large"
               value={view}
-              onChange={setView}
+              onChange={(value) => {
+                setView(value);
+                if (value === "pdv") abrirPdv();
+              }}
               options={menuOptions.map((item) => ({ label: <Space>{item.icon}{item.label}</Space>, value: item.value }))}
             />
           </Card>
@@ -582,6 +768,134 @@ export default function LojaPage() {
           {contentByView[view]()}
         </Space>
       </Content>
+
+      <Modal
+        title="PDV - frente de caixa"
+        open={modalPdvAberto}
+        onCancel={() => setModalPdvAberto(false)}
+        width="96vw"
+        footer={null}
+        destroyOnClose
+        styles={{ body: { paddingTop: 8 } }}
+      >
+        <Row gutter={[16, 16]}>
+          <Col xs={24} xl={15}>
+            <Card
+              title="Adicionar produtos"
+              extra={<Button icon={<PlusOutlined />} onClick={abrirCadastroProduto}>Cadastrar produto</Button>}
+            >
+              <Input
+                size="large"
+                prefix={<BarcodeOutlined />}
+                placeholder="Escaneie ou busque produto pelo nome, código ou NCM"
+                value={buscaPdv}
+                onChange={(event) => setBuscaPdv(event.target.value)}
+              />
+              <Table
+                style={{ marginTop: 14 }}
+                size="small"
+                rowKey="id"
+                dataSource={produtosPdvFiltrados}
+                pagination={{ pageSize: 7 }}
+                columns={[
+                  { title: "Produto", render: (_, item) => <Text strong>{getProdutoNome(item)}</Text> },
+                  { title: "Código", render: (_, item) => getProdutoCodigo(item) },
+                  { title: "Estoque", dataIndex: "estoque_atual", render: (value) => <Tag>{Number(value || 0)}</Tag> },
+                  { title: "Preço", dataIndex: "preco_vigente", render: (value) => <Text strong>{currency(value)}</Text> },
+                  {
+                    title: "",
+                    render: (_, item) => (
+                      <Button type="primary" size="small" icon={<PlusOutlined />} style={{ background: lojaBlue }} onClick={() => adicionarProdutoCarrinho(item)}>
+                        Adicionar
+                      </Button>
+                    ),
+                  },
+                ]}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} xl={9}>
+            <Card
+              title="Carrinho da venda"
+              extra={<Tag color={caixas.length ? "green" : "orange"}>{caixas[0]?.nome || "Sem caixa"}</Tag>}
+            >
+              <Table
+                size="small"
+                rowKey={(item) => item.produto.id}
+                dataSource={carrinho}
+                pagination={false}
+                columns={[
+                  { title: "Produto", render: (_, item) => getProdutoNome(item.produto) },
+                  {
+                    title: "Qtd",
+                    width: 90,
+                    render: (_, item) => (
+                      <InputNumber
+                        min={0.01}
+                        precision={2}
+                        value={item.quantidade}
+                        onChange={(value) => atualizarItemCarrinho(item.produto.id, "quantidade", value || 1)}
+                        style={{ width: 78 }}
+                      />
+                    ),
+                  },
+                  {
+                    title: "Valor",
+                    width: 112,
+                    render: (_, item) => (
+                      <InputNumber
+                        min={0}
+                        precision={2}
+                        value={item.valor_unitario}
+                        onChange={(value) => atualizarItemCarrinho(item.produto.id, "valor_unitario", value || 0)}
+                        style={{ width: 104 }}
+                      />
+                    ),
+                  },
+                  { title: "Total", render: (_, item) => currency(Number(item.quantidade || 0) * Number(item.valor_unitario || 0)) },
+                  {
+                    title: "",
+                    width: 42,
+                    render: (_, item) => (
+                      <Button danger type="text" icon={<DeleteOutlined />} onClick={() => removerItemCarrinho(item.produto.id)} />
+                    ),
+                  },
+                ]}
+              />
+
+              <Divider />
+              <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                <Statistic title="Total da venda" value={totalCarrinho} prefix="R$" precision={2} valueStyle={{ color: lojaBlue, fontWeight: 800 }} />
+                <Select
+                  size="large"
+                  placeholder="Forma de pagamento"
+                  value={formaPagamentoId}
+                  onChange={setFormaPagamentoId}
+                  options={formas.map((forma) => ({ value: forma.id, label: `${forma.nome} - ${forma.tipo}` }))}
+                  style={{ width: "100%" }}
+                />
+                <Alert
+                  type="info"
+                  showIcon
+                  message="Ao finalizar, o sistema baixa o estoque, movimenta o caixa, cria receita no financeiro e abre o comprovante para impressão."
+                />
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  icon={<PrinterOutlined />}
+                  style={{ background: lojaBlue }}
+                  loading={finalizandoVenda}
+                  disabled={!carrinho.length || !formaPagamentoId}
+                  onClick={finalizarVendaPdv}
+                >
+                  Finalizar e imprimir comprovante
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      </Modal>
 
       <Modal
         title="Cadastrar produto da loja"

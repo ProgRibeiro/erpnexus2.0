@@ -178,6 +178,17 @@ class VendaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(vendedor__usuario=self.request.user)
         return queryset
 
+    def perform_create(self, serializer):
+        vendedor = serializer.validated_data.get("vendedor")
+        if not vendedor:
+            base_codigo = (getattr(self.request.user, "username", "") or getattr(self.request.user, "email", "") or f"user-{self.request.user.id}").upper()
+            codigo = "".join(ch for ch in base_codigo if ch.isalnum())[:20] or f"USR{self.request.user.id}"
+            vendedor, _ = Vendedor.objects.get_or_create(
+                usuario=self.request.user,
+                defaults={"codigo_vendedor": f"VD-{codigo}", "ativo": True},
+            )
+        serializer.save(vendedor=vendedor)
+
     @action(detail=True, methods=["post"], url_path="adicionar-item")
     def adicionar_item(self, request, pk=None):
         venda = self.get_object()

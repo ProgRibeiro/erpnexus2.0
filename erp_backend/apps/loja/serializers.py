@@ -186,6 +186,7 @@ class VendaSerializer(serializers.ModelSerializer):
         model = Venda
         fields = "__all__"
         read_only_fields = ["numero", "subtotal", "valor_total", "criado_em", "finalizada_em"]
+        extra_kwargs = {"vendedor": {"required": False}}
 
 
 class FornecedorSerializer(serializers.ModelSerializer):
