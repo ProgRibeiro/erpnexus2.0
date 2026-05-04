@@ -50,6 +50,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/tecnico-mobile" element={<TecnicoMobilePage />} />
           <Route path="/tecnico-mobile/os-campo/:osId" element={<OSCampoPage />} />
+          <Route path="/loja" element={<LojaPage />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -76,7 +77,6 @@ export default function App() {
             <Route path="/estoque/saida" element={<SaidaEstoquePage />} />
             <Route path="/estoque/alertas" element={<AlertasEstoquePage />} />
             <Route path="/servicos" element={<ServicosPage />} />
-            <Route path="/loja" element={<LojaPage />} />
             <Route path="/terceiros" element={<TerceirosPage />} />
             <Route path="/terceiros/portal" element={<PortalTerceiroPage />} />
             <Route path="/fiscal" element={<FiscalPage />} />

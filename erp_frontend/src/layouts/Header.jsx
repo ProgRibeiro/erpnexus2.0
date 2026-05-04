@@ -42,7 +42,7 @@ export default function Header() {
           <Button
             type="primary"
             icon={<ShopOutlined />}
-            onClick={() => navigate('/loja')}
+            onClick={() => window.open('/loja', '_blank', 'noopener,noreferrer')}
             style={{ background: '#3B82F6', borderColor: '#3B82F6', fontWeight: 700 }}
           >
             Modo Loja
