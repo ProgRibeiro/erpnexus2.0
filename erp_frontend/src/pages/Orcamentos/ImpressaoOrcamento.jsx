@@ -135,21 +135,43 @@ export default function ImpressaoOrcamento() {
         logging: false,
       });
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.97);
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
       const pageW = pdf.internal.pageSize.getWidth();   // 297mm
       const pageH = pdf.internal.pageSize.getHeight();  // 210mm
 
-      // Escala a imagem para caber exatamente em 1 página
-      const imgAspect = canvas.width / canvas.height;
-      let drawW = pageW;
-      let drawH = pageW / imgAspect;
-      if (drawH > pageH) { drawH = pageH; drawW = pageH * imgAspect; }
+      // Largura da imagem ocupa 100% da página; altura é proporcional
+      const imgWidthMm = pageW;
+      const imgHeightMm = (canvas.height * pageW) / canvas.width;
 
-      const offsetX = (pageW - drawW) / 2;
-      const offsetY = (pageH - drawH) / 2;
+      // Se cabe em 1 página, centraliza; senão divide em fatias paisagem
+      if (imgHeightMm <= pageH) {
+        const offsetY = (pageH - imgHeightMm) / 2;
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.97), "JPEG", 0, offsetY, imgWidthMm, imgHeightMm);
+      } else {
+        // Cada "fatia" da imagem equivale a pageH mm de altura
+        const totalPages = Math.ceil(imgHeightMm / pageH);
+        const slicePx = Math.round((pageH / imgWidthMm) * canvas.width); // pixels por fatia
 
-      pdf.addImage(imgData, "JPEG", offsetX, offsetY, drawW, drawH);
+        for (let page = 0; page < totalPages; page++) {
+          if (page > 0) pdf.addPage("a4", "landscape");
+
+          const srcY = page * slicePx;
+          const srcH = Math.min(slicePx, canvas.height - srcY);
+
+          // Cria canvas temporário com a fatia
+          const slice = document.createElement("canvas");
+          slice.width = canvas.width;
+          slice.height = slicePx;
+          const ctx = slice.getContext("2d");
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, slice.width, slice.height);
+          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+          const sliceH_mm = (srcH * pageW) / canvas.width;
+          pdf.addImage(slice.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, sliceH_mm);
+        }
+      }
+
       pdf.save(`${orcamento?.numero || `orcamento-${id}`}.pdf`);
       message.success("PDF gerado com sucesso.");
     } catch (error) {
