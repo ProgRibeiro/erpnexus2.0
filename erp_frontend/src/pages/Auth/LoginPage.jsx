@@ -1,3 +1,17 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Form, Input, Button, Checkbox } from "antd";
+import {
+  ToolOutlined,
+  BuildOutlined,
+  CheckCircleFilled,
+  ArrowLeftOutlined,
+  MailOutlined,
+  LockOutlined,
+} from "@ant-design/icons";
+import { useAuthStore } from "../../store/authStore";
+import authService from "../../services/authService";
+
 const MODOS = {
   prestador: {
     key: "prestador",
