@@ -302,11 +302,15 @@ export default function OrcamentoDetalhe() {
           values.validade_orcamento?.format("YYYY-MM-DD") || null,
         observacoes_tecnicas: values.observacoes || "",
         itens: buildItemsPayload(items),
-        valor_desconto: Number(valorDesconto || 0),
+        valor_desconto:
+          tipoDesconto === "percentual"
+            ? Number(((totals.subtotal * valorDesconto) / 100).toFixed(2))
+            : Number(valorDesconto || 0),
       });
       setOrder(response.data);
       setImpostos(response.data.dados_impostos || null);
       setValorDesconto(Number(response.data.valor_desconto || 0));
+      setTipoDesconto("valor"); // após salvar sempre volta pra R$ pois backend guarda em R$
       setItems(
         (response.data.itens || []).map((item, index) =>
           mapBackendItem(item, index),
@@ -925,8 +929,8 @@ export default function OrcamentoDetalhe() {
                   setValorDesconto(0);
                 }}
                 options={[
-                  { label: "R$ (valor fixo)", value: "valor" },
-                  { label: "% (percentual)", value: "percentual" },
+                  { label: "R$ fixo", value: "valor" },
+                  { label: "% percentual", value: "percentual" },
                 ]}
                 style={{ width: 140 }}
                 disabled={!editMode}
@@ -934,19 +938,14 @@ export default function OrcamentoDetalhe() {
               <InputNumber
                 min={0}
                 max={tipoDesconto === "percentual" ? 100 : undefined}
+                step={tipoDesconto === "percentual" ? 1 : 10}
                 value={valorDesconto}
                 onChange={(v) => setValorDesconto(Number(v || 0))}
-                formatter={(v) =>
-                  tipoDesconto === "percentual"
-                    ? `${v}%`
-                    : `R$ ${String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
-                }
-                parser={(v) =>
-                  tipoDesconto === "percentual"
-                    ? v.replace("%", "")
-                    : v.replace(/R\$\s?|(\.*)/g, "")
-                }
-                style={{ width: 180 }}
+                addonBefore={tipoDesconto === "valor" ? "R$" : null}
+                addonAfter={tipoDesconto === "percentual" ? "%" : null}
+                decimalSeparator=","
+                precision={tipoDesconto === "percentual" ? 2 : 2}
+                style={{ width: 200 }}
                 disabled={!editMode}
               />
               <Text style={{ color: "#92400E" }}>
@@ -955,7 +954,9 @@ export default function OrcamentoDetalhe() {
                     tipoDesconto === "percentual"
                       ? (totals.subtotal * valorDesconto) / 100
                       : valorDesconto;
-                  return `= − ${moneyFormatter.format(descontoEmReais)}`;
+                  return descontoEmReais > 0
+                    ? `= − ${moneyFormatter.format(descontoEmReais)}`
+                    : "sem desconto";
                 })()}
               </Text>
             </div>
