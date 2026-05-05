@@ -136,39 +136,50 @@ export default function ImpressaoOrcamento() {
       const { default: jsPDF } = await import("jspdf");
 
       const element = document.querySelector(".doc-sheet");
+
+      // Forçar elemento a renderizar em largura de paisagem (A4 landscape = 1123px @ 96dpi)
+      const origStyle = element.getAttribute("style") || "";
+      element.style.cssText += "; width: 1123px !important; max-width: 1123px !important; overflow: visible !important;";
+
+      // Aguarda repintura
+      await new Promise((r) => setTimeout(r, 120));
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#FFFFFF",
+        width: 1123,
         windowWidth: 1123,
         logging: false,
       });
 
-      const pdf = new jsPDF({ unit: "mm", format: [297, 210], compress: true });
+      // Restaurar estilo original
+      element.setAttribute("style", origStyle);
+
+      // jsPDF em modo paisagem A4 (API posicional: "l" = landscape)
+      const pdf = new jsPDF("l", "mm", "a4");
       const pageW = pdf.internal.pageSize.getWidth();   // 297mm
       const pageH = pdf.internal.pageSize.getHeight();  // 210mm
 
-      // Largura da imagem ocupa 100% da página; altura é proporcional
       const imgWidthMm = pageW;
       const imgHeightMm = (canvas.height * pageW) / canvas.width;
 
-      // Se cabe em 1 página, centraliza; senão divide em fatias paisagem
       if (imgHeightMm <= pageH) {
+        // Cabe em 1 página — centraliza verticalmente
         const offsetY = (pageH - imgHeightMm) / 2;
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.97), "JPEG", 0, offsetY, imgWidthMm, imgHeightMm);
       } else {
-        // Cada "fatia" da imagem equivale a pageH mm de altura
-        const totalPages = Math.ceil(imgHeightMm / pageH);
-        const slicePx = Math.round((pageH / imgWidthMm) * canvas.width); // pixels por fatia
+        // Divide em fatias, cada uma com pageH mm de altura
+        const slicePx = Math.round((pageH * canvas.width) / pageW); // pixels por fatia
 
+        const totalPages = Math.ceil(canvas.height / slicePx);
         for (let page = 0; page < totalPages; page++) {
-          if (page > 0) pdf.addPage([297, 210]);
+          if (page > 0) pdf.addPage("a4", "l");
 
           const srcY = page * slicePx;
           const srcH = Math.min(slicePx, canvas.height - srcY);
 
-          // Cria canvas temporário com a fatia
           const slice = document.createElement("canvas");
           slice.width = canvas.width;
           slice.height = slicePx;
