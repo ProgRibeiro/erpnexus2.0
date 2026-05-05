@@ -144,7 +144,7 @@ export default function ImpressaoOrcamento() {
           windowHeight: Math.round(900 / aspectRatio),
           logging: false,
         },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "landscape", compress: true },
         pagebreak: { mode: "avoid" },
       };
 
@@ -167,7 +167,7 @@ export default function ImpressaoOrcamento() {
     >
       <style>{`
         @media print {
-          @page { size: A4; margin: 0mm !important; }
+          @page { size: A4 landscape; margin: 0mm !important; }
           * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
           html, body, #root { width: 100% !important; height: auto !important; min-height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; background: white !important; }
           .ant-layout-sider, [class*="sidebar"], [class*="Sidebar"], nav, header, .print-toolbar, .ant-layout-header, aside { display: none !important; }
