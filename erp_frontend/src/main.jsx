@@ -157,7 +157,9 @@ async function registerServiceWorker() {
 
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event?.data?.type === "SW_RECOVERY_RELOAD") {
-        window.location.reload();
+        // Apenas loga — o SW já limpou os caches e se desregistrou.
+        // Não recarregar aqui evita loop infinito de reload.
+        console.log("[SW] Recuperação concluída, caches limpos.");
       }
     });
   }
