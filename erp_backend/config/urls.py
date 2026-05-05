@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import FileResponse, Http404
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
+from pathlib import Path
 from apps.ordens.views import RelatorioPublicoPDFView, RelatorioPublicoView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -14,6 +16,16 @@ class HealthCheckView(APIView):
 
     def get(self, request):
         return Response({"status": "ok", "service": "erp_backend"})
+
+
+def service_worker_view(request):
+    sw_path = Path(settings.BASE_DIR) / "frontend_dist" / "sw.js"
+    if not sw_path.exists():
+        raise Http404("sw.js não encontrado")
+    response = FileResponse(open(sw_path, "rb"), content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 api_patterns = [
@@ -41,6 +53,7 @@ api_patterns = [
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_patterns)),
+    path("sw.js", service_worker_view, name="service-worker"),
     re_path(r"^(?!api/|admin/|static/|media/).*$", TemplateView.as_view(template_name="index.html"), name="frontend"),
 ]
 

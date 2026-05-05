@@ -57,6 +57,12 @@ async function registerServiceWorker() {
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       console.log("[SW] Novo service worker assumiu o controle");
     });
+
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event?.data?.type === "SW_RECOVERY_RELOAD") {
+        window.location.reload();
+      }
+    });
   }
 }
 
