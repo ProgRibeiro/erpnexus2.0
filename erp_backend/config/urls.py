@@ -34,6 +34,7 @@ api_patterns = [
     path("auditoria/", include("apps.auditoria.urls")),
     path("terceiros/", include("apps.terceiros.urls")),
     path("loja/", include("apps.loja.urls")),
+    path("facilities/", include("apps.facilities.urls")),
     path("health/", HealthCheckView.as_view(), name="health-check"),
 ]
 

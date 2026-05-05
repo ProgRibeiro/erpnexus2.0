@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.auditoria",
     "apps.terceiros",
     "apps.loja",
+    "apps.facilities",
 ]
 
 MIDDLEWARE = [
