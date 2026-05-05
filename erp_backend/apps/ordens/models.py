@@ -110,6 +110,7 @@ class OrdemServico(models.Model):
     pc_ultima_analise_em = models.DateTimeField(null=True, blank=True)
     descricao_servico = models.TextField(blank=True)
     valor_total_orcado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_desconto = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     valor_servicos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     valor_materiais = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     dados_impostos = models.JSONField(default=dict, blank=True)

@@ -111,6 +111,8 @@ export default function OrcamentoDetalhe() {
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
   const [catalogOrigin, setCatalogOrigin] = useState("servico");
   const [selectedCatalogItem, setSelectedCatalogItem] = useState(null);
+  const [valorDesconto, setValorDesconto] = useState(0);
+  const [tipoDesconto, setTipoDesconto] = useState("valor"); // "valor" | "percentual"
 
   const isAdmin = ["admin", "gestor"].includes(
     String(user?.role || "").toLowerCase(),
@@ -167,6 +169,7 @@ export default function OrcamentoDetalhe() {
         setServicos(normalizeList(servicosResponse.data));
         setOrder(currentOrder);
         setImpostos(currentOrder.dados_impostos || null);
+        setValorDesconto(Number(currentOrder.valor_desconto || 0));
         setItems(
           (currentOrder.itens || []).map((item, index) =>
             mapBackendItem(item, index),
@@ -299,9 +302,11 @@ export default function OrcamentoDetalhe() {
           values.validade_orcamento?.format("YYYY-MM-DD") || null,
         observacoes_tecnicas: values.observacoes || "",
         itens: buildItemsPayload(items),
+        valor_desconto: Number(valorDesconto || 0),
       });
       setOrder(response.data);
       setImpostos(response.data.dados_impostos || null);
+      setValorDesconto(Number(response.data.valor_desconto || 0));
       setItems(
         (response.data.itens || []).map((item, index) =>
           mapBackendItem(item, index),
@@ -895,6 +900,65 @@ export default function OrcamentoDetalhe() {
                 </div>
               </div>
             </div>
+
+            {/* Desconto */}
+            <div
+              style={{
+                background: "#FFFBEB",
+                border: "1px solid #FDE68A",
+                borderRadius: 12,
+                padding: "12px 16px",
+                marginBottom: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <Text style={{ fontWeight: 700, color: "#92400E", minWidth: 80 }}>
+                Desconto
+              </Text>
+              <Select
+                value={tipoDesconto}
+                onChange={(v) => {
+                  setTipoDesconto(v);
+                  setValorDesconto(0);
+                }}
+                options={[
+                  { label: "R$ (valor fixo)", value: "valor" },
+                  { label: "% (percentual)", value: "percentual" },
+                ]}
+                style={{ width: 140 }}
+                disabled={!editMode}
+              />
+              <InputNumber
+                min={0}
+                max={tipoDesconto === "percentual" ? 100 : undefined}
+                value={valorDesconto}
+                onChange={(v) => setValorDesconto(Number(v || 0))}
+                formatter={(v) =>
+                  tipoDesconto === "percentual"
+                    ? `${v}%`
+                    : `R$ ${String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
+                }
+                parser={(v) =>
+                  tipoDesconto === "percentual"
+                    ? v.replace("%", "")
+                    : v.replace(/R\$\s?|(\.*)/g, "")
+                }
+                style={{ width: 180 }}
+                disabled={!editMode}
+              />
+              <Text style={{ color: "#92400E" }}>
+                {(() => {
+                  const descontoEmReais =
+                    tipoDesconto === "percentual"
+                      ? (totals.subtotal * valorDesconto) / 100
+                      : valorDesconto;
+                  return `= − ${moneyFormatter.format(descontoEmReais)}`;
+                })()}
+              </Text>
+            </div>
             <Alert
               type="info"
               showIcon
@@ -938,18 +1002,36 @@ export default function OrcamentoDetalhe() {
                 padding: 16,
               }}
             >
-              <Text style={{ color: "#1E40AF", fontSize: 16, fontWeight: 700 }}>
-                Total com impostos
-              </Text>
+              <div>
+                <Text style={{ color: "#1E40AF", fontSize: 16, fontWeight: 700 }}>
+                  Total com impostos
+                </Text>
+                {(() => {
+                  const descontoEmReais =
+                    tipoDesconto === "percentual"
+                      ? (totals.subtotal * valorDesconto) / 100
+                      : valorDesconto;
+                  return descontoEmReais > 0 ? (
+                    <div style={{ fontSize: 13, color: "#92400E" }}>
+                      Desconto aplicado: −{moneyFormatter.format(descontoEmReais)}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
               <Text style={{ color: "#3B82F6", fontSize: 28, fontWeight: 800 }}>
-                {moneyFormatter.format(
-                  Number(
+                {(() => {
+                  const base = Number(
                     impostos?.total_geral ||
                       order?.total_com_impostos ||
                       totals.subtotal ||
                       0,
-                  ),
-                )}
+                  );
+                  const descontoEmReais =
+                    tipoDesconto === "percentual"
+                      ? (totals.subtotal * valorDesconto) / 100
+                      : valorDesconto;
+                  return moneyFormatter.format(Math.max(0, base - descontoEmReais));
+                })()}
               </Text>
             </div>
           </Card>
