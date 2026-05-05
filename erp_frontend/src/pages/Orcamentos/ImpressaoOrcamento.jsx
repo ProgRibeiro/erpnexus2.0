@@ -145,7 +145,7 @@ export default function ImpressaoOrcamento() {
         logging: false,
       });
 
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+      const pdf = new jsPDF({ unit: "mm", format: [297, 210], compress: true });
       const pageW = pdf.internal.pageSize.getWidth();   // 297mm
       const pageH = pdf.internal.pageSize.getHeight();  // 210mm
 
@@ -163,7 +163,7 @@ export default function ImpressaoOrcamento() {
         const slicePx = Math.round((pageH / imgWidthMm) * canvas.width); // pixels por fatia
 
         for (let page = 0; page < totalPages; page++) {
-          if (page > 0) pdf.addPage("a4", "landscape");
+          if (page > 0) pdf.addPage([297, 210]);
 
           const srcY = page * slicePx;
           const srcH = Math.min(slicePx, canvas.height - srcY);
