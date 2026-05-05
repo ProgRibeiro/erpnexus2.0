@@ -21,42 +21,54 @@ environ.Env.read_env(BASE_DIR / ".env", overwrite=True)
 
 SECRET_KEY = env("SECRET_KEY", default=env("DJANGO_SECRET_KEY", default="unsafe-default-key-local-dev"))
 DEBUG = env.bool("DEBUG", default=env("DJANGO_DEBUG", default=True))
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "0.0.0.0"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "0.0.0.0", ".localhost"])
 
-INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "corsheaders",
-    "storages",
-    "rest_framework",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-    "django_filters",
-    "apps.usuarios",
-    "apps.clientes",
-    "apps.ordens",
-    "apps.financeiro",
-    "apps.crm",
-    "apps.estoque",
-    "apps.relatorios",
-    "apps.notificacoes",
-    "apps.portal",
-    "apps.configuracoes",
-    "apps.fiscal",
-    "apps.importacao",
-    "apps.auditoria",
-    "apps.terceiros",
-    "apps.loja",
-    "apps.facilities",
-    "apps.saas",
-    "apps.portal_contratante",
+SHARED_APPS = [
+    'django_tenants',
+    'apps.tenants',  # DEVE ser o primeiro app compartilhado
+    'django.contrib.contenttypes',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'corsheaders',
+    'storages',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
+    'apps.saas',  # planos, diretório, licitações — ficam no public schema
 ]
 
+TENANT_APPS = [
+    'django.contrib.contenttypes',
+    'apps.usuarios',
+    'apps.clientes',
+    'apps.ordens',
+    'apps.financeiro',
+    'apps.crm',
+    'apps.estoque',
+    'apps.relatorios',
+    'apps.notificacoes',
+    'apps.portal',
+    'apps.configuracoes',
+    'apps.fiscal',
+    'apps.importacao',
+    'apps.auditoria',
+    'apps.terceiros',
+    'apps.loja',
+    'apps.facilities',
+    'apps.portal_contratante',
+]
+
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
+TENANT_MODEL = 'tenants.Client'
+TENANT_DOMAIN_MODEL = 'tenants.Domain'
+
 MIDDLEWARE = [
+    'django_tenants.middleware.main.TenantMainMiddleware',  # DEVE SER O PRIMEIRO
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -90,7 +102,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_tenants.postgresql_backend",
         "NAME": env("DB_NAME", default="erp_db"),
         "USER": env("DB_USER", default="postgres"),
         "PASSWORD": env("DB_PASSWORD", default="73882768"),
@@ -98,6 +110,7 @@ DATABASES = {
         "PORT": env("DB_PORT", default="5432"),
     }
 }
+DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -131,6 +144,12 @@ CSRF_TRUSTED_ORIGINS = env.list(
     default=["http://localhost:5173", "http://127.0.0.1:5173"],
 )
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Em dev permite tudo
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://.*\.localhost(:\d+)?$",
+    r"^http://localhost(:\d+)?$",
+    r"^http://127\.0\.0\.1(:\d+)?$",
+]
 
 AUTHENTICATION_BACKENDS = [
     "apps.usuarios.backends.EmailOrUsernameBackend",

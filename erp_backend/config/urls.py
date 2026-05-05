@@ -5,7 +5,6 @@ from django.http import FileResponse, Http404
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from pathlib import Path
-from apps.ordens.views import RelatorioPublicoPDFView, RelatorioPublicoView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,7 +14,12 @@ class HealthCheckView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return Response({"status": "ok", "service": "erp_backend"})
+        tenant = request.tenant if hasattr(request, 'tenant') else None
+        return Response({
+            "status": "ok",
+            "service": "erp_backend",
+            "tenant": tenant.schema_name if tenant else "public",
+        })
 
 
 def service_worker_view(request):
@@ -28,7 +32,16 @@ def service_worker_view(request):
     return response
 
 
-api_patterns = [
+# ─── URLs do schema PUBLIC (compartilhado) ───────────────────────────────────
+public_api_patterns = [
+    path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('saas/', include('apps.tenants.urls')),  # diretório de prestadores
+]
+
+# ─── URLs de cada TENANT (isolado por schema) ────────────────────────────────
+from apps.ordens.views import RelatorioPublicoPDFView, RelatorioPublicoView
+
+tenant_api_patterns = [
     path("auth/", include("apps.usuarios.urls")),
     path("clientes/", include("apps.clientes.urls")),
     path("ordens/", include("apps.ordens.urls")),
@@ -39,8 +52,6 @@ api_patterns = [
     path("notificacoes/", include("apps.notificacoes.urls")),
     path("publico/relatorio/<uuid:token>/", RelatorioPublicoView.as_view(), name="publico-relatorio"),
     path("publico/relatorio/<uuid:token>/pdf/", RelatorioPublicoPDFView.as_view(), name="publico-relatorio-pdf"),
-    path("portal/contratante/", include("apps.portal_contratante.urls")),
-    path("mobile/", include("apps.portal_contratante.mobile_urls")),
     path("portal/", include("apps.portal.urls")),
     path("configuracoes/", include("apps.configuracoes.urls")),
     path("fiscal/", include("apps.fiscal.urls")),
@@ -49,12 +60,15 @@ api_patterns = [
     path("terceiros/", include("apps.terceiros.urls")),
     path("loja/", include("apps.loja.urls")),
     path("facilities/", include("apps.facilities.urls")),
-    path("health/", HealthCheckView.as_view(), name="health-check"),
+    path("portal/contratante/", include("apps.portal_contratante.urls")),
+    path("mobile/", include("apps.portal_contratante.mobile_urls")),
+    path("health/", HealthCheckView.as_view(), name='health-check-tenant'),
 ]
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/", include(api_patterns)),
+    path("api/v1/", include(tenant_api_patterns)),
+    path("api/public/", include(public_api_patterns)),
     path("sw.js", service_worker_view, name="service-worker"),
     re_path(r"^(?!api/|admin/|static/|media/).*$", TemplateView.as_view(template_name="index.html"), name="frontend"),
 ]
