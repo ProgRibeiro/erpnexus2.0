@@ -169,7 +169,12 @@ export default function OrcamentoDetalhe() {
         setServicos(normalizeList(servicosResponse.data));
         setOrder(currentOrder);
         setImpostos(currentOrder.dados_impostos || null);
-        setValorDesconto(Number(currentOrder.valor_desconto || 0));
+        setValorDesconto(
+          currentOrder.tipo_desconto === "percentual"
+            ? Number(currentOrder.percentual_desconto || 0)
+            : Number(currentOrder.valor_desconto || 0),
+        );
+        setTipoDesconto(currentOrder.tipo_desconto || "valor");
         setItems(
           (currentOrder.itens || []).map((item, index) =>
             mapBackendItem(item, index),
@@ -302,6 +307,8 @@ export default function OrcamentoDetalhe() {
           values.validade_orcamento?.format("YYYY-MM-DD") || null,
         observacoes_tecnicas: values.observacoes || "",
         itens: buildItemsPayload(items),
+        tipo_desconto: tipoDesconto,
+        percentual_desconto: tipoDesconto === "percentual" ? Number(valorDesconto || 0) : 0,
         valor_desconto:
           tipoDesconto === "percentual"
             ? Number(((totals.subtotal * valorDesconto) / 100).toFixed(2))
@@ -309,8 +316,13 @@ export default function OrcamentoDetalhe() {
       });
       setOrder(response.data);
       setImpostos(response.data.dados_impostos || null);
-      setValorDesconto(Number(response.data.valor_desconto || 0));
-      setTipoDesconto("valor"); // após salvar sempre volta pra R$ pois backend guarda em R$
+      // restaurar estado conforme o que foi salvo
+      setTipoDesconto(response.data.tipo_desconto || "valor");
+      setValorDesconto(
+        response.data.tipo_desconto === "percentual"
+          ? Number(response.data.percentual_desconto || 0)
+          : Number(response.data.valor_desconto || 0),
+      );
       setItems(
         (response.data.itens || []).map((item, index) =>
           mapBackendItem(item, index),

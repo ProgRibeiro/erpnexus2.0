@@ -106,6 +106,16 @@ export default function ImpressaoOrcamento() {
   const impostos = impostosCalculados || orcamento?.dados_impostos || {};
   const subtotalItens = totaisItens.subtotal;
   const descontoOrcamento = Number(orcamento?.desconto || orcamento?.valor_desconto || 0);
+  const tipoDescontoOrcamento = orcamento?.tipo_desconto || "valor";
+  const percentualDescontoOrcamento = Number(orcamento?.percentual_desconto || 0);
+  const descontoLabel =
+    tipoDescontoOrcamento === "percentual" && percentualDescontoOrcamento > 0
+      ? `DESCONTO (${percentualDescontoOrcamento}%)`
+      : "DESCONTO";
+  const descontoLabelMinusculo =
+    tipoDescontoOrcamento === "percentual" && percentualDescontoOrcamento > 0
+      ? `Desconto (${percentualDescontoOrcamento}%)`
+      : "Desconto";
   const impostoTotal = Number(impostos?.total_impostos || 0);
   const totalComImpostos = Number(
     impostos?.total_geral || subtotalItens - descontoOrcamento + impostoTotal || 0,
@@ -296,7 +306,7 @@ export default function ImpressaoOrcamento() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderBottom: "1px solid #EDF0F5" }}>
             {[
               ["SUBTOTAL", subtotalItens],
-              ["DESCONTO", descontoOrcamento],
+              [descontoLabel, descontoOrcamento],
               ["IMPOSTO", impostoTotal],
               ["TOTAL FINAL", totalComImpostos],
             ].map(([label, value], idx) => (
@@ -376,7 +386,7 @@ export default function ImpressaoOrcamento() {
             <div style={{ minWidth: 280, maxWidth: 310 }}>
               {[
                 ["Subtotal", formatMoneyTrailing(subtotalItens)],
-                ["Desconto", `- ${formatMoneyTrailing(descontoOrcamento)}`],
+                [descontoLabelMinusculo, `- ${formatMoneyTrailing(descontoOrcamento)}`],
                 ["Base de cálculo", formatMoneyTrailing(Math.max(0, subtotalItens - descontoOrcamento))],
                 [`Imposto (${aliquotaPercentual}%)`, formatMoneyTrailing(impostoTotal)],
               ].map(([label, value]) => (

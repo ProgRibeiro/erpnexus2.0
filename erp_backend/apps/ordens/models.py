@@ -111,6 +111,12 @@ class OrdemServico(models.Model):
     descricao_servico = models.TextField(blank=True)
     valor_total_orcado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     valor_desconto = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tipo_desconto = models.CharField(
+        max_length=20,
+        choices=[("valor", "Valor fixo (R$)"), ("percentual", "Percentual (%)")],
+        default="valor",
+    )
+    percentual_desconto = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     valor_servicos = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     valor_materiais = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     dados_impostos = models.JSONField(default=dict, blank=True)
