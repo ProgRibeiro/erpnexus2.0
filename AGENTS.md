@@ -77,6 +77,7 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 | 12   | Listagem de Ordens de Serviço (filtros, tabela, navegação)                     | ✅     |
 | 13   | Telas de Orçamentos (listagem, novo, detalhe, conversão para OS)               | ✅     |
 | 14   | Rebrand para ERP Nexus, correção de configuração da empresa, correção de cores | ✅     |
+| SaaS | Plataforma multi-tenant enterprise — Tenant, Empresa, Unidade, Budget, Aprovação por Alçada, Portal Contratante, BI, Auditoria, Mobile swipe, SLA Celery | ✅ |
 
 ---
 

@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     "apps.terceiros",
     "apps.loja",
     "apps.facilities",
+    "apps.saas",
+    "apps.portal_contratante",
 ]
 
 MIDDLEWARE = [

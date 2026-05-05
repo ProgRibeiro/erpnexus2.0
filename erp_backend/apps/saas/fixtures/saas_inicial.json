@@ -1,0 +1,64 @@
+[
+  {
+    "model": "saas.planosaas",
+    "pk": 1,
+    "fields": {
+      "nome": "Básico",
+      "descricao": "Para pequenas empresas",
+      "valor_mensal": "2000.00",
+      "limite_usuarios": 10,
+      "limite_unidades": 20,
+      "limite_chamados_mes": 100,
+      "recursos_inclusos": ["dashboard", "chamados"],
+      "ativo": true
+    }
+  },
+  {
+    "model": "saas.planosaas",
+    "pk": 2,
+    "fields": {
+      "nome": "Profissional",
+      "descricao": "Para médias empresas",
+      "valor_mensal": "8000.00",
+      "limite_usuarios": 50,
+      "limite_unidades": 200,
+      "limite_chamados_mes": 1000,
+      "recursos_inclusos": ["dashboard", "sla", "portal_b2b", "mobile"],
+      "ativo": true
+    }
+  },
+  {
+    "model": "saas.planosaas",
+    "pk": 3,
+    "fields": {
+      "nome": "Enterprise",
+      "descricao": "Para grandes corporações",
+      "valor_mensal": "25000.00",
+      "limite_usuarios": 500,
+      "limite_unidades": 9999,
+      "limite_chamados_mes": 99999,
+      "recursos_inclusos": ["dashboard", "sla", "portal_b2b", "mobile", "bi", "auditoria"],
+      "ativo": true
+    }
+  },
+  {
+    "model": "saas.categoriabudget",
+    "pk": 1,
+    "fields": {"nome": "Manutenção", "cor_hex": "#3B82F6", "ativo": true}
+  },
+  {
+    "model": "saas.categoriabudget",
+    "pk": 2,
+    "fields": {"nome": "Obras", "cor_hex": "#F59E0B", "ativo": true}
+  },
+  {
+    "model": "saas.categoriabudget",
+    "pk": 3,
+    "fields": {"nome": "Insumos", "cor_hex": "#10B981", "ativo": true}
+  },
+  {
+    "model": "saas.categoriabudget",
+    "pk": 4,
+    "fields": {"nome": "Emergência", "cor_hex": "#EF4444", "ativo": true}
+  }
+]

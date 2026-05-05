@@ -39,6 +39,8 @@ api_patterns = [
     path("notificacoes/", include("apps.notificacoes.urls")),
     path("publico/relatorio/<uuid:token>/", RelatorioPublicoView.as_view(), name="publico-relatorio"),
     path("publico/relatorio/<uuid:token>/pdf/", RelatorioPublicoPDFView.as_view(), name="publico-relatorio-pdf"),
+    path("portal/contratante/", include("apps.portal_contratante.urls")),
+    path("mobile/", include("apps.portal_contratante.mobile_urls")),
     path("portal/", include("apps.portal.urls")),
     path("configuracoes/", include("apps.configuracoes.urls")),
     path("fiscal/", include("apps.fiscal.urls")),
