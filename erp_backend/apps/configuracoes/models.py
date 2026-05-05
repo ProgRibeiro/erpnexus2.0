@@ -44,6 +44,7 @@ class ConfiguracaoEmpresa(models.Model):
     telefone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
     site = models.URLField(blank=True)
+    instagram = models.CharField(max_length=100, blank=True, help_text="URL ou usuário do Instagram")
     logo = models.ImageField(upload_to="configuracoes/logo/", blank=True, null=True)
     cor_principal = models.CharField(
         max_length=7,

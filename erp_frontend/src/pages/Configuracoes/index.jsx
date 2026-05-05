@@ -622,6 +622,11 @@ export default function ConfiguracoesPage() {
                       <Input type="url" />
                     </Form.Item>
                   </Col>
+                  <Col xs={24} sm={12}>
+                    <Form.Item name="instagram" label="Instagram">
+                      <Input placeholder="@empresa ou https://instagram.com/empresa" />
+                    </Form.Item>
+                  </Col>
                 </Row>
 
                 <Form.Item name="endereco" label="Endereço">

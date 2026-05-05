@@ -158,10 +158,10 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
     logo_path = context.get("logo_path")
     company_lines = [
         f"CNPJ: {empresa.cnpj}" if empresa.cnpj else "",
-        empresa.endereco or "",
         f"Telefone: {empresa.telefone}" if empresa.telefone else "",
         f"Email: {empresa.email}" if empresa.email else "",
-        empresa.site or "",
+        f"Site: {empresa.site}" if empresa.site else "",
+        f"Instagram: {getattr(empresa, 'instagram', '')}" if getattr(empresa, "instagram", "") else "",
     ]
     company_info = "<br/>".join(p(line) for line in company_lines if line)
 
@@ -216,13 +216,12 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
     story.append(Paragraph(p(os_obj.descricao_servico or "Proposta comercial referente aos serviços e materiais descritos abaixo."), styles["Muted"]))
     story.append(Spacer(1, 12))
 
-    story.append(Paragraph("Empresa e Cliente", styles["SectionTitle"]))
+    story.append(Paragraph("Dados do Cliente", styles["SectionTitle"]))
     info_table = Table(
         [
-            [Paragraph("Empresa", styles["SmallLabel"]), Paragraph(p(empresa.razao_social or empresa.nome), styles["SmallValue"]), Paragraph("Cliente", styles["SmallLabel"]), Paragraph(p(os_obj.cliente.nome), styles["SmallValue"])],
-            [Paragraph("Contato", styles["SmallLabel"]), Paragraph(p(context["contato"]), styles["SmallValue"]), Paragraph("Telefone", styles["SmallLabel"]), Paragraph(p(context["telefone"] or "-"), styles["SmallValue"])],
-            [Paragraph("Email", styles["SmallLabel"]), Paragraph(p(context.get("cliente_email") or "-"), styles["SmallValue"]), Paragraph("Endereço", styles["SmallLabel"]), Paragraph(p(context["endereco"]), styles["SmallValue"])],
-            [Paragraph("Regime tributário", styles["SmallLabel"]), Paragraph(p(str(context["regime_tributario"]).replace("_", " ")), styles["SmallValue"]), Paragraph("Condição de pagamento", styles["SmallLabel"]), Paragraph(p(os_obj.condicao_pagamento or "-"), styles["SmallValue"])],
+            [Paragraph("Cliente", styles["SmallLabel"]), Paragraph(p(os_obj.cliente.nome), styles["SmallValue"]), Paragraph("Contato", styles["SmallLabel"]), Paragraph(p(context["contato"]), styles["SmallValue"])],
+            [Paragraph("Telefone", styles["SmallLabel"]), Paragraph(p(context["telefone"] or "-"), styles["SmallValue"]), Paragraph("Email", styles["SmallLabel"]), Paragraph(p(context.get("cliente_email") or "-"), styles["SmallValue"])],
+            [Paragraph("Endereço", styles["SmallLabel"]), Paragraph(p(context["endereco"]), styles["SmallValue"]), Paragraph("Condição de pagamento", styles["SmallLabel"]), Paragraph(p(os_obj.condicao_pagamento or "-"), styles["SmallValue"])],
         ],
         colWidths=[30 * mm, 58 * mm, 34 * mm, 58 * mm],
     )

@@ -84,6 +84,18 @@ const itemCardStyle = {
   background: "#FBFCFE",
 };
 
+function formatApiError(error, fallback = "Erro ao salvar.") {
+  const data = error?.response?.data;
+  if (!data) return error?.message || fallback;
+  if (typeof data === "string") return data;
+  if (data.detail) return data.detail;
+  if (data.message) return data.message;
+  const field = Object.keys(data)[0];
+  const value = data[field];
+  const msg = Array.isArray(value) ? value[0] : value;
+  return field ? `${field}: ${msg}` : fallback;
+}
+
 function createPayload(values, items, selectedClient, budgetStatus, impostos) {
   const totals = calcItemsTotals(items);
 
@@ -284,15 +296,28 @@ export default function NovoOrcamento() {
     try {
       const response = await api.post("/fiscal/consultar-cnpj/", { cnpj: cnpjLimpo });
       const data = response.data;
+      const endereco = data.endereco || {};
+      const cidadeApi = data.municipio || data.cidade || endereco.cidade || "";
+      const ufApi = data.uf || data.estado || endereco.uf || "";
       setRazaoSocial(data.razao_social || "");
-      setMunicipio(data.municipio || "");
-      setUf(data.uf || "");
-      setNomeFantasia(data.razao_social || "");
+      setMunicipio(cidadeApi);
+      setUf(ufApi);
+      setNomeFantasia(data.nome_fantasia || data.razao_social || "");
+      setEmail(data.email || "");
+      setTelefone(data.telefone || "");
+      setCep(maskCEP(data.cep || endereco.cep || ""));
+      setLogradouro(data.logradouro || endereco.logradouro || data.endereco_logradouro || "");
+      setNumero(data.numero || endereco.numero || "");
+      setComplemento(data.complemento || endereco.complemento || "");
+      setBairro(data.bairro || endereco.bairro || "");
+      setCidade(cidadeApi);
+      setUfEndereco(ufApi);
       setCnpjValido(true);
-      message.success("CNPJ consultado com sucesso!");
-    } catch {
+      message.success("CNPJ consultado com sucesso! Todos os dados foram preenchidos.");
+    } catch (error) {
       setCnpjErro(true);
-      message.error("CNPJ não encontrado na Receita Federal");
+      const errorMsg = error?.response?.data?.detail || "CNPJ não encontrado na Receita Federal";
+      message.error(errorMsg);
     } finally {
       setConsultandoCNPJ(false);
     }
@@ -320,28 +345,34 @@ export default function NovoOrcamento() {
 
   const salvarCliente = async () => {
     const cnpjLimpo = cnpj.replace(/\D/g, "");
-    if (!nomeFantasia || cnpjLimpo.length !== 14) {
+    if (!nomeFantasia?.trim() || cnpjLimpo.length !== 14) {
       message.error("Preencha CNPJ e Nome Fantasia.");
+      return;
+    }
+    if (!razaoSocial?.trim()) {
+      message.error("Preencha Razão Social.");
       return;
     }
 
     try {
       setSalvandoCliente(true);
       const response = await api.post("/clientes/", {
-        nome_fantasia: nomeFantasia,
-        razao_social: razaoSocial,
+        tipo_pessoa: "juridica",
+        nome: nomeFantasia || razaoSocial,
+        nome_fantasia: nomeFantasia || "",
+        razao_social: razaoSocial || "",
         cnpj_cpf: cnpjLimpo,
-        segmento: segmento || null,
-        email: email || null,
-        telefone: telefone || null,
-        whatsapp: whatsapp || null,
-        cep: cep || null,
-        logradouro: logradouro || null,
-        numero: numero || null,
-        complemento: complemento || null,
-        bairro: bairro || null,
-        cidade: cidade || null,
-        uf: ufEndereco || null,
+        segmento: segmento || "",
+        email: email || "",
+        telefone: telefone || "",
+        whatsapp: whatsapp || "",
+        cep: cep || "",
+        logradouro: logradouro || "",
+        numero: numero || "",
+        complemento: complemento || "",
+        bairro: bairro || "",
+        cidade: cidade || municipio || "",
+        uf: ufEndereco || uf || "",
         status: "ativo",
       });
 
@@ -350,8 +381,9 @@ export default function NovoOrcamento() {
       form.setFieldValue("cliente", novoCliente.id);
       setDrawerClienteAberto(false);
       message.success("Cliente cadastrado com sucesso.");
-    } catch {
-      message.error("Erro ao salvar cliente.");
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error);
+      message.error(formatApiError(error, "Erro ao salvar cliente."));
     } finally {
       setSalvandoCliente(false);
     }
@@ -1114,17 +1146,17 @@ export default function NovoOrcamento() {
 
           <Form layout="vertical">
             <Form.Item label="Razão social">
-              <Input value={razaoSocial} disabled />
+              <Input value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} />
             </Form.Item>
             <Row gutter={16}>
               <Col xs={24} sm={14}>
                 <Form.Item label="Município">
-                  <Input value={municipio} disabled />
+                  <Input value={municipio} onChange={(e) => setMunicipio(e.target.value)} />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={10}>
                 <Form.Item label="UF">
-                  <Input value={uf} disabled maxLength={2} />
+                  <Input value={uf} onChange={(e) => setUf(e.target.value.toUpperCase())} maxLength={2} />
                 </Form.Item>
               </Col>
             </Row>

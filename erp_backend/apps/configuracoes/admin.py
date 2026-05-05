@@ -13,7 +13,7 @@ class ConfiguracaoEmpresaAdmin(admin.ModelAdmin):
     list_display = ("nome", "cnpj", "email", "telefone")
     fieldsets = (
         ("Informações Básicas", {"fields": ("nome", "razao_social", "cnpj")}),
-        ("Contato", {"fields": ("email", "telefone", "site")}),
+        ("Contato", {"fields": ("email", "telefone", "site", "instagram")}),
         ("Endereço", {"fields": ("endereco",)}),
         ("Branding", {"fields": ("logo", "cor_principal")}),
     )

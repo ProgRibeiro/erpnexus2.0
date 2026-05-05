@@ -150,24 +150,36 @@ export default function ImpressaoOrcamento() {
   const handlePrint = () => window.print();
   const handlePdf = async () => {
     try {
-      const response = await api.post(
-        `/ordens/${id}/gerar-pdf-orcamento/`,
-        {},
-        { responseType: "blob" },
-      );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute(
-        "download",
-        `${orcamento?.numero || `orcamento-${id}`}.pdf`,
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Importar html2pdf dinamicamente
+      const { default: html2pdf } = await import("html2pdf.js");
+
+      const element = document.querySelector(".doc-sheet");
+
+      // Calcular dimensões do elemento
+      const rect = element.getBoundingClientRect();
+      const aspectRatio = rect.width / rect.height;
+
+      const opt = {
+        margin: 0,
+        filename: `${orcamento?.numero || `orcamento-${id}`}.pdf`,
+        image: { type: "png", quality: 1 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#FFFFFF",
+          windowWidth: 900,
+          windowHeight: Math.round(900 / aspectRatio),
+          logging: false,
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true },
+        pagebreak: { mode: "avoid" },
+      };
+
+      await html2pdf().set(opt).from(element).save();
       message.success("PDF gerado com sucesso.");
-    } catch {
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
       message.error("Não foi possível gerar o PDF.");
     }
   };
@@ -183,17 +195,66 @@ export default function ImpressaoOrcamento() {
     >
       <style>{`
         @media print {
-          @page { size: A4; margin: 10mm; }
-          html, body, #root { width: 100% !important; min-height: auto !important; overflow: visible !important; }
-          .print-toolbar { display: none !important; }
-          body { background: white !important; margin: 0 !important; padding: 0 !important; }
-          .print-page { background: white !important; padding: 0 !important; min-height: auto !important; }
+          @page {
+            size: A4;
+            margin: 0mm !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          html, body, #root {
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          /* Esconde a sidebar e cabeçalho do ERP */
+          .ant-layout-sider,
+          [class*="sidebar"],
+          [class*="Sidebar"],
+          nav,
+          header,
+          .print-toolbar,
+          [style*="padding: 24px 16px"],
+          div[style*="E8EDF4"],
+          .ant-layout-header {
+            display: none !important;
+          }
+          /* Esconde elementos da página */
+          .ant-notification,
+          .ant-message,
+          aside,
+          [class*="Toolbar"] {
+            display: none !important;
+          }
+          body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.4;
+            width: 100%;
+          }
+          .print-page {
+            background: white !important;
+            padding: 0 !important;
+            min-height: auto !important;
+            display: block !important;
+          }
+          /* Mostra apenas o documento */
           .doc-sheet {
             width: 100% !important;
-            max-width: none !important;
+            max-width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            page-break-after: avoid;
+            display: block !important;
           }
         }
         .items-table th {
@@ -267,17 +328,17 @@ export default function ImpressaoOrcamento() {
           style={{ padding: 32 }}
         >
           {/* ── CABEÇALHO DA EMPRESA ── */}
-          <div style={{ background: "#0F172A", padding: "28px 36px" }}>
-    <div
-      className="print-page"
-      style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 24,
-                flexWrap: "wrap",
-              }}
-            >
+          <div
+            style={{
+              background: "#0F172A",
+              padding: "28px 36px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 24,
+              flexWrap: "wrap",
+            }}
+          >
               {/* Logo + dados empresa */}
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 {logoUrl ? (
@@ -449,7 +510,6 @@ export default function ImpressaoOrcamento() {
                   </span>
                 </div>
               </div>
-            </div>
           </div>
 
           {/* ── DADOS DO CLIENTE ── */}
