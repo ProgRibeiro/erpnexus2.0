@@ -28,6 +28,7 @@ import OSDetalhe from "./pages/Ordens/OSDetalhe";
 import OrcamentoDetalhe from "./pages/Orcamentos/OrcamentoDetalhe";
 import ImpressaoOrcamento from "./pages/Orcamentos/ImpressaoOrcamento";
 import NovoOrcamento from "./pages/Orcamentos/NovoOrcamento";
+import OrcamentoUnificado from "./pages/Orcamentos/OrcamentoUnificado";
 import OrcamentosPage from "./pages/Orcamentos/OrcamentosPage";
 import ProfilePage from "./pages/ProfilePage";
 import TecnicoMobilePage from "./pages/TecnicoMobile";
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/tecnico-mobile" element={<TecnicoMobilePage />} />
           <Route path="/tecnico-mobile/os-campo/:osId" element={<OSCampoPage />} />
           <Route path="/loja" element={<LojaPage />} />
+          <Route path="/orcamentos/unificado" element={<OrcamentoUnificado />} />
           <Route path="/orcamentos/:id/impressao" element={<ImpressaoOrcamento />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />

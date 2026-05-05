@@ -22,12 +22,13 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  EditOutlined,
   EyeOutlined,
   FilePdfOutlined,
+  MergeCellsOutlined,
   PlusOutlined,
   RiseOutlined,
   SearchOutlined,
-  EditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
@@ -188,6 +189,7 @@ export default function OrcamentosPage() {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [selectedIds, setSelectedIds] = useState([]);
   const [filters, setFilters] = useState({
     busca: "",
     status: undefined,
@@ -511,6 +513,12 @@ export default function OrcamentosPage() {
               columns={columns}
               dataSource={paginatedRows}
               rowKey="id"
+              rowSelection={{
+                type: "checkbox",
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                getCheckboxProps: (record) => ({ name: String(record.id) }),
+              }}
               onRow={(record) => ({
                 onClick: () => navigate(`/orcamentos/${record.id}`),
                 onMouseEnter: () => setHoveredRow(record.id),
@@ -552,6 +560,43 @@ export default function OrcamentosPage() {
             />
           </Skeleton>
         </Card>
+
+        {/* ── BARRA FLUTUANTE DE SELEÇÃO MÚLTIPLA ── */}
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#fff",
+            borderRadius: 16,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            padding: "14px 24px",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            zIndex: 1000,
+            border: "1.5px solid #E2E6EC",
+            transition: "all 0.2s ease",
+            opacity: selectedIds.length >= 2 ? 1 : 0,
+            pointerEvents: selectedIds.length >= 2 ? "auto" : "none",
+          }}
+        >
+          <Text strong style={{ color: "#1E293B", whiteSpace: "nowrap" }}>
+            {selectedIds.length} orçamentos selecionados
+          </Text>
+          <Button size="small" onClick={() => setSelectedIds([])}>
+            Limpar seleção
+          </Button>
+          <Button
+            type="primary"
+            icon={<MergeCellsOutlined />}
+            onClick={() => navigate(`/orcamentos/unificado?ids=${selectedIds.join(",")}`)}
+            style={{ background: "#3B82F6", borderColor: "#3B82F6" }}
+          >
+            Unificar Orçamentos
+          </Button>
+        </div>
       </div>
     </ConfigProvider>
   );
