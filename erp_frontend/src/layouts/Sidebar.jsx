@@ -1,5 +1,10 @@
 import { Menu } from 'antd';
-import { DashboardOutlined, TeamOutlined, FileTextOutlined, ShoppingCartOutlined, DollarOutlined, CalendarOutlined, SettingOutlined, ToolOutlined } from '@ant-design/icons';
+import {
+  DashboardOutlined, TeamOutlined, FileTextOutlined, ShoppingCartOutlined,
+  DollarOutlined, CalendarOutlined, SettingOutlined, ToolOutlined,
+  BuildOutlined, DatabaseOutlined, ScheduleOutlined, AlertOutlined,
+  FileProtectOutlined, ProjectOutlined, BarChartOutlined,
+} from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Sidebar() {
@@ -92,6 +97,54 @@ export default function Sidebar() {
       ],
     },
     {
+      label: 'FACILITIES',
+      type: 'group',
+      children: [
+        {
+          key: 'fac-dashboard',
+          icon: <BuildOutlined />,
+          label: 'Dashboard Facilities',
+          onClick: () => navigate('/facilities'),
+        },
+        {
+          key: 'fac-ativos',
+          icon: <DatabaseOutlined />,
+          label: 'Ativos',
+          onClick: () => navigate('/facilities/ativos'),
+        },
+        {
+          key: 'fac-pmp',
+          icon: <ScheduleOutlined />,
+          label: 'Manutenção Preventiva',
+          onClick: () => navigate('/facilities/pmp'),
+        },
+        {
+          key: 'fac-chamados',
+          icon: <AlertOutlined />,
+          label: 'Help Desk',
+          onClick: () => navigate('/facilities/chamados'),
+        },
+        {
+          key: 'fac-contratos',
+          icon: <FileProtectOutlined />,
+          label: 'Contratos',
+          onClick: () => navigate('/facilities/contratos'),
+        },
+        {
+          key: 'fac-obras',
+          icon: <ProjectOutlined />,
+          label: 'Obras / Projetos',
+          onClick: () => navigate('/facilities/obras'),
+        },
+        {
+          key: 'fac-indicadores',
+          icon: <BarChartOutlined />,
+          label: 'Indicadores',
+          onClick: () => navigate('/facilities/indicadores'),
+        },
+      ],
+    },
+    {
       label: 'SISTEMA',
       type: 'group',
       children: [
@@ -123,6 +176,16 @@ export default function Sidebar() {
     if (location.pathname.startsWith('/financeiro')) return 'financeiro';
     if (location.pathname.startsWith('/faturamento')) return 'faturamento';
     if (location.pathname.startsWith('/crm')) return 'crm';
+    if (location.pathname.startsWith('/facilities')) {
+      if (location.pathname === '/facilities') return 'fac-dashboard';
+      if (location.pathname.startsWith('/facilities/ativos')) return 'fac-ativos';
+      if (location.pathname.startsWith('/facilities/pmp')) return 'fac-pmp';
+      if (location.pathname.startsWith('/facilities/chamados')) return 'fac-chamados';
+      if (location.pathname.startsWith('/facilities/contratos')) return 'fac-contratos';
+      if (location.pathname.startsWith('/facilities/obras')) return 'fac-obras';
+      if (location.pathname.startsWith('/facilities/indicadores')) return 'fac-indicadores';
+      return 'fac-dashboard';
+    }
     if (location.pathname.startsWith('/fiscal')) return 'fiscal';
     if (location.pathname.startsWith('/configuracoes')) return 'configuracoes';
     return 'dashboard';

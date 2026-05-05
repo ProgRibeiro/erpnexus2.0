@@ -38,6 +38,15 @@ import ServicosPage from "./pages/Servicos";
 import TerceirosPage from "./pages/Terceiros";
 import PortalTerceiroPage from "./pages/Terceiros/PortalTerceiro";
 import LojaPage from "./pages/Loja";
+import FacilitiesDashboard from "./pages/Facilities";
+import AtivosPage from "./pages/Facilities/Ativos";
+import AtivoDetalhe from "./pages/Facilities/Ativos/AtivoDetalhe";
+import ChamadosFacilities from "./pages/Facilities/Chamados";
+import PMPPage from "./pages/Facilities/PMP";
+import ContratosFacilities from "./pages/Facilities/Contratos";
+import ObrasPage from "./pages/Facilities/Obras";
+import ObraDetalhe from "./pages/Facilities/Obras/ObraDetalhe";
+import IndicadoresFacilities from "./pages/Facilities/Indicadores";
 
 export default function App() {
   useBootstrapAuth();
@@ -83,6 +92,15 @@ export default function App() {
             <Route path="/faturamento" element={<FaturamentoPage />} />
             <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
+            <Route path="/facilities" element={<FacilitiesDashboard />} />
+            <Route path="/facilities/ativos" element={<AtivosPage />} />
+            <Route path="/facilities/ativos/:id" element={<AtivoDetalhe />} />
+            <Route path="/facilities/chamados" element={<ChamadosFacilities />} />
+            <Route path="/facilities/pmp" element={<PMPPage />} />
+            <Route path="/facilities/contratos" element={<ContratosFacilities />} />
+            <Route path="/facilities/obras" element={<ObrasPage />} />
+            <Route path="/facilities/obras/:id" element={<ObraDetalhe />} />
+            <Route path="/facilities/indicadores" element={<IndicadoresFacilities />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
