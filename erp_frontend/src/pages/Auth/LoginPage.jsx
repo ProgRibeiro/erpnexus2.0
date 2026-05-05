@@ -400,7 +400,7 @@ export default function LoginPage() {
               form={form}
               layout="vertical"
               onFinish={onFinish}
-              initialValues={{ email: rememberedEmail, lembrar: !!rememberedEmail }}
+              initialValues={{ email: rememberedEmail || "admin@admin.com", senha: "admin123", lembrar: !!rememberedEmail }}
               requiredMark={false}
             >
               <Form.Item
