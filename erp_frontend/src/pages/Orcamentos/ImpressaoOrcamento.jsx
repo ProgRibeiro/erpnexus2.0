@@ -131,36 +131,61 @@ export default function ImpressaoOrcamento() {
 
   const handlePrint = () => window.print();
   const handlePdf = async () => {
+    let wrapper = null;
     try {
       const { default: html2canvas } = await import("html2canvas");
       const { default: jsPDF } = await import("jspdf");
 
       const element = document.querySelector(".doc-sheet");
 
-      // Forçar elemento a renderizar em largura de paisagem (A4 landscape = 1123px @ 96dpi)
-      const origStyle = element.getAttribute("style") || "";
-      element.style.cssText += "; width: 1123px !important; max-width: 1123px !important; overflow: visible !important;";
+      // ── Clona o elemento em um container off-screen com dimensões de paisagem A4
+      // A4 landscape @ 96dpi = 1122.52px ≈ 1123px
+      wrapper = document.createElement("div");
+      wrapper.style.cssText = [
+        "position: fixed",
+        "top: 0",
+        "left: -9999px",
+        "width: 1123px",
+        "background: #FFFFFF",
+        "z-index: -1000",
+        "overflow: visible",
+      ].join("; ");
 
-      // Aguarda repintura
-      await new Promise((r) => setTimeout(r, 120));
+      const clone = element.cloneNode(true);
+      clone.style.cssText = [
+        "width: 1123px",
+        "max-width: 1123px",
+        "margin: 0",
+        "border-radius: 0",
+        "box-shadow: none",
+        "overflow: visible",
+        "background: #FFFFFF",
+      ].join("; ");
 
-      const canvas = await html2canvas(element, {
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      // Aguarda layout + imagens
+      await new Promise((r) => setTimeout(r, 300));
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#FFFFFF",
-        width: 1123,
         windowWidth: 1123,
+        scrollX: 0,
+        scrollY: 0,
         logging: false,
       });
 
-      // Restaurar estilo original
-      element.setAttribute("style", origStyle);
+      document.body.removeChild(wrapper);
+      wrapper = null;
 
-      // jsPDF em modo paisagem A4 (API posicional: "l" = landscape)
+      // ── Gera PDF A4 Paisagem
       const pdf = new jsPDF("l", "mm", "a4");
-      const pageW = pdf.internal.pageSize.getWidth();   // 297mm
-      const pageH = pdf.internal.pageSize.getHeight();  // 210mm
+      const pageW = pdf.internal.pageSize.getWidth();   // 297 mm
+      const pageH = pdf.internal.pageSize.getHeight();  // 210 mm
 
       const imgWidthMm = pageW;
       const imgHeightMm = (canvas.height * pageW) / canvas.width;
@@ -168,14 +193,18 @@ export default function ImpressaoOrcamento() {
       if (imgHeightMm <= pageH) {
         // Cabe em 1 página — centraliza verticalmente
         const offsetY = (pageH - imgHeightMm) / 2;
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.97), "JPEG", 0, offsetY, imgWidthMm, imgHeightMm);
+        pdf.addImage(
+          canvas.toDataURL("image/jpeg", 0.95),
+          "JPEG",
+          0, offsetY, imgWidthMm, imgHeightMm,
+        );
       } else {
-        // Divide em fatias, cada uma com pageH mm de altura
-        const slicePx = Math.round((pageH * canvas.width) / pageW); // pixels por fatia
-
+        // Divide em fatias por página
+        const slicePx = Math.round((pageH * canvas.width) / pageW);
         const totalPages = Math.ceil(canvas.height / slicePx);
+
         for (let page = 0; page < totalPages; page++) {
-          if (page > 0) pdf.addPage("a4", "l");
+          if (page > 0) pdf.addPage();
 
           const srcY = page * slicePx;
           const srcH = Math.min(slicePx, canvas.height - srcY);
@@ -189,13 +218,14 @@ export default function ImpressaoOrcamento() {
           ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
 
           const sliceH_mm = (srcH * pageW) / canvas.width;
-          pdf.addImage(slice.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, sliceH_mm);
+          pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageW, sliceH_mm);
         }
       }
 
       pdf.save(`${orcamento?.numero || `orcamento-${id}`}.pdf`);
       message.success("PDF gerado com sucesso.");
     } catch (error) {
+      if (wrapper) document.body.removeChild(wrapper);
       console.error("Erro ao gerar PDF:", error);
       message.error("Não foi possível gerar o PDF.");
     }
@@ -212,12 +242,12 @@ export default function ImpressaoOrcamento() {
     >
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 0mm !important; }
+          @page { size: 297mm 210mm; margin: 0mm !important; }
           * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body, #root { width: 100% !important; height: auto !important; min-height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+          html, body, #root { width: 297mm !important; height: auto !important; min-height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; background: white !important; }
           .ant-layout-sider, [class*="sidebar"], [class*="Sidebar"], nav, header, .print-toolbar, .ant-layout-header, aside { display: none !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
-          .doc-sheet { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+          .doc-sheet { width: 297mm !important; max-width: 297mm !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
         }
         .prop-table th {
           background: #F8FAFC; color: #64748B; font-size: 11px; text-transform: uppercase;
