@@ -41,9 +41,9 @@ body {
 /* ── Sidebar ─────────────────────────────── */
 
 .erp-sidebar-shell {
-  background: #111827 !important;
-  border-right: none !important;
-  box-shadow: none;
+  background: linear-gradient(180deg, #0F1729 0%, #1A2236 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
 }
 
 .erp-sidebar-shell .ant-layout-sider-children {
@@ -52,11 +52,12 @@ body {
   height: 100%;
 }
 
-/* Brand panel — clean, sem gradiente */
+/* Brand panel */
 
 .erp-brand-panel {
-  padding: 28px 20px 24px;
+  padding: 24px 20px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 .erp-brand-mark {
@@ -66,11 +67,10 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: #3b82f6;
   color: #ffffff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .erp-brand-title {
@@ -83,9 +83,9 @@ body {
 }
 
 .erp-brand-subtitle {
-  margin: 6px 0 0;
-  color: rgba(156, 163, 175, 0.9);
-  font-size: 12px;
+  margin: 5px 0 0;
+  color: rgba(156, 163, 175, 0.75);
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -93,29 +93,31 @@ body {
 
 .erp-sidebar-menu {
   flex: 1;
-  padding: 16px 8px 20px !important;
+  padding: 12px 0 8px !important;
   background: transparent !important;
 }
 
 .erp-sidebar-menu .ant-menu-item-group-title {
-  padding: 14px 12px 6px !important;
-  color: rgba(107, 114, 128, 1) !important;
+  padding: 20px 16px 6px !important;
+  color: rgba(255, 255, 255, 0.35) !important;
   font-size: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .erp-sidebar-menu .ant-menu-item,
 .erp-sidebar-menu .ant-menu-submenu-title {
-  margin: 1px 6px !important;
-  width: calc(100% - 12px) !important;
-  height: 42px !important;
-  line-height: 42px !important;
-  border-radius: 9px !important;
-  font-size: 13.5px !important;
+  margin: 2px 10px !important;
+  width: calc(100% - 20px) !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
   font-weight: 500;
-  color: #d1d5db !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  transition: all 0.15s ease !important;
+  padding-inline: 14px !important;
 }
 
 .erp-sidebar-menu .ant-menu-item .ant-menu-title-content {
@@ -124,33 +126,56 @@ body {
 
 .erp-sidebar-menu .ant-menu-item .ant-menu-item-icon,
 .erp-sidebar-menu .ant-menu-submenu-title .ant-menu-item-icon {
-  color: #6b7280 !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 16px !important;
+  transition: color 0.15s ease !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item:hover,
 .erp-sidebar-menu.ant-menu-inline .ant-menu-submenu-title:hover {
   background: rgba(255, 255, 255, 0.06) !important;
-  color: #f9fafb !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item:hover .ant-menu-item-icon,
 .erp-sidebar-menu.ant-menu-inline
   .ant-menu-submenu-title:hover
   .ant-menu-item-icon {
-  color: #9ca3af !important;
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected {
-  background: rgba(59, 130, 246, 0.12) !important;
-  color: #60a5fa !important;
+  background: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0.22) 0%,
+    rgba(59, 130, 246, 0.06) 100%
+  ) !important;
+  color: #ffffff !important;
+  border-left: 3px solid #3B82F6 !important;
+  border-radius: 0 8px 8px 0 !important;
+  margin-left: 0 !important;
+  width: calc(100% - 10px) !important;
+  padding-inline-start: 11px !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected .ant-menu-item-icon {
-  color: #60a5fa !important;
+  color: #93C5FD !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected::after {
   display: none !important;
+}
+
+/* User footer */
+
+.erp-sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
 }
 
 /* ── Header ──────────────────────────────── */
@@ -158,15 +183,17 @@ body {
 .erp-header {
   position: fixed !important;
   top: 0;
-  left: 280px;
+  left: 260px;
   right: 0;
   z-index: 90;
   height: 64px !important;
   line-height: normal !important;
   padding: 0 28px !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  background: #ffffff !important;
-  box-shadow: none;
+  border-bottom: 1px solid #E2E8F0 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
 }
 
 .erp-topbar {
@@ -176,6 +203,26 @@ body {
   justify-content: space-between;
   gap: 20px;
 }
+
+/* Breadcrumb */
+
+.erp-breadcrumb {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.erp-breadcrumb-root {
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.erp-breadcrumb-page {
+  color: #1E293B;
+  font-weight: 600;
+}
+
+/* (mantidos para compatibilidade) */
 
 .erp-topbar-title {
   display: flex;
@@ -208,7 +255,9 @@ body {
 /* ── Layout principal ────────────────────── */
 
 .erp-shell-content {
-  padding: 96px 32px 32px;
+  padding: 88px 32px 32px;
+  background: #F7F8FA;
+  min-height: 100vh;
 }
 
 .erp-shell-panel {
@@ -221,9 +270,14 @@ body {
 
 .erp-page-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.erp-page-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
 }
 
 .erp-page-card .card-title {
@@ -239,14 +293,15 @@ body {
 
 .erp-metric-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
   padding: 24px;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .erp-metric-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  transform: translateY(-1px);
 }
 
 .erp-metric-card .metric-label {
@@ -401,7 +456,39 @@ body {
   color: #991b1b;
 }
 
-/* ── Tabelas ─────────────────────────────── */
+/* ── Micro-interações globais ────────────── */
+
+.ant-btn {
+  transition: all 0.15s ease !important;
+}
+
+.ant-btn:not(:disabled):active {
+  transform: scale(0.97) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.ant-select-focused .ant-select-selector {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.ant-card {
+  border-radius: 12px !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: box-shadow 0.15s ease, transform 0.15s ease !important;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07) !important;
+}
+
+/* Tabelas */
 
 .ant-table-thead > tr > th {
   font-size: 11px !important;
@@ -409,6 +496,7 @@ body {
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
   color: #94a3b8 !important;
+  background: #F8FAFC !important;
 }
 
 .ant-table-tbody > tr > td {
@@ -417,29 +505,48 @@ body {
 
 .ant-table-row {
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 
 .ant-card .ant-card-head {
-  min-height: 58px;
-  padding: 0 24px;
+  min-height: 56px;
+  padding: 0 20px;
+  border-bottom-color: #F1F5F9 !important;
 }
 
 .ant-card .ant-card-body {
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 /* ── Filtros ─────────────────────────────── */
 
 .erp-filters {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   flex-wrap: wrap;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 16px 24px;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 20px;
   margin-bottom: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.erp-filters .ant-input,
+.erp-filters .ant-select-selector,
+.erp-filters .ant-picker {
+  height: 40px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  border-color: #E2E8F0 !important;
+}
+
+.erp-filters .ant-input:focus,
+.erp-filters .ant-select-focused .ant-select-selector,
+.erp-filters .ant-picker-focused {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
 }
 
 /* ── Chat interno da OS ──────────────────── */
@@ -868,6 +975,6 @@ body {
     padding: 0 20px !important;
   }
   .erp-shell-content {
-    padding: 88px 16px 24px;
+    padding: 80px 16px 24px;
   }
 }
