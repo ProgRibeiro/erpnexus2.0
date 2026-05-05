@@ -24,11 +24,15 @@ class LoginView(APIView):
         user = serializer.validated_data["user"]
         user.registrar_login(ip=self._get_client_ip(request))
         refresh = RefreshToken.for_user(user)
+        # Determina o produto pelo campo modulo do usuário (erp, facilities, ambos)
+        # Fallback para 'erp' se o campo ainda não existir (compatibilidade)
+        modulo = getattr(user, 'modulo', 'erp') or 'erp'
         return Response(
             {
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "user": UsuarioSerializer(user).data,
+                "tipo_produto": modulo,
             }
         )
 

@@ -86,6 +86,18 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         choices=TipoContratacao.choices,
         default=TipoContratacao.CLT,
     )
+    class Modulo(models.TextChoices):
+        ERP = "erp", "ERP Nexus (Prestador)"
+        FACILITIES = "facilities", "Facilities Platform (Contratante)"
+        AMBOS = "ambos", "Ambos os produtos"
+
+    modulo = models.CharField(
+        max_length=20,
+        choices=Modulo.choices,
+        default=Modulo.ERP,
+        help_text="Define para qual produto este usuário tem acesso"
+    )
+
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ATIVO)
     matricula = models.CharField(max_length=30, unique=True, blank=True)
     data_admissao = models.DateField(null=True, blank=True)

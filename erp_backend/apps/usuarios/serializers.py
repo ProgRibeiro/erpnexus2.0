@@ -52,6 +52,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "email",
             "username",
             "role",
+            "modulo",
             "status",
             "matricula",
             "salario",
