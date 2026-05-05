@@ -74,7 +74,8 @@ export default function LoginPage() {
   }, [accessToken, location.state, navigate]);
 
   const onFinish = async ({ email, senha, lembrar }) => {
-    if (loading) return;
+    // Modo é obrigatório — usuário deve ter escolhido o sistema primeiro
+    if (loading || !modo) return;
     setLoading(true);
     setErro("");
     try {
@@ -84,23 +85,11 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem("erp_remember_email");
       }
-
-      // Backend determina o produto — usa modo clicado apenas se for "ambos"
-      const tipoProduto = data.tipo_produto || "erp";
-      let modoFinal;
-      if (tipoProduto === "facilities") {
-        modoFinal = "facilities";
-      } else if (tipoProduto === "ambos") {
-        // Respeita o modo escolhido pelo usuário; se nenhum foi escolhido, usa prestador
-        modoFinal = modo || "prestador";
-      } else {
-        modoFinal = "prestador";
-      }
-
-      localStorage.setItem("erp_mode", modoFinal);
+      // Respeita o sistema escolhido pelo usuário na tela de seleção
+      localStorage.setItem("erp_mode", modo);
       setAuth(data);
       const from = location.state?.from?.pathname;
-      const defaultDest = MODOS[modoFinal]?.destino || "/dashboard";
+      const defaultDest = MODOS[modo].destino;
       const dest = from && from !== "/" && from !== "/login" ? from : defaultDest;
       navigate(dest, { replace: true });
     } catch (err) {
