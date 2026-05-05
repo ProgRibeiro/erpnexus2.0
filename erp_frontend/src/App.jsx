@@ -47,6 +47,9 @@ import ContratosFacilities from "./pages/Facilities/Contratos";
 import ObrasPage from "./pages/Facilities/Obras";
 import ObraDetalhe from "./pages/Facilities/Obras/ObraDetalhe";
 import IndicadoresFacilities from "./pages/Facilities/Indicadores";
+import ChamadosExternosPage from "./pages/ChamadosExternos";
+import LicitacoesPage from "./pages/Licitacoes";
+import LicitacaoFacilitiesPage from "./pages/Facilities/Licitacao";
 
 export default function App() {
   useBootstrapAuth();
@@ -101,6 +104,9 @@ export default function App() {
             <Route path="/facilities/obras" element={<ObrasPage />} />
             <Route path="/facilities/obras/:id" element={<ObraDetalhe />} />
             <Route path="/facilities/indicadores" element={<IndicadoresFacilities />} />
+            <Route path="/facilities/licitacao" element={<LicitacaoFacilitiesPage />} />
+            <Route path="/chamados-externos" element={<ChamadosExternosPage />} />
+            <Route path="/licitacoes" element={<LicitacoesPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

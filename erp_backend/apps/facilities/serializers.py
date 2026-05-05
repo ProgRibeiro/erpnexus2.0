@@ -3,6 +3,7 @@ from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
     ChamadoFacilities, ContratoTerceirizado,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
+    Licitacao, PropostaLicitacao,
 )
 
 
@@ -139,3 +140,32 @@ class ProjetoObraDetalheSerializer(ProjetoObraSerializer):
 
     class Meta(ProjetoObraSerializer.Meta):
         fields = ProjetoObraSerializer.Meta.fields + ["fases", "diarios", "boletins"]
+
+
+class PropostaLicitacaoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropostaLicitacao
+        fields = [
+            "id", "licitacao", "prestador_nome", "prestador_email",
+            "valor", "prazo_execucao_dias", "observacoes", "status", "enviado_em",
+        ]
+        read_only_fields = ["id", "enviado_em", "status"]
+
+
+class LicitacaoSerializer(serializers.ModelSerializer):
+    propostas = PropostaLicitacaoSerializer(many=True, read_only=True)
+    propostas_count = serializers.SerializerMethodField()
+    ativo_tag = serializers.CharField(source="ativo.tag", read_only=True, allow_null=True)
+    ativo_nome = serializers.CharField(source="ativo.nome", read_only=True, allow_null=True)
+
+    class Meta:
+        model = Licitacao
+        fields = [
+            "id", "titulo", "descricao", "tipo_servico", "ativo", "ativo_tag", "ativo_nome",
+            "modo", "status", "prazo_propostas", "valor_maximo",
+            "propostas", "propostas_count", "criado_em", "atualizado_em",
+        ]
+        read_only_fields = ["id", "criado_em", "atualizado_em"]
+
+    def get_propostas_count(self, obj):
+        return obj.propostas.count()

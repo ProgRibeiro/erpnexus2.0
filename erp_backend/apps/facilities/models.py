@@ -312,3 +312,59 @@ class BoletimMedicao(models.Model):
 
     def __str__(self):
         return f"BM {self.numero} - {self.projeto.codigo}"
+
+
+class Licitacao(models.Model):
+    class Modo(models.TextChoices):
+        ABERTA = "aberta", "Aberta (qualquer prestador)"
+        CONVIDADA = "convidada", "Convidada"
+
+    class Status(models.TextChoices):
+        RASCUNHO = "rascunho", "Rascunho"
+        PUBLICADA = "publicada", "Publicada"
+        EM_ANALISE = "em_analise", "Em Análise"
+        CONCLUIDA = "concluida", "Concluída"
+        CANCELADA = "cancelada", "Cancelada"
+
+    titulo = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True)
+    tipo_servico = models.CharField(max_length=100)
+    ativo = models.ForeignKey(Ativo, null=True, blank=True, on_delete=models.SET_NULL, related_name="licitacoes")
+    modo = models.CharField(max_length=20, choices=Modo.choices, default=Modo.ABERTA)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.RASCUNHO)
+    prazo_propostas = models.DateTimeField(null=True, blank=True)
+    valor_maximo = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Licitação"
+        verbose_name_plural = "Licitações"
+
+    def __str__(self):
+        return self.titulo
+
+
+class PropostaLicitacao(models.Model):
+    class Status(models.TextChoices):
+        ENVIADA = "enviada", "Enviada"
+        ACEITA = "aceita", "Aceita"
+        RECUSADA = "recusada", "Recusada"
+
+    licitacao = models.ForeignKey(Licitacao, on_delete=models.CASCADE, related_name="propostas")
+    prestador_nome = models.CharField(max_length=200)
+    prestador_email = models.EmailField()
+    valor = models.DecimalField(max_digits=14, decimal_places=2)
+    prazo_execucao_dias = models.PositiveIntegerField()
+    observacoes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ENVIADA)
+    enviado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["enviado_em"]
+        verbose_name = "Proposta de Licitação"
+        verbose_name_plural = "Propostas de Licitação"
+
+    def __str__(self):
+        return f"{self.licitacao.titulo} - {self.prestador_nome}"

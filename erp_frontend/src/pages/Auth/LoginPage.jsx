@@ -1,268 +1,80 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Button,
-  Checkbox,
-  Form,
-  Input,
-  Typography,
-} from "antd";
-import {
-  LockOutlined,
-  MailOutlined,
-  ToolOutlined,
-  CheckCircleFilled,
-} from "@ant-design/icons";
-import { useAuthStore } from "../../store/authStore";
-import authService from "../../services/authService";
-
-const { Title, Text } = Typography;
-
-/* ─── Dados estáticos ─────────────────────────────────── */
-const BULLETS = [
-  "Ordens de Serviço completas",
-  "CRM e pipeline de vendas",
-  "Financeiro e relatórios",
-];
-
-/* ─── Estilos ────────────────────────────────────────────
-   Todos inline para não depender de CSS externo.
-   O breakpoint mobile (< 768px) é tratado via JS state.
-──────────────────────────────────────────────────────── */
-const S = {
-  root: {
-    display: "flex",
-    minHeight: "100vh",
-    fontFamily: "'Manrope', 'Inter', sans-serif",
+const MODOS = {
+  prestador: {
+    key: "prestador",
+    icone: ToolOutlined,
+    gradiente: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
+    titulo: "Prestador de Serviço",
+    subtitulo: "Ordens de serviço, orçamentos, financeiro, técnicos em campo",
+    bullets: [
+      "Ordens de Serviço completas",
+      "CRM e orçamentos",
+      "Financeiro e relatórios",
+      "Técnico em campo (PWA)",
+    ],
+    destino: "/dashboard",
+    modoLabel: "ERP Prestador",
+    brandSub: "Sistema do prestador de serviço",
   },
-
-  /* Painel esquerdo */
-  left: (isMobile) => ({
-    width: isMobile ? "100%" : "40%",
-    minWidth: isMobile ? "unset" : 320,
-    height: isMobile ? 120 : "auto",
-    background: "linear-gradient(160deg, #3B82F6 0%, #0d2a4a 100%)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: isMobile ? "center" : "space-between",
-    padding: isMobile ? "0 24px" : "64px 48px",
-    position: "relative",
-    overflow: "hidden",
-    flexShrink: 0,
-  }),
-
-  leftDecor: {
-    position: "absolute",
-    top: -80,
-    right: -80,
-    width: 260,
-    height: 260,
-    borderRadius: "50%",
-    background: "rgba(255,255,255,0.05)",
-    pointerEvents: "none",
-  },
-  leftDecor2: {
-    position: "absolute",
-    bottom: -60,
-    left: -60,
-    width: 200,
-    height: 200,
-    borderRadius: "50%",
-    background: "rgba(255,255,255,0.04)",
-    pointerEvents: "none",
-  },
-
-  logoWrap: (isMobile) => ({
-    display: "flex",
-    flexDirection: isMobile ? "row" : "column",
-    alignItems: "center",
-    gap: isMobile ? 12 : 16,
-    zIndex: 1,
-  }),
-
-  logoIcon: (isMobile) => ({
-    width: isMobile ? 40 : 72,
-    height: isMobile ? 40 : 72,
-    borderRadius: isMobile ? 10 : 20,
-    background: "rgba(255,255,255,0.15)",
-    backdropFilter: "blur(8px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: isMobile ? 20 : 36,
-    color: "#fff",
-    flexShrink: 0,
-  }),
-
-  brandText: (isMobile) => ({
-    textAlign: isMobile ? "left" : "center",
-  }),
-
-  brandTitle: (isMobile) => ({
-    color: "#fff",
-    margin: 0,
-    fontSize: isMobile ? 18 : 24,
-    fontWeight: 700,
-    lineHeight: 1.2,
-  }),
-
-  brandSub: (isMobile) => ({
-    color: "rgba(255,255,255,0.7)",
-    fontSize: isMobile ? 12 : 14,
-    marginTop: 4,
-    display: "block",
-  }),
-
-  bulletList: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    zIndex: 1,
-    width: "100%",
-  },
-
-  bulletItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: 500,
-  },
-
-  bulletIcon: {
-    color: "#5DB8FF",
-    fontSize: 18,
-    flexShrink: 0,
-  },
-
-  version: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
-    zIndex: 1,
-  },
-
-  /* Painel direito */
-  right: (isMobile) => ({
-    flex: 1,
-    background: "#fff",
-    display: "flex",
-    alignItems: isMobile ? "flex-start" : "center",
-    justifyContent: "center",
-    padding: isMobile ? "32px 24px" : "48px 32px",
-    overflowY: "auto",
-  }),
-
-  card: {
-    width: "100%",
-    maxWidth: 380,
-  },
-
-  heading: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: "#1A1D23",
-    margin: 0,
-    lineHeight: 1.2,
-  },
-
-  subheading: {
-    fontSize: 14,
-    color: "#9099A8",
-    marginTop: 8,
-    display: "block",
-  },
-
-  formWrap: {
-    marginTop: 32,
-  },
-
-  label: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#3D4350",
-  },
-
-  submitBtn: {
-    width: "100%",
-    height: 44,
-    background: "#3B82F6",
-    borderColor: "#3B82F6",
-    borderRadius: 8,
-    fontWeight: 600,
-    fontSize: 15,
-    color: "#fff",
-    marginTop: 8,
-  },
-
-  errorMsg: {
-    color: "#D9363E",
-    fontSize: 13,
-    marginTop: 8,
-    display: "block",
-    textAlign: "center",
-    minHeight: 20,
-  },
-
-  forgotLink: {
-    display: "block",
-    textAlign: "center",
-    color: "#3B82F6",
-    fontSize: 13,
-    marginTop: 16,
-    cursor: "pointer",
-    textDecoration: "none",
+  facilities: {
+    key: "facilities",
+    icone: BuildOutlined,
+    gradiente: "linear-gradient(135deg, #10B981 0%, #065F46 100%)",
+    titulo: "Facilities / Manutenção",
+    subtitulo: "Ativos, manutenção preventiva, chamados, obras e contratos",
+    bullets: [
+      "Gestão de ativos e equipamentos",
+      "Manutenção preventiva (PMP)",
+      "Help Desk interno",
+      "Obras e projetos de engenharia",
+    ],
+    destino: "/facilities",
+    modoLabel: "ERP Facilities",
+    brandSub: "Gestão predial e manutenção",
   },
 };
 
-/* ─── Componente ──────────────────────────────────────── */
 export default function LoginPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [modo, setModo] = useState(null);
 
   const { setAuth, accessToken } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* Responsividade via resize */
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
 
-  /* Redireciona se já estiver logado */
   useEffect(() => {
     if (!accessToken) return;
+    const savedMode = localStorage.getItem("erp_mode") || "prestador";
     const from = location.state?.from?.pathname;
-    const dest = from && from !== "/login" ? from : "/dashboard";
+    const defaultDest = savedMode === "facilities" ? "/facilities" : "/dashboard";
+    const dest = from && from !== "/login" ? from : defaultDest;
     navigate(dest, { replace: true });
   }, [accessToken, location.state, navigate]);
 
   const onFinish = async ({ email, senha, lembrar }) => {
-    if (loading) return;
+    if (loading || !modo) return;
     setLoading(true);
     setErro("");
-
     try {
       const data = await authService.login({ identifier: email, password: senha });
-
       if (lembrar) {
         localStorage.setItem("erp_remember_email", email);
       } else {
         localStorage.removeItem("erp_remember_email");
       }
-
+      localStorage.setItem("erp_mode", modo);
       setAuth(data);
-
       const from = location.state?.from?.pathname;
-      const dest = from && from !== "/" && from !== "/login" ? from : "/dashboard";
+      const defaultDest = MODOS[modo].destino;
+      const dest = from && from !== "/" && from !== "/login" ? from : defaultDest;
       navigate(dest, { replace: true });
     } catch (err) {
       const detail =
@@ -275,53 +87,299 @@ export default function LoginPage() {
     }
   };
 
-  /* Preenche email lembrado */
   const rememberedEmail = localStorage.getItem("erp_remember_email") || "";
 
-  return (
-    <div style={S.root}>
-      {/* ── PAINEL ESQUERDO ── */}
-      <div style={S.left(isMobile)}>
-        {/* Decorações de fundo */}
-        <div style={S.leftDecor} />
-        <div style={S.leftDecor2} />
-
-        {/* Logo + nome */}
-        <div style={S.logoWrap(isMobile)}>
-          <div style={S.logoIcon(isMobile)}>
+  /* ── TELA DE SELEÇÃO DE MODO ── */
+  if (modo === null) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#F1F5F9",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 16px",
+          fontFamily: "'Inter', 'Manrope', sans-serif",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 40 }}>
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              background: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 24,
+              color: "#fff",
+            }}
+          >
             <ToolOutlined />
           </div>
-          <div style={S.brandText(isMobile)}>
-            <p style={S.brandTitle(isMobile)}>ERP Nexus</p>
-            <span style={S.brandSub(isMobile)}>Gestão de Serviços</span>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#1E293B", lineHeight: 1.1 }}>
+              ERP Nexus
+            </div>
+            <div style={{ fontSize: 13, color: "#64748B" }}>Plataforma integrada</div>
           </div>
         </div>
 
-        {/* Bullets — só desktop */}
-        {!isMobile && (
-          <ul style={S.bulletList}>
-            {BULLETS.map((text) => (
-              <li key={text} style={S.bulletItem}>
-                <CheckCircleFilled style={S.bulletIcon} />
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: "#1E293B",
+            marginBottom: 8,
+            textAlign: "center",
+          }}
+        >
+          Escolha como deseja acessar
+        </div>
+        <div
+          style={{
+            fontSize: 14,
+            color: "#64748B",
+            marginBottom: 40,
+            textAlign: "center",
+          }}
+        >
+          Selecione o módulo que corresponde ao seu perfil
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            gap: 24,
+            alignItems: "stretch",
+            justifyContent: "center",
+            width: "100%",
+            maxWidth: 760,
+          }}
+        >
+          {Object.values(MODOS).map((m) => {
+            const Icone = m.icone;
+            return (
+              <ModoCard
+                key={m.key}
+                modo={m}
+                Icone={Icone}
+                isMobile={isMobile}
+                onClick={() => setModo(m.key)}
+              />
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 40, fontSize: 12, color: "#94A3B8" }}>
+          ERP Nexus v1.0.0 — Todos os direitos reservados
+        </div>
+      </div>
+    );
+  }
+
+  /* ── TELA DE LOGIN (modo escolhido) ── */
+  const modoData = MODOS[modo];
+  const Icone = modoData.icone;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        fontFamily: "'Inter', 'Manrope', sans-serif",
+        animation: "fadeSlideIn 0.3s ease",
+      }}
+    >
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {!isMobile && (
+        <div
+          style={{
+            width: "40%",
+            minWidth: 320,
+            background: modoData.gradiente,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "64px 48px",
+            position: "relative",
+            overflow: "hidden",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: -80,
+              right: -80,
+              width: 260,
+              height: 260,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.05)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: -60,
+              left: -60,
+              width: 200,
+              height: 200,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.04)",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
+              zIndex: 1,
+            }}
+          >
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 20,
+                background: "rgba(255,255,255,0.15)",
+                backdropFilter: "blur(8px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 36,
+                color: "#fff",
+              }}
+            >
+              <Icone />
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ color: "#fff", margin: 0, fontSize: 24, fontWeight: 700, lineHeight: 1.2 }}>
+                {modoData.modoLabel}
+              </p>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 4, display: "block" }}>
+                {modoData.brandSub}
+              </span>
+            </div>
+          </div>
+
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              zIndex: 1,
+              width: "100%",
+            }}
+          >
+            {modoData.bullets.map((text) => (
+              <li
+                key={text}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}
+              >
+                <CheckCircleFilled style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, flexShrink: 0 }} />
                 {text}
               </li>
             ))}
           </ul>
-        )}
 
-        {/* Versão — só desktop */}
-        {!isMobile && <span style={S.version}>v1.0.0</span>}
-      </div>
+          <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, zIndex: 1 }}>v1.0.0</span>
+        </div>
+      )}
 
-      {/* ── PAINEL DIREITO ── */}
-      <div style={S.right(isMobile)}>
-        <div style={S.card}>
-          {/* Cabeçalho */}
-          <h1 style={S.heading}>Bem-vindo de volta</h1>
-          <span style={S.subheading}>Faça login para acessar o sistema</span>
+      <div
+        style={{
+          flex: 1,
+          background: "#fff",
+          display: "flex",
+          alignItems: isMobile ? "flex-start" : "center",
+          justifyContent: "center",
+          padding: isMobile ? "32px 24px" : "48px 32px",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: 380 }}>
+          {isMobile && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 28,
+              }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: modoData.gradiente,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 20,
+                  color: "#fff",
+                }}
+              >
+                <Icone />
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#1A1D23" }}>{modoData.modoLabel}</div>
+                <div style={{ fontSize: 12, color: "#9099A8" }}>{modoData.brandSub}</div>
+              </div>
+            </div>
+          )}
 
-          {/* Formulário */}
-          <div style={S.formWrap}>
+          <button
+            onClick={() => { setModo(null); setErro(""); form.resetFields(); }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "none",
+              border: "none",
+              color: "#3B82F6",
+              fontSize: 13,
+              cursor: "pointer",
+              padding: 0,
+              marginBottom: 20,
+              fontFamily: "inherit",
+            }}
+          >
+            <ArrowLeftOutlined /> Escolher outro modo
+          </button>
+
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#1A1D23", margin: 0, lineHeight: 1.2 }}>
+            Bem-vindo de volta
+          </h1>
+          <span style={{ fontSize: 14, color: "#9099A8", marginTop: 8, display: "block" }}>
+            Faça login para acessar o {modoData.modoLabel}
+          </span>
+
+          <div style={{ marginTop: 32 }}>
             <Form
               form={form}
               layout="vertical"
@@ -329,10 +387,9 @@ export default function LoginPage() {
               initialValues={{ email: rememberedEmail, lembrar: !!rememberedEmail }}
               requiredMark={false}
             >
-              {/* Email */}
               <Form.Item
                 name="email"
-                label={<span style={S.label}>Email</span>}
+                label={<span style={{ fontSize: 13, fontWeight: 600, color: "#3D4350" }}>Email</span>}
                 rules={[
                   { required: true, message: "Informe seu email" },
                   { type: "email", message: "Email inválido" },
@@ -348,10 +405,9 @@ export default function LoginPage() {
                 />
               </Form.Item>
 
-              {/* Senha */}
               <Form.Item
                 name="senha"
-                label={<span style={S.label}>Senha</span>}
+                label={<span style={{ fontSize: 13, fontWeight: 600, color: "#3D4350" }}>Senha</span>}
                 rules={[{ required: true, message: "Informe sua senha" }]}
                 style={{ marginBottom: 12 }}
               >
@@ -365,42 +421,194 @@ export default function LoginPage() {
                 />
               </Form.Item>
 
-              {/* Lembrar */}
               <Form.Item name="lembrar" valuePropName="checked" style={{ marginBottom: 20 }}>
                 <Checkbox style={{ fontSize: 13, color: "#5A6072" }}>
                   Lembrar por 30 dias
                 </Checkbox>
               </Form.Item>
 
-              {/* Botão */}
               <Form.Item style={{ marginBottom: 0 }}>
                 <Button
                   type="primary"
                   htmlType="submit"
                   loading={loading}
                   disabled={loading}
-                  style={S.submitBtn}
+                  style={{
+                    width: "100%",
+                    height: 44,
+                    background: "#3B82F6",
+                    borderColor: "#3B82F6",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    fontSize: 15,
+                    color: "#fff",
+                    marginTop: 8,
+                  }}
                 >
                   {loading ? "Entrando…" : "Entrar"}
                 </Button>
               </Form.Item>
 
-              {/* Erro inline */}
-              <span style={S.errorMsg}>{erro}</span>
+              <span
+                style={{
+                  color: "#D9363E",
+                  fontSize: 13,
+                  marginTop: 8,
+                  display: "block",
+                  textAlign: "center",
+                  minHeight: 20,
+                }}
+              >
+                {erro}
+              </span>
 
-              {/* Esqueci senha */}
               {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
               <a
-                style={S.forgotLink}
-                onClick={(e) => {
-                  e.preventDefault();
-                  /* TODO: implementar modal de recuperação de senha */
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  color: "#3B82F6",
+                  fontSize: 13,
+                  marginTop: 16,
+                  cursor: "pointer",
+                  textDecoration: "none",
                 }}
+                onClick={(e) => e.preventDefault()}
               >
                 Esqueci minha senha
               </a>
             </Form>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Componente card de modo ── */
+function ModoCard({ modo, Icone, isMobile, onClick }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: isMobile ? "100%" : 350,
+        minHeight: isMobile ? "auto" : 420,
+        background: modo.gradiente,
+        borderRadius: 20,
+        padding: "40px 32px 32px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 16,
+        cursor: "pointer",
+        transform: hovered ? "translateY(-4px)" : "translateY(0)",
+        boxShadow: hovered
+          ? "0 20px 60px rgba(0,0,0,0.25)"
+          : "0 4px 24px rgba(0,0,0,0.10)",
+        transition: "all 0.2s ease",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: -40,
+          right: -40,
+          width: 150,
+          height: 150,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.07)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        style={{
+          width: 80,
+          height: 80,
+          borderRadius: 22,
+          background: "rgba(255,255,255,0.18)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 38,
+          color: "#fff",
+          zIndex: 1,
+        }}
+      >
+        <Icone />
+      </div>
+
+      <div style={{ textAlign: "center", zIndex: 1 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+          {modo.titulo}
+        </div>
+        <div
+          style={{
+            fontSize: 14,
+            color: "rgba(255,255,255,0.8)",
+            marginTop: 8,
+            lineHeight: 1.4,
+          }}
+        >
+          {modo.subtitulo}
+        </div>
+      </div>
+
+      <ul
+        style={{
+          listStyle: "none",
+          padding: 0,
+          margin: "8px 0 0",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          zIndex: 1,
+        }}
+      >
+        {modo.bullets.map((b) => (
+          <li
+            key={b}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 13,
+              color: "#fff",
+            }}
+          >
+            <CheckCircleFilled style={{ color: "rgba(255,255,255,0.8)", fontSize: 15, flexShrink: 0 }} />
+            {b}
+          </li>
+        ))}
+      </ul>
+
+      <div
+        style={{
+          marginTop: "auto",
+          paddingTop: 24,
+          width: "100%",
+          zIndex: 1,
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            padding: "12px 0",
+            textAlign: "center",
+            fontWeight: 700,
+            fontSize: 15,
+            color: modo.key === "prestador" ? "#1E40AF" : "#065F46",
+          }}
+        >
+          Acessar →
         </div>
       </div>
     </div>

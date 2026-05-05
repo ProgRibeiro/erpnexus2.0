@@ -11,6 +11,7 @@ from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
     ChamadoFacilities, ContratoTerceirizado,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
+    Licitacao, PropostaLicitacao,
 )
 from .serializers import (
     AtivoSerializer, AtivoDetalheSerializer,
@@ -18,6 +19,7 @@ from .serializers import (
     ChamadoFacilitiesSerializer, ContratoTerceirizadoSerializer,
     ProjetoObraSerializer, ProjetoObraDetalheSerializer,
     FaseObraSerializer, DiarioObraSerializer, BoletimMedicaoSerializer,
+    LicitacaoSerializer, PropostaLicitacaoSerializer,
 )
 
 
@@ -203,3 +205,47 @@ def dashboard_facilities(request):
         "contratos_vencendo": contratos_vencendo,
         "projetos_ativos": projetos_ativos,
     })
+
+
+class PropostaLicitacaoViewSet(viewsets.ModelViewSet):
+    queryset = PropostaLicitacao.objects.select_related("licitacao")
+    serializer_class = PropostaLicitacaoSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["licitacao", "status"]
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+class LicitacaoViewSet(viewsets.ModelViewSet):
+    queryset = Licitacao.objects.prefetch_related("propostas").select_related("ativo")
+    serializer_class = LicitacaoSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["status", "modo", "tipo_servico"]
+    search_fields = ["titulo", "descricao"]
+    ordering_fields = ["criado_em", "prazo_propostas"]
+
+    @action(detail=True, methods=["post"])
+    def aceitar_proposta(self, request, pk=None):
+        licitacao = self.get_object()
+        proposta_id = request.data.get("proposta_id")
+        if not proposta_id:
+            return Response({"error": "proposta_id é obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            proposta = licitacao.propostas.get(id=proposta_id)
+        except PropostaLicitacao.DoesNotExist:
+            return Response({"error": "Proposta não encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        licitacao.propostas.exclude(id=proposta_id).update(status=PropostaLicitacao.Status.RECUSADA)
+        proposta.status = PropostaLicitacao.Status.ACEITA
+        proposta.save()
+        licitacao.status = Licitacao.Status.CONCLUIDA
+        licitacao.save()
+        return Response({"ok": True, "proposta_id": proposta_id})
+
+    @action(detail=True, methods=["post"])
+    def propostas(self, request, pk=None):
+        licitacao = self.get_object()
+        serializer = PropostaLicitacaoSerializer(data={**request.data, "licitacao": licitacao.id})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(licitacao=licitacao)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

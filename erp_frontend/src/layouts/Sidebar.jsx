@@ -1,193 +1,138 @@
-import { Menu } from 'antd';
-import {
-  DashboardOutlined, TeamOutlined, FileTextOutlined, ShoppingCartOutlined,
-  DollarOutlined, CalendarOutlined, SettingOutlined, ToolOutlined,
-  BuildOutlined, DatabaseOutlined, ScheduleOutlined, AlertOutlined,
-  FileProtectOutlined, ProjectOutlined, BarChartOutlined,
-} from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
+const ITENS_PRESTADOR = [
+  {
+    label: 'PRINCIPAL',
+    type: 'group',
+    children: [
+      { key: 'dashboard', icon: <DashboardOutlined />, label: 'Dashboard', path: '/dashboard' },
+    ],
+  },
+  {
+    label: 'OPERAÇÕES',
+    type: 'group',
+    children: [
+      { key: 'orcamentos', icon: <FileTextOutlined />, label: 'Orçamentos', path: '/orcamentos' },
+      { key: 'ordens', icon: <FileTextOutlined />, label: 'Ordens de Serviço', path: '/ordens' },
+      { key: 'clientes', icon: <TeamOutlined />, label: 'Clientes', path: '/clientes' },
+      { key: 'agenda', icon: <CalendarOutlined />, label: 'Agenda', path: '/agenda' },
+      { key: 'servicos', icon: <ToolOutlined />, label: 'Serviços', path: '/servicos' },
+      { key: 'terceiros', icon: <TeamOutlined />, label: 'Terceirizados', path: '/terceiros' },
+    ],
+  },
+  {
+    label: 'GESTÃO',
+    type: 'group',
+    children: [
+      { key: 'estoque', icon: <ShoppingCartOutlined />, label: 'Estoque', path: '/estoque' },
+      { key: 'financeiro', icon: <DollarOutlined />, label: 'Financeiro', path: '/financeiro' },
+      { key: 'faturamento', icon: <FileTextOutlined />, label: 'Faturamento', path: '/faturamento' },
+      { key: 'crm', icon: <TeamOutlined />, label: 'CRM', path: '/crm' },
+    ],
+  },
+  {
+    label: 'CLIENTES FACILITIES',
+    type: 'group',
+    children: [
+      { key: 'chamados-externos', icon: <AlertOutlined />, label: 'Chamados Externos', path: '/chamados-externos' },
+      { key: 'licitacoes', icon: <TrophyOutlined />, label: 'Licitações', path: '/licitacoes' },
+    ],
+  },
+  {
+    label: 'SISTEMA',
+    type: 'group',
+    children: [
+      { key: 'fiscal', icon: <DollarOutlined />, label: 'Fiscal', path: '/fiscal' },
+      { key: 'configuracoes', icon: <SettingOutlined />, label: 'Configurações', path: '/configuracoes' },
+    ],
+  },
+];
+
+const ITENS_FACILITIES = [
+  {
+    label: 'PRINCIPAL',
+    type: 'group',
+    children: [
+      { key: 'fac-dashboard', icon: <DashboardOutlined />, label: 'Dashboard Facilities', path: '/facilities' },
+    ],
+  },
+  {
+    label: 'ATIVOS & MANUTENÇÃO',
+    type: 'group',
+    children: [
+      { key: 'fac-ativos', icon: <DatabaseOutlined />, label: 'Ativos', path: '/facilities/ativos' },
+      { key: 'fac-pmp', icon: <ScheduleOutlined />, label: 'Manut. Preventiva', path: '/facilities/pmp' },
+      { key: 'fac-indicadores', icon: <BarChartOutlined />, label: 'Indicadores', path: '/facilities/indicadores' },
+    ],
+  },
+  {
+    label: 'OPERAÇÕES',
+    type: 'group',
+    children: [
+      { key: 'fac-chamados', icon: <AlertOutlined />, label: 'Help Desk', path: '/facilities/chamados' },
+      { key: 'fac-licitacao', icon: <TrophyOutlined />, label: 'Licitações', path: '/facilities/licitacao' },
+      { key: 'fac-contratos', icon: <FileProtectOutlined />, label: 'Contratos', path: '/facilities/contratos' },
+    ],
+  },
+  {
+    label: 'PROJETOS',
+    type: 'group',
+    children: [
+      { key: 'fac-obras', icon: <ProjectOutlined />, label: 'Obras / Projetos', path: '/facilities/obras' },
+    ],
+  },
+  {
+    label: 'SISTEMA',
+    type: 'group',
+    children: [
+      { key: 'configuracoes', icon: <SettingOutlined />, label: 'Configurações', path: '/configuracoes' },
+    ],
+  },
+];
+
+function buildItems(grupos, navigate) {
+  return grupos.map((g) => ({
+    ...g,
+    children: g.children.map(({ path, ...rest }) => ({
+      ...rest,
+      onClick: () => navigate(path),
+    })),
+  }));
+}
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const items = [
-    {
-      label: 'PRINCIPAL',
-      type: 'group',
-      children: [
-        {
-          key: 'dashboard',
-          icon: <DashboardOutlined />,
-          label: 'Dashboard',
-          onClick: () => navigate('/dashboard'),
-        },
-      ],
-    },
-    {
-      label: 'OPERAÇÕES',
-      type: 'group',
-      children: [
-        {
-          key: 'orcamentos',
-          icon: <FileTextOutlined />,
-          label: 'Orçamentos',
-          onClick: () => navigate('/orcamentos'),
-        },
-        {
-          key: 'ordens',
-          icon: <FileTextOutlined />,
-          label: 'Ordens de Serviço',
-          onClick: () => navigate('/ordens'),
-        },
-        {
-          key: 'clientes',
-          icon: <TeamOutlined />,
-          label: 'Clientes',
-          onClick: () => navigate('/clientes'),
-        },
-        {
-          key: 'agenda',
-          icon: <CalendarOutlined />,
-          label: 'Agenda',
-          onClick: () => navigate('/agenda'),
-        },
-        {
-          key: 'servicos',
-          icon: <ToolOutlined />,
-          label: 'Serviços',
-          onClick: () => navigate('/servicos'),
-        },
-        {
-          key: 'terceiros',
-          icon: <TeamOutlined />,
-          label: 'Terceirizados',
-          onClick: () => navigate('/terceiros'),
-        },
-      ],
-    },
-    {
-      label: 'GESTÃO',
-      type: 'group',
-      children: [
-        {
-          key: 'estoque',
-          icon: <ShoppingCartOutlined />,
-          label: 'Estoque',
-          onClick: () => navigate('/estoque'),
-        },
-        {
-          key: 'financeiro',
-          icon: <DollarOutlined />,
-          label: 'Financeiro',
-          onClick: () => navigate('/financeiro'),
-        },
-        {
-          key: 'faturamento',
-          icon: <FileTextOutlined />,
-          label: 'Faturamento',
-          onClick: () => navigate('/faturamento'),
-        },
-        {
-          key: 'crm',
-          icon: <TeamOutlined />,
-          label: 'CRM',
-          onClick: () => navigate('/crm'),
-        },
-      ],
-    },
-    {
-      label: 'FACILITIES',
-      type: 'group',
-      children: [
-        {
-          key: 'fac-dashboard',
-          icon: <BuildOutlined />,
-          label: 'Dashboard Facilities',
-          onClick: () => navigate('/facilities'),
-        },
-        {
-          key: 'fac-ativos',
-          icon: <DatabaseOutlined />,
-          label: 'Ativos',
-          onClick: () => navigate('/facilities/ativos'),
-        },
-        {
-          key: 'fac-pmp',
-          icon: <ScheduleOutlined />,
-          label: 'Manutenção Preventiva',
-          onClick: () => navigate('/facilities/pmp'),
-        },
-        {
-          key: 'fac-chamados',
-          icon: <AlertOutlined />,
-          label: 'Help Desk',
-          onClick: () => navigate('/facilities/chamados'),
-        },
-        {
-          key: 'fac-contratos',
-          icon: <FileProtectOutlined />,
-          label: 'Contratos',
-          onClick: () => navigate('/facilities/contratos'),
-        },
-        {
-          key: 'fac-obras',
-          icon: <ProjectOutlined />,
-          label: 'Obras / Projetos',
-          onClick: () => navigate('/facilities/obras'),
-        },
-        {
-          key: 'fac-indicadores',
-          icon: <BarChartOutlined />,
-          label: 'Indicadores',
-          onClick: () => navigate('/facilities/indicadores'),
-        },
-      ],
-    },
-    {
-      label: 'SISTEMA',
-      type: 'group',
-      children: [
-        {
-          key: 'fiscal',
-          icon: <DollarOutlined />,
-          label: 'Fiscal',
-          onClick: () => navigate('/fiscal'),
-        },
-        {
-          key: 'configuracoes',
-          icon: <SettingOutlined />,
-          label: 'Configurações',
-          onClick: () => navigate('/configuracoes'),
-        },
-      ],
-    },
-  ];
+  const mode = localStorage.getItem("erp_mode") || "prestador";
+  const grupos = mode === "facilities" ? ITENS_FACILITIES : ITENS_PRESTADOR;
+  const items = buildItems(grupos, navigate);
 
   const getSelectedKey = () => {
-    if (location.pathname === '/' || location.pathname === '/dashboard') return 'dashboard';
-    if (location.pathname.startsWith('/orcamentos')) return 'orcamentos';
-    if (location.pathname.startsWith('/ordens')) return 'ordens';
-    if (location.pathname.startsWith('/clientes')) return 'clientes';
-    if (location.pathname.startsWith('/agenda')) return 'agenda';
-    if (location.pathname.startsWith('/servicos')) return 'servicos';
-    if (location.pathname.startsWith('/terceiros')) return 'terceiros';
-    if (location.pathname.startsWith('/estoque')) return 'estoque';
-    if (location.pathname.startsWith('/financeiro')) return 'financeiro';
-    if (location.pathname.startsWith('/faturamento')) return 'faturamento';
-    if (location.pathname.startsWith('/crm')) return 'crm';
-    if (location.pathname.startsWith('/facilities')) {
-      if (location.pathname === '/facilities') return 'fac-dashboard';
-      if (location.pathname.startsWith('/facilities/ativos')) return 'fac-ativos';
-      if (location.pathname.startsWith('/facilities/pmp')) return 'fac-pmp';
-      if (location.pathname.startsWith('/facilities/chamados')) return 'fac-chamados';
-      if (location.pathname.startsWith('/facilities/contratos')) return 'fac-contratos';
-      if (location.pathname.startsWith('/facilities/obras')) return 'fac-obras';
-      if (location.pathname.startsWith('/facilities/indicadores')) return 'fac-indicadores';
+    const p = location.pathname;
+    if (p === '/' || p === '/dashboard') return 'dashboard';
+    if (p.startsWith('/orcamentos')) return 'orcamentos';
+    if (p.startsWith('/ordens')) return 'ordens';
+    if (p.startsWith('/clientes')) return 'clientes';
+    if (p.startsWith('/agenda')) return 'agenda';
+    if (p.startsWith('/servicos')) return 'servicos';
+    if (p.startsWith('/terceiros')) return 'terceiros';
+    if (p.startsWith('/estoque')) return 'estoque';
+    if (p.startsWith('/financeiro')) return 'financeiro';
+    if (p.startsWith('/faturamento')) return 'faturamento';
+    if (p.startsWith('/crm')) return 'crm';
+    if (p.startsWith('/chamados-externos')) return 'chamados-externos';
+    if (p.startsWith('/licitacoes')) return 'licitacoes';
+    if (p.startsWith('/fiscal')) return 'fiscal';
+    if (p.startsWith('/configuracoes')) return 'configuracoes';
+    if (p.startsWith('/facilities')) {
+      if (p === '/facilities') return 'fac-dashboard';
+      if (p.startsWith('/facilities/ativos')) return 'fac-ativos';
+      if (p.startsWith('/facilities/pmp')) return 'fac-pmp';
+      if (p.startsWith('/facilities/chamados')) return 'fac-chamados';
+      if (p.startsWith('/facilities/licitacao')) return 'fac-licitacao';
+      if (p.startsWith('/facilities/contratos')) return 'fac-contratos';
+      if (p.startsWith('/facilities/obras')) return 'fac-obras';
+      if (p.startsWith('/facilities/indicadores')) return 'fac-indicadores';
       return 'fac-dashboard';
     }
-    if (location.pathname.startsWith('/fiscal')) return 'fiscal';
-    if (location.pathname.startsWith('/configuracoes')) return 'configuracoes';
     return 'dashboard';
   };
 

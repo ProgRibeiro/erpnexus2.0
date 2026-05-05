@@ -6,6 +6,7 @@ from .views import (
     ChamadoFacilitiesViewSet, ContratoTerceirizadoViewSet,
     ProjetoObraViewSet, FaseObraViewSet, DiarioObraViewSet,
     BoletimMedicaoViewSet, dashboard_facilities,
+    LicitacaoViewSet, PropostaLicitacaoViewSet,
 )
 
 router = DefaultRouter()
@@ -18,6 +19,8 @@ router.register("projetos", ProjetoObraViewSet, basename="facilities-projetos")
 router.register("fases", FaseObraViewSet, basename="facilities-fases")
 router.register("diarios", DiarioObraViewSet, basename="facilities-diarios")
 router.register("boletins", BoletimMedicaoViewSet, basename="facilities-boletins")
+router.register("licitacoes", LicitacaoViewSet, basename="facilities-licitacoes")
+router.register("propostas-licitacao", PropostaLicitacaoViewSet, basename="facilities-propostas-licitacao")
 
 urlpatterns = [
     path("dashboard/", dashboard_facilities, name="facilities-dashboard"),
