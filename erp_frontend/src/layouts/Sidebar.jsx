@@ -2,7 +2,9 @@ import { Menu } from "antd";
 import {
   AlertOutlined,
   BarChartOutlined,
+  BuildOutlined,
   CalendarOutlined,
+  CheckSquareOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DollarOutlined,
@@ -100,6 +102,15 @@ const ITENS_FACILITIES = [
     ],
   },
   {
+    label: 'GESTÃO SAAS',
+    type: 'group',
+    children: [
+      { key: 'fac-unidades', icon: <BuildOutlined />, label: 'Unidades', path: '/facilities/unidades' },
+      { key: 'fac-budget', icon: <DollarOutlined />, label: 'Budget', path: '/facilities/budget' },
+      { key: 'fac-aprovacoes', icon: <CheckSquareOutlined />, label: 'Aprovações', path: '/facilities/aprovacoes' },
+    ],
+  },
+  {
     label: 'SISTEMA',
     type: 'group',
     children: [
@@ -151,6 +162,9 @@ export default function Sidebar() {
       if (p.startsWith('/facilities/contratos')) return 'fac-contratos';
       if (p.startsWith('/facilities/obras')) return 'fac-obras';
       if (p.startsWith('/facilities/indicadores')) return 'fac-indicadores';
+      if (p.startsWith('/facilities/unidades')) return 'fac-unidades';
+      if (p.startsWith('/facilities/budget')) return 'fac-budget';
+      if (p.startsWith('/facilities/aprovacoes')) return 'fac-aprovacoes';
       return 'fac-dashboard';
     }
     return 'dashboard';

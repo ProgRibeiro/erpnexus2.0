@@ -1,112 +1,88 @@
 import { useState, useEffect } from "react";
-import { Row, Col, Card, Typography, Spin, Tag } from "antd";
+import { Row, Col, Card, Typography, Spin, Tag, Table } from "antd";
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell, LineChart, Line,
 } from "recharts";
-import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 
-function calcMTTR(chamados) {
-  const resolvidos = chamados.filter((c) => c.resolvido_em && c.aberto_em);
-  if (!resolvidos.length) return 0;
-  const totalHoras = resolvidos.reduce((acc, c) => {
-    const diff = dayjs(c.resolvido_em).diff(dayjs(c.aberto_em), "hour", true);
-    return acc + diff;
-  }, 0);
-  return (totalHoras / resolvidos.length).toFixed(1);
-}
+const PIE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#6B7280"];
 
-function calcTopAtivos(chamados) {
-  const contagem = {};
-  chamados.forEach((c) => {
-    if (c.ativo_tag) {
-      contagem[c.ativo_tag] = (contagem[c.ativo_tag] || 0) + 1;
-    }
-  });
-  return Object.entries(contagem)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([tag, total]) => ({ tag, total }));
-}
+const statusLabel = {
+  aberto: "Aberto",
+  aguardando_orcamento: "Ag. Orçamento",
+  aguardando_aprovacao: "Ag. Aprovação",
+  em_execucao: "Em Execução",
+  concluido: "Concluído",
+  cancelado: "Cancelado",
+};
 
-function calcChamadosPorMes(chamados) {
-  const meses = {};
-  for (let i = 5; i >= 0; i--) {
-    const mes = dayjs().subtract(i, "month").format("MM/YYYY");
-    meses[mes] = 0;
-  }
-  chamados.forEach((c) => {
-    const mes = dayjs(c.aberto_em).format("MM/YYYY");
-    if (mes in meses) meses[mes]++;
-  });
-  return Object.entries(meses).map(([mes, total]) => ({ mes, total }));
-}
+const prioridadeLabel = {
+  baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica", emergencia: "Emergência",
+};
 
 export default function IndicadoresFacilities() {
   const [loading, setLoading] = useState(true);
-  const [ativos, setAtivos] = useState([]);
-  const [chamados, setChamados] = useState([]);
+  const [visaoGeral, setVisaoGeral] = useState({});
+  const [evolucao, setEvolucao] = useState([]);
 
   useEffect(() => {
     Promise.all([
-      api.get("/facilities/ativos/"),
-      api.get("/facilities/chamados/?ordering=-aberto_em"),
+      api.get("/portal/contratante/bi/visao-geral/"),
+      api.get("/portal/contratante/bi/evolucao/?periodo=12m"),
     ])
-      .then(([a, c]) => {
-        setAtivos(Array.isArray(a.data) ? a.data : (a.data?.results || []));
-        setChamados(Array.isArray(c.data) ? c.data : (c.data?.results || []));
+      .then(([vg, ev]) => {
+        setVisaoGeral(vg.data || {});
+        setEvolucao(Array.isArray(ev.data) ? ev.data : []);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
 
-  const mttr = calcMTTR(chamados);
-  const totalAtivos = ativos.length;
-  const atOper = ativos.filter((a) => a.status === "operacional").length;
-  const disponibilidade = totalAtivos > 0 ? ((atOper / totalAtivos) * 100).toFixed(1) : 0;
-  const topAtivos = calcTopAtivos(chamados);
-  const porMes = calcChamadosPorMes(chamados);
+  const pieStatus = Object.entries(visaoGeral.por_status || {}).map(([key, value]) => ({
+    name: statusLabel[key] || key,
+    value,
+  }));
+
+  const prioridadeData = Object.entries(visaoGeral.por_prioridade || {}).map(([key, value]) => ({
+    prioridade: prioridadeLabel[key] || key,
+    total: value,
+  }));
 
   const kpis = [
     {
-      label: "MTTR Médio",
-      value: `${mttr}h`,
-      desc: "Tempo médio de resolução de chamados",
+      label: "Total de Chamados",
+      value: visaoGeral.total_chamados || 0,
+      desc: "Todos os chamados registrados",
       color: "#3B82F6",
       bg: "#EFF6FF",
     },
     {
-      label: "Disponibilidade",
-      value: `${disponibilidade}%`,
-      desc: "Ativos operacionais / total",
+      label: "Ticket Médio",
+      value: visaoGeral.ticket_medio
+        ? `R$ ${Number(visaoGeral.ticket_medio).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+        : "R$ 0,00",
+      desc: "Valor médio por chamado",
       color: "#10B981",
       bg: "#ECFDF5",
     },
-    {
-      label: "Total de Chamados",
-      value: chamados.length,
-      desc: "Todos os chamados registrados",
-      color: "#F59E0B",
-      bg: "#FFFBEB",
-    },
-    {
-      label: "Chamados Resolvidos",
-      value: chamados.filter((c) => ["resolvido", "fechado"].includes(c.status)).length,
-      desc: "Status: resolvido ou fechado",
-      color: "#8B5CF6",
-      bg: "#F5F3FF",
-    },
+  ];
+
+  const colsPrioridade = [
+    { title: "Prioridade", dataIndex: "prioridade", key: "prioridade" },
+    { title: "Total de Chamados", dataIndex: "total", key: "total" },
   ];
 
   return (
     <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Indicadores Técnicos</Title>
-        <Text type="secondary">KPIs de manutenção e disponibilidade dos ativos</Text>
+        <Title level={3} style={{ margin: 0 }}>Indicadores — BI Portal Contratante</Title>
+        <Text type="secondary">Análise de chamados, orçamentos e desempenho</Text>
       </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
@@ -127,86 +103,72 @@ export default function IndicadoresFacilities() {
       </Row>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={14}>
           <Card
-            title="Top 5 Ativos com Mais Chamados"
+            title="Evolução Mensal de Chamados (12 meses)"
             style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
           >
-            {topAtivos.length === 0 ? (
-              <div style={{ textAlign: "center", color: "#9CA3AF", padding: 40 }}>
-                Sem dados suficientes
-              </div>
+            {evolucao.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#9CA3AF", padding: 40 }}>Sem dados de evolução</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={topAtivos} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={evolucao} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                  <XAxis dataKey="tag" tick={{ fontSize: 12 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="total" fill="#3B82F6" name="Chamados" radius={[4, 4, 0, 0]} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+                  <Legend />
+                  <Bar dataKey="valor" fill="#3B82F6" name="Valor (R$)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </Card>
         </Col>
 
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={10}>
           <Card
-            title="Chamados por Mês (últimos 6 meses)"
+            title="Chamados por Status"
             style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
           >
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={porMes} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#3B82F6"
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: "#3B82F6" }}
-                  name="Chamados Abertos"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {pieStatus.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#9CA3AF", padding: 40 }}>Sem dados</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={pieStatus}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    labelLine={false}
+                  >
+                    {pieStatus.map((_, idx) => (
+                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </Card>
         </Col>
 
         <Col xs={24}>
           <Card
-            title="Distribuição de Ativos por Status"
+            title="Chamados por Prioridade"
             style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
           >
-            <Row gutter={[12, 12]}>
-              {[
-                { status: "operacional", label: "Operacional", cor: "green" },
-                { status: "em_manutencao", label: "Em Manutenção", cor: "orange" },
-                { status: "inativo", label: "Inativo", cor: "default" },
-                { status: "sucateado", label: "Sucateado", cor: "red" },
-              ].map(({ status, label, cor }) => {
-                const count = ativos.filter((a) => a.status === status).length;
-                const pct = totalAtivos > 0 ? ((count / totalAtivos) * 100).toFixed(0) : 0;
-                return (
-                  <Col xs={12} sm={6} key={status}>
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "16px 8px",
-                        background: "#F9FAFB",
-                        borderRadius: 10,
-                      }}
-                    >
-                      <Tag color={cor} style={{ fontSize: 13, marginBottom: 8 }}>{label}</Tag>
-                      <div style={{ fontSize: 28, fontWeight: 700, color: "#111827" }}>{count}</div>
-                      <div style={{ fontSize: 13, color: "#9CA3AF" }}>{pct}% do total</div>
-                    </div>
-                  </Col>
-                );
-              })}
-            </Row>
+            <Table
+              dataSource={prioridadeData}
+              columns={colsPrioridade}
+              rowKey="prioridade"
+              pagination={false}
+              size="small"
+              locale={{ emptyText: "Sem dados de prioridade" }}
+            />
           </Card>
         </Col>
       </Row>

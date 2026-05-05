@@ -48,6 +48,9 @@ import ContratosFacilities from "./pages/Facilities/Contratos";
 import ObrasPage from "./pages/Facilities/Obras";
 import ObraDetalhe from "./pages/Facilities/Obras/ObraDetalhe";
 import IndicadoresFacilities from "./pages/Facilities/Indicadores";
+import UnidadesPage from "./pages/Facilities/Unidades";
+import BudgetPage from "./pages/Facilities/Budget";
+import AprovacoesPage from "./pages/Facilities/Aprovacoes";
 import ChamadosExternosPage from "./pages/ChamadosExternos";
 import LicitacoesPage from "./pages/Licitacoes";
 import LicitacaoFacilitiesPage from "./pages/Facilities/Licitacao";
@@ -106,6 +109,9 @@ export default function App() {
             <Route path="/facilities/obras" element={<ObrasPage />} />
             <Route path="/facilities/obras/:id" element={<ObraDetalhe />} />
             <Route path="/facilities/indicadores" element={<IndicadoresFacilities />} />
+            <Route path="/facilities/unidades" element={<UnidadesPage />} />
+            <Route path="/facilities/budget" element={<BudgetPage />} />
+            <Route path="/facilities/aprovacoes" element={<AprovacoesPage />} />
             <Route path="/facilities/licitacao" element={<LicitacaoFacilitiesPage />} />
             <Route path="/chamados-externos" element={<ChamadosExternosPage />} />
             <Route path="/licitacoes" element={<LicitacoesPage />} />

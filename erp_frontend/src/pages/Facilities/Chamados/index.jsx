@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import {
   Row, Col, Card, Tag, Button, Modal, Form, Input, Select,
-  Typography, Space, message, Spin, Badge, Divider,
+  Typography, Space, message, Spin, Badge, Divider, InputNumber,
 } from "antd";
 import {
-  PlusOutlined, ClockCircleOutlined, UserOutlined, EnvironmentOutlined,
+  PlusOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -17,33 +17,63 @@ dayjs.locale("pt-br");
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const prioridadeCor = { baixa: "blue", media: "gold", alta: "orange", critica: "red" };
-const prioridadeLabel = { baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica" };
+const prioridadeCor = {
+  baixa: "blue", media: "gold", alta: "orange", critica: "red", emergencia: "magenta",
+};
+const prioridadeLabel = {
+  baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica", emergencia: "Emergência",
+};
+const statusCor = {
+  aberto: "#EF4444",
+  aguardando_orcamento: "#F59E0B",
+  aguardando_aprovacao: "#F97316",
+  em_execucao: "#3B82F6",
+  concluido: "#10B981",
+  cancelado: "#6B7280",
+};
+const statusLabel = {
+  aberto: "Aberto",
+  aguardando_orcamento: "Ag. Orçamento",
+  aguardando_aprovacao: "Ag. Aprovação",
+  em_execucao: "Em Execução",
+  concluido: "Concluído",
+  cancelado: "Cancelado",
+};
+
 const colunas = [
-  { key: "aberto", label: "Aberto", color: "#EF4444" },
-  { key: "em_atendimento", label: "Em Atendimento", color: "#F59E0B" },
-  { key: "resolvido", label: "Resolvido", color: "#10B981" },
+  { key: "aberto", label: "Aberto", color: "#EF4444", statuses: ["aberto"] },
+  { key: "aguardando", label: "Aguardando", color: "#F59E0B", statuses: ["aguardando_orcamento", "aguardando_aprovacao"] },
+  { key: "em_execucao", label: "Em Execução", color: "#3B82F6", statuses: ["em_execucao"] },
+  { key: "concluido", label: "Concluído", color: "#10B981", statuses: ["concluido"] },
 ];
+
+const borderColor = (prioridade) => {
+  const map = { baixa: "#3B82F6", media: "#F59E0B", alta: "#F97316", critica: "#EF4444", emergencia: "#A855F7" };
+  return map[prioridade] || "#D1D5DB";
+};
 
 export default function ChamadosFacilities() {
   const [chamados, setChamados] = useState([]);
-  const [ativos, setAtivos] = useState([]);
+  const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalNovo, setModalNovo] = useState(false);
   const [modalDetalhe, setModalDetalhe] = useState(null);
+  const [modalRecusar, setModalRecusar] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [obsRecusa, setObsRecusa] = useState("");
   const [form] = Form.useForm();
 
   const carregar = () => {
     setLoading(true);
     Promise.all([
-      api.get("/facilities/chamados/?ordering=-aberto_em"),
-      api.get("/facilities/ativos/?status=operacional"),
+      api.get("/portal/contratante/chamados/"),
+      api.get("/portal/contratante/unidades/"),
     ])
-      .then(([c, a]) => {
+      .then(([c, u]) => {
         setChamados(Array.isArray(c.data) ? c.data : (c.data?.results || []));
-        setAtivos(Array.isArray(a.data) ? a.data : (a.data?.results || []));
+        setUnidades(Array.isArray(u.data) ? u.data : (u.data?.results || []));
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
@@ -52,7 +82,7 @@ export default function ChamadosFacilities() {
   const salvar = async (values) => {
     setSaving(true);
     try {
-      await api.post("/facilities/chamados/", values);
+      await api.post("/portal/contratante/chamados/", values);
       message.success("Chamado aberto com sucesso!");
       setModalNovo(false);
       form.resetFields();
@@ -64,19 +94,32 @@ export default function ChamadosFacilities() {
     }
   };
 
-  const handleAcao = async (acao, chamadoId) => {
+  const aprovarOrcamento = async (chamadoId) => {
     try {
-      await api.post(`/facilities/chamados/${chamadoId}/${acao}/`);
-      message.success("Status atualizado!");
+      await api.post(`/portal/contratante/chamados/${chamadoId}/aprovar-orcamento/`);
+      message.success("Orçamento aprovado!");
       setModalDetalhe(null);
       carregar();
     } catch {
-      message.error("Erro ao atualizar chamado.");
+      message.error("Erro ao aprovar orçamento.");
     }
   };
 
-  const getChamadosDaColuna = (status) =>
-    chamados.filter((c) => c.status === status);
+  const recusarOrcamento = async (chamadoId) => {
+    try {
+      await api.post(`/portal/contratante/chamados/${chamadoId}/recusar-orcamento/`, { observacao: obsRecusa });
+      message.success("Orçamento recusado.");
+      setModalRecusar(false);
+      setModalDetalhe(null);
+      setObsRecusa("");
+      carregar();
+    } catch {
+      message.error("Erro ao recusar orçamento.");
+    }
+  };
+
+  const getChamadosDaColuna = (col) =>
+    chamados.filter((c) => col.statuses.includes(c.status));
 
   if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
 
@@ -84,8 +127,8 @@ export default function ChamadosFacilities() {
     <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
       <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
         <Col>
-          <Title level={3} style={{ margin: 0 }}>Help Desk / Chamados</Title>
-          <Text type="secondary">Gestão de solicitações internas de facilities</Text>
+          <Title level={3} style={{ margin: 0 }}>Chamados — Portal Contratante</Title>
+          <Text type="secondary">Gestão de chamados SaaS por status e orçamento</Text>
         </Col>
         <Col>
           <Button
@@ -101,71 +144,48 @@ export default function ChamadosFacilities() {
 
       <Row gutter={16}>
         {colunas.map((col) => {
-          const lista = getChamadosDaColuna(col.key);
+          const lista = getChamadosDaColuna(col);
           return (
-            <Col xs={24} md={8} key={col.key}>
-              <div
-                style={{
-                  background: "#F3F4F6",
-                  borderRadius: 14,
-                  padding: 16,
-                  minHeight: 400,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    marginBottom: 16, fontWeight: 600, fontSize: 15,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 10, height: 10, borderRadius: "50%",
-                      background: col.color, display: "inline-block",
-                    }}
-                  />
+            <Col xs={24} md={12} lg={6} key={col.key}>
+              <div style={{ background: "#F3F4F6", borderRadius: 14, padding: 16, minHeight: 400 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, fontWeight: 600, fontSize: 15 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: col.color, display: "inline-block" }} />
                   {col.label}
                   <Badge count={lista.length} style={{ background: col.color, marginLeft: 4 }} />
                 </div>
 
                 <Space direction="vertical" style={{ width: "100%" }} size={10}>
                   {lista.length === 0 && (
-                    <div style={{ textAlign: "center", color: "#9CA3AF", padding: 32 }}>
-                      Nenhum chamado
-                    </div>
+                    <div style={{ textAlign: "center", color: "#9CA3AF", padding: 32 }}>Nenhum chamado</div>
                   )}
                   {lista.map((c) => (
                     <Card
                       key={c.id}
                       style={{
-                        borderRadius: 10,
-                        cursor: "pointer",
+                        borderRadius: 10, cursor: "pointer",
                         boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
-                        borderLeft: `4px solid ${prioridadeCor[c.prioridade] === "red" ? "#EF4444" : prioridadeCor[c.prioridade] === "orange" ? "#F97316" : prioridadeCor[c.prioridade] === "gold" ? "#F59E0B" : "#3B82F6"}`,
+                        borderLeft: `4px solid ${borderColor(c.prioridade)}`,
                       }}
                       bodyStyle={{ padding: "12px 14px" }}
                       onClick={() => setModalDetalhe(c)}
                     >
-                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{c.numero}</div>
-                      <div style={{ fontWeight: 500, marginBottom: 8, color: "#111827" }}>{c.titulo}</div>
-                      {c.ativo_tag && (
-                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 4 }}>
-                          🔧 {c.ativo_tag} — {c.ativo_nome}
-                        </div>
-                      )}
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <div style={{ fontWeight: 600, fontSize: 12, color: "#6B7280", marginBottom: 2 }}>{c.numero}</div>
+                      <div style={{ fontWeight: 500, marginBottom: 6, color: "#111827", fontSize: 13 }}>
+                        {c.tipo_servico || "Sem tipo"}
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                         <Tag color={prioridadeCor[c.prioridade]} style={{ fontSize: 11 }}>
-                          {prioridadeLabel[c.prioridade]}
+                          {prioridadeLabel[c.prioridade] || c.prioridade}
                         </Tag>
-                        {c.local && (
-                          <span style={{ fontSize: 11, color: "#9CA3AF" }}>
-                            <EnvironmentOutlined /> {c.local}
-                          </span>
-                        )}
                         <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: "auto" }}>
-                          <ClockCircleOutlined /> {dayjs(c.aberto_em).fromNow()}
+                          <ClockCircleOutlined /> {dayjs(c.abertura).fromNow()}
                         </span>
                       </div>
+                      {c.valor_orcado && (
+                        <div style={{ marginTop: 6, fontSize: 12, color: "#F59E0B", fontWeight: 600 }}>
+                          R$ {Number(c.valor_orcado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </div>
+                      )}
                     </Card>
                   ))}
                 </Space>
@@ -188,11 +208,11 @@ export default function ChamadosFacilities() {
         okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={form} layout="vertical" onFinish={salvar} style={{ marginTop: 8 }}>
-          <Form.Item name="titulo" label="Título" rules={[{ required: true }]}>
-            <Input placeholder="Descreva brevemente o problema" />
+          <Form.Item name="tipo_servico" label="Tipo de Serviço" rules={[{ required: true, message: "Informe o tipo de serviço" }]}>
+            <Input placeholder="Ex: Elétrica, HVAC, Civil..." />
           </Form.Item>
-          <Form.Item name="descricao" label="Descrição detalhada" rules={[{ required: true }]}>
-            <Input.TextArea rows={3} />
+          <Form.Item name="descricao" label="Descrição detalhada" rules={[{ required: true, message: "Descreva o problema" }]}>
+            <Input.TextArea rows={3} placeholder="Descreva o problema com detalhes" />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
@@ -205,36 +225,12 @@ export default function ChamadosFacilities() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="local" label="Local">
-                <Input placeholder="Ex: Sala 210, 2º Andar" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="solicitante_nome" label="Solicitante" rules={[{ required: true }]}>
-                <Input placeholder="Nome do solicitante" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="ativo" label="Ativo Relacionado">
-                <Select allowClear showSearch placeholder="Selecione (opcional)" optionFilterProp="children">
-                  {ativos.map((a) => (
-                    <Option key={a.id} value={a.id}>{a.tag} — {a.nome}</Option>
+              <Form.Item name="unidade_id" label="Unidade" rules={[{ required: true, message: "Selecione a unidade" }]}>
+                <Select showSearch placeholder="Selecione a unidade" optionFilterProp="children">
+                  {unidades.map((u) => (
+                    <Option key={u.id} value={u.id}>{u.nome} {u.codigo_interno ? `(${u.codigo_interno})` : ""}</Option>
                   ))}
                 </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="solicitante_email" label="E-mail">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="solicitante_ramal" label="Ramal">
-                <Input />
               </Form.Item>
             </Col>
           </Row>
@@ -248,69 +244,107 @@ export default function ChamadosFacilities() {
           open={!!modalDetalhe}
           onCancel={() => setModalDetalhe(null)}
           footer={null}
-          width={600}
+          width={620}
         >
           <div style={{ padding: "8px 0" }}>
-            <Title level={5} style={{ margin: "0 0 8px" }}>{modalDetalhe.titulo}</Title>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              <Tag color={prioridadeCor[modalDetalhe.prioridade]}>{prioridadeLabel[modalDetalhe.prioridade]}</Tag>
-              <Tag>{modalDetalhe.status?.replace("_", " ").toUpperCase()}</Tag>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <Tag color={prioridadeCor[modalDetalhe.prioridade]}>{prioridadeLabel[modalDetalhe.prioridade] || modalDetalhe.prioridade}</Tag>
+              <Tag color="default" style={{ background: statusCor[modalDetalhe.status] + "20", color: statusCor[modalDetalhe.status], border: `1px solid ${statusCor[modalDetalhe.status]}40` }}>
+                {statusLabel[modalDetalhe.status] || modalDetalhe.status}
+              </Tag>
             </div>
-            <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>{modalDetalhe.descricao}</Text>
-            <Divider style={{ margin: "12px 0" }} />
-            <Row gutter={16} style={{ marginBottom: 8 }}>
+
+            <div style={{ marginBottom: 12 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>Tipo de serviço</Text>
+              <div style={{ fontWeight: 600, color: "#111827" }}>{modalDetalhe.tipo_servico || "-"}</div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>Descrição</Text>
+              <div style={{ color: "#374151" }}>{modalDetalhe.descricao || "-"}</div>
+            </div>
+
+            <Row gutter={16} style={{ marginBottom: 12 }}>
               <Col span={12}>
-                <Text type="secondary">Solicitante:</Text>
-                <div style={{ fontWeight: 500 }}>
-                  <UserOutlined style={{ marginRight: 4 }} />{modalDetalhe.solicitante_nome}
-                </div>
+                <Text type="secondary" style={{ fontSize: 12 }}>Abertura</Text>
+                <div style={{ fontWeight: 500 }}>{dayjs(modalDetalhe.abertura).format("DD/MM/YYYY HH:mm")}</div>
               </Col>
               <Col span={12}>
-                <Text type="secondary">Local:</Text>
-                <div style={{ fontWeight: 500 }}>
-                  <EnvironmentOutlined style={{ marginRight: 4 }} />{modalDetalhe.local || "-"}
-                </div>
+                <Text type="secondary" style={{ fontSize: 12 }}>Unidade</Text>
+                <div style={{ fontWeight: 500 }}>{modalDetalhe.unidade_nome || modalDetalhe.unidade_id || "-"}</div>
               </Col>
             </Row>
-            {modalDetalhe.ativo_tag && (
-              <div style={{ marginBottom: 8 }}>
-                <Text type="secondary">Ativo: </Text>
-                <Tag color="blue">{modalDetalhe.ativo_tag}</Tag>
-                <span>{modalDetalhe.ativo_nome}</span>
-              </div>
+
+            {(modalDetalhe.valor_orcado || modalDetalhe.valor_executado) && (
+              <>
+                <Divider style={{ margin: "12px 0" }} />
+                <Row gutter={16} style={{ marginBottom: 12 }}>
+                  {modalDetalhe.valor_orcado && (
+                    <Col span={12}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Valor Orçado</Text>
+                      <div style={{ fontWeight: 700, color: "#F59E0B", fontSize: 16 }}>
+                        R$ {Number(modalDetalhe.valor_orcado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </div>
+                    </Col>
+                  )}
+                  {modalDetalhe.valor_executado && (
+                    <Col span={12}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Valor Executado</Text>
+                      <div style={{ fontWeight: 700, color: "#10B981", fontSize: 16 }}>
+                        R$ {Number(modalDetalhe.valor_executado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </div>
+                    </Col>
+                  )}
+                </Row>
+              </>
             )}
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Aberto {dayjs(modalDetalhe.aberto_em).fromNow()} — {dayjs(modalDetalhe.aberto_em).format("DD/MM/YYYY HH:mm")}
-            </Text>
-            <Divider style={{ margin: "12px 0" }} />
-            <Space>
-              {modalDetalhe.status === "aberto" && (
-                <Button
-                  type="primary"
-                  style={{ background: "#F59E0B", borderColor: "#F59E0B" }}
-                  onClick={() => handleAcao("assumir", modalDetalhe.id)}
-                >
-                  Assumir
-                </Button>
-              )}
-              {["aberto", "em_atendimento", "aguardando"].includes(modalDetalhe.status) && (
-                <Button
-                  type="primary"
-                  style={{ background: "#10B981", borderColor: "#10B981" }}
-                  onClick={() => handleAcao("resolver", modalDetalhe.id)}
-                >
-                  Resolver
-                </Button>
-              )}
-              {modalDetalhe.status === "resolvido" && (
-                <Button onClick={() => handleAcao("fechar", modalDetalhe.id)}>
-                  Fechar Chamado
-                </Button>
-              )}
-            </Space>
+
+            {["aguardando_orcamento", "aguardando_aprovacao"].includes(modalDetalhe.status) && (
+              <>
+                <Divider style={{ margin: "12px 0" }} />
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    style={{ background: "#10B981", borderColor: "#10B981" }}
+                    onClick={() => aprovarOrcamento(modalDetalhe.id)}
+                  >
+                    Aprovar Orçamento
+                  </Button>
+                  <Button
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={() => setModalRecusar(true)}
+                  >
+                    Recusar Orçamento
+                  </Button>
+                </Space>
+              </>
+            )}
           </div>
         </Modal>
       )}
+
+      {/* Modal Recusar Orçamento */}
+      <Modal
+        title="Recusar Orçamento"
+        open={modalRecusar}
+        onCancel={() => { setModalRecusar(false); setObsRecusa(""); }}
+        onOk={() => recusarOrcamento(modalDetalhe?.id)}
+        okText="Confirmar Recusa"
+        cancelText="Cancelar"
+        okButtonProps={{ danger: true }}
+      >
+        <div style={{ marginBottom: 8 }}>
+          <Text>Informe o motivo da recusa (opcional):</Text>
+        </div>
+        <Input.TextArea
+          rows={3}
+          value={obsRecusa}
+          onChange={(e) => setObsRecusa(e.target.value)}
+          placeholder="Motivo da recusa..."
+        />
+      </Modal>
     </div>
   );
 }
