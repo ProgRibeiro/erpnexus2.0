@@ -146,10 +146,11 @@ class PropostaLicitacaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropostaLicitacao
         fields = [
-            "id", "licitacao", "prestador_nome", "prestador_email",
-            "valor", "prazo_execucao_dias", "observacoes", "status", "enviado_em",
+            "id", "uuid", "licitacao", "prestador_nome", "prestador_email",
+            "valor", "prazo_execucao_dias", "condicao_pagamento", "validade_proposta",
+            "itens_orcamento", "observacoes", "status", "enviado_em",
         ]
-        read_only_fields = ["id", "enviado_em", "status"]
+        read_only_fields = ["id", "uuid", "enviado_em", "status"]
 
 
 class LicitacaoSerializer(serializers.ModelSerializer):

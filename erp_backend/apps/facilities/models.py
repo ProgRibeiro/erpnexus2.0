@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -352,11 +354,15 @@ class PropostaLicitacao(models.Model):
         ACEITA = "aceita", "Aceita"
         RECUSADA = "recusada", "Recusada"
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     licitacao = models.ForeignKey(Licitacao, on_delete=models.CASCADE, related_name="propostas")
-    prestador_nome = models.CharField(max_length=200)
-    prestador_email = models.EmailField()
+    prestador_nome = models.CharField(max_length=200, blank=True)
+    prestador_email = models.EmailField(blank=True)
     valor = models.DecimalField(max_digits=14, decimal_places=2)
     prazo_execucao_dias = models.PositiveIntegerField()
+    condicao_pagamento = models.CharField(max_length=50, blank=True)
+    validade_proposta = models.DateField(null=True, blank=True)
+    itens_orcamento = models.JSONField(default=list, blank=True)
     observacoes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ENVIADA)
     enviado_em = models.DateTimeField(auto_now_add=True)
@@ -367,4 +373,32 @@ class PropostaLicitacao(models.Model):
         verbose_name_plural = "Propostas de Licitação"
 
     def __str__(self):
-        return f"{self.licitacao.titulo} - {self.prestador_nome}"
+        return f"{self.licitacao.titulo} - {self.prestador_nome or self.prestador_email}"
+
+
+class OutboxMessage(models.Model):
+    """Outbox pattern — garante entrega assíncrona mesmo em falha de rede."""
+    class Status(models.TextChoices):
+        PENDENTE = "pendente", "Pendente"
+        PROCESSANDO = "processando", "Processando"
+        PROCESSADO = "processado", "Processado"
+        FALHOU = "falhou", "Falhou"
+
+    aggregate_type = models.CharField(max_length=50)
+    aggregate_id = models.CharField(max_length=100)
+    event_type = models.CharField(max_length=100)
+    payload = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDENTE)
+    tentativas = models.PositiveIntegerField(default=0)
+    proxima_tentativa = models.DateTimeField(auto_now_add=True)
+    erro_ultimo = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    processado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["criado_em"]
+        verbose_name = "Outbox Message"
+        verbose_name_plural = "Outbox Messages"
+
+    def __str__(self):
+        return f"{self.event_type} [{self.status}] — {self.aggregate_type} {self.aggregate_id}"

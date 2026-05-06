@@ -1,5 +1,9 @@
 import datetime
+import logging
+import uuid as uuid_module
+from decimal import Decimal, InvalidOperation
 
+from django.db import transaction, IntegrityError
 from django.db.models import Q, Count
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -11,7 +15,7 @@ from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
     ChamadoFacilities, ContratoTerceirizado,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
-    Licitacao, PropostaLicitacao,
+    Licitacao, PropostaLicitacao, OutboxMessage,
 )
 from .serializers import (
     AtivoSerializer, AtivoDetalheSerializer,
@@ -21,6 +25,8 @@ from .serializers import (
     FaseObraSerializer, DiarioObraSerializer, BoletimMedicaoSerializer,
     LicitacaoSerializer, PropostaLicitacaoSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AtivoViewSet(viewsets.ModelViewSet):
@@ -243,9 +249,145 @@ class LicitacaoViewSet(viewsets.ModelViewSet):
         return Response({"ok": True, "proposta_id": proposta_id})
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def propostas(self, request, pk=None):
-        licitacao = self.get_object()
-        serializer = PropostaLicitacaoSerializer(data={**request.data, "licitacao": licitacao.id})
-        serializer.is_valid(raise_exception=True)
-        serializer.save(licitacao=licitacao)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            # 1. Busca a licitação com lock para evitar race condition
+            licitacao = Licitacao.objects.select_for_update().get(pk=pk)
+            logger.info("Recebida proposta para licitação %s de %s", pk, request.user)
+
+            # 2. Verifica se a licitação está publicada
+            if licitacao.status != Licitacao.Status.PUBLICADA:
+                logger.warning("Licitação %s não está publicada (status=%s)", pk, licitacao.status)
+                return Response({
+                    "erro": "Licitação não está disponível para receber propostas",
+                    "codigo": "LICITACAO_NAO_PUBLICADA",
+                }, status=400)
+
+            # 3. Verifica prazo
+            if licitacao.prazo_propostas and licitacao.prazo_propostas < timezone.now():
+                logger.warning("Licitação %s já encerrou o prazo", pk)
+                return Response({
+                    "erro": "O prazo para envio de propostas já foi encerrado",
+                    "codigo": "LICITACAO_ENCERRADA",
+                }, status=400)
+
+            # 4. Idempotência — evita duplo envio por retry do frontend
+            idempotency_key = request.headers.get("X-Idempotency-Key", "")
+            if idempotency_key:
+                try:
+                    existente = PropostaLicitacao.objects.get(uuid=idempotency_key)
+                    logger.info("Proposta duplicada (idempotency), retornando existente %s", existente.id)
+                    return Response(PropostaLicitacaoSerializer(existente).data, status=200)
+                except (PropostaLicitacao.DoesNotExist, Exception):
+                    pass  # Chave nova, prossegue com criação
+
+            # 5. Verifica se este email já enviou proposta para esta licitação
+            email_prestador = request.user.email
+            ja_enviou = PropostaLicitacao.objects.filter(
+                licitacao=licitacao,
+                prestador_email=email_prestador,
+            ).exists()
+            if ja_enviou:
+                logger.warning("Prestador %s já enviou proposta para licitação %s", email_prestador, pk)
+                return Response({
+                    "erro": "Você já enviou uma proposta para esta licitação",
+                    "codigo": "PROPOSTA_DUPLICADA",
+                }, status=409)
+
+            # 6. Valida e converte o valor
+            try:
+                valor_total = Decimal(str(request.data.get("valor", 0)))
+            except (InvalidOperation, TypeError):
+                return Response({
+                    "erro": "Valor inválido. Informe um número decimal válido.",
+                    "codigo": "VALOR_INVALIDO",
+                }, status=400)
+
+            if valor_total <= 0:
+                return Response({
+                    "erro": "O valor da proposta deve ser maior que zero",
+                    "codigo": "VALOR_INVALIDO",
+                }, status=400)
+
+            if licitacao.valor_maximo and valor_total > licitacao.valor_maximo:
+                return Response({
+                    "erro": f"Valor acima do máximo permitido (R$ {licitacao.valor_maximo:,.2f})",
+                    "codigo": "VALOR_ACIMA_MAXIMO",
+                }, status=400)
+
+            # 7. Valida prazo_execucao_dias
+            try:
+                prazo_dias = int(request.data.get("prazo_execucao_dias", 0))
+                if prazo_dias <= 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response({
+                    "erro": "Prazo de execução inválido. Informe um número inteiro de dias.",
+                    "codigo": "PRAZO_INVALIDO",
+                }, status=400)
+
+            # 8. Cria a proposta
+            proposta_uuid = idempotency_key or str(uuid_module.uuid4())
+            nome_prestador = request.user.get_full_name() or request.user.email
+
+            proposta = PropostaLicitacao.objects.create(
+                uuid=proposta_uuid,
+                licitacao=licitacao,
+                prestador_nome=nome_prestador,
+                prestador_email=email_prestador,
+                valor=valor_total,
+                prazo_execucao_dias=prazo_dias,
+                condicao_pagamento=request.data.get("condicao_pagamento", ""),
+                validade_proposta=request.data.get("validade_proposta") or None,
+                itens_orcamento=request.data.get("itens_orcamento", []),
+                observacoes=request.data.get("observacoes", ""),
+                status=PropostaLicitacao.Status.ENVIADA,
+            )
+
+            # 9. Registra no Outbox para processamento assíncrono
+            OutboxMessage.objects.create(
+                aggregate_type="Proposta",
+                aggregate_id=str(proposta.uuid),
+                event_type="proposta.enviada",
+                payload={
+                    "proposta_id": proposta.id,
+                    "licitacao_id": licitacao.id,
+                    "licitacao_titulo": licitacao.titulo,
+                    "prestador_nome": nome_prestador,
+                    "prestador_email": email_prestador,
+                    "valor": str(valor_total),
+                    "prazo_dias": prazo_dias,
+                },
+                status="pendente",
+            )
+
+            logger.info(
+                "Proposta %s enviada com sucesso para licitação %s | prestador=%s | valor=%s",
+                proposta.id, pk, email_prestador, valor_total,
+            )
+
+            return Response(PropostaLicitacaoSerializer(proposta).data, status=status.HTTP_201_CREATED)
+
+        except Licitacao.DoesNotExist:
+            logger.error("Licitação %s não encontrada", pk)
+            return Response({
+                "erro": "Licitação não encontrada",
+                "codigo": "LICITACAO_NAO_ENCONTRADA",
+            }, status=404)
+        except IntegrityError as e:
+            logger.error("IntegrityError ao criar proposta para licitação %s: %s", pk, e)
+            if "unique" in str(e).lower():
+                return Response({
+                    "erro": "Você já enviou uma proposta para esta licitação",
+                    "codigo": "PROPOSTA_DUPLICADA",
+                }, status=409)
+            raise
+        except Exception as e:
+            tracking_id = str(uuid_module.uuid4())
+            logger.exception("Erro inesperado ao enviar proposta licitação %s [tracking=%s]", pk, tracking_id)
+            return Response({
+                "erro": "Erro interno ao processar proposta. Tente novamente.",
+                "codigo": "ERRO_INTERNO",
+                "tracking_id": tracking_id,
+            }, status=500)

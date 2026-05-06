@@ -77,6 +77,7 @@ export default function LicitacoesPage() {
   const [modalProposta, setModalProposta] = useState(null);
   const [propostaLoading, setPropostaLoading] = useState(false);
   const [itens, setItens] = useState([{ descricao: "", qtd: 1, unidade: "un", valor_unit: 0 }]);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const [form] = Form.useForm();
 
   const fetchLicitacoes = useCallback(async () => {
@@ -112,12 +113,22 @@ export default function LicitacoesPage() {
     setModalProposta(l);
     setItens([{ descricao: l.titulo || "", qtd: 1, unidade: "serviço", valor_unit: 0 }]);
     form.resetFields();
+    // Gera chave de idempotência única por abertura de modal
+    setIdempotencyKey(crypto.randomUUID());
   };
 
   const handleEnviarProposta = async (values) => {
     if (!modalProposta) return;
     if (itens.some((i) => !i.descricao.trim())) {
       message.error("Preencha a descrição de todos os itens.");
+      return;
+    }
+    if (totalItens <= 0) {
+      message.error("O valor total da proposta deve ser maior que zero.");
+      return;
+    }
+    if (modalProposta.valor_maximo && totalItens > modalProposta.valor_maximo) {
+      message.error(`Valor acima do máximo permitido (R$ ${Number(modalProposta.valor_maximo).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})`);
       return;
     }
     setPropostaLoading(true);
@@ -129,13 +140,47 @@ export default function LicitacoesPage() {
         validade_proposta: values.validade_proposta ? values.validade_proposta.format("YYYY-MM-DD") : null,
         observacoes: values.observacoes || "",
         itens_orcamento: itens,
+      }, {
+        headers: { "X-Idempotency-Key": idempotencyKey },
+        timeout: 30000,
       });
       message.success("Proposta enviada com sucesso!");
       setModalProposta(null);
       form.resetFields();
       fetchLicitacoes();
-    } catch {
-      message.error("Erro ao enviar proposta");
+    } catch (err) {
+      if (err.response) {
+        const { codigo, erro } = err.response.data || {};
+        switch (codigo) {
+          case "LICITACAO_ENCERRADA":
+            message.error("O prazo desta licitação já foi encerrado.");
+            break;
+          case "LICITACAO_NAO_PUBLICADA":
+            message.warning("Esta licitação não está mais disponível.");
+            break;
+          case "PROPOSTA_DUPLICADA":
+            message.warning("Você já enviou uma proposta para esta licitação.");
+            break;
+          case "VALOR_ACIMA_MAXIMO":
+            message.error(erro || "Valor acima do máximo permitido.");
+            break;
+          case "VALOR_INVALIDO":
+            message.error("Valor inválido. Adicione itens com valores corretos.");
+            break;
+          case "PRAZO_INVALIDO":
+            message.error("Informe um prazo de execução válido (em dias).");
+            break;
+          case "LICITACAO_NAO_ENCONTRADA":
+            message.error("Licitação não encontrada. Atualize a lista.");
+            break;
+          default:
+            message.error(erro || "Erro ao enviar proposta. Tente novamente.");
+        }
+      } else if (err.code === "ECONNABORTED") {
+        message.warning("Conexão lenta — não confirmamos o envio. Verifique se a proposta foi registrada antes de tentar novamente.");
+      } else {
+        message.error("Sem conexão. Verifique sua internet e tente novamente.");
+      }
     } finally {
       setPropostaLoading(false);
     }
