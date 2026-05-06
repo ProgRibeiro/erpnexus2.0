@@ -68,6 +68,7 @@ tenant_api_patterns = [
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/master/", include("apps.master_admin.urls")),  # Painel master — acesso exclusivo do proprietário
     path("api/v1/", include(tenant_api_patterns)),
     path("api/public/", include(public_api_patterns)),
     path("sw.js", service_worker_view, name="service-worker"),

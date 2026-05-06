@@ -56,6 +56,13 @@ import LicitacoesPage from "./pages/Licitacoes";
 import LicitacaoFacilitiesPage from "./pages/Facilities/Licitacao";
 import FacilitiesConfiguracoesPage from "./pages/Facilities/Configuracoes";
 import EquipePage from "./pages/Equipe";
+import MasterLoginPage from "./pages/MasterAdmin/MasterLoginPage";
+import MasterLayout from "./pages/MasterAdmin/MasterLayout";
+import MasterDashboardPage from "./pages/MasterAdmin/MasterDashboardPage";
+import MasterClientesPage from "./pages/MasterAdmin/MasterClientesPage";
+import MasterPlanosPage from "./pages/MasterAdmin/MasterPlanosPage";
+import MasterPagamentosPage from "./pages/MasterAdmin/MasterPagamentosPage";
+import MasterLogsPage from "./pages/MasterAdmin/MasterLogsPage";
 
 export default function App() {
   useBootstrapAuth();
@@ -64,6 +71,15 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/master/login" element={<MasterLoginPage />} />
+        <Route path="/master" element={<MasterLayout />}>
+          <Route index element={<MasterDashboardPage />} />
+          <Route path="dashboard" element={<MasterDashboardPage />} />
+          <Route path="clientes" element={<MasterClientesPage />} />
+          <Route path="planos" element={<MasterPlanosPage />} />
+          <Route path="pagamentos" element={<MasterPagamentosPage />} />
+          <Route path="logs" element={<MasterLogsPage />} />
+        </Route>
         <Route path="/relatorio/:token" element={<RelatorioPublicoPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/tecnico-mobile" element={<TecnicoMobilePage />} />
