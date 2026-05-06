@@ -38,6 +38,7 @@ const ITENS_PRESTADOR = [
       { key: 'agenda', icon: <CalendarOutlined />, label: 'Agenda', path: '/agenda' },
       { key: 'servicos', icon: <ToolOutlined />, label: 'Serviços', path: '/servicos' },
       { key: 'terceiros', icon: <TeamOutlined />, label: 'Terceirizados', path: '/terceiros' },
+      { key: 'equipe', icon: <TeamOutlined />, label: 'Equipe & Técnicos', path: '/equipe' },
     ],
   },
   {
@@ -151,6 +152,7 @@ export default function Sidebar() {
     if (p.startsWith('/crm')) return 'crm';
     if (p.startsWith('/chamados-externos')) return 'chamados-externos';
     if (p.startsWith('/licitacoes')) return 'licitacoes';
+    if (p.startsWith('/equipe')) return 'equipe';
     if (p.startsWith('/fiscal')) return 'fiscal';
     if (p.startsWith('/configuracoes')) return 'configuracoes';
     if (p.startsWith('/facilities')) {
