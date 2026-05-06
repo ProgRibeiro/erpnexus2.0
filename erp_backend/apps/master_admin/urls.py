@@ -4,6 +4,7 @@ from .views import (
     MasterLoginView,
     MasterRefreshView,
     MasterDashboardView,
+    MetricasSaaSView,
     PlanoCatalogoViewSet,
     ClienteSaaSViewSet,
     AssinaturaSaaSViewSet,
@@ -21,6 +22,7 @@ urlpatterns = [
     path("auth/login/", MasterLoginView.as_view(), name="master-login"),
     path("auth/refresh/", MasterRefreshView.as_view(), name="master-refresh"),
     path("dashboard/", MasterDashboardView.as_view(), name="master-dashboard"),
+    path("metricas/", MetricasSaaSView.as_view(), name="master-metricas"),
     path("logs/", LogAcessoMasterView.as_view(), name="master-logs"),
     path("", include(router.urls)),
 ]

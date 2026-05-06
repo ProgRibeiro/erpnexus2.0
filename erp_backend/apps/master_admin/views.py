@@ -1,5 +1,6 @@
 from datetime import timedelta, date
 from django.conf import settings
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -17,6 +18,19 @@ from .serializers import (
     AssinaturaSaaSSerializer,
     PagamentoMensalidadeSerializer,
 )
+
+ACAO_LABELS = {
+    "login_sucesso": "Login bem-sucedido",
+    "login_falha": "Tentativa de login falhou",
+    "bloquear_cliente": "Cliente bloqueado",
+    "desbloquear_cliente": "Cliente desbloqueado",
+    "cancelar_cliente": "Cliente cancelado",
+    "resetar_senha": "Senha resetada",
+    "aplicar_desconto": "Desconto aplicado",
+    "confirmar_pagamento": "Pagamento confirmado",
+    "criar_cliente": "Cliente criado",
+    "editar_cliente": "Cliente editado",
+}
 
 
 # ─── Autenticação Master ──────────────────────────────────────────────────────
@@ -40,7 +54,6 @@ class MasterLoginView(APIView):
             )
             return Response({"detail": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Gera JWT com claim master=True
         refresh = RefreshToken()
         refresh["master"] = True
         refresh["email"] = email
@@ -81,62 +94,198 @@ class MasterDashboardView(APIView):
     permission_classes = [IsMasterAdmin]
 
     def get(self, request):
+        agora = timezone.localtime(timezone.now())
+        hora = agora.hour
+        if hora < 12:
+            saudacao = "Bom dia, Lucas! 👑"
+        elif hora < 18:
+            saudacao = "Boa tarde, Lucas! 👑"
+        else:
+            saudacao = "Boa noite, Lucas! 👑"
+
         hoje = timezone.localdate()
+        inicio_mes = hoje.replace(day=1)
+        mes_anterior_fim = inicio_mes - timedelta(days=1)
+        mes_anterior_inicio = mes_anterior_fim.replace(day=1)
+        mes_anterior_str = mes_anterior_inicio.strftime("%Y-%m")
         proximos_7 = hoje + timedelta(days=7)
+        proximos_14 = hoje + timedelta(days=14)
 
         clientes = ClienteSaaS.objects.all()
+        total = clientes.count()
         ativos = clientes.filter(status="ativo").count()
         trial = clientes.filter(status="trial").count()
         suspensos = clientes.filter(status="suspenso").count()
         cancelados = clientes.filter(status="cancelado").count()
-        total = clientes.count()
+        novos_este_mes = clientes.filter(criado_em__date__gte=inicio_mes).count()
+
+        assinaturas_ativas = AssinaturaSaaS.objects.filter(status__in=["ativo", "trial"]).select_related("plano")
+        mrr = sum(float(a.valor_com_desconto) for a in assinaturas_ativas)
 
         pagamentos = PagamentoMensalidade.objects.all()
-        vencidos = pagamentos.filter(status="vencido")
-        pendentes_proximos = pagamentos.filter(status="pendente", data_vencimento__lte=proximos_7)
-        mrr = sum(
-            a.valor_com_desconto
-            for a in AssinaturaSaaS.objects.filter(status__in=["ativo", "trial"])
+        vencidos_qs = pagamentos.filter(status="vencido")
+        total_vencido = float(vencidos_qs.aggregate(s=Sum("valor_cobrado"))["s"] or 0)
+        qtd_vencidos = vencidos_qs.count()
+
+        vencendo_7 = pagamentos.filter(
+            status="pendente", data_vencimento__gte=hoje, data_vencimento__lte=proximos_7
+        ).count()
+
+        mrr_mes_anterior = float(
+            pagamentos.filter(status="pago", referencia=mes_anterior_str)
+            .aggregate(s=Sum("valor_cobrado"))["s"] or 0
         )
 
-        # Receita últimos 6 meses
-        receita_mensal = []
-        for i in range(5, -1, -1):
-            ref_date = hoje.replace(day=1) - timedelta(days=i * 30)
-            ref_str = ref_date.strftime("%Y-%m")
-            total_mes = sum(
-                p.valor_cobrado for p in pagamentos.filter(status="pago", referencia=ref_str)
-            )
-            receita_mensal.append({"mes": ref_str, "valor": float(total_mes)})
+        churn_rate = round(cancelados / max(total, 1) * 100, 2)
+        ticket_medio = round(mrr / max(ativos + trial, 1), 2)
 
-        # Últimos pagamentos
-        ultimos_pgtos = pagamentos.order_by("-criado_em")[:10]
+        # Evolução dos últimos 12 meses
+        evolucao_receita = []
+        MESES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        for i in range(11, -1, -1):
+            ref_date = (hoje.replace(day=1) - timedelta(days=i * 28)).replace(day=1)
+            ref_str = ref_date.strftime("%Y-%m")
+            label = f"{MESES_PT[ref_date.month - 1]}/{str(ref_date.year)[2:]}"
+            valor_mes = float(
+                pagamentos.filter(status="pago", referencia=ref_str)
+                .aggregate(s=Sum("valor_cobrado"))["s"] or 0
+            )
+            clientes_mes = ClienteSaaS.objects.filter(criado_em__date__lte=ref_date).count()
+            evolucao_receita.append({
+                "mes": ref_str,
+                "label": label,
+                "valor": valor_mes,
+                "clientes": clientes_mes,
+            })
+
+        # Vencimentos próximos (próximos 14 dias + vencidos)
+        pgtos_proximos = (
+            pagamentos
+            .filter(status__in=["pendente", "vencido"], data_vencimento__lte=proximos_14)
+            .select_related("assinatura__cliente", "assinatura__plano")
+            .order_by("data_vencimento")[:20]
+        )
+        vencimentos_proximos = []
+        for p in pgtos_proximos:
+            dias = (p.data_vencimento - hoje).days
+            vencimentos_proximos.append({
+                "id": p.id,
+                "cliente_nome": p.assinatura.cliente.nome_empresa,
+                "plano_nome": p.assinatura.plano.nome,
+                "sistema": p.assinatura.plano.sistema,
+                "valor": float(p.valor_cobrado),
+                "data_vencimento": p.data_vencimento.strftime("%Y-%m-%d"),
+                "dias_restantes": dias,
+            })
+
+        # Distribuição por plano
+        from django.db.models import Count
+        dist_qs = (
+            assinaturas_ativas
+            .values("plano__id", "plano__nome", "plano__sistema")
+            .annotate(quantidade=Count("id"), valor_total=Sum("valor_negociado"))
+            .order_by("-quantidade")
+        )
+        distribuicao_planos = [
+            {
+                "plano_id": d["plano__id"],
+                "plano_nome": d["plano__nome"],
+                "sistema": d["plano__sistema"],
+                "quantidade": d["quantidade"],
+                "valor_total": float(d["valor_total"] or 0),
+            }
+            for d in dist_qs
+        ]
+
+        # Top 10 clientes por MRR
+        top_lista = sorted(assinaturas_ativas, key=lambda a: float(a.valor_com_desconto), reverse=True)[:10]
+        top_clientes = []
+        STATUS_DISPLAY = {"ativo": "Ativo", "trial": "Trial", "suspenso": "Suspenso", "cancelado": "Cancelado"}
+        for a in top_lista:
+            top_clientes.append({
+                "id": a.cliente.id,
+                "nome_empresa": a.cliente.nome_empresa,
+                "plano_nome": a.plano.nome,
+                "sistema": a.plano.sistema,
+                "mrr": float(a.valor_com_desconto),
+                "status": a.cliente.status,
+                "status_display": STATUS_DISPLAY.get(a.cliente.status, a.cliente.status),
+                "criado_em": a.cliente.criado_em.strftime("%Y-%m-%d"),
+            })
+
+        # Atividade recente
+        logs_qs = LogAcessoMaster.objects.order_by("-timestamp")[:10]
+        atividade_recente = [
+            {
+                "id": l.id,
+                "acao": l.acao,
+                "acao_display": ACAO_LABELS.get(l.acao, l.acao),
+                "detalhes": l.detalhes,
+                "timestamp": l.timestamp.isoformat(),
+                "ip": l.ip or "",
+            }
+            for l in logs_qs
+        ]
 
         return Response({
+            "saudacao": saudacao,
             "resumo": {
+                "mrr": mrr,
+                "arr": round(mrr * 12, 2),
                 "total_clientes": total,
                 "ativos": ativos,
                 "trial": trial,
                 "suspensos": suspensos,
                 "cancelados": cancelados,
-                "mrr": float(mrr),
-                "total_vencido": float(sum(v.valor_cobrado for v in vencidos)),
-                "qtd_vencidos": vencidos.count(),
-                "vencendo_proximos_7_dias": pendentes_proximos.count(),
+                "novos_este_mes": novos_este_mes,
+                "total_vencido": total_vencido,
+                "qtd_vencidos": qtd_vencidos,
+                "vencendo_proximos_7_dias": vencendo_7,
+                "mrr_mes_anterior": mrr_mes_anterior,
+                "churn_rate": churn_rate,
+                "ticket_medio": ticket_medio,
             },
             "por_sistema": {
-                "erp": AssinaturaSaaS.objects.filter(
-                    status__in=["ativo", "trial"], plano__sistema="erp"
-                ).count(),
-                "facilities": AssinaturaSaaS.objects.filter(
-                    status__in=["ativo", "trial"], plano__sistema="facilities"
-                ).count(),
-                "ambos": AssinaturaSaaS.objects.filter(
-                    status__in=["ativo", "trial"], plano__sistema="ambos"
-                ).count(),
+                "erp": sum(1 for a in assinaturas_ativas if a.plano.sistema == "erp"),
+                "facilities": sum(1 for a in assinaturas_ativas if a.plano.sistema == "facilities"),
+                "ambos": sum(1 for a in assinaturas_ativas if a.plano.sistema == "ambos"),
             },
-            "receita_mensal": receita_mensal,
-            "ultimos_pagamentos": PagamentoMensalidadeSerializer(ultimos_pgtos, many=True).data,
+            "evolucao_receita": evolucao_receita,
+            "vencimentos_proximos": vencimentos_proximos,
+            "distribuicao_planos": distribuicao_planos,
+            "top_clientes": top_clientes,
+            "atividade_recente": atividade_recente,
+        })
+
+
+# ─── Métricas SaaS ────────────────────────────────────────────────────────────
+
+class MetricasSaaSView(APIView):
+    permission_classes = [IsMasterAdmin]
+
+    def get(self, request):
+        assinaturas_ativas = AssinaturaSaaS.objects.filter(status__in=["ativo", "trial"])
+        mrr = sum(float(a.valor_com_desconto) for a in assinaturas_ativas)
+        arr = round(mrr * 12, 2)
+
+        total = ClienteSaaS.objects.count()
+        cancelados = ClienteSaaS.objects.filter(status="cancelado").count()
+        ativos = ClienteSaaS.objects.filter(status="ativo").count()
+        trial = ClienteSaaS.objects.filter(status="trial").count()
+        churn_rate = round(cancelados / max(total, 1) * 100, 2)
+        ticket_medio = round(mrr / max(ativos + trial, 1), 2)
+        ltv = round(ticket_medio * 31, 2)
+        cac = 4200.0
+        ltv_cac_ratio = round(ltv / cac, 2) if cac else 0
+
+        return Response({
+            "mrr": mrr,
+            "arr": arr,
+            "ltv": ltv,
+            "cac": cac,
+            "churn_rate": churn_rate,
+            "ticket_medio": ticket_medio,
+            "ltv_cac_ratio": ltv_cac_ratio,
         })
 
 
@@ -178,7 +327,6 @@ class ClienteSaaSViewSet(viewsets.ModelViewSet):
         cliente.status = "suspenso"
         cliente.observacoes = f"{cliente.observacoes}\n[BLOQUEIO] {timezone.now():%d/%m/%Y %H:%M}: {motivo}".strip()
         cliente.save(update_fields=["status", "observacoes"])
-        # Suspende assinaturas ativas
         cliente.assinaturas.filter(status__in=["ativo", "trial"]).update(status="suspenso")
         LogAcessoMaster.objects.create(acao="bloquear_cliente", detalhes={"cliente_id": cliente.id, "motivo": motivo})
         return Response(ClienteSaaSDetailSerializer(cliente).data)
@@ -189,7 +337,6 @@ class ClienteSaaSViewSet(viewsets.ModelViewSet):
         cliente.status = "ativo"
         cliente.observacoes = f"{cliente.observacoes}\n[DESBLOQUEIO] {timezone.now():%d/%m/%Y %H:%M}".strip()
         cliente.save(update_fields=["status", "observacoes"])
-        # Reativa assinaturas suspensas
         cliente.assinaturas.filter(status="suspenso").update(status="ativo")
         LogAcessoMaster.objects.create(acao="desbloquear_cliente", detalhes={"cliente_id": cliente.id})
         return Response(ClienteSaaSDetailSerializer(cliente).data)
@@ -250,7 +397,6 @@ class AssinaturaSaaSViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="gerar-mensalidade")
     def gerar_mensalidade(self, request, pk=None):
-        """Gera (ou retorna existente) a mensalidade de um mês específico."""
         from django.utils import timezone as tz
         assinatura = self.get_object()
         hoje = tz.localdate()
@@ -292,7 +438,6 @@ class PagamentoMensalidadeViewSet(viewsets.ModelViewSet):
         forma = request.data.get("forma", "pix")
         data_pgto = request.data.get("data_pagamento")
         pgto.marcar_pago(forma=forma, data=data_pgto)
-        # Se o cliente estava suspenso por inadimplência, verifica se pode reativar
         cliente = pgto.assinatura.cliente
         if cliente.status == "suspenso":
             ainda_vencidos = PagamentoMensalidade.objects.filter(
@@ -316,10 +461,20 @@ class LogAcessoMasterView(APIView):
     permission_classes = [IsMasterAdmin]
 
     def get(self, request):
-        from .models import LogAcessoMaster as Log
-        logs = Log.objects.order_by("-timestamp")[:100]
+        acao_filtro = request.query_params.get("acao")
+        qs = LogAcessoMaster.objects.order_by("-timestamp")
+        if acao_filtro:
+            qs = qs.filter(acao=acao_filtro)
+        logs = qs[:200]
         return Response([
-            {"acao": l.acao, "ip": l.ip, "timestamp": l.timestamp, "detalhes": l.detalhes}
+            {
+                "id": l.id,
+                "acao": l.acao,
+                "acao_display": ACAO_LABELS.get(l.acao, l.acao),
+                "detalhes": l.detalhes,
+                "timestamp": l.timestamp.isoformat(),
+                "ip": l.ip or "",
+            }
             for l in logs
         ])
 

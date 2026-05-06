@@ -1,126 +1,176 @@
-import { useEffect, useState } from "react";
-import { Button, Card, Col, Input, Row, Select, Table, Tag, Typography } from "antd";
+﻿import { useEffect, useRef, useState } from "react";
+import { Button, Input, Select, Switch, Table, Tag, Typography, message } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 import masterApi from "../../services/masterApi";
 
 const { Title, Text } = Typography;
 
-const ACAO_COLORS = {
-  login: "blue", logout: "default", bloqueou: "red", desbloqueou: "green",
-  criou: "green", editou: "orange", cancelou: "red", resetou_senha: "orange",
-  confirmou_pagamento: "green", gerou_mensalidade: "blue", aplicou_desconto: "purple",
+const ACAO_LABELS = {
+  login_sucesso: "Login bem-sucedido",
+  login_falha: "Tentativa de login falhou",
+  bloquear_cliente: "Cliente bloqueado",
+  desbloquear_cliente: "Cliente desbloqueado",
+  cancelar_cliente: "Cliente cancelado",
+  resetar_senha: "Senha resetada",
+  aplicar_desconto: "Desconto aplicado",
+  confirmar_pagamento: "Pagamento confirmado",
+  criar_cliente: "Cliente criado",
+  editar_cliente: "Cliente editado",
 };
+
+const ACAO_COLORS = {
+  login_sucesso: "green",
+  login_falha: "red",
+  bloquear_cliente: "orange",
+  desbloquear_cliente: "blue",
+  cancelar_cliente: "red",
+  resetar_senha: "purple",
+  aplicar_desconto: "cyan",
+  confirmar_pagamento: "green",
+  criar_cliente: "blue",
+  editar_cliente: "geekblue",
+};
+
+function formatDatetime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR");
+}
 
 export default function MasterLogsPage() {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [filtroAcao, setFiltroAcao] = useState(undefined);
-  const [busca, setBusca] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [acaoFiltro, setAcaoFiltro] = useState("");
+  const [ipBusca, setIpBusca] = useState("");
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const intervalRef = useRef(null);
 
-  const carregar = async () => {
+  const load = async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (filtroAcao) params.acao = filtroAcao;
-      if (busca) params.busca = busca;
-      const r = await masterApi.get("/logs/");
-      const items = Array.isArray(r.data) ? r.data : r.data?.results || [];
-      const filtrado = busca
-        ? items.filter(l =>
-            (l.detalhes || "").toLowerCase().includes(busca.toLowerCase()) ||
-            (l.ip_acesso || "").includes(busca)
-          )
-        : items;
-      setLogs(filtrado);
-    } catch { }
-    finally { setLoading(false); }
+      const params = acaoFiltro ? { acao: acaoFiltro } : {};
+      const r = await masterApi.get("/logs/", { params });
+      setLogs(Array.isArray(r.data) ? r.data : []);
+    } catch {
+      message.error("Erro ao carregar logs.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => {
+    load();
+  }, [acaoFiltro]);
+
+  useEffect(() => {
+    if (autoRefresh) {
+      intervalRef.current = setInterval(load, 30000);
+    } else {
+      clearInterval(intervalRef.current);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [autoRefresh, acaoFiltro]);
+
+  const logsFiltrados = logs.filter((l) => {
+    if (ipBusca && !(l.ip || "").includes(ipBusca)) return false;
+    return true;
+  });
+
+  function renderDetalhes(det) {
+    if (!det || Object.keys(det).length === 0) return <Text style={{ color: "#CBD5E1", fontSize: 11 }}>—</Text>;
+    return (
+      <div style={{
+        background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 6,
+        padding: "4px 8px", fontSize: 11, color: "#64748B", fontFamily: "monospace",
+        maxWidth: 280, overflow: "hidden",
+      }}>
+        {Object.entries(det).map(([k, v]) => (
+          <div key={k}><Text style={{ color: "#94A3B8", fontSize: 10 }}>{k}:</Text> {String(v)}</div>
+        ))}
+      </div>
+    );
+  }
 
   const columns = [
     {
-      title: "Data/hora",
-      dataIndex: "criado_em",
-      key: "data",
-      render: (v) => {
-        if (!v) return "-";
-        const d = new Date(v);
-        return <Text style={{ fontSize: 12, fontFamily: "monospace" }}>{d.toLocaleString("pt-BR")}</Text>;
-      },
+      title: "Timestamp",
+      dataIndex: "timestamp",
+      key: "ts",
       width: 160,
+      render: (v) => <Text style={{ fontSize: 12, color: "#374151" }}>{formatDatetime(v)}</Text>,
     },
     {
       title: "Ação",
       dataIndex: "acao",
       key: "acao",
-      render: (v, r) => <Tag color={ACAO_COLORS[v] || "default"}>{r.acao_display || v}</Tag>,
-      width: 160,
+      width: 200,
+      render: (v, r) => (
+        <Tag color={ACAO_COLORS[v] || "default"} style={{ fontSize: 11 }}>
+          {r.acao_display || ACAO_LABELS[v] || v}
+        </Tag>
+      ),
     },
     {
       title: "Detalhes",
       dataIndex: "detalhes",
-      key: "detalhes",
-      render: (v) => <Text type="secondary">{v || "—"}</Text>,
+      key: "det",
+      render: (v) => renderDetalhes(v),
     },
     {
       title: "IP",
-      dataIndex: "ip_acesso",
+      dataIndex: "ip",
       key: "ip",
-      render: (v) => <Text style={{ fontFamily: "monospace", fontSize: 12 }}>{v || "—"}</Text>,
       width: 130,
+      render: (v) => <Text style={{ fontSize: 12, fontFamily: "monospace", color: "#64748B" }}>{v || "—"}</Text>,
     },
   ];
 
-  const acoes = [
-    "login", "logout", "bloqueou", "desbloqueou", "criou", "editou",
-    "cancelou", "resetou_senha", "confirmou_pagamento", "gerou_mensalidade", "aplicou_desconto",
-  ];
-
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Logs de Acesso</Title>
-        <Text type="secondary">Histórico de ações realizadas no painel Master.</Text>
+    <div style={{ padding: 28, background: "#F8FAFC", minHeight: "100vh" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Title level={4} style={{ margin: 0, color: "#0F172A" }}>Logs de Acesso</Title>
+          <Text style={{ color: "#94A3B8", fontSize: 13 }}>{logsFiltrados.length} registros</Text>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Text style={{ fontSize: 12, color: "#64748B" }}>Auto-refresh 30s</Text>
+          <Switch size="small" checked={autoRefresh} onChange={setAutoRefresh} />
+          <Button icon={<ReloadOutlined />} size="small" onClick={load} loading={loading}>
+            Atualizar
+          </Button>
+        </div>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <Row gutter={12} align="middle">
-          <Col xs={24} sm={10}>
-            <Input
-              placeholder="Buscar por detalhes ou IP..."
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-              onPressEnter={carregar}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} sm={8}>
-            <Select
-              placeholder="Filtrar por ação"
-              allowClear
-              style={{ width: "100%" }}
-              value={filtroAcao}
-              onChange={v => setFiltroAcao(v)}
-            >
-              {acoes.map(a => <Select.Option key={a} value={a}>{a}</Select.Option>)}
-            </Select>
-          </Col>
-          <Col xs={24} sm={4}>
-            <Button block onClick={carregar}>Filtrar</Button>
-          </Col>
-        </Row>
-      </Card>
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+        <Select
+          placeholder="Filtrar por ação" allowClear value={acaoFiltro || undefined}
+          onChange={(v) => setAcaoFiltro(v || "")} style={{ width: 220 }}
+        >
+          {Object.entries(ACAO_LABELS).map(([k, v]) => (
+            <Select.Option key={k} value={k}>{v}</Select.Option>
+          ))}
+        </Select>
+        <Input
+          placeholder="Buscar por IP..."
+          value={ipBusca}
+          onChange={(e) => setIpBusca(e.target.value)}
+          style={{ width: 180 }}
+          allowClear
+        />
+      </div>
 
-      <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+      {/* Tabela */}
+      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden" }}>
         <Table
           columns={columns}
-          dataSource={logs}
-          loading={loading}
+          dataSource={logsFiltrados}
           rowKey="id"
-          pagination={{ pageSize: 30 }}
+          loading={loading}
           size="small"
+          pagination={{ pageSize: 50 }}
         />
-      </Card>
+      </div>
     </div>
   );
 }

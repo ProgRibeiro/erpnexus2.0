@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   Badge, Button, Card, Col, Drawer, Form, Input, message, Modal,
-  Row, Select, Space, Table, Tag, Tooltip, Typography, Popconfirm,
+  Row, Select, Space, Table, Tag, Tabs, Typography, Popconfirm, Skeleton,
 } from "antd";
-import {
-  PlusOutlined, StopOutlined, CheckCircleOutlined, DeleteOutlined,
-  EditOutlined, KeyOutlined, EyeOutlined, WarningOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, MoreOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import masterApi from "../../services/masterApi";
 
 const { Title, Text } = Typography;
@@ -15,294 +12,544 @@ const fmt = (v) => moneyFmt.format(Number(v || 0));
 
 const STATUS_COLORS = { ativo: "green", trial: "blue", suspenso: "red", cancelado: "default" };
 const STATUS_LABELS = { ativo: "Ativo", trial: "Trial", suspenso: "Suspenso", cancelado: "Cancelado" };
+const SISTEMA_COLORS = { erp: "blue", facilities: "green", ambos: "purple" };
+const SISTEMA_LABELS = { erp: "ERP", facilities: "Facilities", ambos: "Ambos" };
+const PGTO_STATUS_COLORS = { pendente: "orange", pago: "green", vencido: "red", cancelado: "default" };
+const PGTO_STATUS_LABELS = { pendente: "Pendente", pago: "Pago", vencido: "Vencido", cancelado: "Cancelado" };
+
+function avatarColor(name) {
+  const colors = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6", "#06B6D4"];
+  const i = (name || "?").charCodeAt(0) % colors.length;
+  return colors[i];
+}
 
 export default function MasterClientesPage() {
   const [clientes, setClientes] = useState([]);
-  const [planos, setPlanos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [detalheOpen, setDetalheOpen] = useState(false);
-  const [clienteSelecionado, setClienteSelecionado] = useState(null);
-  const [filtroStatus, setFiltroStatus] = useState(undefined);
-  const [filtroSistema, setFiltroSistema] = useState(undefined);
-  const [busca, setBusca] = useState("");
-  const [novaAssinaturaOpen, setNovaAssinaturaOpen] = useState(false);
-  const [formCliente] = Form.useForm();
-  const [formAssinatura] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [buscaText, setBuscaText] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("");
+  const [sistemaFiltro, setSistemaFiltro] = useState("");
 
-  useEffect(() => { carregar(); carregarPlanos(); }, []);
+  const [drawerDetalhe, setDrawerDetalhe] = useState(false);
+  const [clienteSel, setClienteSel] = useState(null);
+  const [loadingDetalhe, setLoadingDetalhe] = useState(false);
 
-  const carregar = async () => {
+  const [drawerNovo, setDrawerNovo] = useState(false);
+  const [formNovo] = Form.useForm();
+  const [savingNovo, setSavingNovo] = useState(false);
+
+  const [modalDesconto, setModalDesconto] = useState(null);
+  const [formDesconto] = Form.useForm();
+  const [savingDesconto, setSavingDesconto] = useState(false);
+
+  const [modalPagamento, setModalPagamento] = useState(null);
+  const [formPagamento] = Form.useForm();
+  const [savingPagamento, setSavingPagamento] = useState(false);
+
+  const load = async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (filtroStatus) params.status = filtroStatus;
-      if (filtroSistema) params.sistema = filtroSistema;
-      if (busca) params.busca = busca;
-      const r = await masterApi.get("/clientes/", { params });
-      setClientes(Array.isArray(r.data) ? r.data : r.data?.results || []);
-    } catch { message.error("Erro ao carregar clientes."); }
-    finally { setLoading(false); }
+      const r = await masterApi.get("/clientes/");
+      setClientes(Array.isArray(r.data) ? r.data : r.data.results || []);
+    } catch {
+      message.error("Erro ao carregar clientes.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const carregarPlanos = async () => {
+  useEffect(() => { load(); }, []);
+
+  const abrirDetalhe = async (id) => {
+    setDrawerDetalhe(true);
+    setLoadingDetalhe(true);
     try {
-      const r = await masterApi.get("/planos/");
-      setPlanos((Array.isArray(r.data) ? r.data : r.data?.results || []).map(p => ({
-        value: p.id, label: `${p.sistema_display} — ${p.nome} (${fmt(p.valor_mensal)}/mês)`,
-      })));
-    } catch {}
+      const r = await masterApi.get(`/clientes/${id}/`);
+      setClienteSel(r.data);
+    } catch {
+      message.error("Erro ao carregar detalhes.");
+    } finally {
+      setLoadingDetalhe(false);
+    }
   };
 
-  const salvarCliente = async (values) => {
+  const handleBloquear = async (id) => {
     try {
-      if (clienteSelecionado?.id) {
-        await masterApi.patch(`/clientes/${clienteSelecionado.id}/`, values);
-        message.success("Cliente atualizado.");
-      } else {
-        await masterApi.post("/clientes/", values);
-        message.success("Cliente criado.");
-      }
-      setDrawerOpen(false);
-      setClienteSelecionado(null);
-      formCliente.resetFields();
-      carregar();
-    } catch { message.error("Erro ao salvar cliente."); }
-  };
-
-  const bloquear = async (cliente) => {
-    try {
-      await masterApi.post(`/clientes/${cliente.id}/bloquear/`, { motivo: "Bloqueio por inadimplência." });
-      message.success("Cliente suspenso.");
-      carregar();
+      await masterApi.post(`/clientes/${id}/bloquear/`, { motivo: "Bloqueio pelo administrador." });
+      message.success("Cliente bloqueado.");
+      load();
+      if (clienteSel && clienteSel.id === id) abrirDetalhe(id);
     } catch { message.error("Erro ao bloquear."); }
   };
 
-  const desbloquear = async (cliente) => {
+  const handleDesbloquear = async (id) => {
     try {
-      await masterApi.post(`/clientes/${cliente.id}/desbloquear/`);
-      message.success("Cliente reativado.");
-      carregar();
+      await masterApi.post(`/clientes/${id}/desbloquear/`, {});
+      message.success("Cliente desbloqueado.");
+      load();
+      if (clienteSel && clienteSel.id === id) abrirDetalhe(id);
     } catch { message.error("Erro ao desbloquear."); }
   };
 
-  const resetarSenha = async (cliente) => {
+  const handleCancelar = async (id) => {
     try {
-      const r = await masterApi.post(`/clientes/${cliente.id}/resetar-senha/`);
-      Modal.success({
-        title: "Nova senha gerada",
-        content: (
-          <div>
-            <p>A senha provisória do cliente <strong>{cliente.nome_empresa}</strong> é:</p>
-            <div style={{ background: "#F1F5F9", padding: "12px 16px", borderRadius: 8, fontFamily: "monospace", fontSize: 18, fontWeight: 700, color: "#6366F1", textAlign: "center" }}>
-              {r.data.nova_senha}
-            </div>
-            <p style={{ marginTop: 12, color: "#64748B", fontSize: 13 }}>Guarde e envie ao cliente. Ele deve alterar no primeiro acesso.</p>
-          </div>
-        ),
+      await masterApi.post(`/clientes/${id}/cancelar/`, { motivo: "Cancelamento pelo administrador." });
+      message.success("Cliente cancelado.");
+      load();
+      if (clienteSel && clienteSel.id === id) abrirDetalhe(id);
+    } catch { message.error("Erro ao cancelar."); }
+  };
+
+  const handleNovoCliente = async (values) => {
+    setSavingNovo(true);
+    try {
+      await masterApi.post("/clientes/", values);
+      message.success("Cliente criado com sucesso!");
+      setDrawerNovo(false);
+      formNovo.resetFields();
+      load();
+    } catch { message.error("Erro ao criar cliente."); }
+    finally { setSavingNovo(false); }
+  };
+
+  const handleDesconto = async (values) => {
+    setSavingDesconto(true);
+    try {
+      await masterApi.post(`/assinaturas/${modalDesconto.assinaturaId}/aplicar-desconto/`, values);
+      message.success("Desconto aplicado!");
+      setModalDesconto(null);
+      formDesconto.resetFields();
+      if (clienteSel) abrirDetalhe(clienteSel.id);
+    } catch { message.error("Erro ao aplicar desconto."); }
+    finally { setSavingDesconto(false); }
+  };
+
+  const handleConfirmarPagamento = async (values) => {
+    setSavingPagamento(true);
+    try {
+      await masterApi.post(`/pagamentos/${modalPagamento.pagamentoId}/confirmar-pagamento/`, {
+        forma: values.forma,
+        data_pagamento: values.data_pagamento,
       });
-    } catch { message.error("Erro ao resetar senha."); }
+      message.success("Pagamento confirmado!");
+      setModalPagamento(null);
+      formPagamento.resetFields();
+      if (clienteSel) abrirDetalhe(clienteSel.id);
+    } catch { message.error("Erro ao confirmar pagamento."); }
+    finally { setSavingPagamento(false); }
   };
 
-  const abrirDetalhe = async (cliente) => {
-    try {
-      const r = await masterApi.get(`/clientes/${cliente.id}/`);
-      setClienteSelecionado(r.data);
-      setDetalheOpen(true);
-    } catch {}
-  };
+  const clientesFiltrados = clientes.filter((c) => {
+    if (buscaText && !c.nome_empresa?.toLowerCase().includes(buscaText.toLowerCase()) &&
+        !c.email_responsavel?.toLowerCase().includes(buscaText.toLowerCase())) return false;
+    if (statusFiltro && c.status !== statusFiltro) return false;
+    if (sistemaFiltro && c.assinatura_ativa?.sistema !== sistemaFiltro) return false;
+    return true;
+  });
 
-  const criarAssinatura = async (values) => {
-    if (!clienteSelecionado) return;
-    try {
-      await masterApi.post("/assinaturas/", { ...values, cliente: clienteSelecionado.id });
-      message.success("Assinatura criada.");
-      setNovaAssinaturaOpen(false);
-      formAssinatura.resetFields();
-      abrirDetalhe(clienteSelecionado);
-    } catch { message.error("Erro ao criar assinatura."); }
-  };
+  const totalAtivos = clientes.filter((c) => c.status === "ativo").length;
+  const totalTrial = clientes.filter((c) => c.status === "trial").length;
+  const totalSuspensos = clientes.filter((c) => c.status === "suspenso").length;
+
+  const hoje = new Date().toISOString().slice(0, 10);
 
   const columns = [
     {
-      title: "Empresa",
-      dataIndex: "nome_empresa",
-      key: "nome_empresa",
-      render: (v, r) => (
-        <div>
-          <Text strong>{v}</Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: 12 }}>{r.cnpj || r.email_responsavel}</Text>
+      title: "Cliente", key: "cliente",
+      render: (_, r) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+            background: `linear-gradient(135deg, ${avatarColor(r.nome_empresa)}, ${avatarColor(r.nome_empresa)}99)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontWeight: 700, fontSize: 14,
+          }}>
+            {(r.nome_empresa || "?")[0].toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>{r.nome_empresa}</div>
+            <div style={{ fontSize: 11, color: "#94A3B8" }}>{r.email_responsavel}</div>
+          </div>
         </div>
       ),
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (v, r) => <Tag color={STATUS_COLORS[v]}>{r.status_display || STATUS_LABELS[v] || v}</Tag>,
+      title: "CNPJ", dataIndex: "cnpj", key: "cnpj",
+      render: (v) => <Text style={{ fontSize: 12 }}>{v || "—"}</Text>,
     },
     {
-      title: "Assinatura Ativa",
-      key: "assinatura",
-      render: (_, r) => {
-        if (!r.assinatura_ativa) return <Text type="secondary">Sem assinatura</Text>;
-        const a = r.assinatura_ativa;
-        return (
+      title: "Sistema", key: "sistema",
+      render: (_, r) => r.assinatura_ativa
+        ? <Tag color={SISTEMA_COLORS[r.assinatura_ativa.sistema] || "default"} style={{ fontSize: 11 }}>
+            {SISTEMA_LABELS[r.assinatura_ativa.sistema] || r.assinatura_ativa.sistema}
+          </Tag>
+        : <Text style={{ color: "#CBD5E1", fontSize: 12 }}>—</Text>,
+    },
+    {
+      title: "Plano / MRR", key: "plano",
+      render: (_, r) => r.assinatura_ativa
+        ? (
           <div>
-            <Tag color={a.sistema === "erp" ? "blue" : a.sistema === "facilities" ? "green" : "purple"}>
-              {a.sistema_display}
-            </Tag>
-            <Text style={{ fontSize: 12 }}> {a.plano} • {fmt(a.valor)}/mês</Text>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>{r.assinatura_ativa.plano}</div>
+            <div style={{ fontSize: 11, color: "#10B981" }}>{fmt(r.assinatura_ativa.valor)}</div>
           </div>
+        )
+        : <Text style={{ color: "#CBD5E1", fontSize: 12 }}>—</Text>,
+    },
+    {
+      title: "Status", dataIndex: "status", key: "status",
+      render: (v, r) => <Tag color={STATUS_COLORS[v] || "default"}>{r.status_display || STATUS_LABELS[v] || v}</Tag>,
+    },
+    {
+      title: "Próx. Venc.", key: "venc",
+      render: (_, r) => {
+        const d = r.assinatura_ativa?.proximo_vencimento;
+        if (!d) return <Text style={{ color: "#CBD5E1", fontSize: 12 }}>—</Text>;
+        const overdue = d < hoje;
+        const close = !overdue && d <= new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+        return (
+          <Text style={{ fontSize: 12, color: overdue ? "#EF4444" : close ? "#F59E0B" : "#374151" }}>
+            {d}
+          </Text>
         );
       },
     },
     {
-      title: "Vencimento",
-      key: "vencimento",
-      render: (_, r) => {
-        const prox = r.assinatura_ativa?.proximo_vencimento;
-        if (!prox) return "-";
-        const venc = new Date(prox);
-        const hoje = new Date();
-        const dias = Math.ceil((venc - hoje) / 86400000);
-        return (
-          <div>
-            <Text style={{ color: dias <= 7 ? "#EF4444" : dias <= 15 ? "#F59E0B" : "#10B981" }}>
-              {prox} {dias <= 7 && <WarningOutlined />}
-            </Text>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Inadimplência",
-      key: "inadim",
-      render: (_, r) => r.total_mensalidades_vencidas > 0
-        ? <Badge count={r.total_mensalidades_vencidas} color="red" />
-        : <CheckCircleOutlined style={{ color: "#10B981" }} />,
-    },
-    {
-      title: "Ações",
-      key: "acoes",
-      render: (_, record) => (
+      title: "Ações", key: "acoes",
+      render: (_, r) => (
         <Space>
-          <Tooltip title="Ver detalhes">
-            <Button size="small" icon={<EyeOutlined />} onClick={() => abrirDetalhe(record)} />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button size="small" icon={<EditOutlined />} onClick={() => {
-              setClienteSelecionado(record);
-              formCliente.setFieldsValue(record);
-              setDrawerOpen(true);
-            }} />
-          </Tooltip>
-          <Tooltip title="Resetar senha">
-            <Button size="small" icon={<KeyOutlined />} onClick={() => resetarSenha(record)} />
-          </Tooltip>
-          {record.status !== "suspenso" ? (
-            <Popconfirm title="Suspender este cliente?" onConfirm={() => bloquear(record)} okText="Sim" cancelText="Não">
-              <Button size="small" danger icon={<StopOutlined />} />
+          <Button size="small" onClick={() => abrirDetalhe(r.id)} style={{ fontSize: 12 }}>Detalhes</Button>
+          {r.status === "suspenso" ? (
+            <Popconfirm title="Desbloquear cliente?" onConfirm={() => handleDesbloquear(r.id)} okText="Sim" cancelText="Não">
+              <Button size="small" style={{ fontSize: 12, color: "#3B82F6", borderColor: "#3B82F6" }}>Desbloquear</Button>
             </Popconfirm>
-          ) : (
-            <Tooltip title="Reativar">
-              <Button size="small" icon={<CheckCircleOutlined />} style={{ color: "#10B981", borderColor: "#10B981" }} onClick={() => desbloquear(record)} />
-            </Tooltip>
-          )}
+          ) : r.status !== "cancelado" ? (
+            <Popconfirm title="Bloquear cliente?" onConfirm={() => handleBloquear(r.id)} okText="Sim" cancelText="Não">
+              <Button size="small" danger style={{ fontSize: 12 }}>Bloquear</Button>
+            </Popconfirm>
+          ) : null}
         </Space>
       ),
     },
   ];
 
+  const pgtoColums = [
+    { title: "Referência", dataIndex: "referencia", key: "ref", width: 90 },
+    { title: "Valor", dataIndex: "valor_cobrado", key: "valor", render: (v) => fmt(v) },
+    {
+      title: "Status", dataIndex: "status", key: "status",
+      render: (v, r) => <Tag color={PGTO_STATUS_COLORS[v] || "default"}>{r.status_display || PGTO_STATUS_LABELS[v] || v}</Tag>,
+    },
+    { title: "Vencimento", dataIndex: "data_vencimento", key: "venc" },
+    { title: "Pagamento", dataIndex: "data_pagamento", key: "pgto", render: (v) => v || "—" },
+    {
+      title: "Forma", dataIndex: "forma_pagamento", key: "forma",
+      render: (v, r) => r.forma_display || v || "—",
+    },
+    {
+      title: "Ação", key: "acao",
+      render: (_, r) => r.status !== "pago" ? (
+        <Button
+          size="small" icon={<CheckCircleOutlined />} type="primary"
+          style={{ fontSize: 11, background: "#10B981", borderColor: "#10B981" }}
+          onClick={() => {
+            setModalPagamento({ pagamentoId: r.id });
+            formPagamento.setFieldsValue({ data_pagamento: hoje, forma: "pix" });
+          }}
+        >
+          Confirmar
+        </Button>
+      ) : null,
+    },
+  ];
+
+  const allPagamentos = clienteSel
+    ? (clienteSel.assinaturas || []).flatMap((a) => (a.pagamentos || []))
+    : [];
+
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div>
-          <Title level={3} style={{ margin: 0 }}>Clientes SaaS</Title>
-          <Text type="secondary">Gerencie todos os clientes dos dois sistemas.</Text>
+    <div style={{ padding: 28, background: "#F8FAFC", minHeight: "100vh" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Title level={4} style={{ margin: 0, color: "#0F172A" }}>Clientes SaaS</Title>
+          <Badge count={clientes.length} style={{ background: "#6366F1" }} showZero />
         </div>
         <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          style={{ background: "#6366F1", borderColor: "#6366F1", borderRadius: 10 }}
-          onClick={() => { setClienteSelecionado(null); formCliente.resetFields(); setDrawerOpen(true); }}
+          type="primary" icon={<PlusOutlined />}
+          style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", border: "none", borderRadius: 8, fontWeight: 600 }}
+          onClick={() => setDrawerNovo(true)}
         >
           Novo Cliente
         </Button>
       </div>
 
+      {/* KPI Mini */}
+      <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
+        {[
+          { label: "Total", value: clientes.length, color: "#6366F1" },
+          { label: "Ativos", value: totalAtivos, color: "#10B981" },
+          { label: "Trial", value: totalTrial, color: "#F59E0B" },
+          { label: "Suspensos", value: totalSuspensos, color: "#EF4444" },
+        ].map((k) => (
+          <Col key={k.label} xs={12} sm={6}>
+            <div style={{
+              background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
+              padding: "14px 18px", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>{k.value}</div>
+              <div style={{ fontSize: 12, color: "#64748B" }}>{k.label}</div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+
       {/* Filtros */}
-      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <Row gutter={[12, 8]} align="middle">
-          <Col xs={24} sm={8}>
-            <Input placeholder="Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} onPressEnter={carregar} />
-          </Col>
-          <Col xs={24} sm={6}>
-            <Select placeholder="Status" allowClear style={{ width: "100%" }} value={filtroStatus} onChange={v => { setFiltroStatus(v); }}>
-              <Select.Option value="ativo">Ativo</Select.Option>
-              <Select.Option value="trial">Trial</Select.Option>
-              <Select.Option value="suspenso">Suspenso</Select.Option>
-              <Select.Option value="cancelado">Cancelado</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={6}>
-            <Select placeholder="Sistema" allowClear style={{ width: "100%" }} value={filtroSistema} onChange={v => setFiltroSistema(v)}>
-              <Select.Option value="erp">ERP Nexus</Select.Option>
-              <Select.Option value="facilities">Facilities SaaS</Select.Option>
-              <Select.Option value="ambos">ERP + Facilities</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={4}>
-            <Button block onClick={carregar}>Filtrar</Button>
-          </Col>
-        </Row>
-      </Card>
+      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+        <Input.Search
+          placeholder="Buscar empresa ou email..."
+          value={buscaText}
+          onChange={(e) => setBuscaText(e.target.value)}
+          style={{ width: 260 }}
+          allowClear
+        />
+        <Select
+          placeholder="Status" allowClear value={statusFiltro || undefined}
+          onChange={(v) => setStatusFiltro(v || "")} style={{ width: 130 }}
+        >
+          <Select.Option value="ativo">Ativo</Select.Option>
+          <Select.Option value="trial">Trial</Select.Option>
+          <Select.Option value="suspenso">Suspenso</Select.Option>
+          <Select.Option value="cancelado">Cancelado</Select.Option>
+        </Select>
+        <Select
+          placeholder="Sistema" allowClear value={sistemaFiltro || undefined}
+          onChange={(v) => setSistemaFiltro(v || "")} style={{ width: 130 }}
+        >
+          <Select.Option value="erp">ERP</Select.Option>
+          <Select.Option value="facilities">Facilities</Select.Option>
+          <Select.Option value="ambos">Ambos</Select.Option>
+        </Select>
+      </div>
 
-      <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <Table columns={columns} dataSource={clientes} loading={loading} rowKey="id" pagination={{ pageSize: 15 }} />
-      </Card>
+      {/* Tabela */}
+      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+        <Table
+          columns={columns}
+          dataSource={clientesFiltrados}
+          rowKey="id"
+          loading={loading}
+          size="middle"
+          pagination={{ pageSize: 15 }}
+          onRow={(r) => ({ style: { cursor: "pointer" } })}
+        />
+      </div>
 
-      {/* Drawer Novo/Editar Cliente */}
+      {/* Drawer Detalhe */}
       <Drawer
-        title={clienteSelecionado?.id ? "Editar Cliente" : "Novo Cliente"}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        title={null}
+        open={drawerDetalhe}
+        onClose={() => setDrawerDetalhe(false)}
+        width={680}
+        bodyStyle={{ padding: 0 }}
+      >
+        {loadingDetalhe ? (
+          <div style={{ padding: 24 }}><Skeleton active paragraph={{ rows: 8 }} /></div>
+        ) : clienteSel ? (
+          <div>
+            {/* Header drawer */}
+            <div style={{
+              padding: "24px 24px 20px",
+              background: "linear-gradient(135deg, #0F172A, #1E293B)",
+              display: "flex", alignItems: "center", gap: 16,
+            }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+                background: `linear-gradient(135deg, ${avatarColor(clienteSel.nome_empresa)}, ${avatarColor(clienteSel.nome_empresa)}99)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fff", fontWeight: 700, fontSize: 22,
+              }}>
+                {(clienteSel.nome_empresa || "?")[0].toUpperCase()}
+              </div>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, lineHeight: 1.3 }}>{clienteSel.nome_empresa}</div>
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <Tag color={STATUS_COLORS[clienteSel.status] || "default"} style={{ margin: 0 }}>
+                    {clienteSel.status_display || STATUS_LABELS[clienteSel.status]}
+                  </Tag>
+                  {clienteSel.cnpj && <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{clienteSel.cnpj}</Text>}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: "0 24px 24px" }}>
+              <Tabs
+                defaultActiveKey="info"
+                items={[
+                  {
+                    key: "info",
+                    label: "Informações",
+                    children: (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {[
+                          ["Empresa", clienteSel.nome_empresa],
+                          ["Razão Social", clienteSel.razao_social],
+                          ["CNPJ", clienteSel.cnpj],
+                          ["Responsável", clienteSel.nome_responsavel],
+                          ["Email", clienteSel.email_responsavel],
+                          ["Telefone", clienteSel.telefone],
+                          ["Login Admin", clienteSel.login_admin],
+                          ["Observações", clienteSel.observacoes],
+                        ].map(([label, value]) => value ? (
+                          <div key={label} style={{ display: "flex", gap: 12 }}>
+                            <Text style={{ color: "#94A3B8", fontSize: 12, width: 110, flexShrink: 0 }}>{label}</Text>
+                            <Text style={{ fontSize: 13, color: "#0F172A" }}>{value}</Text>
+                          </div>
+                        ) : null)}
+                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          {clienteSel.status !== "cancelado" && (
+                            clienteSel.status === "suspenso" ? (
+                              <Popconfirm title="Desbloquear cliente?" onConfirm={() => handleDesbloquear(clienteSel.id)}>
+                                <Button type="primary" size="small" style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>Desbloquear</Button>
+                              </Popconfirm>
+                            ) : (
+                              <Popconfirm title="Bloquear cliente?" onConfirm={() => handleBloquear(clienteSel.id)}>
+                                <Button danger size="small">Bloquear</Button>
+                              </Popconfirm>
+                            )
+                          )}
+                          {clienteSel.status !== "cancelado" && (
+                            <Popconfirm title="Cancelar cliente?" onConfirm={() => handleCancelar(clienteSel.id)}>
+                              <Button danger size="small" ghost>Cancelar</Button>
+                            </Popconfirm>
+                          )}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "assinaturas",
+                    label: "Assinaturas",
+                    children: (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {(clienteSel.assinaturas || []).map((a) => (
+                          <div key={a.id} style={{
+                            border: "1px solid #E2E8F0", borderRadius: 10, padding: 16,
+                            background: "#F8FAFC",
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <div>
+                                <Text strong style={{ fontSize: 14 }}>{a.plano_nome}</Text>
+                                <Tag color={SISTEMA_COLORS[a.plano_sistema] || "default"} style={{ marginLeft: 8, fontSize: 11 }}>
+                                  {SISTEMA_LABELS[a.plano_sistema] || a.plano_sistema}
+                                </Tag>
+                              </div>
+                              <Tag color={STATUS_COLORS[a.status] || "default"}>{a.status_display || a.status}</Tag>
+                            </div>
+                            <div style={{ display: "flex", gap: 24, marginTop: 10 }}>
+                              <div>
+                                <Text style={{ fontSize: 11, color: "#94A3B8" }}>Valor</Text>
+                                <div style={{ fontSize: 14, fontWeight: 600, color: "#10B981" }}>{fmt(a.valor_com_desconto)}</div>
+                              </div>
+                              <div>
+                                <Text style={{ fontSize: 11, color: "#94A3B8" }}>Início</Text>
+                                <div style={{ fontSize: 13 }}>{a.data_inicio}</div>
+                              </div>
+                              {a.desconto_percentual > 0 && (
+                                <div>
+                                  <Text style={{ fontSize: 11, color: "#94A3B8" }}>Desconto</Text>
+                                  <div style={{ fontSize: 13, color: "#F59E0B" }}>{a.desconto_percentual}%</div>
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              size="small" style={{ marginTop: 10, fontSize: 11 }}
+                              onClick={() => {
+                                setModalDesconto({ assinaturaId: a.id });
+                                formDesconto.setFieldsValue({ percentual: a.desconto_percentual, motivo: a.motivo_desconto });
+                              }}
+                            >
+                              Aplicar Desconto
+                            </Button>
+                          </div>
+                        ))}
+                        {(!clienteSel.assinaturas || clienteSel.assinaturas.length === 0) && (
+                          <Text style={{ color: "#94A3B8" }}>Nenhuma assinatura encontrada.</Text>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "pagamentos",
+                    label: "Pagamentos",
+                    children: (
+                      <Table
+                        columns={pgtoColums}
+                        dataSource={allPagamentos}
+                        rowKey="id"
+                        size="small"
+                        pagination={false}
+                      />
+                    ),
+                  },
+                  {
+                    key: "atividade",
+                    label: "Atividade",
+                    children: (
+                      <div style={{ padding: "20px 0", textAlign: "center", color: "#94A3B8" }}>
+                        Histórico de atividade em breve.
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
+
+      {/* Drawer Novo Cliente */}
+      <Drawer
+        title="Novo Cliente"
+        open={drawerNovo}
+        onClose={() => setDrawerNovo(false)}
         width={480}
-        extra={
-          <Button type="primary" style={{ background: "#6366F1" }} onClick={() => formCliente.submit()}>
-            Salvar
-          </Button>
+        footer={
+          <div style={{ textAlign: "right" }}>
+            <Button onClick={() => setDrawerNovo(false)} style={{ marginRight: 8 }}>Cancelar</Button>
+            <Button
+              type="primary" loading={savingNovo}
+              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", border: "none" }}
+              onClick={() => formNovo.submit()}
+            >
+              Criar Cliente
+            </Button>
+          </div>
         }
       >
-        <Form form={formCliente} layout="vertical" onFinish={salvarCliente}>
-          <Form.Item name="nome_empresa" label="Nome da empresa" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="razao_social" label="Razão social">
+        <Form form={formNovo} layout="vertical" onFinish={handleNovoCliente}>
+          <Form.Item name="nome_empresa" label="Nome da Empresa" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item name="cnpj" label="CNPJ">
-            <Input placeholder="00.000.000/0000-00" />
-          </Form.Item>
-          <Form.Item name="nome_responsavel" label="Nome do responsável" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="email_responsavel" label="E-mail responsável" rules={[{ required: true, type: "email" }]}>
+          <Form.Item name="nome_responsavel" label="Responsável" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="email_responsavel" label="Email Responsável" rules={[{ required: true, type: "email" }]}>
             <Input />
           </Form.Item>
           <Form.Item name="telefone" label="Telefone">
             <Input />
           </Form.Item>
-          <Form.Item name="login_admin" label="E-mail de login (admin do sistema)" rules={[{ required: true, type: "email" }]}>
+          <Form.Item name="login_admin" label="Login Admin (Email)" rules={[{ required: true, type: "email" }]}>
             <Input />
           </Form.Item>
           <Form.Item name="status" label="Status" initialValue="trial">
             <Select>
               <Select.Option value="trial">Trial</Select.Option>
               <Select.Option value="ativo">Ativo</Select.Option>
-              <Select.Option value="suspenso">Suspenso</Select.Option>
-              <Select.Option value="cancelado">Cancelado</Select.Option>
             </Select>
           </Form.Item>
           <Form.Item name="observacoes" label="Observações">
@@ -311,120 +558,47 @@ export default function MasterClientesPage() {
         </Form>
       </Drawer>
 
-      {/* Modal Detalhes + Assinaturas */}
-      <Drawer
-        title={`Detalhes — ${clienteSelecionado?.nome_empresa || ""}`}
-        open={detalheOpen}
-        onClose={() => setDetalheOpen(false)}
-        width={560}
-        extra={
-          <Button icon={<PlusOutlined />} style={{ color: "#6366F1", borderColor: "#6366F1" }} onClick={() => setNovaAssinaturaOpen(true)}>
-            Nova Assinatura
-          </Button>
-        }
-      >
-        {clienteSelecionado && (
-          <div>
-            <Card size="small" style={{ marginBottom: 16, borderRadius: 10 }}>
-              <Row gutter={16}>
-                <Col span={12}><Text type="secondary">CNPJ</Text><br /><Text strong>{clienteSelecionado.cnpj || "-"}</Text></Col>
-                <Col span={12}><Text type="secondary">Status</Text><br /><Tag color={STATUS_COLORS[clienteSelecionado.status]}>{clienteSelecionado.status_display || clienteSelecionado.status}</Tag></Col>
-              </Row>
-              <Row gutter={16} style={{ marginTop: 12 }}>
-                <Col span={12}><Text type="secondary">E-mail responsável</Text><br /><Text>{clienteSelecionado.email_responsavel}</Text></Col>
-                <Col span={12}><Text type="secondary">Login admin</Text><br /><Text code>{clienteSelecionado.login_admin}</Text></Col>
-              </Row>
-              {clienteSelecionado.observacoes && (
-                <div style={{ marginTop: 12 }}>
-                  <Text type="secondary">Observações</Text>
-                  <div style={{ background: "#F8FAFC", padding: 8, borderRadius: 6, marginTop: 4, fontSize: 12, whiteSpace: "pre-wrap" }}>
-                    {clienteSelecionado.observacoes}
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            <Title level={5}>Assinaturas</Title>
-            {(clienteSelecionado.assinaturas || []).length === 0
-              ? <Text type="secondary">Nenhuma assinatura.</Text>
-              : (clienteSelecionado.assinaturas || []).map(a => (
-                <Card key={a.id} size="small" style={{ marginBottom: 10, borderRadius: 10 }}>
-                  <Row justify="space-between" align="middle">
-                    <Col>
-                      <Tag color={a.plano_sistema === "erp" ? "blue" : a.plano_sistema === "facilities" ? "green" : "purple"}>
-                        {a.plano_sistema_display}
-                      </Tag>
-                      <Text strong> {a.plano_nome}</Text>
-                    </Col>
-                    <Tag color={{ ativo: "green", trial: "blue", vencido: "red", cancelado: "default", suspenso: "red" }[a.status]}>
-                      {a.status_display}
-                    </Tag>
-                  </Row>
-                  <Row gutter={16} style={{ marginTop: 8 }}>
-                    <Col><Text type="secondary">Valor</Text><br /><Text strong>{moneyFmt.format(Number(a.valor_com_desconto))}/mês</Text></Col>
-                    <Col><Text type="secondary">Desconto</Text><br /><Text>{a.desconto_percentual}%</Text></Col>
-                    <Col><Text type="secondary">Próx. venc.</Text><br /><Text>{a.data_proximo_vencimento || "-"}</Text></Col>
-                  </Row>
-                  <div style={{ marginTop: 8 }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {a.pagamentos?.length || 0} mensalidades registradas •{" "}
-                      Pago: {fmt(a.total_pago)} •{" "}
-                      Pendente: {fmt(a.total_pendente)}
-                    </Text>
-                  </div>
-                </Card>
-              ))
-            }
-          </div>
-        )}
-      </Drawer>
-
-      {/* Modal nova assinatura */}
+      {/* Modal Desconto */}
       <Modal
-        title="Nova Assinatura"
-        open={novaAssinaturaOpen}
-        onCancel={() => setNovaAssinaturaOpen(false)}
-        onOk={() => formAssinatura.submit()}
-        okText="Criar"
-        okButtonProps={{ style: { background: "#6366F1" } }}
+        title="Aplicar Desconto"
+        open={!!modalDesconto}
+        onCancel={() => setModalDesconto(null)}
+        onOk={() => formDesconto.submit()}
+        confirmLoading={savingDesconto}
+        okText="Aplicar"
       >
-        <Form form={formAssinatura} layout="vertical" onFinish={criarAssinatura} style={{ marginTop: 16 }}>
-          <Form.Item name="plano" label="Plano" rules={[{ required: true }]}>
-            <Select options={planos} placeholder="Selecione o plano" />
+        <Form form={formDesconto} layout="vertical" onFinish={handleDesconto}>
+          <Form.Item name="percentual" label="Desconto (%)" rules={[{ required: true }]}>
+            <Input type="number" min={0} max={100} suffix="%" />
           </Form.Item>
-          <Form.Item name="status" label="Status inicial" initialValue="trial">
+          <Form.Item name="motivo" label="Motivo">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal Confirmar Pagamento */}
+      <Modal
+        title="Confirmar Pagamento"
+        open={!!modalPagamento}
+        onCancel={() => setModalPagamento(null)}
+        onOk={() => formPagamento.submit()}
+        confirmLoading={savingPagamento}
+        okText="Confirmar"
+      >
+        <Form form={formPagamento} layout="vertical" onFinish={handleConfirmarPagamento}>
+          <Form.Item name="data_pagamento" label="Data do Pagamento" rules={[{ required: true }]}>
+            <Input type="date" />
+          </Form.Item>
+          <Form.Item name="forma" label="Forma de Pagamento" rules={[{ required: true }]}>
             <Select>
-              <Select.Option value="trial">Trial</Select.Option>
-              <Select.Option value="ativo">Ativo</Select.Option>
+              <Select.Option value="pix">PIX</Select.Option>
+              <Select.Option value="boleto">Boleto</Select.Option>
+              <Select.Option value="cartao">Cartão</Select.Option>
+              <Select.Option value="transferencia">Transferência</Select.Option>
+              <Select.Option value="dinheiro">Dinheiro</Select.Option>
             </Select>
           </Form.Item>
-          <Row gutter={12}>
-            <Col span={12}>
-              <Form.Item name="data_inicio" label="Data início" rules={[{ required: true }]}>
-                <Input type="date" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="data_proximo_vencimento" label="Próx. vencimento">
-                <Input type="date" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="valor_negociado" label="Valor negociado (R$)" rules={[{ required: true }]}>
-            <Input type="number" step="0.01" prefix="R$" />
-          </Form.Item>
-          <Row gutter={12}>
-            <Col span={12}>
-              <Form.Item name="desconto_percentual" label="Desconto (%)" initialValue={0}>
-                <Input type="number" suffix="%" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="motivo_desconto" label="Motivo desconto">
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
         </Form>
       </Modal>
     </div>

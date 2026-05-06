@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
-  Badge, Button, Card, Col, Drawer, Form, Input, message, Modal,
-  Row, Select, Space, Table, Tag, Tooltip, Typography,
+  Button, Col, Form, Input, message, Modal, Row, Select, Table, Tag, Typography, Skeleton,
 } from "antd";
-import {
-  CheckCircleOutlined, DollarCircleOutlined, PlusOutlined, WarningOutlined,
-} from "@ant-design/icons";
+import { CheckCircleOutlined } from "@ant-design/icons";
 import masterApi from "../../services/masterApi";
 
 const { Title, Text } = Typography;
@@ -13,243 +10,246 @@ const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 const fmt = (v) => moneyFmt.format(Number(v || 0));
 
 const STATUS_COLORS = { pendente: "orange", pago: "green", vencido: "red", cancelado: "default" };
+const STATUS_LABELS = { pendente: "Pendente", pago: "Pago", vencido: "Vencido", cancelado: "Cancelado" };
+const SISTEMA_COLORS = { erp: "blue", facilities: "green", ambos: "purple" };
+const SISTEMA_LABELS = { erp: "ERP", facilities: "Facilities", ambos: "Ambos" };
 
 export default function MasterPagamentosPage() {
-  const [dados, setDados] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [filtroStatus, setFiltroStatus] = useState(undefined);
-  const [confirmarOpen, setConfirmarOpen] = useState(false);
-  const [gerarOpen, setGerarOpen] = useState(false);
-  const [itemSelecionado, setItemSelecionado] = useState(null);
-  const [assinaturas, setAssinaturas] = useState([]);
-  const [formConfirmar] = Form.useForm();
-  const [formGerar] = Form.useForm();
+  const [pagamentos, setPagamentos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFiltro, setStatusFiltro] = useState("");
+  const [buscaText, setBuscaText] = useState("");
+  const [sistemaFiltro, setSistemaFiltro] = useState("");
 
-  const carregar = async () => {
+  const [modalPagamento, setModalPagamento] = useState(null);
+  const [formPagamento] = Form.useForm();
+  const [savingPagamento, setSavingPagamento] = useState(false);
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const mesAtual = hoje.slice(0, 7);
+
+  const load = async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (filtroStatus) params.status = filtroStatus;
-      const r = await masterApi.get("/pagamentos/", { params });
-      setDados(Array.isArray(r.data) ? r.data : r.data?.results || []);
-    } catch { message.error("Erro ao carregar pagamentos."); }
-    finally { setLoading(false); }
+      const r = await masterApi.get("/pagamentos/");
+      const data = Array.isArray(r.data) ? r.data : r.data.results || [];
+      setPagamentos(data);
+    } catch {
+      message.error("Erro ao carregar pagamentos.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const carregarAssinaturas = async () => {
-    try {
-      const r = await masterApi.get("/assinaturas/");
-      setAssinaturas((Array.isArray(r.data) ? r.data : r.data?.results || []).map(a => ({
-        value: a.id,
-        label: `${a.cliente_nome} — ${a.plano_nome} (${a.sistema_display})`,
-      })));
-    } catch {}
-  };
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => { carregar(); carregarAssinaturas(); }, []);
-
-  const confirmar = async (values) => {
+  const handleConfirmar = async (values) => {
+    setSavingPagamento(true);
     try {
-      await masterApi.post(`/pagamentos/${itemSelecionado.id}/confirmar-pagamento/`, values);
-      message.success("Pagamento confirmado!");
-      setConfirmarOpen(false);
-      formConfirmar.resetFields();
-      carregar();
-    } catch { message.error("Erro ao confirmar pagamento."); }
-  };
-
-  const gerar = async (values) => {
-    try {
-      await masterApi.post(`/assinaturas/${values.assinatura}/gerar-mensalidade/`, {
-        referencia: values.referencia,
-        data_vencimento: values.data_vencimento,
+      await masterApi.post(`/pagamentos/${modalPagamento.pagamentoId}/confirmar-pagamento/`, {
+        forma: values.forma,
+        data_pagamento: values.data_pagamento,
       });
-      message.success("Mensalidade gerada!");
-      setGerarOpen(false);
-      formGerar.resetFields();
-      carregar();
-    } catch { message.error("Erro ao gerar mensalidade."); }
+      message.success("Pagamento confirmado!");
+      setModalPagamento(null);
+      formPagamento.resetFields();
+      load();
+    } catch { message.error("Erro ao confirmar pagamento."); }
+    finally { setSavingPagamento(false); }
+  };
+
+  const pagFiltrados = pagamentos.filter((p) => {
+    if (statusFiltro && p.status !== statusFiltro) return false;
+    if (sistemaFiltro) {
+      const sistema = p.assinatura?.plano_sistema || "";
+      if (sistema !== sistemaFiltro) return false;
+    }
+    if (buscaText) {
+      const nome = p.assinatura?.cliente?.nome_empresa || p.assinatura?.cliente_nome || "";
+      if (!nome.toLowerCase().includes(buscaText.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const recebidoMes = pagamentos
+    .filter((p) => p.status === "pago" && p.referencia === mesAtual)
+    .reduce((s, p) => s + Number(p.valor_cobrado || 0), 0);
+  const totalPendente = pagamentos
+    .filter((p) => p.status === "pendente")
+    .reduce((s, p) => s + Number(p.valor_cobrado || 0), 0);
+  const totalVencido = pagamentos
+    .filter((p) => p.status === "vencido")
+    .reduce((s, p) => s + Number(p.valor_cobrado || 0), 0);
+  const inadimplencia = pagamentos.length
+    ? ((pagamentos.filter((p) => p.status === "vencido").length / pagamentos.length) * 100).toFixed(1)
+    : "0.0";
+
+  const CARD_STYLE = {
+    background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
+    padding: "16px 20px", textAlign: "center",
   };
 
   const columns = [
     {
-      title: "Cliente / Plano",
-      key: "cliente",
-      render: (_, r) => (
-        <div>
-          <Text strong>{r.assinatura_cliente}</Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: 12 }}>{r.assinatura_plano}</Text>
-        </div>
-      ),
-    },
-    { title: "Referência", dataIndex: "referencia", key: "referencia" },
-    {
-      title: "Valor",
-      dataIndex: "valor_cobrado",
-      key: "valor",
-      render: (v) => <Text strong style={{ color: "#6366F1" }}>{fmt(v)}</Text>,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (v, r) => <Tag color={STATUS_COLORS[v]}>{r.status_display || v}</Tag>,
-    },
-    {
-      title: "Vencimento",
-      dataIndex: "data_vencimento",
-      key: "venc",
-      render: (v) => {
-        if (!v) return "-";
-        const d = new Date(v);
-        const hoje = new Date();
-        const vencido = d < hoje;
-        return <Text style={{ color: vencido ? "#EF4444" : undefined }}>{v}</Text>;
+      title: "Cliente", key: "cliente",
+      render: (_, r) => {
+        const nome = r.assinatura?.cliente?.nome_empresa || r.assinatura?.cliente_nome || "—";
+        return <Text strong style={{ fontSize: 13 }}>{nome}</Text>;
       },
     },
-    { title: "Pagamento", dataIndex: "data_pagamento", key: "pgto", render: (v) => v || "—" },
     {
-      title: "Método",
-      dataIndex: "metodo_pagamento",
-      key: "metodo",
-      render: (v) => v || "—",
+      title: "Plano", key: "plano",
+      render: (_, r) => {
+        const plano = r.assinatura?.plano_nome || r.assinatura?.plano || "—";
+        const sistema = r.assinatura?.plano_sistema || "";
+        return (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>{plano}</div>
+            {sistema && (
+              <Tag color={SISTEMA_COLORS[sistema] || "default"} style={{ fontSize: 10, marginTop: 2 }}>
+                {SISTEMA_LABELS[sistema] || sistema}
+              </Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
-      title: "Ações",
-      key: "acoes",
-      render: (_, record) =>
-        record.status !== "pago" ? (
-          <Button
-            size="small"
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            style={{ background: "#10B981", borderColor: "#10B981" }}
-            onClick={() => { setItemSelecionado(record); formConfirmar.setFieldsValue({ data_pagamento: new Date().toISOString().slice(0, 10), valor_pago: record.valor_cobrado }); setConfirmarOpen(true); }}
-          >
-            Confirmar
-          </Button>
-        ) : (
-          <Tag color="green" icon={<CheckCircleOutlined />}>Pago</Tag>
-        ),
+      title: "Referência", dataIndex: "referencia", key: "ref",
+      render: (v) => <Text style={{ fontSize: 12 }}>{v}</Text>,
+    },
+    {
+      title: "Valor", dataIndex: "valor_cobrado", key: "valor",
+      render: (v) => <Text strong style={{ fontSize: 13, color: "#0F172A" }}>{fmt(v)}</Text>,
+    },
+    {
+      title: "Vencimento", dataIndex: "data_vencimento", key: "venc",
+      render: (v) => {
+        const overdue = v && v < hoje;
+        return <Text style={{ fontSize: 12, color: overdue ? "#EF4444" : "#374151" }}>{v || "—"}</Text>;
+      },
+    },
+    {
+      title: "Status", dataIndex: "status", key: "status",
+      render: (v, r) => <Tag color={STATUS_COLORS[v] || "default"}>{r.status_display || STATUS_LABELS[v] || v}</Tag>,
+    },
+    {
+      title: "Forma", dataIndex: "forma_pagamento", key: "forma",
+      render: (v, r) => <Text style={{ fontSize: 12 }}>{r.forma_display || v || "—"}</Text>,
+    },
+    {
+      title: "Ação", key: "acao",
+      render: (_, r) => r.status !== "pago" ? (
+        <Button
+          size="small" icon={<CheckCircleOutlined />} type="primary"
+          style={{ fontSize: 11, background: "#10B981", borderColor: "#10B981" }}
+          onClick={() => {
+            setModalPagamento({ pagamentoId: r.id });
+            formPagamento.setFieldsValue({ data_pagamento: hoje, forma: "pix" });
+          }}
+        >
+          Confirmar
+        </Button>
+      ) : null,
     },
   ];
 
-  // Totais
-  const totalPendente = dados.filter(d => d.status === "pendente").reduce((s, d) => s + Number(d.valor_cobrado || 0), 0);
-  const totalVencido = dados.filter(d => d.status === "vencido").reduce((s, d) => s + Number(d.valor_cobrado || 0), 0);
-  const totalPago = dados.filter(d => d.status === "pago").reduce((s, d) => s + Number(d.valor_cobrado || 0), 0);
-
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div>
-          <Title level={3} style={{ margin: 0 }}>Pagamentos</Title>
-          <Text type="secondary">Mensalidades de todos os clientes.</Text>
-        </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          style={{ background: "#6366F1", borderColor: "#6366F1", borderRadius: 10 }}
-          onClick={() => setGerarOpen(true)}
-        >
-          Gerar Mensalidade
-        </Button>
+    <div style={{ padding: 28, background: "#F8FAFC", minHeight: "100vh" }}>
+      <div style={{ marginBottom: 20 }}>
+        <Title level={4} style={{ margin: 0, color: "#0F172A" }}>Pagamentos</Title>
       </div>
 
-      {/* Resumo */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-        {[
-          { label: "Pendente", value: fmt(totalPendente), color: "#F59E0B", bg: "#FFFBEB" },
-          { label: "Vencido", value: fmt(totalVencido), color: "#EF4444", bg: "#FEF2F2" },
-          { label: "Recebido (visível)", value: fmt(totalPago), color: "#10B981", bg: "#ECFDF5" },
-        ].map(k => (
-          <Col xs={24} sm={8} key={k.label}>
-            <Card bordered={false} style={{ borderRadius: 14, background: k.bg, boxShadow: "none", border: `1px solid ${k.color}22` }}>
-              <Text style={{ color: k.color, fontWeight: 600, fontSize: 13 }}>{k.label}</Text>
-              <div style={{ fontSize: 24, fontWeight: 800, color: k.color }}>{k.value}</div>
-            </Card>
-          </Col>
-        ))}
+      {/* KPI */}
+      <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
+        <Col xs={12} sm={6}>
+          <div style={CARD_STYLE}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#10B981" }}>{fmt(recebidoMes)}</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Recebido este mês</div>
+          </div>
+        </Col>
+        <Col xs={12} sm={6}>
+          <div style={CARD_STYLE}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#F59E0B" }}>{fmt(totalPendente)}</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Pendente</div>
+          </div>
+        </Col>
+        <Col xs={12} sm={6}>
+          <div style={CARD_STYLE}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#EF4444" }}>{fmt(totalVencido)}</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Vencido</div>
+          </div>
+        </Col>
+        <Col xs={12} sm={6}>
+          <div style={CARD_STYLE}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#EF4444" }}>{inadimplencia}%</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Inadimplência</div>
+          </div>
+        </Col>
       </Row>
 
-      {/* Filtro */}
-      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <Row gutter={12} align="middle">
-          <Col xs={24} sm={8}>
-            <Select placeholder="Filtrar por status" allowClear style={{ width: "100%" }} value={filtroStatus} onChange={v => setFiltroStatus(v)}>
-              <Select.Option value="pendente">Pendente</Select.Option>
-              <Select.Option value="pago">Pago</Select.Option>
-              <Select.Option value="vencido">Vencido</Select.Option>
-              <Select.Option value="cancelado">Cancelado</Select.Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={4}><Button block onClick={carregar}>Filtrar</Button></Col>
-        </Row>
-      </Card>
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+        <Input.Search
+          placeholder="Buscar cliente..."
+          value={buscaText}
+          onChange={(e) => setBuscaText(e.target.value)}
+          style={{ width: 240 }}
+          allowClear
+        />
+        <Select
+          placeholder="Status" allowClear value={statusFiltro || undefined}
+          onChange={(v) => setStatusFiltro(v || "")} style={{ width: 130 }}
+        >
+          <Select.Option value="pendente">Pendente</Select.Option>
+          <Select.Option value="pago">Pago</Select.Option>
+          <Select.Option value="vencido">Vencido</Select.Option>
+          <Select.Option value="cancelado">Cancelado</Select.Option>
+        </Select>
+        <Select
+          placeholder="Sistema" allowClear value={sistemaFiltro || undefined}
+          onChange={(v) => setSistemaFiltro(v || "")} style={{ width: 130 }}
+        >
+          <Select.Option value="erp">ERP</Select.Option>
+          <Select.Option value="facilities">Facilities</Select.Option>
+          <Select.Option value="ambos">Ambos</Select.Option>
+        </Select>
+      </div>
 
-      <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <Table columns={columns} dataSource={dados} loading={loading} rowKey="id" pagination={{ pageSize: 20 }} />
-      </Card>
+      {/* Tabela */}
+      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+        <Table
+          columns={columns}
+          dataSource={pagFiltrados}
+          rowKey="id"
+          loading={loading}
+          size="middle"
+          pagination={{ pageSize: 20 }}
+        />
+      </div>
 
-      {/* Confirmar pagamento */}
-      <Drawer
+      {/* Modal Confirmar Pagamento */}
+      <Modal
         title="Confirmar Pagamento"
-        open={confirmarOpen}
-        onClose={() => setConfirmarOpen(false)}
-        width={400}
-        extra={<Button type="primary" style={{ background: "#10B981" }} onClick={() => formConfirmar.submit()}>Confirmar</Button>}
+        open={!!modalPagamento}
+        onCancel={() => setModalPagamento(null)}
+        onOk={() => formPagamento.submit()}
+        confirmLoading={savingPagamento}
+        okText="Confirmar"
+        okButtonProps={{ style: { background: "#10B981", borderColor: "#10B981" } }}
       >
-        {itemSelecionado && (
-          <div style={{ marginBottom: 16 }}>
-            <Text type="secondary">Cliente: </Text><Text strong>{itemSelecionado.assinatura_cliente}</Text><br />
-            <Text type="secondary">Referência: </Text><Text>{itemSelecionado.referencia}</Text><br />
-            <Text type="secondary">Valor esperado: </Text><Text strong style={{ color: "#6366F1" }}>{fmt(itemSelecionado.valor_cobrado)}</Text>
-          </div>
-        )}
-        <Form form={formConfirmar} layout="vertical" onFinish={confirmar}>
-          <Form.Item name="data_pagamento" label="Data do pagamento" rules={[{ required: true }]}>
+        <Form form={formPagamento} layout="vertical" onFinish={handleConfirmar}>
+          <Form.Item name="data_pagamento" label="Data do Pagamento" rules={[{ required: true }]}>
             <Input type="date" />
           </Form.Item>
-          <Form.Item name="valor_pago" label="Valor recebido (R$)" rules={[{ required: true }]}>
-            <Input type="number" step="0.01" prefix="R$" />
-          </Form.Item>
-          <Form.Item name="metodo_pagamento" label="Método de pagamento">
-            <Select defaultValue="pix">
+          <Form.Item name="forma" label="Forma de Pagamento" rules={[{ required: true }]}>
+            <Select>
               <Select.Option value="pix">PIX</Select.Option>
               <Select.Option value="boleto">Boleto</Select.Option>
-              <Select.Option value="transferencia">Transferência</Select.Option>
               <Select.Option value="cartao">Cartão</Select.Option>
-              <Select.Option value="outro">Outro</Select.Option>
+              <Select.Option value="transferencia">Transferência</Select.Option>
+              <Select.Option value="dinheiro">Dinheiro</Select.Option>
             </Select>
-          </Form.Item>
-          <Form.Item name="comprovante_url" label="Link do comprovante (opcional)">
-            <Input placeholder="URL ou número do comprovante" />
-          </Form.Item>
-          <Form.Item name="observacoes" label="Observações">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-        </Form>
-      </Drawer>
-
-      {/* Gerar mensalidade */}
-      <Modal
-        title="Gerar Nova Mensalidade"
-        open={gerarOpen}
-        onCancel={() => setGerarOpen(false)}
-        onOk={() => formGerar.submit()}
-        okText="Gerar"
-        okButtonProps={{ style: { background: "#6366F1" } }}
-      >
-        <Form form={formGerar} layout="vertical" onFinish={gerar} style={{ marginTop: 16 }}>
-          <Form.Item name="assinatura" label="Assinatura" rules={[{ required: true }]}>
-            <Select options={assinaturas} placeholder="Selecione a assinatura" showSearch optionFilterProp="label" />
-          </Form.Item>
-          <Form.Item name="referencia" label="Referência (mês/ano)" rules={[{ required: true }]}>
-            <Input placeholder="Ex: 06/2025" />
-          </Form.Item>
-          <Form.Item name="data_vencimento" label="Data de vencimento" rules={[{ required: true }]}>
-            <Input type="date" />
           </Form.Item>
         </Form>
       </Modal>

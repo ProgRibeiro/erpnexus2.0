@@ -1,55 +1,32 @@
-import { useEffect, useState } from "react";
-import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
-import { Layout, Menu, Avatar, Dropdown, Badge, Typography, Button } from "antd";
+﻿import { useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
+import { Avatar, Badge, Button, Space, message } from "antd";
 import {
-  CrownOutlined,
-  DashboardOutlined,
-  TeamOutlined,
-  AppstoreOutlined,
-  DollarOutlined,
-  FileTextOutlined,
-  LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
+  LineChartOutlined, TeamOutlined, AppstoreOutlined, DollarOutlined,
+  FileSearchOutlined, CrownOutlined, LogoutOutlined,
+  BellOutlined, RightOutlined,
 } from "@ant-design/icons";
 
-const { Sider, Header, Content } = Layout;
-const { Text } = Typography;
-
 const menuItems = [
-  {
-    key: "/master/dashboard",
-    icon: <DashboardOutlined />,
-    label: "Dashboard",
-  },
-  {
-    key: "/master/clientes",
-    icon: <TeamOutlined />,
-    label: "Clientes",
-  },
-  {
-    key: "/master/planos",
-    icon: <AppstoreOutlined />,
-    label: "Planos",
-  },
-  {
-    key: "/master/pagamentos",
-    icon: <DollarOutlined />,
-    label: "Pagamentos",
-  },
-  {
-    key: "/master/logs",
-    icon: <FileTextOutlined />,
-    label: "Logs de Acesso",
-  },
+  { key: "/master", label: "Dashboard", icon: <LineChartOutlined />, exact: true },
+  { key: "/master/clientes", label: "Clientes", icon: <TeamOutlined /> },
+  { key: "/master/planos", label: "Planos", icon: <AppstoreOutlined /> },
+  { key: "/master/pagamentos", label: "Pagamentos", icon: <DollarOutlined /> },
+  { key: "/master/logs", label: "Logs de Acesso", icon: <FileSearchOutlined /> },
 ];
 
-export default function MasterLayout() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+const BREADCRUMB_MAP = {
+  "/master": "Dashboard",
+  "/master/clientes": "Clientes",
+  "/master/planos": "Planos",
+  "/master/pagamentos": "Pagamentos",
+  "/master/logs": "Logs de Acesso",
+};
 
-  // Protege o layout — se não tem master_token, redireciona para login
+export default function MasterLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (!localStorage.getItem("master_token")) {
       navigate("/master/login");
@@ -59,153 +36,119 @@ export default function MasterLayout() {
   const handleLogout = () => {
     localStorage.removeItem("master_token");
     localStorage.removeItem("master_refresh");
+    message.success("Sessao encerrada.");
     navigate("/master/login");
   };
 
-  const selectedKey = menuItems.find(m => location.pathname.startsWith(m.key))?.key || "/master/dashboard";
+  const isActive = (item) => {
+    if (item.exact) return location.pathname === item.key;
+    return location.pathname.startsWith(item.key);
+  };
+
+  const breadcrumb = BREADCRUMB_MAP[location.pathname] || "Master Admin";
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Sidebar */}
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        width={240}
-        style={{
-          background: "#0F172A",
-          borderRight: "1px solid rgba(99,102,241,0.2)",
-          position: "fixed",
-          height: "100vh",
-          left: 0,
-          top: 0,
-          zIndex: 100,
-          overflow: "auto",
-        }}
-        trigger={null}
-      >
-        {/* Logo */}
-        <div style={{
-          padding: collapsed ? "20px 16px" : "24px 20px",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}>
-          <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <CrownOutlined style={{ color: "#fff", fontSize: 18 }} />
-          </div>
-          {!collapsed && (
-            <div>
-              <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>Master Admin</div>
-              <div style={{ color: "#6366F1", fontSize: 11, fontWeight: 600 }}>ERP NEXUS</div>
-            </div>
-          )}
-        </div>
-
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems.map((item) => ({
-            ...item,
-            onClick: () => navigate(item.key),
-          }))}
-          style={{
-            background: "transparent",
-            border: "none",
-            marginTop: 12,
-            padding: "0 8px",
-          }}
-          theme="dark"
-        />
-
-        {/* Rodapé sidebar */}
-        {!collapsed && (
-          <div style={{
-            position: "absolute",
-            bottom: 16,
-            left: 0,
-            right: 0,
-            padding: "0 16px",
-          }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC" }}>
+      <div style={{
+        width: 240, minHeight: "100vh", background: "#0F172A",
+        display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0, bottom: 0, zIndex: 100,
+      }}>
+        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
-              background: "rgba(99,102,241,0.1)",
-              border: "1px solid rgba(99,102,241,0.3)",
-              borderRadius: 10,
-              padding: "10px 14px",
-              textAlign: "center",
-            }}>
-              <Text style={{ color: "#94A3B8", fontSize: 11, display: "block" }}>Acesso restrito</Text>
-              <Text style={{ color: "#6366F1", fontSize: 12, fontWeight: 700 }}>Proprietário do sistema</Text>
-            </div>
-          </div>
-        )}
-      </Sider>
-
-      {/* Conteúdo principal */}
-      <Layout style={{ marginLeft: collapsed ? 80 : 240, transition: "margin 0.2s" }}>
-        {/* Header */}
-        <Header style={{
-          background: "#fff",
-          padding: "0 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          position: "sticky",
-          top: 0,
-          zIndex: 99,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{ fontSize: 18 }}
-            />
-            <div style={{
+              width: 32, height: 32, borderRadius: 8,
               background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
-              color: "#fff",
-              padding: "3px 12px",
-              borderRadius: 20,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: 1,
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
-              MASTER ADMIN
+              <CrownOutlined style={{ color: "#fff", fontSize: 16 }} />
+            </div>
+            <div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>Master Admin</div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.2 }}>ERP Nexus Platform</div>
             </div>
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Link to="/" style={{ color: "#64748B", fontSize: 13 }}>
-              Ir para o sistema →
-            </Link>
-            <Button
-              danger
-              type="text"
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
-              style={{ color: "#EF4444" }}
-            >
-              Sair
-            </Button>
+        </div>
+        <nav style={{ flex: 1, padding: "12px 12px", overflowY: "auto" }}>
+          {menuItems.map((item) => {
+            const active = isActive(item);
+            return (
+              <Link key={item.key} to={item.key} style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px", borderRadius: 8, marginBottom: 2,
+                  cursor: "pointer", transition: "all 0.15s",
+                  background: active ? "rgba(99,102,241,0.12)" : "transparent",
+                  borderLeft: active ? "3px solid #6366F1" : "3px solid transparent",
+                  color: active ? "#fff" : "rgba(255,255,255,0.65)",
+                }}>
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: active ? 600 : 400 }}>{item.label}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+        <div style={{ padding: "16px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
+            }}>L</div>
+            <div>
+              <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>Lucas</div>
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, lineHeight: 1.2 }}>Super Admin</div>
+            </div>
           </div>
-        </Header>
-
-        {/* Página */}
-        <Content style={{ background: "#F1F5F9", minHeight: "calc(100vh - 64px)" }}>
+          <Button
+            icon={<LogoutOutlined />}
+            onClick={handleLogout}
+            block
+            size="small"
+            style={{
+              background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+              color: "#EF4444", borderRadius: 6, fontWeight: 500,
+            }}
+          >
+            Sair
+          </Button>
+        </div>
+      </div>
+      <div style={{ marginLeft: 240, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <header style={{
+          height: 64, background: "#fff", borderBottom: "1px solid #E2E8F0",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 28px", position: "sticky", top: 0, zIndex: 99,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#64748B", fontSize: 13 }}>
+            <span>Master Admin</span>
+            <RightOutlined style={{ fontSize: 10 }} />
+            <span style={{ color: "#0F172A", fontWeight: 600 }}>{breadcrumb}</span>
+          </div>
+          <Space size={12}>
+            <Button
+              size="small"
+              style={{ borderColor: "#3B82F6", color: "#3B82F6", borderRadius: 6, fontSize: 12 }}
+              onClick={() => navigate("/")}
+            >
+              Ir para ERP
+            </Button>
+            <Badge count={0} showZero={false}>
+              <Button icon={<BellOutlined />} shape="circle" size="small" style={{ border: "1px solid #E2E8F0" }} />
+            </Badge>
+            <Avatar
+              size={32}
+              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", cursor: "pointer", fontWeight: 700 }}
+            >
+              L
+            </Avatar>
+          </Space>
+        </header>
+        <main style={{ flex: 1, overflow: "auto" }}>
           <Outlet />
-        </Content>
-      </Layout>
-    </Layout>
+        </main>
+      </div>
+    </div>
   );
 }
