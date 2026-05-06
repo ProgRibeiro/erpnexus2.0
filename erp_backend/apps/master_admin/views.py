@@ -97,6 +97,7 @@ class MasterRefreshView(APIView):
 # ─── Dashboard ───────────────────────────────────────────────────────────────
 
 class MasterDashboardView(APIView):
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
     def get(self, request):
@@ -267,6 +268,7 @@ class MasterDashboardView(APIView):
 # ─── Métricas SaaS ────────────────────────────────────────────────────────────
 
 class MetricasSaaSView(APIView):
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
     def get(self, request):
@@ -300,12 +302,14 @@ class MetricasSaaSView(APIView):
 class PlanoCatalogoViewSet(viewsets.ModelViewSet):
     queryset = PlanoCatalogo.objects.all()
     serializer_class = PlanoCatalogoSerializer
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
 
 # ─── Clientes ─────────────────────────────────────────────────────────────────
 
 class ClienteSaaSViewSet(viewsets.ModelViewSet):
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
     def get_queryset(self):
@@ -375,6 +379,7 @@ class ClienteSaaSViewSet(viewsets.ModelViewSet):
 class AssinaturaSaaSViewSet(viewsets.ModelViewSet):
     queryset = AssinaturaSaaS.objects.select_related("cliente", "plano").prefetch_related("pagamentos").all()
     serializer_class = AssinaturaSaaSSerializer
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
     def get_queryset(self):
@@ -426,6 +431,7 @@ class AssinaturaSaaSViewSet(viewsets.ModelViewSet):
 class PagamentoMensalidadeViewSet(viewsets.ModelViewSet):
     queryset = PagamentoMensalidade.objects.select_related("assinatura__cliente", "assinatura__plano").all()
     serializer_class = PagamentoMensalidadeSerializer
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
     def get_queryset(self):
@@ -464,6 +470,7 @@ class PagamentoMensalidadeViewSet(viewsets.ModelViewSet):
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 
 class LogAcessoMasterView(APIView):
+    authentication_classes = []
     permission_classes = [IsMasterAdmin]
 
     def get(self, request):
