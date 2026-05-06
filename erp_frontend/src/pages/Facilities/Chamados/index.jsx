@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   Row, Col, Card, Tag, Button, Modal, Form, Input, Select,
-  Typography, Space, message, Spin, Badge, Divider, InputNumber,
+  Typography, Space, message, Spin, Badge, Divider, Tooltip,
 } from "antd";
 import {
   PlusOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined,
+  LinkOutlined, CopyOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -55,6 +56,7 @@ const borderColor = (prioridade) => {
 export default function ChamadosFacilities() {
   const [chamados, setChamados] = useState([]);
   const [unidades, setUnidades] = useState([]);
+  const [prestadores, setPrestadores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalNovo, setModalNovo] = useState(false);
   const [modalDetalhe, setModalDetalhe] = useState(null);
@@ -68,10 +70,12 @@ export default function ChamadosFacilities() {
     Promise.all([
       api.get("/portal/contratante/chamados/"),
       api.get("/portal/contratante/unidades/"),
+      api.get("/portal/contratante/prestadores/"),
     ])
-      .then(([c, u]) => {
+      .then(([c, u, p]) => {
         setChamados(Array.isArray(c.data) ? c.data : (c.data?.results || []));
         setUnidades(Array.isArray(u.data) ? u.data : (u.data?.results || []));
+        setPrestadores(Array.isArray(p.data) ? p.data : (p.data?.results || []));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -195,7 +199,6 @@ export default function ChamadosFacilities() {
         })}
       </Row>
 
-      {/* Modal Novo Chamado */}
       <Modal
         title="Novo Chamado"
         open={modalNovo}
@@ -204,7 +207,7 @@ export default function ChamadosFacilities() {
         okText="Abrir Chamado"
         cancelText="Cancelar"
         confirmLoading={saving}
-        width={640}
+        width={660}
         okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={form} layout="vertical" onFinish={salvar} style={{ marginTop: 8 }}>
@@ -234,6 +237,33 @@ export default function ChamadosFacilities() {
               </Form.Item>
             </Col>
           </Row>
+
+          <Divider style={{ margin: "8px 0 14px" }}>Prestador de Serviço</Divider>
+
+          <Form.Item
+            name="prestador_id"
+            label="Selecionar Prestador (opcional)"
+            help="Escolha um prestador cadastrado na plataforma ou envie o chamado por link externo"
+          >
+            <Select
+              showSearch
+              allowClear
+              placeholder="Selecionar prestador cadastrado..."
+              optionFilterProp="children"
+            >
+              {prestadores.map((p) => (
+                <Option key={p.id} value={p.id}>{p.nome} {p.cnpj ? `— CNPJ: ${p.cnpj}` : ""}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div style={{
+            background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 8,
+            padding: "10px 14px", marginTop: 4, fontSize: 13, color: "#0369A1",
+          }}>
+            <strong>Prestador sem ERP?</strong> Após abrir o chamado, você poderá copiar o link e enviar via{" "}
+            <strong>e-mail</strong> ou <strong>WhatsApp</strong> para o prestador externo responder sem login.
+          </div>
         </Form>
       </Modal>
 
@@ -274,6 +304,55 @@ export default function ChamadosFacilities() {
                 <div style={{ fontWeight: 500 }}>{modalDetalhe.unidade_nome || modalDetalhe.unidade_id || "-"}</div>
               </Col>
             </Row>
+
+            <Divider style={{ margin: "10px 0" }} />
+            <div style={{ marginBottom: 10 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>Prestador</Text>
+              <div style={{ fontWeight: 500, color: "#111827" }}>
+                {modalDetalhe.tenant_prestador_nome || "Não atribuído"}
+              </div>
+            </div>
+
+            {/* Link externo para prestador sem ERP */}
+            <div style={{
+              background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8,
+              padding: "10px 14px", marginBottom: 12, fontSize: 13,
+            }}>
+              <div style={{ fontWeight: 600, color: "#15803D", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                <LinkOutlined /> Link externo — prestador sem ERP
+              </div>
+              <div style={{ color: "#374151", marginBottom: 8 }}>
+                Copie o link e envie por <strong>e-mail</strong> ou <strong>WhatsApp</strong> para o prestador responder sem login:
+              </div>
+              <Space>
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/chamado-externo/${modalDetalhe.numero}`}
+                  style={{ width: 280, fontSize: 12 }}
+                />
+                <Tooltip title="Copiar link">
+                  <Button
+                    icon={<CopyOutlined />}
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/chamado-externo/${modalDetalhe.numero}`);
+                      message.success("Link copiado!");
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Enviar via WhatsApp">
+                  <Button
+                    style={{ background: "#25D366", borderColor: "#25D366", color: "#fff" }}
+                    onClick={() => {
+                      const link = `${window.location.origin}/chamado-externo/${modalDetalhe.numero}`;
+                      const texto = encodeURIComponent(`Olá! Você recebeu um chamado de serviço (${modalDetalhe.numero}).\nTipo: ${modalDetalhe.tipo_servico}\nAcesse: ${link}`);
+                      window.open(`https://wa.me/?text=${texto}`, "_blank");
+                    }}
+                  >
+                    WhatsApp
+                  </Button>
+                </Tooltip>
+              </Space>
+            </div>
 
             {(modalDetalhe.valor_orcado || modalDetalhe.valor_executado) && (
               <>

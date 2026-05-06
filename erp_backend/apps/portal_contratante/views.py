@@ -7,12 +7,35 @@ from rest_framework.views import APIView
 
 from apps.saas.models import (
     BudgetAnual, ChamadoPlataforma, LogAuditoria, NivelAprovacao,
-    SolicitacaoAprovacao, Unidade,
+    SolicitacaoAprovacao, Tenant, Unidade,
 )
 from apps.saas.serializers import (
     ChamadoPlataformaSerializer, LogAuditoriaSerializer,
     SolicitacaoAprovacaoSerializer, UnidadeSerializer,
 )
+
+
+def _gerar_numero_chamado():
+    ano = timezone.now().year
+    ultimo = ChamadoPlataforma.objects.filter(numero__startswith=f"CHM-{ano}-").order_by('-numero').first()
+    if ultimo:
+        try:
+            seq = int(ultimo.numero.split("-")[-1]) + 1
+        except (ValueError, IndexError):
+            seq = 1
+    else:
+        seq = 1
+    return f"CHM-{ano}-{str(seq).zfill(4)}"
+
+
+class PrestadoresDisponiveisView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        prestadores = Tenant.objects.filter(
+            tipo__in=['prestador', 'ambos'], ativo=True
+        ).values('id', 'nome', 'cnpj', 'plano')
+        return Response(list(prestadores))
 
 
 class DashboardContratanteView(APIView):
@@ -73,7 +96,7 @@ class ChamadosContratanteView(APIView):
     def get(self, request):
         status_filtro = request.query_params.get('status')
         prioridade_filtro = request.query_params.get('prioridade')
-        qs = ChamadoPlataforma.objects.select_related('unidade', 'tenant_contratante')
+        qs = ChamadoPlataforma.objects.select_related('unidade', 'tenant_contratante', 'tenant_prestador')
         if status_filtro:
             qs = qs.filter(status=status_filtro)
         if prioridade_filtro:
@@ -82,11 +105,50 @@ class ChamadosContratanteView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = ChamadoPlataformaSerializer(data=request.data)
-        if serializer.is_valid():
-            chamado = serializer.save(aberto_por=request.user)
-            return Response(ChamadoPlataformaSerializer(chamado).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
+
+        # Unidade
+        unidade_id = data.get('unidade_id') or data.get('unidade')
+        if not unidade_id:
+            return Response({'erro': 'Informe a unidade.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            unidade = Unidade.objects.get(pk=unidade_id)
+        except Unidade.DoesNotExist:
+            return Response({'erro': 'Unidade não encontrada.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Tenant contratante — usa o primeiro tenant contratante disponível (demo)
+        tenant = Tenant.objects.filter(tipo__in=['contratante', 'ambos'], ativo=True).first()
+        if not tenant:
+            tenant, _ = Tenant.objects.get_or_create(
+                nome='Demo Contratante',
+                defaults={'tipo': 'contratante', 'status': 'ativo', 'ativo': True},
+            )
+
+        # Prestador (opcional)
+        prestador = None
+        prestador_id = data.get('prestador_id')
+        if prestador_id:
+            prestador = Tenant.objects.filter(pk=prestador_id).first()
+
+        chamado = ChamadoPlataforma.objects.create(
+            numero=_gerar_numero_chamado(),
+            tenant_contratante=tenant,
+            tenant_prestador=prestador,
+            unidade=unidade,
+            tipo_servico=data.get('tipo_servico', ''),
+            descricao=data.get('descricao', ''),
+            prioridade=data.get('prioridade', 'media'),
+            sla_horas=int(data.get('sla_horas', 24)),
+            aberto_por=request.user,
+        )
+        LogAuditoria.objects.create(
+            usuario=request.user,
+            acao='criou',
+            objeto_tipo='chamado',
+            objeto_id=chamado.pk,
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        return Response(ChamadoPlataformaSerializer(chamado).data, status=status.HTTP_201_CREATED)
 
 
 class AprovarOrcamentoView(APIView):

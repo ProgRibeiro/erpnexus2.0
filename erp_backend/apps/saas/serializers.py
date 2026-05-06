@@ -102,6 +102,7 @@ class PrestadorContratadoSerializer(serializers.ModelSerializer):
 class ChamadoPlataformaSerializer(serializers.ModelSerializer):
     unidade_nome = serializers.CharField(source='unidade.nome', read_only=True)
     unidade_codigo = serializers.CharField(source='unidade.codigo_interno', read_only=True)
+    tenant_prestador_nome = serializers.CharField(source='tenant_prestador.nome', read_only=True)
 
     class Meta:
         model = ChamadoPlataforma
