@@ -93,11 +93,16 @@ export default function LoginPage() {
       const dest = from && from !== "/" && from !== "/login" ? from : defaultDest;
       navigate(dest, { replace: true });
     } catch (err) {
-      const detail =
-        err?.response?.data?.detail ||
-        err?.response?.data?.non_field_errors?.[0] ||
-        null;
-      setErro(detail ?? "Email ou senha incorretos. Tente novamente.");
+      // Erro de rede (servidor não está rodando)
+      if (!err?.response) {
+        setErro("Não foi possível conectar ao servidor. Verifique se o backend está rodando (iniciar-backend.bat).");
+      } else {
+        const detail =
+          err?.response?.data?.detail ||
+          err?.response?.data?.non_field_errors?.[0] ||
+          null;
+        setErro(detail ?? "Email ou senha incorretos. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }
