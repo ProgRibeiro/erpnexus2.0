@@ -3,10 +3,8 @@
 
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-
 const masterApi = axios.create({
-  baseURL: `${BASE_URL}/api/master/`,
+  baseURL: "/api/master/",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -25,7 +23,7 @@ masterApi.interceptors.response.use(
       const refresh = localStorage.getItem("master_refresh");
       if (refresh) {
         try {
-          const res = await axios.post(`${BASE_URL}/api/master/auth/refresh/`, { refresh });
+          const res = await axios.post("/api/master/auth/refresh/", { refresh });
           localStorage.setItem("master_token", res.data.access);
           localStorage.setItem("master_refresh", res.data.refresh);
           original.headers.Authorization = `Bearer ${res.data.access}`;
