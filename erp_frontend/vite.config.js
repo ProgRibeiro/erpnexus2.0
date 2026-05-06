@@ -1,9 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: "/static/",
+  base: command === "build" ? "/static/" : "/",
   server: {
     port: 5173,
     proxy: {
@@ -18,4 +18,4 @@ export default defineConfig({
     emptyOutDir: true,
     assetsDir: "assets",
   },
-});
+}));
