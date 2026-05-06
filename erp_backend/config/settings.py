@@ -77,6 +77,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.saas.middleware.AuditoriaSaaSMiddleware",  # Auditoria automática Facilities
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -231,6 +232,12 @@ CELERY_BEAT_SCHEDULE = {
     "recalcular_saldo_todas_contas": {
         "task": "financeiro.recalcular_saldo_todas_contas",
         "schedule": timedelta(days=1),
+        "options": {"queue": "default"},
+    },
+    # Tarefa a cada 5 min: Verificar SLAs de chamados da plataforma Facilities
+    "verificar_slas": {
+        "task": "apps.saas.tasks.verificar_slas",
+        "schedule": timedelta(seconds=300),
         "options": {"queue": "default"},
     },
 }

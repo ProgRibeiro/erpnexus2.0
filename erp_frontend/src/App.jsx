@@ -54,6 +54,7 @@ import AprovacoesPage from "./pages/Facilities/Aprovacoes";
 import ChamadosExternosPage from "./pages/ChamadosExternos";
 import LicitacoesPage from "./pages/Licitacoes";
 import LicitacaoFacilitiesPage from "./pages/Facilities/Licitacao";
+import FacilitiesConfiguracoesPage from "./pages/Facilities/Configuracoes";
 
 export default function App() {
   useBootstrapAuth();
@@ -113,6 +114,7 @@ export default function App() {
             <Route path="/facilities/budget" element={<BudgetPage />} />
             <Route path="/facilities/aprovacoes" element={<AprovacoesPage />} />
             <Route path="/facilities/licitacao" element={<LicitacaoFacilitiesPage />} />
+            <Route path="/facilities/configuracoes" element={<FacilitiesConfiguracoesPage />} />
             <Route path="/chamados-externos" element={<ChamadosExternosPage />} />
             <Route path="/licitacoes" element={<LicitacoesPage />} />
           </Route>

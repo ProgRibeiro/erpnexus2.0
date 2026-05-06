@@ -114,7 +114,7 @@ const ITENS_FACILITIES = [
     label: 'SISTEMA',
     type: 'group',
     children: [
-      { key: 'configuracoes', icon: <SettingOutlined />, label: 'Configurações', path: '/configuracoes' },
+      { key: 'fac-configuracoes', icon: <SettingOutlined />, label: 'Configurações', path: '/facilities/configuracoes' },
     ],
   },
 ];
@@ -165,6 +165,7 @@ export default function Sidebar() {
       if (p.startsWith('/facilities/unidades')) return 'fac-unidades';
       if (p.startsWith('/facilities/budget')) return 'fac-budget';
       if (p.startsWith('/facilities/aprovacoes')) return 'fac-aprovacoes';
+      if (p.startsWith('/facilities/configuracoes')) return 'fac-configuracoes';
       return 'fac-dashboard';
     }
     return 'dashboard';

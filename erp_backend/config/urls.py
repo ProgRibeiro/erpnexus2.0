@@ -62,6 +62,7 @@ tenant_api_patterns = [
     path("facilities/", include("apps.facilities.urls")),
     path("portal/contratante/", include("apps.portal_contratante.urls")),
     path("mobile/", include("apps.portal_contratante.mobile_urls")),
+    path("saas/", include("apps.saas.urls")),
     path("health/", HealthCheckView.as_view(), name='health-check-tenant'),
 ]
 

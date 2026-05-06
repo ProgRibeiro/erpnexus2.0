@@ -94,6 +94,8 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 | `relatorios`   | Geração de PDF via ReportLab                                | Concluídas |
 | `fiscal`       | Consulta CNPJ (BrasilAPI) + cálculo de impostos             | Concluídas |
 | `notificacoes` | Push notifications (portal do cliente)                      | Concluídas |
+| `saas`         | Multi-tenant: Tenant, Empresa, Unidade, Budget, Aprovação, SLA, Auditoria | Concluídas |
+| `portal_contratante` | Portal Facilities: dashboard, chamados, BI, aprovações, relatórios | Concluídas |
 
 ---
 
@@ -116,6 +118,37 @@ GET       /api/v1/crm/pipelines/           # pipelines do CRM
 GET/POST  /api/v1/crm/oportunidades/       # cards do Kanban
 POST      /api/v1/fiscal/consultar-cnpj/   # BrasilAPI
 POST      /api/v1/fiscal/calcular-impostos/
+
+# Facilities SaaS
+GET       /api/v1/portal/contratante/dashboard/   # dashboard do contratante
+GET/POST  /api/v1/portal/contratante/chamados/    # chamados da plataforma
+GET       /api/v1/portal/contratante/budget/      # budget e centros de custo
+GET       /api/v1/portal/contratante/aprovacoes-pendentes/
+POST      /api/v1/portal/contratante/aprovacoes/{id}/aprovar/
+POST      /api/v1/portal/contratante/aprovacoes/{id}/reprovar/
+GET       /api/v1/portal/contratante/bi/visao-geral/
+GET       /api/v1/portal/contratante/bi/evolucao/
+GET       /api/v1/portal/contratante/bi/heatmap-unidades/
+GET       /api/v1/portal/contratante/bi/curva-abc-prestadores/
+GET       /api/v1/portal/contratante/bi/comparativo-regionais/
+GET       /api/v1/portal/contratante/relatorios/auditoria/
+
+# SaaS Config (Configurações do Facilities)
+GET/POST  /api/v1/saas/tenants/
+GET/POST  /api/v1/saas/empresas/
+GET/POST  /api/v1/saas/unidades/
+GET/POST  /api/v1/saas/niveis-aprovacao/
+GET/POST  /api/v1/saas/centros-custo/
+GET/POST  /api/v1/saas/prestadores-contratados/
+GET/POST  /api/v1/saas/categorias-budget/
+GET/POST  /api/v1/saas/contratos/
+GET       /api/v1/saas/planos/
+
+# Mobile Facilities
+GET       /api/v1/mobile/aprovacoes-pendentes/
+POST      /api/v1/mobile/aprovacao/{id}/swipe-aprovar/
+POST      /api/v1/mobile/aprovacao/{id}/swipe-reprovar/
+GET       /api/v1/mobile/dashboard-executivo/
 ```
 
 ---
