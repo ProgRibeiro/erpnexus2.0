@@ -212,8 +212,8 @@ CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")
 
 # ─── Master Admin ─────────────────────────────────────────────────────────────
 # Credenciais do painel master (somente o proprietário tem acesso)
-MASTER_ADMIN_EMAIL = env("MASTER_ADMIN_EMAIL", default="lucas@erpnexus.com.br")
-MASTER_ADMIN_PASSWORD = env("MASTER_ADMIN_PASSWORD", default="MasterNexus@2025!")
+MASTER_ADMIN_EMAIL = env("MASTER_ADMIN_EMAIL", default="admin@admin.com")
+MASTER_ADMIN_PASSWORD = env("MASTER_ADMIN_PASSWORD", default="admin123")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

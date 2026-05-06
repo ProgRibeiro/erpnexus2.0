@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Form, Input, message, Typography } from "antd";
 import { LockOutlined, MailOutlined, CrownOutlined } from "@ant-design/icons";
-import masterApi from "../../services/masterApi";
+import axios from "axios";
 
 const { Title, Text } = Typography;
 
@@ -13,7 +13,10 @@ export default function MasterLoginPage() {
   const handleLogin = async (values) => {
     setLoading(true);
     try {
-      const res = await masterApi.post("auth/login/", {
+      localStorage.removeItem("master_token");
+      localStorage.removeItem("master_refresh");
+
+      const res = await axios.post("/api/master/auth/login/", {
         email: values.email,
         senha: values.senha,
       });
@@ -21,8 +24,8 @@ export default function MasterLoginPage() {
       localStorage.setItem("master_refresh", res.data.refresh);
       message.success("Acesso autorizado.");
       navigate("/master/dashboard");
-    } catch {
-      message.error("Credenciais inválidas. Acesso negado.");
+    } catch (error) {
+      message.error(error?.response?.data?.detail || "Falha ao acessar o painel master.");
     } finally {
       setLoading(false);
     }
@@ -83,7 +86,15 @@ export default function MasterLoginPage() {
           padding: "40px 36px",
           boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
         }}>
-          <Form layout="vertical" onFinish={handleLogin} autoComplete="off">
+          <Form
+            layout="vertical"
+            onFinish={handleLogin}
+            autoComplete="off"
+            initialValues={{
+              email: "admin@admin.com",
+              senha: "admin123",
+            }}
+          >
             <Form.Item
               name="email"
               rules={[{ required: true, message: "Informe o e-mail." }]}
@@ -141,6 +152,10 @@ export default function MasterLoginPage() {
               {loading ? "Verificando..." : "Entrar no Painel Master"}
             </Button>
           </Form>
+
+          <Text style={{ color: "#94A3B8", display: "block", marginTop: 16, fontSize: 12, textAlign: "center" }}>
+            Ambiente de desenvolvimento: admin@admin.com / admin123
+          </Text>
 
           <div style={{ textAlign: "center", marginTop: 24 }}>
             <Button
