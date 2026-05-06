@@ -208,15 +208,9 @@ export default function OrcamentosPage() {
         if (filters.periodo?.[0]) params.periodo_inicio = filters.periodo[0].format("YYYY-MM-DD");
         if (filters.periodo?.[1]) params.periodo_fim = filters.periodo[1].format("YYYY-MM-DD");
 
-        let response = await api.get("/ordens/", { params: { ...params, tipo: "orcamento" } });
-        let normalized = normalizeList(response.data);
+        const response = await api.get("/ordens/", { params: { ...params, modo: "orcamento" } });
+        const normalized = normalizeList(response.data);
         let filteredRows = normalized.rows.filter(isBudgetRecord);
-
-        if (filteredRows.length === 0) {
-          response = await api.get("/ordens/", { params });
-          normalized = normalizeList(response.data);
-          filteredRows = normalized.rows.filter(isBudgetRecord);
-        }
 
         if (filters.status) {
           filteredRows = filteredRows.filter((record) => mapBudgetStatus(record) === filters.status);

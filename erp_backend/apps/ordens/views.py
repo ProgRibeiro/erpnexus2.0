@@ -63,6 +63,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             .prefetch_related("itens", "fotos", "mensagens__anexos", "despesas", "logs_status")
         )
         status_param = self.request.query_params.get("status")
+        modo = self.request.query_params.get("modo")  # "orcamento" para página de orçamentos
         tecnico = self.request.query_params.get("tecnico") or self.request.query_params.get(
             "tecnico_responsavel"
         )
@@ -74,8 +75,28 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             "data_fim"
         )
 
+        STATUSES_ORCAMENTO = [
+            OrdemServico.Status.RASCUNHO,
+            OrdemServico.Status.ORCAMENTO_ENVIADO,
+        ]
+
         if status_param:
             queryset = queryset.filter(status=status_param)
+        elif modo == "orcamento":
+            # Página de orçamentos: mostra apenas registros que ainda são orçamentos ou foram
+            # aprovados/cancelados como resultado de um orçamento
+            queryset = queryset.filter(
+                status__in=[
+                    OrdemServico.Status.RASCUNHO,
+                    OrdemServico.Status.ORCAMENTO_ENVIADO,
+                    OrdemServico.Status.APROVADA,
+                    OrdemServico.Status.CANCELADA,
+                ]
+            )
+        else:
+            # Página de OS: oculta rascunhos e orçamentos ainda não aprovados
+            queryset = queryset.exclude(status__in=STATUSES_ORCAMENTO)
+
         if tecnico:
             queryset = queryset.filter(tecnico_responsavel_id=tecnico)
         if tipo:
@@ -124,6 +145,31 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         status_anterior = ordem.status
         status_novo = serializer.validated_data["status"]
+
+        # Guarda de transição: orçamentos só viram OS após aprovação
+        STATUSES_ORCAMENTO = {
+            OrdemServico.Status.RASCUNHO,
+            OrdemServico.Status.ORCAMENTO_ENVIADO,
+        }
+        STATUSES_OS = {
+            OrdemServico.Status.ABERTA,
+            OrdemServico.Status.AGENDADA,
+            OrdemServico.Status.EM_EXECUCAO,
+            OrdemServico.Status.CONCLUIDA,
+            OrdemServico.Status.FATURADA,
+        }
+        # Não permite pular de orçamento direto para status de OS sem passar por "aprovada"
+        if status_anterior in STATUSES_ORCAMENTO and status_novo in STATUSES_OS:
+            return Response(
+                {"detail": "O orçamento precisa ser aprovado antes de se tornar uma Ordem de Serviço."},
+                status=400,
+            )
+        # Não permite voltar de OS para orçamento
+        if status_anterior in STATUSES_OS and status_novo in STATUSES_ORCAMENTO:
+            return Response(
+                {"detail": "Não é possível reverter uma Ordem de Serviço para status de orçamento."},
+                status=400,
+            )
         ordem.status = status_novo
         ordem.atualizado_por = request.user
         ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
