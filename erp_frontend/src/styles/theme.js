@@ -36,12 +36,12 @@ export const theme = {
     paddingXS: 8,
 
     // Sombras mínimas
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-    boxShadowSecondary: "0 4px 8px rgba(0,0,0,0.06)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)",
+    boxShadowSecondary: "0 4px 16px rgba(0,0,0,0.08)",
 
     // Cores de fundo — neutro limpo
     colorBgContainer: "#FFFFFF",
-    colorBgLayout: "#F8FAFC",
+    colorBgLayout: "#F4F6F9",
     colorBgElevated: "#FFFFFF",
 
     // Texto
@@ -51,17 +51,17 @@ export const theme = {
     colorTextQuaternary: "#CBD5E1",
 
     // Bordas — mais suaves
-    colorBorder: "#E2E8F0",
-    colorBorderSecondary: "#F1F5F9",
+    colorBorder: "#E8EDF2",
+    colorBorderSecondary: "#F1F4F8",
 
     // Linha
     lineWidth: 1,
     lineType: "solid",
 
     // Altura dos controles
-    controlHeight: 40,
-    controlHeightLG: 46,
-    controlHeightSM: 32,
+    controlHeight: 38,
+    controlHeightLG: 44,
+    controlHeightSM: 30,
 
     // Motion
     motionDurationMid: "0.15s",
@@ -83,12 +83,13 @@ export const theme = {
     },
     // Tabela
     Table: {
-      headerBg: "#F8FAFC",
-      headerColor: "#64748B",
-      headerSortActiveBg: "#F1F5F9",
+      headerBg: "#FAFBFC",
+      headerColor: "#94A3B8",
+      headerSortActiveBg: "#F4F6F9",
       rowHoverBg: "#F8FAFC",
-      borderColor: "#E2E8F0",
+      borderColor: "#E8EDF2",
       fontSize: 13,
+      cellPaddingBlock: 12,
     },
     // Menu lateral
     Menu: {

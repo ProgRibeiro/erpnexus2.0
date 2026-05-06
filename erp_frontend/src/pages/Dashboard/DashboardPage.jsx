@@ -57,28 +57,30 @@ const emptyDashboard = {
 const pageStyle = {
   minHeight: "100vh",
   background: "#F4F6F9",
-  padding: 24,
+  padding: "24px 28px",
   fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
 
 const panelStyle = {
   background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
+  border: "1px solid #E8EDF2",
   borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
 };
 
 const metricCardStyle = {
   ...panelStyle,
   height: "100%",
-  transition: "transform 180ms ease, box-shadow 180ms ease",
+  overflow: "hidden",
+  position: "relative",
 };
 
 const sectionTitleStyle = {
   margin: 0,
-  color: "#111827",
-  fontSize: 18,
+  color: "#0F172A",
+  fontSize: 16,
   fontWeight: 700,
+  letterSpacing: "-0.01em",
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -233,70 +235,93 @@ function formatTime(record) {
 }
 
 function MetricCard({ color, icon, label, loading, value, variation }) {
-  const [hovered, setHovered] = useState(false);
   const isPositive = toNumber(variation) >= 0;
-  const variationColor = isPositive ? "#15803D" : "#B91C1C";
+  const variationColor = isPositive ? "#059669" : "#DC2626";
+  const variationBg = isPositive ? "#ECFDF5" : "#FEF2F2";
+  const absVariation = Math.abs(toNumber(variation)).toLocaleString("pt-BR", {
+    maximumFractionDigits: 1,
+  });
 
   return (
     <Card
       bordered={false}
-      style={{
-        ...metricCardStyle,
-        transform: hovered ? "translateY(-4px)" : "translateY(0)",
-        boxShadow: hovered ? "0 16px 34px rgba(15, 23, 42, 0.12)" : metricCardStyle.boxShadow,
-      }}
-      bodyStyle={{ padding: 20, minHeight: 154 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      style={metricCardStyle}
+      bodyStyle={{ padding: 0 }}
     >
+      {/* colored top accent */}
+      <div style={{ height: 3, background: color, borderRadius: "12px 12px 0 0" }} />
+
       <Skeleton active loading={loading} paragraph={{ rows: 2 }} title={false}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-          <div>
+        <div style={{ padding: "18px 20px 20px" }}>
+          {/* Label + icon row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Text
               style={{
                 color: "#6B7280",
                 display: "block",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: 0,
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.07em",
                 textTransform: "uppercase",
               }}
             >
               {label}
             </Text>
-            <div style={{ color: "#111827", fontSize: 30, fontWeight: 800, marginTop: 14 }}>
-              {value}
+            <div
+              style={{
+                alignItems: "center",
+                background: `${color}18`,
+                borderRadius: 9,
+                color,
+                display: "flex",
+                height: 38,
+                justifyContent: "center",
+                width: 38,
+                flexShrink: 0,
+              }}
+            >
+              {icon}
             </div>
           </div>
+
+          {/* Big number */}
           <div
             style={{
-              alignItems: "center",
-              background: `${color}14`,
-              borderRadius: 10,
-              color,
-              display: "flex",
-              height: 44,
-              justifyContent: "center",
-              width: 44,
+              color: "#0F172A",
+              fontSize: 34,
+              fontWeight: 800,
+              letterSpacing: "-0.03em",
+              lineHeight: 1,
+              marginTop: 14,
             }}
           >
-            {icon}
+            {value}
           </div>
-        </div>
 
-        <div style={{ alignItems: "center", display: "flex", gap: 6, marginTop: 16 }}>
-          {isPositive ? (
-            <ArrowUpOutlined style={{ color: variationColor, fontSize: 13 }} />
-          ) : (
-            <ArrowDownOutlined style={{ color: variationColor, fontSize: 13 }} />
-          )}
-          <Text style={{ color: variationColor, fontSize: 13, fontWeight: 700 }}>
-            {Math.abs(toNumber(variation)).toLocaleString("pt-BR", {
-              maximumFractionDigits: 1,
-            })}
-            %
-          </Text>
-          <Text style={{ color: "#6B7280", fontSize: 13 }}>vs mês anterior</Text>
+          {/* Trend badge */}
+          <div style={{ alignItems: "center", display: "flex", gap: 8, marginTop: 14 }}>
+            <span
+              style={{
+                alignItems: "center",
+                background: variationBg,
+                borderRadius: 20,
+                color: variationColor,
+                display: "inline-flex",
+                fontSize: 12,
+                fontWeight: 700,
+                gap: 3,
+                padding: "3px 9px",
+              }}
+            >
+              {isPositive ? (
+                <ArrowUpOutlined style={{ fontSize: 10 }} />
+              ) : (
+                <ArrowDownOutlined style={{ fontSize: 10 }} />
+              )}
+              {absVariation}%
+            </span>
+            <Text style={{ color: "#9CA3AF", fontSize: 12 }}>vs mês anterior</Text>
+          </div>
         </div>
       </Skeleton>
     </Card>
@@ -430,23 +455,32 @@ function DashboardPage() {
 
   return (
     <div style={pageStyle}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={1} style={{ color: "#111827", fontSize: 32, fontWeight: 800, margin: 0 }}>
-          {getGreeting()}, {getFirstName(user)}!
+      {/* Page header */}
+      <div style={{ marginBottom: 28 }}>
+        <Title
+          level={1}
+          style={{
+            color: "#0F172A",
+            fontSize: 28,
+            fontWeight: 800,
+            margin: 0,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {getGreeting()}, {getFirstName(user)}! 👋
         </Title>
-        <Text style={{ color: "#374151", display: "block", fontSize: 15, marginTop: 8 }}>
-          {getFormattedDate()}
-        </Text>
-        <Text style={{ color: "#6B7280", display: "block", fontSize: 15, marginTop: 6 }}>
-          Aqui está o resumo do seu dia
-        </Text>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
+          <Text style={{ color: "#64748B", fontSize: 14 }}>{getFormattedDate()}</Text>
+          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#CBD5E1", display: "inline-block" }} />
+          <Text style={{ color: "#94A3B8", fontSize: 14 }}>Resumo do dia</Text>
+        </div>
       </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} sm={12} xl={6}>
           <MetricCard
             color="#3B82F6"
-            icon={<FileTextOutlined style={{ fontSize: 23 }} />}
+            icon={<FileTextOutlined style={{ fontSize: 20 }} />}
             label="OS Abertas"
             loading={loading}
             value={dashboard.ordens_abertas}
@@ -455,8 +489,8 @@ function DashboardPage() {
         </Col>
         <Col xs={24} sm={12} xl={6}>
           <MetricCard
-            color="#5B21B6"
-            icon={<ToolOutlined style={{ fontSize: 23 }} />}
+            color="#8B5CF6"
+            icon={<ToolOutlined style={{ fontSize: 20 }} />}
             label="Em Execução Hoje"
             loading={loading}
             value={dashboard.em_execucao_hoje}
@@ -465,8 +499,8 @@ function DashboardPage() {
         </Col>
         <Col xs={24} sm={12} xl={6}>
           <MetricCard
-            color="#1A7A4A"
-            icon={<DollarOutlined style={{ fontSize: 23 }} />}
+            color="#10B981"
+            icon={<DollarOutlined style={{ fontSize: 20 }} />}
             label="Receita do Mês"
             loading={loading}
             value={shortCurrencyFormatter.format(dashboard.receita_mes)}
@@ -475,8 +509,8 @@ function DashboardPage() {
         </Col>
         <Col xs={24} sm={12} xl={6}>
           <MetricCard
-            color="#B45309"
-            icon={<ClockCircleOutlined style={{ fontSize: 23 }} />}
+            color="#F59E0B"
+            icon={<ClockCircleOutlined style={{ fontSize: 20 }} />}
             label="Aguardando Faturamento"
             loading={loading}
             value={shortCurrencyFormatter.format(dashboard.aguardando_faturamento_total)}
@@ -485,36 +519,53 @@ function DashboardPage() {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={14}>
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: "20px 20px 16px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 8 }} title={{ width: "55%" }}>
-              <h2 style={{ ...sectionTitleStyle, marginBottom: 18 }}>
-                Receita vs Despesa — últimos 6 meses
-              </h2>
-              <div style={{ height: 320, width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <div>
+                  <h2 style={sectionTitleStyle}>Receita vs Despesa</h2>
+                  <Text style={{ color: "#94A3B8", fontSize: 12 }}>últimos 6 meses</Text>
+                </div>
+              </div>
+              <div style={{ height: 300, width: "100%" }}>
                 <ResponsiveContainer height="100%" width="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" stroke="#6B7280" tickLine={false} />
+                  <BarChart data={chartData} barCategoryGap="35%">
+                    <CartesianGrid stroke="#F1F4F8" strokeDasharray="0" vertical={false} />
+                    <XAxis
+                      dataKey="mes"
+                      stroke="#9CA3AF"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fontWeight: 500 }}
+                    />
                     <YAxis
-                      stroke="#6B7280"
+                      stroke="#9CA3AF"
+                      axisLine={false}
                       tickFormatter={(value) => shortCurrencyFormatter.format(value)}
                       tickLine={false}
-                      width={86}
+                      width={82}
+                      tick={{ fontSize: 11 }}
                     />
                     <Tooltip
                       formatter={(value) => currencyFormatter.format(value)}
-                      labelStyle={{ color: "#111827", fontWeight: 700 }}
+                      labelStyle={{ color: "#0F172A", fontWeight: 700, fontSize: 13 }}
                       contentStyle={{
-                        border: "1px solid #E2E6EC",
+                        border: "1px solid #E8EDF2",
                         borderRadius: 10,
-                        boxShadow: "0 12px 28px rgba(15, 23, 42, 0.12)",
+                        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.1)",
+                        fontSize: 13,
                       }}
+                      cursor={{ fill: "rgba(59,130,246,0.04)" }}
                     />
-                    <Legend />
-                    <Bar dataKey="receita" fill="#1A7A4A" name="Receita" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="despesa" fill="#B91C1C" name="Despesa" radius={[8, 8, 0, 0]} />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                    />
+                    <Bar dataKey="receita" fill="#10B981" name="Receita" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                    <Bar dataKey="despesa" fill="#F87171" name="Despesa" radius={[6, 6, 0, 0]} maxBarSize={40} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -523,15 +574,15 @@ function DashboardPage() {
         </Col>
 
         <Col xs={24} lg={10}>
-          <Card bordered={false} style={{ ...panelStyle, height: "100%" }} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={{ ...panelStyle, height: "100%" }} bodyStyle={{ padding: "20px 20px 16px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 7 }} title={{ width: "45%" }}>
               {cardHeader("OS Agendadas Hoje", "/agenda/hoje")}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
                 {scheduledOrders.length === 0 ? (
                   <Empty
-                    image={<CalendarOutlined style={{ color: "#9CA3AF", fontSize: 46 }} />}
-                    description="Nenhuma OS agendada hoje"
-                    style={{ margin: "44px 0" }}
+                    image={<CalendarOutlined style={{ color: "#CBD5E1", fontSize: 40 }} />}
+                    description={<span style={{ color: "#94A3B8", fontSize: 13 }}>Nenhuma OS agendada hoje</span>}
+                    style={{ margin: "36px 0" }}
                   />
                 ) : (
                   scheduledOrders.slice(0, 5).map((order, index) => {
@@ -548,29 +599,30 @@ function DashboardPage() {
                         key={order.id || index}
                         style={{
                           alignItems: "center",
-                          border: "1px solid #EEF1F5",
+                          background: "#FAFBFD",
+                          border: "1px solid #EEF1F7",
                           borderRadius: 10,
                           display: "grid",
                           gap: 12,
-                          gridTemplateColumns: "58px 1fr auto",
-                          padding: 12,
+                          gridTemplateColumns: "54px 1fr auto",
+                          padding: "10px 12px",
                         }}
                       >
-                        <Text strong style={{ color: "#3B82F6", fontSize: 15 }}>
+                        <Text strong style={{ color: "#3B82F6", fontSize: 14, letterSpacing: "-0.01em" }}>
                           {formatTime(order)}
                         </Text>
                         <div style={{ minWidth: 0 }}>
-                          <Text ellipsis strong style={{ color: "#111827", display: "block" }}>
+                          <Text ellipsis strong style={{ color: "#0F172A", display: "block", fontSize: 13 }}>
                             {getClienteName(order)}
                           </Text>
-                          <Space size={8} style={{ marginTop: 6 }}>
-                            <Avatar size={26} style={{ background: "#3B82F6", fontSize: 11 }}>
+                          <Space size={6} style={{ marginTop: 4 }}>
+                            <Avatar size={22} style={{ background: "#3B82F6", fontSize: 10 }}>
                               {getInitials(technicianName)}
                             </Avatar>
                             <Text style={{ color: "#6B7280", fontSize: 12 }}>{technicianName}</Text>
                           </Space>
                         </div>
-                        <Badge color={getStatusColor(status)} text={status} />
+                        <Badge color={getStatusColor(status)} text={<span style={{ fontSize: 12 }}>{status}</span>} />
                       </div>
                     );
                   })

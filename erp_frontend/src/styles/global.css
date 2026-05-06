@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100;0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap");
 
 /* Reset e base */
 
@@ -9,9 +9,11 @@
 body {
   margin: 0;
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-  background: #f8fafc;
+  background: #F4F6F9;
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
 }
 
 #root {
@@ -21,8 +23,8 @@ body {
 /* Scrollbar customizada (Chrome/Edge) */
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -30,7 +32,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D1D9E0;
   border-radius: 4px;
 }
 
@@ -41,9 +43,9 @@ body {
 /* ── Sidebar ─────────────────────────────── */
 
 .erp-sidebar-shell {
-  background: linear-gradient(180deg, #0F1729 0%, #1A2236 100%) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(170deg, #0B1120 0%, #111827 60%, #162032 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 1px 0 24px rgba(0, 0, 0, 0.3);
 }
 
 .erp-sidebar-shell .ant-layout-sider-children {
@@ -55,69 +57,71 @@ body {
 /* Brand panel */
 
 .erp-brand-panel {
-  padding: 24px 20px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
 
 .erp-brand-mark {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
   color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 11px;
+  letter-spacing: -0.03em;
 }
 
 .erp-brand-title {
   margin: 0;
-  font-size: 17px;
-  line-height: 1.2;
+  font-size: 16px;
+  line-height: 1.25;
   font-weight: 700;
-  color: #f9fafb;
-  letter-spacing: -0.01em;
+  color: #F1F5F9;
+  letter-spacing: -0.02em;
 }
 
 .erp-brand-subtitle {
-  margin: 5px 0 0;
-  color: rgba(156, 163, 175, 0.75);
+  margin: 4px 0 0;
+  color: rgba(148, 163, 184, 0.7);
   font-size: 11px;
   line-height: 1.5;
+  font-weight: 400;
 }
 
 /* Menu lateral */
 
 .erp-sidebar-menu {
   flex: 1;
-  padding: 12px 0 8px !important;
+  padding: 10px 0 8px !important;
   background: transparent !important;
 }
 
 .erp-sidebar-menu .ant-menu-item-group-title {
-  padding: 20px 16px 6px !important;
-  color: rgba(255, 255, 255, 0.35) !important;
+  padding: 18px 16px 5px !important;
+  color: rgba(255, 255, 255, 0.28) !important;
   font-size: 10px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
 }
 
 .erp-sidebar-menu .ant-menu-item,
 .erp-sidebar-menu .ant-menu-submenu-title {
-  margin: 2px 10px !important;
+  margin: 1px 10px !important;
   width: calc(100% - 20px) !important;
-  height: 40px !important;
-  line-height: 40px !important;
+  height: 38px !important;
+  line-height: 38px !important;
   border-radius: 8px !important;
   font-size: 13px !important;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65) !important;
-  transition: all 0.15s ease !important;
-  padding-inline: 14px !important;
+  color: rgba(203, 213, 225, 0.7) !important;
+  transition: all 0.12s ease !important;
+  padding-inline: 12px !important;
 }
 
 .erp-sidebar-menu .ant-menu-item .ant-menu-title-content {
@@ -126,36 +130,32 @@ body {
 
 .erp-sidebar-menu .ant-menu-item .ant-menu-item-icon,
 .erp-sidebar-menu .ant-menu-submenu-title .ant-menu-item-icon {
-  color: rgba(255, 255, 255, 0.4) !important;
-  font-size: 16px !important;
-  transition: color 0.15s ease !important;
+  color: rgba(203, 213, 225, 0.45) !important;
+  font-size: 15px !important;
+  transition: color 0.12s ease !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item:hover,
 .erp-sidebar-menu.ant-menu-inline .ant-menu-submenu-title:hover {
-  background: rgba(255, 255, 255, 0.06) !important;
-  color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(241, 245, 249, 0.9) !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item:hover .ant-menu-item-icon,
 .erp-sidebar-menu.ant-menu-inline
   .ant-menu-submenu-title:hover
   .ant-menu-item-icon {
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(203, 213, 225, 0.7) !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected {
-  background: linear-gradient(
-    90deg,
-    rgba(59, 130, 246, 0.22) 0%,
-    rgba(59, 130, 246, 0.06) 100%
-  ) !important;
-  color: #ffffff !important;
-  border-left: 3px solid #3B82F6 !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #BFDBFE !important;
+  border-left: 2px solid #60A5FA !important;
   border-radius: 0 8px 8px 0 !important;
   margin-left: 0 !important;
   width: calc(100% - 10px) !important;
-  padding-inline-start: 11px !important;
+  padding-inline-start: 10px !important;
 }
 
 .erp-sidebar-menu.ant-menu-inline .ant-menu-item-selected .ant-menu-item-icon {
@@ -172,9 +172,9 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 }
 
@@ -186,18 +186,18 @@ body {
   left: 260px;
   right: 0;
   z-index: 90;
-  height: 64px !important;
+  height: 58px !important;
   line-height: normal !important;
-  padding: 0 28px !important;
-  border-bottom: 1px solid #E2E8F0 !important;
-  background: rgba(255, 255, 255, 0.96) !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  padding: 0 24px !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .erp-topbar {
-  min-height: 64px;
+  min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -255,29 +255,41 @@ body {
 /* ── Layout principal ────────────────────── */
 
 .erp-shell-content {
-  padding: 88px 32px 32px;
-  background: #F7F8FA;
+  padding: 82px 28px 32px;
+  background: #F4F6F9;
   min-height: 100vh;
 }
 
 .erp-shell-panel {
   width: 100%;
-  max-width: 1520px;
+  max-width: 1540px;
   margin: 0 auto;
+  animation: fadeInUp 0.2s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Cards ───────────────────────────────── */
 
 .erp-page-card {
   background: #ffffff;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #E8EDF2;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.15s ease;
 }
 
 .erp-page-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .erp-page-card .card-title {
@@ -293,49 +305,48 @@ body {
 
 .erp-metric-card {
   background: #ffffff;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #E8EDF2;
   border-radius: 12px;
-  padding: 24px;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  padding: 22px;
+  transition: box-shadow 0.15s ease;
 }
 
 .erp-metric-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .erp-metric-card .metric-label {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 11px;
+  color: #6B7280;
+  font-weight: 600;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .erp-metric-card .metric-value {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
   color: #0f172a;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .erp-metric-card .metric-sub {
   font-size: 12px;
   color: #94a3b8;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .erp-metric-card .metric-up {
-  color: #10b981;
+  color: #059669;
 }
 
 .erp-metric-card .metric-down {
-  color: #ef4444;
+  color: #DC2626;
 }
 
 /* ── Badges de status ────────────────────── */
@@ -459,7 +470,7 @@ body {
 /* ── Micro-interações globais ────────────── */
 
 .ant-btn {
-  transition: all 0.15s ease !important;
+  transition: all 0.12s ease !important;
 }
 
 .ant-btn:not(:disabled):active {
@@ -479,43 +490,55 @@ body {
 
 .ant-card {
   border-radius: 12px !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-  transition: box-shadow 0.15s ease, transform 0.15s ease !important;
+  border-color: #E8EDF2 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  transition: box-shadow 0.15s ease !important;
 }
 
 .ant-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Tabelas */
+/* Tabelas — estilo Linear: apenas linhas horizontais */
 
 .ant-table-thead > tr > th {
   font-size: 11px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.06em !important;
   color: #94a3b8 !important;
-  background: #F8FAFC !important;
+  background: #FAFBFC !important;
+  border-bottom: 1px solid #E8EDF2 !important;
 }
 
 .ant-table-tbody > tr > td {
   font-size: 13px !important;
+  border-bottom: 1px solid #F1F4F8 !important;
+}
+
+/* Remove bordas verticais das células */
+.ant-table-cell {
+  border-right: none !important;
+  border-left: none !important;
 }
 
 .ant-table-row {
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background 0.1s ease;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #F8FAFC !important;
 }
 
 .ant-card .ant-card-head {
-  min-height: 56px;
-  padding: 0 20px;
-  border-bottom-color: #F1F5F9 !important;
+  min-height: 52px;
+  padding: 0 18px;
+  border-bottom-color: #F1F4F8 !important;
 }
 
 .ant-card .ant-card-body {
-  padding: 20px 24px;
+  padding: 18px 20px;
 }
 
 /* ── Filtros ─────────────────────────────── */

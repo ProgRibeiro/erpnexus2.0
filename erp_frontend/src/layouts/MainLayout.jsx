@@ -1,24 +1,24 @@
 import { Layout, Avatar, Tooltip, Button } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { ToolOutlined, BuildOutlined, LogoutOutlined } from '@ant-design/icons';
+import { LogoutOutlined } from '@ant-design/icons';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../hooks/useAuth';
 
 const BRAND = {
   prestador: {
-    icon: <ToolOutlined />,
+    letter: "N",
+    gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
     titulo: "ERP Nexus",
-    subtitulo: "Sistema do prestador de serviço",
-    iconBg: "rgba(59,130,246,0.15)",
-    iconBorder: "rgba(59,130,246,0.3)",
+    subtitulo: "Prestador de serviços",
+    shadow: "0 4px 12px rgba(59,130,246,0.35)",
   },
   facilities: {
-    icon: <BuildOutlined />,
+    letter: "F",
+    gradient: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
     titulo: "ERP Facilities",
     subtitulo: "Gestão predial e manutenção",
-    iconBg: "rgba(16,185,129,0.15)",
-    iconBorder: "rgba(16,185,129,0.3)",
+    shadow: "0 4px 12px rgba(16,185,129,0.35)",
   },
 };
 
@@ -67,15 +67,14 @@ export default function MainLayout() {
           <div
             className="erp-brand-mark"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20,
-              background: brand.iconBg,
-              border: `1px solid ${brand.iconBorder}`,
+              background: brand.gradient,
+              boxShadow: brand.shadow,
+              fontSize: 17,
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
             }}
           >
-            {brand.icon}
+            {brand.letter}
           </div>
           <h2 className="erp-brand-title">{brand.titulo}</h2>
           <p className="erp-brand-subtitle">{brand.subtitulo}</p>
@@ -133,7 +132,7 @@ export default function MainLayout() {
         </div>
       </Layout.Sider>
 
-      <Layout style={{ marginLeft: sidebarWidth, background: '#F7F8FA' }}>
+      <Layout style={{ marginLeft: sidebarWidth, background: '#F4F6F9' }}>
         <Header />
         <Layout.Content className="erp-shell-content">
           <div className="erp-shell-panel">
