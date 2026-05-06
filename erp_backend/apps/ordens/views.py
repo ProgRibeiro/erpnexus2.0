@@ -199,6 +199,32 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         from apps.financeiro.serializers import LancamentoSerializer
 
         ordem = self.get_object()
+
+        # Regra 1: somente OS com status "concluida" podem ser faturadas
+        if ordem.status != OrdemServico.Status.CONCLUIDA:
+            status_label = dict(OrdemServico.Status.choices).get(ordem.status, ordem.status)
+            return Response(
+                {"detail": f"Somente ordens com status 'Concluída' podem ser faturadas. Status atual: {status_label}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Regra 2: se tem PC, verificar se foi preenchido ou se usuário confirmou prosseguir sem
+        pc_preenchido = False
+        if ordem.tem_pedido_compra:
+            tem_numero = bool(ordem.numero_pc and ordem.numero_pc.strip())
+            tem_valor = bool(ordem.valor_autorizado_pc and float(ordem.valor_autorizado_pc) > 0)
+            tem_dados = bool(isinstance(ordem.dados_pc_extraidos, dict) and ordem.dados_pc_extraidos)
+            pc_preenchido = tem_numero or tem_valor or tem_dados
+            forcar = request.data.get("forcar_sem_pc", False)
+            if not pc_preenchido and not forcar:
+                return Response(
+                    {
+                        "detail": "Esta OS possui Pedido de Compra mas os dados não foram preenchidos. "
+                                  "Preencha o PC na OS ou confirme para faturar sem PC.",
+                        "requer_confirmacao_pc": True,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         conta_id = request.data.get("conta_bancaria")
         if conta_id:
             try:
@@ -630,8 +656,13 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="pendentes-faturamento")
     def pendentes_faturamento(self, request):
-        """Lista OS que ainda não foram faturadas (status != faturada)."""
-        qs = OrdemServico.objects.exclude(status="faturada").select_related("cliente").order_by("-criado_em")
+        """Lista OS concluídas (prontas para faturamento) que ainda não foram faturadas."""
+        qs = (
+            OrdemServico.objects
+            .filter(status=OrdemServico.Status.CONCLUIDA)
+            .select_related("cliente")
+            .order_by("-criado_em")
+        )
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 

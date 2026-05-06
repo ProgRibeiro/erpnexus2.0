@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import {
   Button,
   Card,
-  Checkbox,
   Col,
   DatePicker,
-  Divider,
   Form,
   Input,
   Modal,
@@ -15,15 +13,18 @@ import {
   Statistic,
   Table,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from "antd";
 import {
   DollarOutlined,
   EyeOutlined,
+  ExclamationCircleOutlined,
   FileTextOutlined,
   GroupOutlined,
   SearchOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
@@ -75,16 +76,15 @@ export default function FaturamentoPage() {
     try {
       const params = {};
       if (filters.cliente) params.cliente = filters.cliente;
-      if (filters.status) params.status = filters.status;
       if (filters.periodo) {
         params.data_inicio = filters.periodo[0].format("YYYY-MM-DD");
         params.data_fim = filters.periodo[1].format("YYYY-MM-DD");
       }
+      // pendentes-faturamento agora retorna somente status=concluida
       const response = await api.get("/ordens/pendentes-faturamento/", { params });
       const data = response.data;
       setOrdens(Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []);
     } catch {
-      // fallback: busca ordens normais com status concluida/em_execucao
       try {
         const response = await api.get("/ordens/", { params: { status: "concluida" } });
         const data = response.data;
@@ -173,6 +173,16 @@ export default function FaturamentoPage() {
 
   const totalPendente = ordens.reduce((acc, o) => acc + Number(o.valor_total_orcado || 0), 0);
 
+  // Verifica se PC está preenchido (tem número, valor ou dados extraídos)
+  function pcStatus(record) {
+    if (!record.tem_pedido_compra) return "sem_pc";
+    const temNumero = record.numero_pc && String(record.numero_pc).trim().length > 0;
+    const temValor = record.valor_autorizado_pc && Number(record.valor_autorizado_pc) > 0;
+    const temDados = record.dados_pc_extraidos && typeof record.dados_pc_extraidos === "object" &&
+      Object.keys(record.dados_pc_extraidos).length > 0;
+    return (temNumero || temValor || temDados) ? "pc_ok" : "pc_pendente";
+  }
+
   const columns = [
     {
       title: "Número OS",
@@ -199,29 +209,52 @@ export default function FaturamentoPage() {
       render: (v) => <Text strong>{fmt(v)}</Text>,
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (v) => (
-        <Tag color={statusColors[v] || "default"}>
-          {String(v || "").replace(/_/g, " ").toUpperCase()}
-        </Tag>
-      ),
+      title: "Pedido de Compra",
+      key: "pc",
+      width: 150,
+      render: (_, record) => {
+        const ps = pcStatus(record);
+        if (ps === "sem_pc") return <Tag color="default">Sem PC</Tag>;
+        if (ps === "pc_ok") return (
+          <Tag icon={<CheckCircleOutlined />} color="success">PC Preenchido</Tag>
+        );
+        return (
+          <Tooltip title="PC obrigatório não preenchido. Preencha o Pedido de Compra na OS antes de faturar.">
+            <Tag icon={<ExclamationCircleOutlined />} color="warning">PC Pendente</Tag>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Ações",
       key: "acoes",
-      render: (_, record) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/ordens/${record.id}`, { state: { tab: "faturamento" } })}
-          >
-            Ver Detalhes
-          </Button>
-        </Space>
-      ),
+      render: (_, record) => {
+        const ps = pcStatus(record);
+        const bloqueado = ps === "pc_pendente";
+        return (
+          <Space>
+            <Tooltip title={bloqueado ? "Preencha o PC na OS antes de faturar" : ""}>
+              <Button
+                size="small"
+                type="primary"
+                icon={<EyeOutlined />}
+                disabled={bloqueado}
+                style={bloqueado ? {} : { background: "#3B82F6", borderColor: "#3B82F6" }}
+                onClick={() => navigate(`/ordens/${record.id}`, { state: { tab: "faturamento" } })}
+              >
+                {bloqueado ? "PC Pendente" : "Faturar"}
+              </Button>
+            </Tooltip>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/ordens/${record.id}`)}
+            >
+              Ver OS
+            </Button>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -284,7 +317,7 @@ export default function FaturamentoPage() {
       {/* Filtros */}
       <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <Row gutter={[16, 8]} align="middle">
-          <Col xs={24} sm={8}>
+          <Col xs={24} sm={10}>
             <Select
               placeholder="Filtrar por cliente"
               allowClear
@@ -295,28 +328,14 @@ export default function FaturamentoPage() {
               optionFilterProp="label"
             />
           </Col>
-          <Col xs={24} sm={6}>
-            <Select
-              placeholder="Status"
-              allowClear
-              style={{ width: "100%" }}
-              onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
-              options={[
-                { value: "concluida", label: "Concluída" },
-                { value: "em_execucao", label: "Em execução" },
-                { value: "faturada", label: "Faturada" },
-                { value: "aprovada", label: "Aprovada" },
-              ]}
-            />
-          </Col>
-          <Col xs={24} sm={8}>
+          <Col xs={24} sm={10}>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
               onChange={(v) => setFilters((f) => ({ ...f, periodo: v }))}
             />
           </Col>
-          <Col xs={24} sm={2}>
+          <Col xs={24} sm={4}>
             <Button icon={<SearchOutlined />} onClick={carregarOrdens} style={{ width: "100%" }}>
               Filtrar
             </Button>
