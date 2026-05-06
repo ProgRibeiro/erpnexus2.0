@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Badge,
   Button,
   Card,
   Col,
+  Divider,
   Empty,
   Form,
   InputNumber,
@@ -12,11 +12,13 @@ import {
   Row,
   Select,
   Space,
+  Table,
   Tag,
   Typography,
   message,
   Spin,
   Tooltip,
+  DatePicker,
 } from "antd";
 import {
   TrophyOutlined,
@@ -25,12 +27,30 @@ import {
   DollarOutlined,
   SendOutlined,
   EyeOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  FileTextOutlined,
+  ToolOutlined,
+  CalendarOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
+import dayjs from "dayjs";
 import api from "../../services/api";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+const CONDICAO_PGTO = [
+  { value: "a_vista", label: "À Vista" },
+  { value: "30_dias", label: "30 dias" },
+  { value: "50_50", label: "50% entrada / 50% conclusão" },
+  { value: "30_60", label: "30/60 dias" },
+  { value: "30_60_90", label: "30/60/90 dias" },
+  { value: "parcelado", label: "Parcelado (negociável)" },
+];
+
+const UNIDADES = ["un", "m²", "m³", "m", "h", "kg", "cj", "serviço", "vb"];
 
 const STATUS_CONFIG = {
   rascunho:   { color: "default", label: "Rascunho" },
@@ -56,6 +76,7 @@ export default function LicitacoesPage() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [modalProposta, setModalProposta] = useState(null);
   const [propostaLoading, setPropostaLoading] = useState(false);
+  const [itens, setItens] = useState([{ descricao: "", qtd: 1, unidade: "un", valor_unit: 0 }]);
   const [form] = Form.useForm();
 
   const fetchLicitacoes = useCallback(async () => {
@@ -72,19 +93,42 @@ export default function LicitacoesPage() {
 
   useEffect(() => { fetchLicitacoes(); }, [fetchLicitacoes]);
 
-  const filtradas = licitacoes.filter((l) => {
-    if (filtroStatus === "todos") return true;
-    return l.status === filtroStatus;
-  });
+  const filtradas = licitacoes.filter((l) =>
+    filtroStatus === "todos" || l.status === filtroStatus
+  );
+
+  const totalItens = itens.reduce((sum, i) => sum + (i.qtd || 0) * (i.valor_unit || 0), 0);
+
+  const adicionarItem = () =>
+    setItens((prev) => [...prev, { descricao: "", qtd: 1, unidade: "un", valor_unit: 0 }]);
+
+  const removerItem = (idx) =>
+    setItens((prev) => prev.filter((_, i) => i !== idx));
+
+  const atualizarItem = (idx, campo, valor) =>
+    setItens((prev) => prev.map((item, i) => (i === idx ? { ...item, [campo]: valor } : item)));
+
+  const abrirModal = (l) => {
+    setModalProposta(l);
+    setItens([{ descricao: l.titulo || "", qtd: 1, unidade: "serviço", valor_unit: 0 }]);
+    form.resetFields();
+  };
 
   const handleEnviarProposta = async (values) => {
     if (!modalProposta) return;
+    if (itens.some((i) => !i.descricao.trim())) {
+      message.error("Preencha a descrição de todos os itens.");
+      return;
+    }
     setPropostaLoading(true);
     try {
       await api.post(`/facilities/licitacoes/${modalProposta.id}/propostas/`, {
-        valor: values.valor,
+        valor: totalItens,
         prazo_execucao_dias: values.prazo_execucao_dias,
+        condicao_pagamento: values.condicao_pagamento,
+        validade_proposta: values.validade_proposta ? values.validade_proposta.format("YYYY-MM-DD") : null,
         observacoes: values.observacoes || "",
+        itens_orcamento: itens,
       });
       message.success("Proposta enviada com sucesso!");
       setModalProposta(null);
@@ -98,7 +142,7 @@ export default function LicitacoesPage() {
   };
 
   return (
-    <div style={{ padding: "24px", background: "#F8FAFC", minHeight: "100vh" }}>
+    <div style={{ padding: "24px", background: "#F4F6F9", minHeight: "100vh", fontFamily: "Inter, sans-serif" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -124,17 +168,11 @@ export default function LicitacoesPage() {
 
       {/* Lista */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: 80 }}>
-          <Spin size="large" />
-        </div>
+        <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>
       ) : filtradas.length === 0 ? (
         <Empty
           image={<TrophyOutlined style={{ fontSize: 64, color: "#CBD5E1" }} />}
-          description={
-            <span style={{ color: "#94A3B8", fontSize: 16 }}>
-              Nenhuma licitação disponível no momento
-            </span>
-          }
+          description={<span style={{ color: "#94A3B8", fontSize: 16 }}>Nenhuma licitação disponível no momento</span>}
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -156,9 +194,12 @@ export default function LicitacoesPage() {
                         <Tag color={statusConf.color} style={{ borderRadius: 6 }}>{statusConf.label}</Tag>
                         <Tag color="blue" style={{ borderRadius: 6 }}>{l.tipo_servico}</Tag>
                       </Space>
-
                       <Text strong style={{ fontSize: 16 }}>{l.titulo}</Text>
-
+                      {l.descricao && (
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                          {String(l.descricao).slice(0, 140)}{l.descricao.length > 140 ? "..." : ""}
+                        </Text>
+                      )}
                       <Space wrap>
                         {l.valor_maximo && (
                           <Text type="secondary" style={{ fontSize: 13 }}>
@@ -170,16 +211,15 @@ export default function LicitacoesPage() {
                           <TeamOutlined style={{ marginRight: 4 }} />
                           {l.propostas_count ?? (l.propostas?.length ?? 0)} proposta(s)
                         </Text>
+                        {l.prazo_execucao && (
+                          <Text type="secondary" style={{ fontSize: 13 }}>
+                            <CalendarOutlined style={{ marginRight: 4 }} />
+                            Prazo execução: {l.prazo_execucao} dias
+                          </Text>
+                        )}
                       </Space>
-
                       {countdown && (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: countdown.vencido ? "#EF4444" : countdown.urgente ? "#F59E0B" : "#64748B",
-                            fontWeight: countdown.urgente || countdown.vencido ? 600 : 400,
-                          }}
-                        >
+                        <Text style={{ fontSize: 12, color: countdown.vencido ? "#EF4444" : countdown.urgente ? "#F59E0B" : "#64748B", fontWeight: countdown.urgente || countdown.vencido ? 600 : 400 }}>
                           <ClockCircleOutlined style={{ marginRight: 4 }} />
                           {countdown.texto}
                         </Text>
@@ -190,21 +230,14 @@ export default function LicitacoesPage() {
                   <Col xs={24} md={8} style={{ textAlign: "right" }}>
                     {jaEnviou ? (
                       <Tooltip title="Você já enviou proposta para esta licitação">
-                        <Button icon={<EyeOutlined />} style={{ borderRadius: 8, width: "100%" }}>
-                          Ver Proposta
-                        </Button>
+                        <Button icon={<EyeOutlined />} style={{ borderRadius: 8, width: "100%" }}>Ver Proposta</Button>
                       </Tooltip>
                     ) : l.status === "publicada" ? (
                       <Button
                         type="primary"
                         icon={<SendOutlined />}
-                        style={{
-                          background: "#10B981",
-                          borderColor: "#10B981",
-                          borderRadius: 8,
-                          width: "100%",
-                        }}
-                        onClick={() => { setModalProposta(l); form.resetFields(); }}
+                        style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8, width: "100%" }}
+                        onClick={() => abrirModal(l)}
                       >
                         Enviar Proposta
                       </Button>
@@ -219,59 +252,201 @@ export default function LicitacoesPage() {
         </div>
       )}
 
-      {/* Modal Enviar Proposta */}
+      {/* ============ Modal Orçamento Completo ============ */}
       <Modal
         open={!!modalProposta}
         onCancel={() => { setModalProposta(null); form.resetFields(); }}
-        title={
-          <Space>
-            <SendOutlined style={{ color: "#10B981" }} />
-            <span>Enviar Proposta — {modalProposta?.titulo}</span>
-          </Space>
-        }
+        title={null}
         footer={null}
-        width={520}
+        width={780}
+        styles={{ body: { padding: 0 } }}
       >
-        <Form form={form} layout="vertical" onFinish={handleEnviarProposta} style={{ marginTop: 16 }}>
-          <Form.Item
-            name="valor"
-            label="Valor da proposta (R$)"
-            rules={[{ required: true, message: "Informe o valor" }]}
-          >
-            <InputNumber
-              style={{ width: "100%" }}
-              min={0}
-              precision={2}
-              formatter={(v) => `R$ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-              parser={(v) => v.replace(/R\$\s?|(\.*)/g, "").replace(",", ".")}
-              placeholder="0,00"
-            />
-          </Form.Item>
+        {modalProposta && (
+          <div>
+            {/* Cabeçalho do modal */}
+            <div style={{ background: "linear-gradient(135deg,#0F172A,#1E293B)", borderRadius: "8px 8px 0 0", padding: "20px 24px" }}>
+              <Space>
+                <SendOutlined style={{ color: "#10B981", fontSize: 18 }} />
+                <span style={{ color: "#F1F5F9", fontSize: 16, fontWeight: 600 }}>Enviar Proposta</span>
+              </Space>
+            </div>
 
-          <Form.Item
-            name="prazo_execucao_dias"
-            label="Prazo de execução (dias)"
-            rules={[{ required: true, message: "Informe o prazo" }]}
-          >
-            <InputNumber style={{ width: "100%" }} min={1} placeholder="Ex: 30" />
-          </Form.Item>
+            {/* Detalhes da licitação */}
+            <div style={{ padding: "20px 24px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+              <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Detalhes do Serviço</Text>
+              <div style={{ marginTop: 10 }}>
+                <Space wrap style={{ marginBottom: 8 }}>
+                  <Tag color="blue" style={{ borderRadius: 6 }}>
+                    <ToolOutlined style={{ marginRight: 4 }} />
+                    {modalProposta.tipo_servico}
+                  </Tag>
+                  {modalProposta.valor_maximo && (
+                    <Tag color="green" style={{ borderRadius: 6 }}>
+                      <DollarOutlined style={{ marginRight: 4 }} />
+                      Máx: R$ {Number(modalProposta.valor_maximo).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </Tag>
+                  )}
+                  {modalProposta.prazo_execucao && (
+                    <Tag color="orange" style={{ borderRadius: 6 }}>
+                      <ClockCircleOutlined style={{ marginRight: 4 }} />
+                      Prazo: {modalProposta.prazo_execucao} dias
+                    </Tag>
+                  )}
+                </Space>
+                <Text strong style={{ fontSize: 15, display: "block", marginBottom: 6 }}>{modalProposta.titulo}</Text>
+                {modalProposta.descricao && (
+                  <Paragraph type="secondary" style={{ fontSize: 13, margin: 0 }}>{modalProposta.descricao}</Paragraph>
+                )}
+                {modalProposta.requisitos && (
+                  <div style={{ marginTop: 8, padding: "8px 12px", background: "#FEF3C7", borderRadius: 8, border: "1px solid #FDE68A" }}>
+                    <Text style={{ fontSize: 12 }}>
+                      <InfoCircleOutlined style={{ marginRight: 6, color: "#D97706" }} />
+                      <strong>Requisitos:</strong> {modalProposta.requisitos}
+                    </Text>
+                  </div>
+                )}
+              </div>
+            </div>
 
-          <Form.Item name="observacoes" label="Observações / Diferencial">
-            <TextArea rows={4} placeholder="Descreva seu diferencial, experiência ou condições especiais..." />
-          </Form.Item>
+            {/* Formulário */}
+            <div style={{ padding: "20px 24px" }}>
+              <Form form={form} layout="vertical" onFinish={handleEnviarProposta}>
 
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={propostaLoading}
-              block
-              style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8, height: 42 }}
-            >
-              Enviar Proposta
-            </Button>
-          </Form.Item>
-        </Form>
+                {/* Itens do orçamento */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <Text strong>
+                      <FileTextOutlined style={{ marginRight: 6, color: "#3B82F6" }} />
+                      Itens do Orçamento
+                    </Text>
+                    <Button size="small" icon={<PlusOutlined />} onClick={adicionarItem} style={{ borderRadius: 6 }}>
+                      Adicionar item
+                    </Button>
+                  </div>
+
+                  <div style={{ border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
+                    {/* Cabeçalho da tabela */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 60px 90px 110px 36px", gap: 8, padding: "8px 12px", background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
+                      <Text style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Descrição do Item / Serviço</Text>
+                      <Text style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Qtd</Text>
+                      <Text style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Unidade</Text>
+                      <Text style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Valor Unit.</Text>
+                      <span />
+                    </div>
+                    {/* Linhas */}
+                    {itens.map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{ display: "grid", gridTemplateColumns: "1fr 60px 90px 110px 36px", gap: 8, padding: "8px 12px", borderBottom: idx < itens.length - 1 ? "1px solid #F1F5F9" : "none", alignItems: "center" }}
+                      >
+                        <Input
+                          value={item.descricao}
+                          onChange={(e) => atualizarItem(idx, "descricao", e.target.value)}
+                          placeholder="Ex: Instalação de ar-condicionado"
+                          size="small"
+                          style={{ borderRadius: 6 }}
+                        />
+                        <InputNumber
+                          value={item.qtd}
+                          min={0}
+                          onChange={(v) => atualizarItem(idx, "qtd", v ?? 0)}
+                          size="small"
+                          style={{ width: "100%", borderRadius: 6 }}
+                        />
+                        <Select
+                          value={item.unidade}
+                          onChange={(v) => atualizarItem(idx, "unidade", v)}
+                          size="small"
+                          style={{ width: "100%" }}
+                        >
+                          {UNIDADES.map((u) => <Option key={u} value={u}>{u}</Option>)}
+                        </Select>
+                        <InputNumber
+                          value={item.valor_unit}
+                          min={0}
+                          precision={2}
+                          onChange={(v) => atualizarItem(idx, "valor_unit", v ?? 0)}
+                          size="small"
+                          style={{ width: "100%", borderRadius: 6 }}
+                          formatter={(v) => `R$ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                          parser={(v) => v.replace(/R\$\s?|\./g, "").replace(",", ".")}
+                        />
+                        <Button
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          disabled={itens.length === 1}
+                          onClick={() => removerItem(idx)}
+                          style={{ border: "none", background: "transparent", padding: 0 }}
+                        />
+                      </div>
+                    ))}
+                    {/* Total */}
+                    <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 12px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0" }}>
+                      <Text strong style={{ fontSize: 15 }}>
+                        Total:{" "}
+                        <span style={{ color: "#10B981", fontSize: 16 }}>
+                          R$ {totalItens.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+
+                <Divider style={{ margin: "16px 0" }} />
+
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Form.Item
+                      name="prazo_execucao_dias"
+                      label="Prazo de execução (dias)"
+                      rules={[{ required: true, message: "Informe o prazo" }]}
+                    >
+                      <InputNumber style={{ width: "100%" }} min={1} placeholder="Ex: 30" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="condicao_pagamento" label="Condição de Pagamento">
+                      <Select placeholder="Selecione..." allowClear>
+                        {CONDICAO_PGTO.map((c) => <Option key={c.value} value={c.value}>{c.label}</Option>)}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="validade_proposta" label="Validade da Proposta">
+                      <DatePicker
+                        style={{ width: "100%" }}
+                        format="DD/MM/YYYY"
+                        placeholder="Selecione..."
+                        disabledDate={(d) => d && d.isBefore(dayjs(), "day")}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item name="observacoes" label="Observações / Diferencial">
+                  <TextArea
+                    rows={3}
+                    placeholder="Descreva seu diferencial, experiência, certificações ou condições especiais..."
+                  />
+                </Form.Item>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+                  <Button onClick={() => setModalProposta(null)}>Cancelar</Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={propostaLoading}
+                    icon={<SendOutlined />}
+                    style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8, minWidth: 160 }}
+                  >
+                    Enviar Proposta
+                  </Button>
+                </div>
+              </Form>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
