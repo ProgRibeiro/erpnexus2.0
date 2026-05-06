@@ -13,7 +13,7 @@ export default function MasterLoginPage() {
   const handleLogin = async (values) => {
     setLoading(true);
     try {
-      const res = await masterApi.post("/auth/login/", {
+      const res = await masterApi.post("auth/login/", {
         email: values.email,
         senha: values.senha,
       });
