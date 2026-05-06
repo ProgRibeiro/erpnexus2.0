@@ -141,9 +141,70 @@ function TipoBadge({ tipo }) {
   );
 }
 
+function TipoCard({ value, selected, onChange }) {
+  const tipos = [
+    {
+      value: "receita",
+      label: "Receita",
+      sub: "Entrada de dinheiro",
+      color: "#10B981",
+      bg: selected === "receita" ? "#ECFDF5" : "#F9FAFB",
+      border: selected === "receita" ? "#10B981" : "#E5E7EB",
+      icon: "↑",
+    },
+    {
+      value: "despesa",
+      label: "Despesa",
+      sub: "Saída de dinheiro",
+      color: "#EF4444",
+      bg: selected === "despesa" ? "#FEF2F2" : "#F9FAFB",
+      border: selected === "despesa" ? "#EF4444" : "#E5E7EB",
+      icon: "↓",
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", gap: 12 }}>
+      {tipos.map((t) => (
+        <div
+          key={t.value}
+          onClick={() => onChange(t.value)}
+          style={{
+            flex: 1,
+            padding: "14px 16px",
+            borderRadius: 12,
+            border: `2px solid ${t.border}`,
+            background: t.bg,
+            cursor: "pointer",
+            transition: "all 0.18s",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div style={{
+            width: 38, height: 38, borderRadius: 10,
+            background: selected === t.value ? t.color : "#E5E7EB",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: 20, fontWeight: 700,
+            transition: "all 0.18s",
+          }}>
+            {t.icon}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: selected === t.value ? t.color : "#374151", fontSize: 14 }}>
+              {t.label}
+            </div>
+            <div style={{ fontSize: 11, color: "#9CA3AF" }}>{t.sub}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function FormularioLancamento({
   visible,
-  loading,
   lancamento,
   contas,
   categorias,
@@ -152,150 +213,251 @@ function FormularioLancamento({
 }) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [tipoSelecionado, setTipoSelecionado] = useState("despesa");
+  const [valorAtual, setValorAtual] = useState(0);
 
   useEffect(() => {
     if (visible && lancamento) {
       form.setFieldsValue({
         ...lancamento,
-        data_vencimento: lancamento.data_vencimento
-          ? dayjs(lancamento.data_vencimento)
-          : null,
-        data_pagamento: lancamento.data_pagamento
-          ? dayjs(lancamento.data_pagamento)
-          : null,
+        data_vencimento: lancamento.data_vencimento ? dayjs(lancamento.data_vencimento) : null,
+        data_pagamento:  lancamento.data_pagamento  ? dayjs(lancamento.data_pagamento)  : null,
       });
+      setTipoSelecionado(lancamento.tipo || "despesa");
+      setValorAtual(Number(lancamento.valor) || 0);
     } else if (visible) {
       form.resetFields();
+      setTipoSelecionado("despesa");
+      setValorAtual(0);
     }
   }, [visible, lancamento, form]);
 
   const handleSubmit = async (values) => {
     setSaving(true);
     try {
-      const payload = {
+      await onSave({
         ...values,
+        tipo: tipoSelecionado,
         data_vencimento: values.data_vencimento?.format("YYYY-MM-DD"),
-        data_pagamento: values.data_pagamento?.format("YYYY-MM-DD"),
-      };
-      await onSave(payload);
+        data_pagamento:  values.data_pagamento?.format("YYYY-MM-DD"),
+      });
     } finally {
       setSaving(false);
     }
   };
 
+  const isReceita = tipoSelecionado === "receita";
+  const accentColor = isReceita ? "#10B981" : "#EF4444";
+  const accentBg    = isReceita ? "#ECFDF5"  : "#FEF2F2";
+
   return (
     <Drawer
-      title={lancamento ? "Editar Lançamento" : "Novo Lançamento"}
-      placement="right"
-      onClose={onClose}
       open={visible}
-      width={500}
-      bodyStyle={{ paddingBottom: 80 }}
+      onClose={onClose}
+      placement="right"
+      width={520}
+      closable={false}
+      bodyStyle={{ padding: 0 }}
+      destroyOnClose
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        autoComplete="off"
-      >
-        <Form.Item
-          label="Descrição"
-          name="descricao"
-          rules={[{ required: true, message: "Descrição é obrigatória" }]}
+      {/* Header colorido */}
+      <div style={{
+        background: accentColor,
+        padding: "24px 28px 20px",
+        position: "relative",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+              {lancamento ? "Editando lançamento" : "Novo lançamento"}
+            </div>
+            <div style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>
+              {valorAtual > 0
+                ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorAtual)
+                : "R$ —"}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 2 }}>
+              {isReceita ? "↑ Entrada" : "↓ Saída"}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: "6px 10px", color: "#fff", cursor: "pointer", fontSize: 16 }}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Corpo do formulário */}
+      <div style={{ padding: "24px 28px", overflowY: "auto", height: "calc(100vh - 160px)" }}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off">
+
+          {/* Tipo */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+              Tipo de lançamento
+            </div>
+            <TipoCard
+              selected={tipoSelecionado}
+              onChange={(v) => { setTipoSelecionado(v); form.setFieldValue("tipo", v); }}
+            />
+          </div>
+
+          {/* Descrição */}
+          <Form.Item
+            label="Descrição"
+            name="descricao"
+            rules={[{ required: true, message: "Descrição é obrigatória" }]}
+            style={{ marginBottom: 16 }}
+          >
+            <Input
+              placeholder="Ex: Pagamento fornecedor, Recebimento cliente..."
+              size="large"
+              style={{ borderRadius: 10 }}
+            />
+          </Form.Item>
+
+          {/* Valor */}
+          <Form.Item
+            label="Valor (R$)"
+            name="valor"
+            rules={[{ required: true, message: "Valor é obrigatório" }]}
+            style={{ marginBottom: 16 }}
+          >
+            <InputNumber
+              size="large"
+              prefix={<span style={{ color: accentColor, fontWeight: 700 }}>R$</span>}
+              step={0.01}
+              min={0}
+              precision={2}
+              style={{ width: "100%", borderRadius: 10 }}
+              placeholder="0,00"
+              onChange={(v) => setValorAtual(Number(v) || 0)}
+            />
+          </Form.Item>
+
+          {/* Categoria + Conta lado a lado */}
+          <Row gutter={12} style={{ marginBottom: 0 }}>
+            <Col span={12}>
+              <Form.Item
+                label="Categoria"
+                name="categoria"
+                style={{ marginBottom: 16 }}
+              >
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  options={(categorias || []).map((c) => ({ label: c.nome, value: c.id }))}
+                  placeholder="Selecione"
+                  size="large"
+                  style={{ borderRadius: 10 }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Conta bancária"
+                name="conta_bancaria"
+                rules={[{ required: true, message: "Obrigatório" }]}
+                style={{ marginBottom: 16 }}
+              >
+                <Select
+                  options={(contas || []).map((c) => ({ label: c.nome, value: c.id }))}
+                  placeholder="Selecione"
+                  size="large"
+                  style={{ borderRadius: 10 }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Datas */}
+          <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+              Datas
+            </div>
+            <Row gutter={12}>
+              <Col span={12}>
+                <Form.Item
+                  label="Vencimento"
+                  name="data_vencimento"
+                  rules={[{ required: true, message: "Obrigatório" }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%", borderRadius: 8 }} size="large" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Pagamento"
+                  name="data_pagamento"
+                  style={{ marginBottom: 0 }}
+                >
+                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%", borderRadius: 8 }} size="large" placeholder="Opcional" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+
+          {/* Fornecedor + Nº documento */}
+          <Row gutter={12} style={{ marginBottom: 0 }}>
+            <Col span={14}>
+              <Form.Item label="Fornecedor / Cliente" name="fornecedor_cliente" style={{ marginBottom: 16 }}>
+                <Input placeholder="Nome do fornecedor ou cliente" style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={10}>
+              <Form.Item label="Nº Documento" name="numero_documento" style={{ marginBottom: 16 }}>
+                <Input placeholder="NF, boleto..." style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Observações */}
+          <Form.Item label="Observações" name="observacoes" style={{ marginBottom: 0 }}>
+            <Input.TextArea
+              rows={3}
+              placeholder="Anotações adicionais (opcional)"
+              style={{ borderRadius: 10 }}
+            />
+          </Form.Item>
+        </Form>
+      </div>
+
+      {/* Rodapé fixo */}
+      <div style={{
+        position: "absolute",
+        bottom: 0, left: 0, right: 0,
+        padding: "16px 28px",
+        background: "#fff",
+        borderTop: "1px solid #F1F5F9",
+        display: "flex",
+        gap: 10,
+      }}>
+        <Button
+          onClick={onClose}
+          style={{ flex: 1, height: 44, borderRadius: 10, fontWeight: 600 }}
         >
-          <Input placeholder="Digite a descrição" />
-        </Form.Item>
-
-        <Form.Item
-          label="Tipo"
-          name="tipo"
-          rules={[{ required: true, message: "Tipo é obrigatório" }]}
+          Cancelar
+        </Button>
+        <Button
+          type="primary"
+          loading={saving}
+          onClick={() => form.submit()}
+          style={{
+            flex: 2,
+            height: 44,
+            borderRadius: 10,
+            fontWeight: 700,
+            background: accentColor,
+            borderColor: accentColor,
+            fontSize: 15,
+          }}
         >
-          <Select
-            options={[
-              { label: "Receita", value: "receita" },
-              { label: "Despesa", value: "despesa" },
-            ]}
-            placeholder="Selecione o tipo"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="Categoria"
-          name="categoria"
-          rules={[{ required: true, message: "Categoria é obrigatória" }]}
-        >
-          <Select
-            showSearch
-            optionFilterProp="label"
-            options={(categorias || []).map((c) => ({
-              label: c.nome,
-              value: c.id,
-            }))}
-            placeholder="Selecione a categoria"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="Valor"
-          name="valor"
-          rules={[{ required: true, message: "Valor é obrigatório" }]}
-        >
-          <InputNumber
-            prefix="R$"
-            step={0.01}
-            min={0}
-            style={{ width: "100%" }}
-            placeholder="0.00"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="Conta Bancária"
-          name="conta_bancaria"
-          rules={[{ required: true, message: "Conta é obrigatória" }]}
-        >
-          <Select
-            options={(contas || []).map((c) => ({
-              label: c.nome,
-              value: c.id,
-            }))}
-            placeholder="Selecione a conta"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="Data de Vencimento"
-          name="data_vencimento"
-          rules={[{ required: true, message: "Data é obrigatória" }]}
-        >
-          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-        </Form.Item>
-
-        <Form.Item label="Data de Pagamento" name="data_pagamento">
-          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-        </Form.Item>
-
-        <Form.Item label="Observações" name="observacoes">
-          <Input.TextArea rows={3} placeholder="Digite observações opcionais" />
-        </Form.Item>
-
-        <Form.Item>
-          <Space style={{ width: "100%" }} size="small">
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={saving}
-              style={{ flex: 1, borderRadius: 8 }}
-            >
-              Salvar
-            </Button>
-            <Button onClick={onClose} style={{ borderRadius: 8 }}>
-              Cancelar
-            </Button>
-          </Space>
-        </Form.Item>
-      </Form>
+          {saving ? "Salvando..." : lancamento ? "Salvar alterações" : `Registrar ${isReceita ? "Receita" : "Despesa"}`}
+        </Button>
+      </div>
     </Drawer>
   );
 }
