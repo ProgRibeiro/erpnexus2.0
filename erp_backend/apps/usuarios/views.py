@@ -1,6 +1,8 @@
+from django.shortcuts import redirect
 from django.utils.crypto import get_random_string
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -17,6 +19,10 @@ from .serializers import (
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    renderer_classes = [JSONRenderer]
+
+    def get(self, request):
+        return redirect("/login")
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
