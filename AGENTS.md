@@ -61,10 +61,12 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 
 - **Nunca alterar o login ou a senha padrão de teste** sem pedido explícito do Lucas.
 - Credencial oficial do ambiente local: `admin@admin.com` / `admin123`.
+- Em ambiente local, `localhost` e `127.0.0.1` devem apontar para o tenant `demo_erp`, não para `public`.
 - Se o acesso falhar após migrations, seeds ou mudanças de tenant, restaurar com:
 
 ```bash
 cd erp_backend
+python manage.py configurar_ambiente_local
 python manage.py garantir_admin_teste
 ```
 
