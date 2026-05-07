@@ -79,14 +79,13 @@ export default function LoginPage() {
     setLoading(true);
     setErro("");
     try {
+      localStorage.setItem("erp_mode", modo);
       const data = await authService.login({ identifier: email, password: senha });
       if (lembrar) {
         localStorage.setItem("erp_remember_email", email);
       } else {
         localStorage.removeItem("erp_remember_email");
       }
-      // Respeita o sistema escolhido pelo usuário na tela de seleção
-      localStorage.setItem("erp_mode", modo);
       setAuth(data);
       const from = location.state?.from?.pathname;
       const defaultDest = MODOS[modo].destino;

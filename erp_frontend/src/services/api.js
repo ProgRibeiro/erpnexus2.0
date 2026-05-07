@@ -2,12 +2,28 @@ import axios from "axios";
 
 import { useAuthStore } from "../store/authStore";
 
+function getLocalTenantApiBaseUrl() {
+  const envBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envBaseUrl) return envBaseUrl;
+
+  const { hostname, protocol } = window.location;
+  if (!["localhost", "127.0.0.1"].includes(hostname)) {
+    return "/api/v1";
+  }
+
+  const modo = localStorage.getItem("erp_mode") || "prestador";
+  const tenantHost = modo === "facilities" ? "facilities.localhost" : "demo.localhost";
+  return `${protocol}//${tenantHost}:8000/api/v1`;
+}
+
+const apiBaseURL = getLocalTenantApiBaseUrl();
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
+  baseURL: apiBaseURL,
 });
 
 const refreshApi = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
+  baseURL: apiBaseURL,
 });
 
 let refreshPromise = null;
@@ -44,10 +60,16 @@ function isReadRequest(config = {}) {
 }
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getLocalTenantApiBaseUrl();
   const accessToken = useAuthStore.getState().accessToken;
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+  return config;
+});
+
+refreshApi.interceptors.request.use((config) => {
+  config.baseURL = getLocalTenantApiBaseUrl();
   return config;
 });
 
