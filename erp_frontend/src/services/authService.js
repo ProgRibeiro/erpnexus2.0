@@ -3,8 +3,8 @@ import api from "./api";
 const authService = {
   login: async ({ identifier, password }) => {
     const payload = identifier.includes("@")
-      ? { email: identifier, password }
-      : { username: identifier, password };
+      ? { email: identifier, password, senha: password }
+      : { username: identifier, identifier, password, senha: password };
 
     const response = await api.post("/auth/login/", payload);
     return response.data;

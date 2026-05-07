@@ -11,21 +11,27 @@ logger = logging.getLogger(__name__)
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=False)
     email = serializers.EmailField(required=False)
-    password = serializers.CharField(write_only=True)
+    identifier = serializers.CharField(required=False)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=False)
+    senha = serializers.CharField(write_only=True, required=False, allow_blank=False)
 
     def validate(self, attrs):
         logger.warning(f"[SERIALIZER] validate called with: {list(attrs.keys())}")
-        identifier = attrs.get("email") or attrs.get("username")
+        identifier = attrs.get("email") or attrs.get("username") or attrs.get("identifier")
+        password = attrs.get("password") or attrs.get("senha")
         logger.warning(f"[SERIALIZER] identifier={identifier}")
 
         if not identifier:
             logger.warning(f"[SERIALIZER] No identifier provided")
             raise serializers.ValidationError("Informe email ou username.")
+        if not password:
+            logger.warning("[SERIALIZER] No password provided")
+            raise serializers.ValidationError("Informe a senha.")
 
         logger.warning(f"[SERIALIZER] Calling authenticate with identifier={identifier}")
         user = authenticate(
             username=identifier,
-            password=attrs.get("password"),
+            password=password,
         )
         logger.warning(f"[SERIALIZER] authenticate returned: {user}")
 
