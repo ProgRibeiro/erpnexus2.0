@@ -21,6 +21,7 @@ export default function NovoContrato() {
   const [unidades, setUnidades] = useState([]);
   const [checklistSelecionado, setChecklistSelecionado] = useState({});
   const [escopoGerado, setEscopoGerado] = useState(null);
+  const [erroEscopos, setErroEscopos] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -31,8 +32,11 @@ export default function NovoContrato() {
           api.get("/contratos/escopos/"),
         ]);
         setClientes(normalizeList(clientesRes.data));
-        setEscopos(normalizeList(escoposRes.data));
-      } catch {
+        const escoposCarregados = normalizeList(escoposRes.data);
+        setEscopos(escoposCarregados);
+        setErroEscopos(escoposCarregados.length ? "" : "Nenhum escopo técnico foi retornado pela API.");
+      } catch (error) {
+        setErroEscopos("Não foi possível carregar os escopos técnicos. Verifique se o backend está rodando no tenant demo.localhost.");
         message.warning("Não foi possível carregar dados iniciais.");
       }
     }
@@ -259,6 +263,15 @@ export default function NovoContrato() {
           {step === 1 && (
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={15}>
+                {erroEscopos && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message={erroEscopos}
+                    description="No ambiente local com Vite, use o backend em http://demo.localhost:8000 para acessar os dados do tenant."
+                  />
+                )}
                 <Row gutter={[12, 12]}>
                   {escopos.map((escopo) => {
                     const selected = escoposSelecionados.some((item) => item.id === escopo.id);
