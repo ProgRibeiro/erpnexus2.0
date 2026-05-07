@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Cronograma Anual</title></head>
+<body>
+  <h1>Cronograma Anual de Preventivas</h1>
+  <p>{{ contrato.numero }} - {{ contrato.titulo }}</p>
+  <table>
+    <thead>
+      <tr><th>Unidade / Escopo</th><th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th><th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th></tr>
+    </thead>
+    <tbody>
+      {% for linha in cronograma %}
+      <tr><td>{{ linha.nome }}</td>{% for mes in linha.meses %}<td>{{ mes }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

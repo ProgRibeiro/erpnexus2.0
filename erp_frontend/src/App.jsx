@@ -30,6 +30,9 @@ import ImpressaoOrcamento from "./pages/Orcamentos/ImpressaoOrcamento";
 import NovoOrcamento from "./pages/Orcamentos/NovoOrcamento";
 import OrcamentoUnificado from "./pages/Orcamentos/OrcamentoUnificado";
 import OrcamentosPage from "./pages/Orcamentos/OrcamentosPage";
+import ContratosPage from "./pages/Contratos";
+import NovoContrato from "./pages/Contratos/NovoContrato";
+import ContratoDetalhe from "./pages/Contratos/ContratoDetalhe";
 import ProfilePage from "./pages/ProfilePage";
 import TecnicoMobilePage from "./pages/TecnicoMobile";
 import OSCampoPage from "./pages/TecnicoMobile/OSCampo";
@@ -97,6 +100,9 @@ export default function App() {
             <Route path="/orcamentos" element={<OrcamentosPage />} />
             <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
             <Route path="/orcamentos/:id" element={<OrcamentoDetalhe />} />
+            <Route path="/contratos" element={<ContratosPage />} />
+            <Route path="/contratos/novo" element={<NovoContrato />} />
+            <Route path="/contratos/:id" element={<ContratoDetalhe />} />
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
             <Route path="/crm" element={<CRMPage />} />

@@ -33,6 +33,7 @@ const ITENS_PRESTADOR = [
     type: 'group',
     children: [
       { key: 'orcamentos', icon: <FileTextOutlined />, label: 'Orçamentos', path: '/orcamentos' },
+      { key: 'contratos-preventiva', icon: <FileProtectOutlined />, label: 'Contratos Preventiva', path: '/contratos' },
       { key: 'ordens', icon: <FileTextOutlined />, label: 'Ordens de Serviço', path: '/ordens' },
       { key: 'clientes', icon: <TeamOutlined />, label: 'Clientes', path: '/clientes' },
       { key: 'agenda', icon: <CalendarOutlined />, label: 'Agenda', path: '/agenda' },
@@ -141,6 +142,7 @@ export default function Sidebar() {
     const p = location.pathname;
     if (p === '/' || p === '/dashboard') return 'dashboard';
     if (p.startsWith('/orcamentos')) return 'orcamentos';
+    if (p.startsWith('/contratos')) return 'contratos-preventiva';
     if (p.startsWith('/ordens')) return 'ordens';
     if (p.startsWith('/clientes')) return 'clientes';
     if (p.startsWith('/agenda')) return 'agenda';

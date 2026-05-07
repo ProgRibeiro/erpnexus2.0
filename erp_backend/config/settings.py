@@ -60,6 +60,7 @@ TENANT_APPS = [
     'apps.terceiros',
     'apps.loja',
     'apps.facilities',
+    'apps.contratos',
     'apps.portal_contratante',
 ]
 
@@ -330,7 +331,37 @@ CELERY_BEAT_SCHEDULE = {
     # Inicializar sistema de notificações (uma vez ao iniciar)
     "inicializar-notificacoes": {
         "task": "apps.notificacoes.tasks.inicializar_sistema_notificacoes",
-        "schedule": timedelta(seconds=10),  # Executa 10 segundos após iniciar
+        "schedule": timedelta(seconds=10),
+    },
+    # Verificar SLAs de chamados da plataforma SaaS (a cada 5 min)
+    "verificar-slas": {
+        "task": "apps.saas.tasks.verificar_slas",
+        "schedule": timedelta(seconds=300),
+    },
+    # Processar mensagens do Outbox SaaS (a cada 30 segundos)
+    "processar-outbox-saas": {
+        "task": "apps.saas.tasks.processar_outbox_periodico",
+        "schedule": 30.0,
+    },
+    # Reconciliar propostas SaaS (a cada 15 minutos)
+    "reconciliar-propostas-saas": {
+        "task": "apps.saas.tasks.reconciliar_propostas",
+        "schedule": crontab(minute='*/15'),
+    },
+    # Contratos de preventiva: faturas recorrentes
+    "gerar-faturas-contratos-preventiva": {
+        "task": "apps.contratos.tasks.gerar_faturas_mensais",
+        "schedule": crontab(day_of_month=1, hour=8, minute=0),
+    },
+    # Contratos de preventiva: alertas de visitas próximas
+    "alertar-os-proximas-contratos": {
+        "task": "apps.contratos.tasks.alertar_os_proximas",
+        "schedule": crontab(hour=8, minute=0),
+    },
+    # Contratos de preventiva: reajuste anual
+    "reajustar-contratos-preventiva": {
+        "task": "apps.contratos.tasks.reajustar_contratos_anuais",
+        "schedule": crontab(day_of_month=1, hour=7, minute=30),
     },
 }
 

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Contrato de Preventiva</title></head>
+<body>
+  <header>
+    <h1>Contrato de Manutenção Preventiva</h1>
+    <p>{{ contrato.numero }} - {{ contrato.titulo }}</p>
+  </header>
+  <section>
+    <h2>Contratante e Contratada</h2>
+    <p>Cliente: {{ contrato.cliente }}</p>
+  </section>
+  <section>
+    <h2>Cláusula 1: Objeto</h2>
+    <p>{{ contrato.objeto_contrato }}</p>
+    <h2>Cláusula 2: Prazo e Vigência</h2>
+    <p>{{ contrato.data_inicio }} a {{ contrato.data_fim }}</p>
+    <h2>Cláusula 3: Valor e Forma de Pagamento</h2>
+    <p>Valor mensal: {{ contrato.valor_total_mensal }}. Forma: {{ contrato.forma_pagamento }}</p>
+    <h2>Cláusula 4: Reajuste</h2>
+    <p>{{ contrato.indice_reajuste }}</p>
+    <h2>Cláusulas 5 a 11</h2>
+    <p>Obrigações das partes, periodicidade, checklist técnico, rescisão, multas e foro conforme proposta aprovada.</p>
+  </section>
+  <footer>
+    <p>Assinaturas: Contratante, Contratada e duas testemunhas.</p>
+  </footer>
+</body>
+</html>

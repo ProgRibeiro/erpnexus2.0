@@ -60,6 +60,7 @@ tenant_api_patterns = [
     path("terceiros/", include("apps.terceiros.urls")),
     path("loja/", include("apps.loja.urls")),
     path("facilities/", include("apps.facilities.urls")),
+    path("contratos/", include("apps.contratos.urls")),
     path("portal/contratante/", include("apps.portal_contratante.urls")),
     path("mobile/", include("apps.portal_contratante.mobile_urls")),
     path("saas/", include("apps.saas.urls")),

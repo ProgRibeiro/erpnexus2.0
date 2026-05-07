@@ -78,6 +78,7 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 | 13   | Telas de Orçamentos (listagem, novo, detalhe, conversão para OS)               | ✅     |
 | 14   | Rebrand para ERP Nexus, correção de configuração da empresa, correção de cores | ✅     |
 | SaaS | Plataforma multi-tenant enterprise — Tenant, Empresa, Unidade, Budget, Aprovação por Alçada, Portal Contratante, BI, Auditoria, Mobile swipe, SLA Celery | ✅ |
+| Contratos | Módulo completo de manutenção preventiva multi-loja com checklists ABNT, geração automática de OS, faturas mensais recorrentes e PDFs profissionais | ✅ |
 
 ---
 
@@ -96,6 +97,7 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 | `notificacoes` | Push notifications (portal do cliente)                      | Concluídas |
 | `saas`         | Multi-tenant: Tenant, Empresa, Unidade, Budget, Aprovação, SLA, Auditoria | Concluídas |
 | `portal_contratante` | Portal Facilities: dashboard, chamados, BI, aprovações, relatórios | Concluídas |
+| `contratos`    | Contratos de preventiva multi-loja, checklists, OS automáticas, faturas e PDFs | Concluídas |
 
 ---
 
@@ -149,6 +151,25 @@ GET       /api/v1/mobile/aprovacoes-pendentes/
 POST      /api/v1/mobile/aprovacao/{id}/swipe-aprovar/
 POST      /api/v1/mobile/aprovacao/{id}/swipe-reprovar/
 GET       /api/v1/mobile/dashboard-executivo/
+
+# Contratos Preventiva
+GET       /api/v1/contratos/escopos/
+GET       /api/v1/contratos/escopos/{id}/checklist-padrao/
+GET/POST  /api/v1/contratos/
+GET/PATCH /api/v1/contratos/{id}/
+POST      /api/v1/contratos/{id}/unidades/
+PATCH     /api/v1/contratos/{id}/unidades/{uid}/
+DELETE    /api/v1/contratos/{id}/unidades/{uid}/
+POST      /api/v1/contratos/{id}/escopos-unidade/
+POST      /api/v1/contratos/{id}/calcular-totais/
+POST      /api/v1/contratos/{id}/ativar/
+POST      /api/v1/contratos/{id}/gerar-pdf-contrato/
+POST      /api/v1/contratos/{id}/gerar-pdf-proposta/
+POST      /api/v1/contratos/{id}/gerar-pdf-cronograma/
+GET       /api/v1/contratos/{id}/cronograma/
+GET       /api/v1/contratos/{id}/faturas/
+POST      /api/v1/contratos/{id}/gerar-fatura-mes/
+POST      /api/v1/contratos/{id}/rescindir/
 ```
 
 ---
@@ -164,6 +185,9 @@ GET       /api/v1/mobile/dashboard-executivo/
 /orcamentos/novo   → NovoOrcamento.jsx
 /orcamentos/:id    → OrcamentoDetalhe.jsx
 /orcamentos/:id/impressao → ImpressaoOrcamento.jsx
+/contratos         → ContratosPage.jsx
+/contratos/novo    → NovoContrato.jsx
+/contratos/:id     → ContratoDetalhe.jsx
 /financeiro        → Dashboard financeiro
 /financeiro/lancamentos → Lancamentos.jsx
 /crm               → CRM Kanban (index.jsx)
