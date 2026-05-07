@@ -57,6 +57,17 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 - **Senha**: `admin123`
 - **Banco PostgreSQL**: usuário/senha configurados em `erp_backend/settings.py`
 
+### Regra fixa de ambiente local
+
+- **Nunca alterar o login ou a senha padrão de teste** sem pedido explícito do Lucas.
+- Credencial oficial do ambiente local: `admin@admin.com` / `admin123`.
+- Se o acesso falhar após migrations, seeds ou mudanças de tenant, restaurar com:
+
+```bash
+cd erp_backend
+python manage.py garantir_admin_teste
+```
+
 ---
 
 ## Fases concluídas
