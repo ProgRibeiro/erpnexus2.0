@@ -28,7 +28,7 @@ from .serializers import (
     OSContratoPreventivaSerializer,
     UnidadeContratoSerializer,
 )
-from .services import GeradorChecklistContrato, GeradorCronograma, GeradorFatura, GeradorPDFContrato
+from .services import GeradorChecklistContrato, GeradorCronograma, GeradorEscopoPreventiva, GeradorFatura, GeradorPDFContrato
 
 
 class EscopoTecnicoViewSet(viewsets.ReadOnlyModelViewSet):
@@ -44,6 +44,14 @@ class EscopoTecnicoViewSet(viewsets.ReadOnlyModelViewSet):
         escopo = self.get_object()
         itens = escopo.checklist_padrao.filter(ativo=True)
         return Response(ItemChecklistPadraoSerializer(itens, many=True).data)
+
+    @action(detail=False, methods=["post"], url_path="gerar-escopo")
+    def gerar_escopo(self, request):
+        escopos = request.data.get("escopos") or request.data.get("codigos") or []
+        if not isinstance(escopos, list):
+            return Response({"erro": "Envie escopos como lista de ids ou códigos."}, status=400)
+        dados = GeradorEscopoPreventiva().gerar(escopos)
+        return Response(dados)
 
 
 class ContratoPreventivaViewSet(viewsets.ModelViewSet):
@@ -135,7 +143,10 @@ class ContratoPreventivaViewSet(viewsets.ModelViewSet):
                     },
                 )
                 EscopoContrato.objects.get_or_create(contrato=contrato, escopo_id=escopo_id, defaults={"ativo": True})
-                GeradorChecklistContrato().criar_padrao_para_escopo_unidade(escopo_unidade)
+                GeradorChecklistContrato().criar_padrao_para_escopo_unidade(
+                    escopo_unidade,
+                    checklist_ids=item.get("checklist_ids"),
+                )
                 criados.append(escopo_unidade)
 
         return Response(EscopoUnidadeSerializer(criados, many=True).data, status=status.HTTP_201_CREATED)

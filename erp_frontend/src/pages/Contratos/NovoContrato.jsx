@@ -20,6 +20,7 @@ export default function NovoContrato() {
   const [escoposSelecionados, setEscoposSelecionados] = useState([]);
   const [unidades, setUnidades] = useState([]);
   const [checklistSelecionado, setChecklistSelecionado] = useState({});
+  const [escopoGerado, setEscopoGerado] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,24 @@ export default function NovoContrato() {
     bootstrap();
   }, []);
 
+  useEffect(() => {
+    async function gerarEscopoUnificado() {
+      if (!escoposSelecionados.length) {
+        setEscopoGerado(null);
+        return;
+      }
+      try {
+        const res = await api.post("/contratos/escopos/gerar-escopo/", {
+          escopos: escoposSelecionados.map((escopo) => escopo.id),
+        });
+        setEscopoGerado(res.data);
+      } catch {
+        setEscopoGerado(null);
+      }
+    }
+    gerarEscopoUnificado();
+  }, [escoposSelecionados]);
+
   async function carregarChecklist(escopoId) {
     if (checklists[escopoId]) return;
     const res = await api.get(`/contratos/escopos/${escopoId}/checklist-padrao/`);
@@ -51,10 +70,26 @@ export default function NovoContrato() {
   function toggleEscopo(escopo) {
     setEscoposSelecionados((prev) => {
       const existe = prev.some((item) => item.id === escopo.id);
-      if (existe) return prev.filter((item) => item.id !== escopo.id);
+      if (existe) {
+        setChecklistSelecionado((selecionados) => {
+          const copia = { ...selecionados };
+          delete copia[escopo.id];
+          return copia;
+        });
+        return prev.filter((item) => item.id !== escopo.id);
+      }
       carregarChecklist(escopo.id);
       return [...prev, escopo];
     });
+  }
+
+  function aplicarEscopoGerado() {
+    if (!escopoGerado?.objeto_contrato) return;
+    form.setFieldsValue({
+      titulo: form.getFieldValue("titulo") || escopoGerado.titulo,
+      objeto_contrato: escopoGerado.objeto_contrato,
+    });
+    message.success("Escopo unificado aplicado ao contrato.");
   }
 
   function adicionarUnidade() {
@@ -145,7 +180,10 @@ export default function NovoContrato() {
         });
         await api.post(`/contratos/${contrato.id}/escopos-unidade/`, {
           unidade_contrato: unidadeRes.data.id,
-          escopos: unidade.escopos,
+          escopos: unidade.escopos.map((escopo) => ({
+            ...escopo,
+            checklist_ids: checklistSelecionado[escopo.escopo] || [],
+          })),
         });
       }
 
@@ -239,13 +277,29 @@ export default function NovoContrato() {
                 </Row>
               </Col>
               <Col xs={24} lg={9}>
-                <Card title="Preview do checklist">
-                  {escoposSelecionados.map((escopo) => (
-                    <div key={escopo.id} style={{ marginBottom: 12 }}>
-                      <Text strong>{escopo.nome}</Text>
-                      {(checklists[escopo.id] || []).slice(0, 6).map((item) => <div key={item.id}><CheckCircleOutlined style={{ color: "#10B981" }} /> {item.descricao}</div>)}
-                    </div>
-                  ))}
+                <Card
+                  title="Escopo unificado"
+                  extra={escopoGerado ? <Button size="small" onClick={aplicarEscopoGerado}>Aplicar</Button> : null}
+                >
+                  {!escoposSelecionados.length && <Text type="secondary">Selecione uma ou mais áreas para gerar o escopo.</Text>}
+                  {escopoGerado && (
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Paragraph style={{ marginBottom: 0 }}>{escopoGerado.objetivo}</Paragraph>
+                      <div>
+                        {(escopoGerado.areas_atendidas || []).map((area) => <Tag key={area}>{area}</Tag>)}
+                      </div>
+                      <Divider style={{ margin: "8px 0" }} />
+                      {(escopoGerado.checklist_por_area || []).map((area) => (
+                        <div key={area.codigo} style={{ marginBottom: 12 }}>
+                          <Text strong>{area.area}</Text>
+                          {(area.itens || []).slice(0, 6).map((item) => (
+                            <div key={item.id}><CheckCircleOutlined style={{ color: "#10B981" }} /> {item.descricao}</div>
+                          ))}
+                          {(area.itens || []).length > 6 && <Text type="secondary">+ {(area.itens || []).length - 6} itens</Text>}
+                        </div>
+                      ))}
+                    </Space>
+                  )}
                 </Card>
               </Col>
             </Row>
@@ -275,6 +329,17 @@ export default function NovoContrato() {
 
           {step === 3 && (
             <Space direction="vertical" style={{ width: "100%" }}>
+              {escopoGerado?.checklist_geral?.length ? (
+                <Card title="Checklist geral da preventiva">
+                  <Row gutter={[8, 8]}>
+                    {escopoGerado.checklist_geral.map((item) => (
+                      <Col xs={24} md={12} key={item.ordem}>
+                        <CheckCircleOutlined style={{ color: "#10B981" }} /> {item.descricao}
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              ) : null}
               {escoposSelecionados.map((escopo) => (
                 <Card key={escopo.id} title={`${escopo.nome} - checklist sugerido`}>
                   <Checkbox.Group
@@ -286,6 +351,10 @@ export default function NovoContrato() {
                       label: `${item.descricao}${item.requer_foto ? " | foto" : ""}${item.requer_medicao ? ` | medição ${item.unidade_medicao}` : ""}`,
                     }))}
                   />
+                  <Divider style={{ margin: "12px 0" }} />
+                  <Text type="secondary">
+                    Status disponíveis: {(escopoGerado?.status_checklist || []).map((statusItem) => statusItem.label).join(", ")}
+                  </Text>
                   <Input style={{ marginTop: 12 }} placeholder="Adicionar item customizado ao checklist final (registrar no detalhe após salvar)" />
                 </Card>
               ))}
@@ -301,6 +370,9 @@ export default function NovoContrato() {
                 <Col xs={24} md={8}><Card><Text type="secondary">Valor mensal</Text><Title level={4} style={{ color: "#10B981" }}>{money.format(totalMensal)}</Title></Card></Col>
               </Row>
               <Paragraph>Ao ativar, o ERP gera automaticamente as OS planejadas conforme periodicidade de cada escopo por unidade.</Paragraph>
+              {escopoGerado?.observacao_tecnica_final && (
+                <Alert type="info" showIcon message={escopoGerado.observacao_tecnica_final} />
+              )}
               <Form.Item name="observacoes" label="Observações finais"><TextArea rows={3} /></Form.Item>
             </Space>
           )}

@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -15,7 +15,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from apps.ordens.models import ItemOrcamento, OrdemServico
 
-from .models import FaturaContrato, ItemChecklistContrato, OSContratoPreventiva
+from .models import EscopoTecnico, FaturaContrato, ItemChecklistContrato, ItemChecklistPadrao, OSContratoPreventiva
 
 
 TIPO_OS_POR_ESCOPO = {
@@ -24,6 +24,99 @@ TIPO_OS_POR_ESCOPO = {
     "ELE": OrdemServico.TipoServico.ELETRICA,
     "CIV": OrdemServico.TipoServico.CIVIL,
 }
+
+OBJETIVO_PREVENTIVA_PADRAO = (
+    "Executar manutenção preventiva periódica em sistemas e instalações prediais, "
+    "visando garantir segurança, eficiência operacional, conservação dos equipamentos, "
+    "redução de falhas corretivas, aumento da vida útil dos ativos e conformidade com "
+    "boas práticas técnicas."
+)
+
+CHECKLIST_GERAL_PREVENTIVA = [
+    "Equipamento/local identificado corretamente",
+    "Acesso ao equipamento seguro",
+    "Área limpa e organizada",
+    "Equipamento sem danos visíveis",
+    "Equipamento operando normalmente",
+    "Ausência de ruídos anormais",
+    "Ausência de vibração excessiva",
+    "Ausência de vazamentos",
+    "Fixações em bom estado",
+    "Segurança operacional verificada",
+    "Limpeza executada",
+    "Teste funcional executado",
+    "Medições registradas",
+    "Fotos anexadas, quando necessário",
+    "Anomalias registradas",
+    "Cliente/responsável informado",
+    "OS finalizada com observações técnicas",
+]
+
+STATUS_CHECKLIST_PREVENTIVA = [
+    {"valor": "conforme", "label": "Conforme"},
+    {"valor": "nao_conforme", "label": "Não conforme"},
+    {"valor": "nao_aplicavel", "label": "Não aplicável"},
+    {"valor": "corrigido_durante_visita", "label": "Corrigido durante a visita"},
+    {"valor": "requer_orcamento", "label": "Requer orçamento"},
+    {"valor": "requer_retorno_tecnico", "label": "Requer retorno técnico"},
+    {"valor": "equipamento_parado", "label": "Equipamento parado"},
+    {"valor": "operando_com_restricao", "label": "Equipamento operando com restrição"},
+]
+
+PERIODICIDADE_SUGERIDA = {
+    "HVAC": ["Mensal", "Trimestral"],
+    "REF": ["Mensal", "Quinzenal em sistemas críticos"],
+    "ELE": ["Mensal", "Trimestral"],
+    "CIV": ["Trimestral", "Semestral"],
+    "PEN": ["Mensal", "Trimestral"],
+    "HID": ["Mensal", "Trimestral"],
+    "INC": ["Mensal", "Semestral"],
+    "CFTV": ["Mensal", "Trimestral"],
+}
+
+EQUIPAMENTOS_ATENDIDOS = {
+    "HVAC": [
+        "Split hi-wall", "Split piso teto", "Cassete", "Duto", "Self contained",
+        "Fan coil", "Chiller", "VRF / VRV", "Exaustores", "Ventiladores",
+        "Cortinas de ar", "Casas de máquinas de ar-condicionado",
+    ],
+    "REF": [
+        "Câmaras frias", "Balcões refrigerados", "Freezers", "Geladeiras comerciais",
+        "Expositores refrigerados", "Unidades condensadoras", "Unidades evaporadoras",
+        "Túneis de congelamento", "Sistemas frigoríficos comerciais ou industriais",
+    ],
+    "ELE": [
+        "Quadros elétricos", "Disjuntores", "Barramentos", "Cabos e conexões",
+        "Tomadas", "Interruptores", "Iluminação", "Circuitos de força",
+        "Circuitos de comando", "Aterramento", "DR / DPS", "Motores elétricos",
+        "Sistemas de proteção",
+    ],
+    "CIV": [
+        "Paredes", "Pisos", "Forros", "Telhados", "Calhas", "Rufos", "Portas",
+        "Janelas", "Fechaduras", "Pintura", "Alvenaria", "Estruturas metálicas simples",
+        "Áreas técnicas", "Casas de máquinas", "Áreas externas", "Bases de equipamentos",
+    ],
+    "PEN": [
+        "Porta de enrolar manual", "Porta de enrolar automática", "Porta de aço",
+        "Porta transvision", "Porta industrial", "Motorredutor", "Central de comando",
+        "Controle remoto", "Botoeira", "Guias laterais", "Molas e eixo",
+    ],
+}
+
+CLASSIFICACAO_ANOMALIAS = [
+    {"classificacao": "Baixa", "descricao": "Não compromete a operação imediata"},
+    {"classificacao": "Média", "descricao": "Pode gerar falha futura"},
+    {"classificacao": "Alta", "descricao": "Pode comprometer a operação"},
+    {"classificacao": "Crítica", "descricao": "Risco de parada, acidente ou dano grave"},
+]
+
+CAMPOS_OS_PREVENTIVA = [
+    "Cliente", "Unidade", "Setor", "Área técnica", "Equipamento", "TAG do equipamento",
+    "Localização", "Fabricante", "Modelo", "Número de série", "Periodicidade",
+    "Tipo de manutenção", "Técnico responsável", "Data programada", "Data de execução",
+    "Horário de início", "Horário de término", "Status da OS", "Prioridade",
+    "Observações técnicas", "Fotos antes", "Fotos depois", "Assinatura do cliente",
+]
 
 
 class GeradorCronograma:
@@ -98,10 +191,13 @@ class GeradorCronograma:
 
 
 class GeradorChecklistContrato:
-    def criar_padrao_para_escopo_unidade(self, escopo_unidade):
+    def criar_padrao_para_escopo_unidade(self, escopo_unidade, checklist_ids=None):
         itens = []
         ItemChecklistContrato.objects.filter(escopo_unidade=escopo_unidade).delete()
-        for item in escopo_unidade.escopo.checklist_padrao.filter(ativo=True):
+        queryset = escopo_unidade.escopo.checklist_padrao.filter(ativo=True)
+        if checklist_ids:
+            queryset = queryset.filter(id__in=checklist_ids)
+        for item in queryset:
             itens.append(ItemChecklistContrato.objects.create(
                 escopo_unidade=escopo_unidade,
                 item_padrao=item,
@@ -112,6 +208,99 @@ class GeradorChecklistContrato:
                 ordem=item.ordem,
             ))
         return itens
+
+
+class GeradorEscopoPreventiva:
+    def gerar(self, escopo_ids_ou_codigos):
+        escopos = self._buscar_escopos(escopo_ids_ou_codigos)
+        areas = [escopo.nome for escopo in escopos]
+        checklist_por_area = []
+
+        for escopo in escopos:
+            itens = ItemChecklistPadrao.objects.filter(escopo=escopo, ativo=True).order_by("ordem", "descricao")
+            checklist_por_area.append({
+                "escopo_id": escopo.id,
+                "codigo": escopo.codigo,
+                "area": escopo.nome,
+                "norma_tecnica": escopo.norma_tecnica,
+                "cor": escopo.cor,
+                "periodicidade_sugerida": PERIODICIDADE_SUGERIDA.get(escopo.codigo, ["Mensal", "Trimestral"]),
+                "equipamentos_atendidos": EQUIPAMENTOS_ATENDIDOS.get(escopo.codigo, []),
+                "itens": [
+                    {
+                        "id": item.id,
+                        "descricao": item.descricao,
+                        "categoria": item.categoria,
+                        "obrigatorio": item.obrigatorio,
+                        "requer_foto": item.requer_foto,
+                        "requer_medicao": item.requer_medicao,
+                        "unidade_medicao": item.unidade_medicao,
+                    }
+                    for item in itens
+                ],
+            })
+
+        objeto_contrato = self._montar_objeto_contrato(areas, checklist_por_area)
+        return {
+            "titulo": f"Escopo Padrão de Manutenção Preventiva - {', '.join(areas)}" if areas else "Escopo Padrão de Manutenção Preventiva",
+            "objetivo": OBJETIVO_PREVENTIVA_PADRAO,
+            "areas_atendidas": areas,
+            "objeto_contrato": objeto_contrato,
+            "checklist_geral": [{"ordem": idx, "descricao": item} for idx, item in enumerate(CHECKLIST_GERAL_PREVENTIVA, start=1)],
+            "checklist_por_area": checklist_por_area,
+            "status_checklist": STATUS_CHECKLIST_PREVENTIVA,
+            "classificacao_anomalias": CLASSIFICACAO_ANOMALIAS,
+            "campos_os": CAMPOS_OS_PREVENTIVA,
+            "observacao_tecnica_final": (
+                "Manutenção preventiva realizada conforme checklist técnico da área correspondente. "
+                "Foram executadas inspeções visuais, testes funcionais, verificações operacionais, "
+                "medições técnicas quando aplicável, limpeza básica dos componentes e avaliação geral "
+                "das condições de funcionamento. As não conformidades encontradas foram registradas "
+                "nesta ordem de serviço, podendo exigir orçamento corretivo, retorno técnico, "
+                "substituição de peças ou acompanhamento em próxima visita preventiva."
+            ),
+        }
+
+    def _buscar_escopos(self, escopo_ids_ou_codigos):
+        ids = []
+        codigos = []
+        for valor in escopo_ids_ou_codigos or []:
+            if isinstance(valor, int) or (isinstance(valor, str) and valor.isdigit()):
+                ids.append(int(valor))
+            elif isinstance(valor, str) and valor.strip():
+                codigos.append(valor.strip().upper())
+        qs = EscopoTecnico.objects.filter(ativo=True)
+        if ids and codigos:
+            qs = qs.filter(models.Q(id__in=ids) | models.Q(codigo__in=codigos))
+        elif ids:
+            qs = qs.filter(id__in=ids)
+        elif codigos:
+            qs = qs.filter(codigo__in=codigos)
+        else:
+            return []
+        return list(qs.order_by("ordem", "nome"))
+
+    def _montar_objeto_contrato(self, areas, checklist_por_area):
+        if not areas:
+            return OBJETIVO_PREVENTIVA_PADRAO
+        linhas = [
+            OBJETIVO_PREVENTIVA_PADRAO,
+            "",
+            f"Áreas atendidas: {', '.join(areas)}.",
+            "",
+            "Escopo técnico por área:",
+        ]
+        for area in checklist_por_area:
+            linhas.append(f"- {area['area']}: inspeções, testes funcionais, medições quando aplicável, registros fotográficos e apontamento de anomalias.")
+            if area["equipamentos_atendidos"]:
+                linhas.append(f"  Equipamentos atendidos: {', '.join(area['equipamentos_atendidos'])}.")
+        linhas.extend([
+            "",
+            "Checklist geral obrigatório: identificação do equipamento/local, acesso seguro, área limpa, operação normal, ausência de ruídos/vibrações/vazamentos, fixações, limpeza, testes funcionais, medições, fotos quando necessário, registro de anomalias e ciência do responsável local.",
+            "",
+            "Ao finalizar cada preventiva, o sistema deve registrar checklist preenchido, medições realizadas, fotos antes/depois quando aplicável, anomalias, recomendações técnicas, assinatura do técnico e assinatura do cliente.",
+        ])
+        return "\n".join(linhas)
 
 
 class GeradorFatura:

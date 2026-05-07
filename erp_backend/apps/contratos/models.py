@@ -290,14 +290,18 @@ class OSContratoPreventiva(models.Model):
 
 class ExecucaoChecklist(models.Model):
     class Status(models.TextChoices):
-        OK = "ok", "OK"
-        ALERTA = "alerta", "Alerta"
-        CRITICO = "critico", "Crítico"
+        CONFORME = "conforme", "Conforme"
+        NAO_CONFORME = "nao_conforme", "Não conforme"
         NAO_APLICAVEL = "nao_aplicavel", "Não aplicável"
+        CORRIGIDO_DURANTE_VISITA = "corrigido_durante_visita", "Corrigido durante a visita"
+        REQUER_ORCAMENTO = "requer_orcamento", "Requer orçamento"
+        REQUER_RETORNO_TECNICO = "requer_retorno_tecnico", "Requer retorno técnico"
+        EQUIPAMENTO_PARADO = "equipamento_parado", "Equipamento parado"
+        OPERANDO_COM_RESTRICAO = "operando_com_restricao", "Equipamento operando com restrição"
 
     os_contrato = models.ForeignKey(OSContratoPreventiva, on_delete=models.CASCADE, related_name="execucoes_checklist")
     item_checklist = models.ForeignKey(ItemChecklistContrato, on_delete=models.PROTECT, related_name="execucoes")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OK)
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.CONFORME)
     valor_medicao = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
     observacao = models.TextField(blank=True)
     foto = models.ImageField(upload_to="contratos/checklist/", null=True, blank=True)
