@@ -116,7 +116,28 @@ async function bootstrapApp() {
 
 bootstrapApp();
 
-registerServiceWorker();
+if (import.meta.env.DEV) {
+  clearDevelopmentServiceWorkers();
+} else {
+  registerServiceWorker();
+}
+
+async function clearDevelopmentServiceWorkers() {
+  if (!("serviceWorker" in navigator)) return;
+  window.addEventListener("load", async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+      console.log("[SW] Service workers e caches desativados em desenvolvimento.");
+    } catch (error) {
+      console.error("[SW] Erro ao limpar service workers em desenvolvimento:", error);
+    }
+  });
+}
 
 async function registerServiceWorker() {
   if ("serviceWorker" in navigator) {

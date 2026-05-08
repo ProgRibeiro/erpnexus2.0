@@ -15,9 +15,7 @@ function getLocalTenantApiBaseUrl() {
     return "/api/v1";
   }
 
-  const modo = localStorage.getItem("erp_mode") || "prestador";
-  const tenantHost = modo === "facilities" ? "facilities.localhost" : "demo.localhost";
-  return `${protocol}//${tenantHost}:8000/api/v1`;
+  return `${protocol}//127.0.0.1:8000/api/v1`;
 }
 
 const apiBaseURL = getLocalTenantApiBaseUrl();
