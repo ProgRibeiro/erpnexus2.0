@@ -7,12 +7,14 @@ from dateutil.relativedelta import relativedelta
 from django.core.files.base import ContentFile
 from django.db import models, transaction
 from django.utils import timezone
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from apps.configuracoes.models import get_empresa_configurada
 from apps.ordens.models import ItemOrcamento, OrdemServico
 
 from .models import EscopoTecnico, FaturaContrato, ItemChecklistContrato, ItemChecklistPadrao, OSContratoPreventiva
@@ -343,8 +345,9 @@ class GeradorPDFContrato:
         buffer = io.BytesIO()
         pagesize = landscape(A4) if tipo == "cronograma" else A4
         doc = SimpleDocTemplate(buffer, pagesize=pagesize, rightMargin=1.4 * cm, leftMargin=1.4 * cm, topMargin=1.2 * cm, bottomMargin=1.2 * cm)
-        styles = getSampleStyleSheet()
+        styles = self._styles()
         story = []
+        empresa = get_empresa_configurada()
 
         titulos = {
             "contrato": "Contrato de Manutenção Preventiva",
@@ -352,20 +355,23 @@ class GeradorPDFContrato:
             "cronograma": "Cronograma Anual de Visitas Preventivas",
             "boletim": "Boletim de Medição Mensal",
         }
-        story.append(Paragraph(f"<b>{titulos.get(tipo, 'Documento')}</b>", styles["Title"]))
-        story.append(Paragraph(f"{contrato.numero} - {contrato.titulo}", styles["Heading2"]))
-        story.append(Paragraph(f"Cliente: {contrato.cliente}", styles["Normal"]))
-        story.append(Paragraph(f"Vigência: {contrato.data_inicio:%d/%m/%Y} a {contrato.data_fim:%d/%m/%Y}", styles["Normal"]))
-        story.append(Spacer(1, 0.35 * cm))
+        if tipo == "proposta":
+            self._cabecalho_proposta(story, contrato, empresa, titulos[tipo], styles)
+        else:
+            story.append(Paragraph(f"<b>{titulos.get(tipo, 'Documento')}</b>", styles["Title"]))
+            story.append(Paragraph(f"{contrato.numero} - {contrato.titulo}", styles["Heading2"]))
+            story.append(Paragraph(f"Cliente: {contrato.cliente}", styles["Normal"]))
+            story.append(Paragraph(f"Vigência: {contrato.data_inicio:%d/%m/%Y} a {contrato.data_fim:%d/%m/%Y}", styles["Normal"]))
+            story.append(Spacer(1, 0.35 * cm))
 
         if tipo == "cronograma":
             self._montar_cronograma(story, contrato)
         elif tipo == "proposta":
-            self._montar_proposta(story, contrato, styles)
+            self._montar_proposta(story, contrato, empresa, styles)
         else:
             self._montar_contrato(story, contrato, styles)
 
-        doc.build(story)
+        doc.build(story, onFirstPage=self._rodape_pdf, onLaterPages=self._rodape_pdf)
         buffer.seek(0)
         nome = f"{tipo}_{contrato.numero}.pdf".replace("/", "-")
         content = ContentFile(buffer.read(), name=nome)
@@ -376,6 +382,123 @@ class GeradorPDFContrato:
         }.get(tipo, "pdf_contrato")
         getattr(contrato, campo).save(nome, content, save=True)
         return getattr(contrato, campo)
+
+    def _styles(self):
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(
+            name="DocTitle",
+            parent=styles["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=22,
+            leading=26,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=8,
+        ))
+        styles.add(ParagraphStyle(
+            name="SectionTitle",
+            parent=styles["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=11,
+            leading=14,
+            textColor=colors.HexColor("#111827"),
+            spaceBefore=10,
+            spaceAfter=6,
+        ))
+        styles.add(ParagraphStyle(
+            name="Small",
+            parent=styles["Normal"],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor("#475569"),
+        ))
+        styles.add(ParagraphStyle(
+            name="Muted",
+            parent=styles["Normal"],
+            fontSize=9,
+            leading=12,
+            textColor=colors.HexColor("#64748B"),
+        ))
+        styles.add(ParagraphStyle(
+            name="ValueCard",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=16,
+            leading=19,
+            alignment=TA_RIGHT,
+            textColor=colors.HexColor("#059669"),
+        ))
+        styles.add(ParagraphStyle(
+            name="CenterSmall",
+            parent=styles["Small"],
+            alignment=TA_CENTER,
+        ))
+        return styles
+
+    def _rodape_pdf(self, canvas, doc):
+        canvas.saveState()
+        canvas.setStrokeColor(colors.HexColor("#E2E8F0"))
+        canvas.line(doc.leftMargin, 1.0 * cm, doc.pagesize[0] - doc.rightMargin, 1.0 * cm)
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#64748B"))
+        canvas.drawString(doc.leftMargin, 0.62 * cm, "ERP Nexus - documento gerado automaticamente")
+        canvas.drawRightString(doc.pagesize[0] - doc.rightMargin, 0.62 * cm, f"Página {doc.page}")
+        canvas.restoreState()
+
+    def _cabecalho_proposta(self, story, contrato, empresa, titulo, styles):
+        empresa_linhas = [
+            self._texto(empresa.razao_social or empresa.nome),
+            self._texto(f"CNPJ: {empresa.cnpj}") if empresa.cnpj else "",
+            self._texto(empresa.endereco) if empresa.endereco else "",
+            " | ".join(filter(None, [self._texto(empresa.telefone), self._texto(empresa.email), self._texto(empresa.site)])),
+        ]
+        empresa_texto = "<br/>".join([linha for linha in empresa_linhas if linha])
+
+        logo = self._logo_empresa(empresa)
+        marca = logo if logo else Paragraph(f"<b>{self._texto(empresa.nome or 'Empresa')}</b>", styles["Heading2"])
+        header = Table(
+            [[marca, Paragraph(empresa_texto or "Dados da empresa não configurados", styles["Small"])]],
+            colWidths=[4.2 * cm, 12.9 * cm],
+        )
+        header.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 9),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ]))
+        story.append(header)
+        story.append(Spacer(1, 0.35 * cm))
+
+        story.append(Paragraph(titulo, styles["DocTitle"]))
+        story.append(Paragraph(self._texto(contrato.titulo), styles["Muted"]))
+        story.append(Spacer(1, 0.25 * cm))
+
+        resumo = Table(
+            [[
+                Paragraph(f"<b>Número</b><br/>{self._texto(contrato.numero)}", styles["Small"]),
+                Paragraph(f"<b>Emissão</b><br/>{timezone.localdate():%d/%m/%Y}", styles["Small"]),
+                Paragraph(f"<b>Vigência</b><br/>{contrato.data_inicio:%d/%m/%Y} a {contrato.data_fim:%d/%m/%Y}", styles["Small"]),
+                Paragraph(f"<b>Status</b><br/>{self._texto(contrato.get_status_display())}", styles["Small"]),
+            ]],
+            colWidths=[4.25 * cm, 3.4 * cm, 6.0 * cm, 3.45 * cm],
+        )
+        resumo.setStyle(self._card_table_style())
+        story.append(resumo)
+        story.append(Spacer(1, 0.22 * cm))
+
+    def _logo_empresa(self, empresa):
+        if not getattr(empresa, "logo", None):
+            return None
+        try:
+            if empresa.logo and empresa.logo.path:
+                imagem = Image(empresa.logo.path, width=3.3 * cm, height=1.6 * cm, kind="proportional")
+                imagem.hAlign = "LEFT"
+                return imagem
+        except (OSError, ValueError):
+            return None
+        return None
 
     def _montar_contrato(self, story, contrato, styles):
         clausulas = [
@@ -397,12 +520,82 @@ class GeradorPDFContrato:
             story.append(Spacer(1, 0.18 * cm))
         self._tabela_unidades(story, contrato)
 
-    def _montar_proposta(self, story, contrato, styles):
-        story.append(Paragraph("Apresentamos proposta para manutenção preventiva multi-loja com checklists técnicos, evidências fotográficas e cronograma recorrente.", styles["Normal"]))
-        story.append(Spacer(1, 0.25 * cm))
-        self._tabela_unidades(story, contrato)
-        story.append(Paragraph(f"<b>Total mensal:</b> R$ {contrato.valor_total_mensal:.2f}", styles["Heading2"]))
-        story.append(Paragraph(f"<b>Total do contrato:</b> R$ {contrato.valor_total_contrato:.2f}", styles["Heading2"]))
+    def _montar_proposta(self, story, contrato, empresa, styles):
+        self._bloco_cliente(story, contrato, styles)
+
+        story.append(Paragraph("Apresentação da proposta", styles["SectionTitle"]))
+        story.append(Paragraph(
+            "Esta proposta contempla manutenção preventiva recorrente, com visitas programadas por unidade, "
+            "checklists técnicos por área, registro de medições quando aplicável, evidências fotográficas, "
+            "apontamento de anomalias e relatórios operacionais para acompanhamento do cliente.",
+            styles["Normal"],
+        ))
+        story.append(Spacer(1, 0.12 * cm))
+
+        self._bloco_escopos(story, contrato, styles)
+        self._tabela_unidades(story, contrato, styles=styles, detalhada=True)
+        self._tabela_escopos_unidade(story, contrato, styles)
+        self._resumo_valores(story, contrato, styles)
+        self._condicoes_comerciais(story, contrato, empresa, styles)
+        self._assinaturas_proposta(story, contrato, empresa, styles)
+
+    def _bloco_cliente(self, story, contrato, styles):
+        cliente = contrato.cliente
+        endereco = cliente.enderecos.filter(principal=True).first() or cliente.enderecos.first()
+        endereco_texto = self._formatar_endereco_cliente(endereco)
+        dados = [
+            [
+                Paragraph("<b>Contratante</b>", styles["Small"]),
+                Paragraph(self._texto(cliente.razao_social or cliente.nome), styles["Small"]),
+            ],
+            [
+                Paragraph("<b>Nome fantasia</b>", styles["Small"]),
+                Paragraph(self._texto(cliente.nome_fantasia or cliente.nome), styles["Small"]),
+            ],
+            [
+                Paragraph("<b>CNPJ/CPF</b>", styles["Small"]),
+                Paragraph(self._texto(cliente.cnpj_cpf or "Não informado"), styles["Small"]),
+            ],
+            [
+                Paragraph("<b>Contato</b>", styles["Small"]),
+                Paragraph(self._texto(" | ".join(filter(None, [cliente.telefone, cliente.email])) or "Não informado"), styles["Small"]),
+            ],
+            [
+                Paragraph("<b>Endereço</b>", styles["Small"]),
+                Paragraph(self._texto(endereco_texto or "Não informado"), styles["Small"]),
+            ],
+        ]
+        story.append(Paragraph("Dados do cliente", styles["SectionTitle"]))
+        tabela = Table(dados, colWidths=[3.8 * cm, 13.3 * cm])
+        tabela.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#E2E8F0")),
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F8FAFC")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story.append(tabela)
+        story.append(Spacer(1, 0.15 * cm))
+
+    def _bloco_escopos(self, story, contrato, styles):
+        escopos = list(contrato.escopos_contrato.filter(ativo=True).select_related("escopo").order_by("escopo__ordem"))
+        if not escopos:
+            return
+        story.append(Paragraph("Escopos técnicos incluídos", styles["SectionTitle"]))
+        linhas = [["Área técnica", "Norma/referência", "Descrição"]]
+        for relacao in escopos:
+            escopo = relacao.escopo
+            linhas.append([
+                Paragraph(f"<b>{self._texto(escopo.nome)}</b>", styles["Small"]),
+                Paragraph(self._texto(escopo.norma_tecnica or "Boas práticas técnicas"), styles["Small"]),
+                Paragraph(self._texto(escopo.descricao or "Inspeções, testes funcionais, medições e checklist técnico."), styles["Small"]),
+            ])
+        tabela = Table(linhas, colWidths=[4.2 * cm, 4.1 * cm, 8.8 * cm], repeatRows=1)
+        tabela.setStyle(self._table_style())
+        story.append(tabela)
+        story.append(Spacer(1, 0.15 * cm))
 
     def _montar_cronograma(self, story, contrato):
         meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
@@ -424,16 +617,186 @@ class GeradorPDFContrato:
         ]))
         story.append(tabela)
 
-    def _tabela_unidades(self, story, contrato):
-        data = [["Unidade", "Cidade/UF", "Valor mensal"]]
+    def _tabela_unidades(self, story, contrato, styles=None, detalhada=False):
+        if styles:
+            story.append(Paragraph("Unidades atendidas e valores", styles["SectionTitle"]))
+        data = [["Unidade", "Cidade/UF", "Responsável local", "Valor mensal"]] if detalhada else [["Unidade", "Cidade/UF", "Valor mensal"]]
         for unidade in contrato.unidades.filter(ativo=True):
-            data.append([unidade.nome_unidade, f"{unidade.cidade}/{unidade.estado}", f"R$ {unidade.valor_mensal:.2f}"])
-        tabela = Table(data, hAlign="LEFT")
+            if detalhada:
+                data.append([
+                    unidade.nome_unidade,
+                    f"{unidade.cidade}/{unidade.estado}",
+                    unidade.responsavel_local or "Não informado",
+                    self._brl(unidade.valor_mensal),
+                ])
+            else:
+                data.append([unidade.nome_unidade, f"{unidade.cidade}/{unidade.estado}", self._brl(unidade.valor_mensal)])
+        col_widths = [5.1 * cm, 3.5 * cm, 4.7 * cm, 3.8 * cm] if detalhada else None
+        tabela = Table(data, hAlign="LEFT", colWidths=col_widths, repeatRows=1)
+        tabela.setStyle(self._table_style())
+        story.append(tabela)
+        story.append(Spacer(1, 0.18 * cm))
+
+    def _tabela_escopos_unidade(self, story, contrato, styles):
+        linhas = [["Unidade", "Escopo", "Periodicidade", "Equipamentos", "Valor alocado"]]
+        escopos_unidade = []
+        for unidade in contrato.unidades.filter(ativo=True).prefetch_related("escopos__escopo"):
+            for escopo_unidade in unidade.escopos.filter(ativo=True).select_related("escopo"):
+                escopos_unidade.append(escopo_unidade)
+                equipamentos = escopo_unidade.equipamentos_descricao or f"{escopo_unidade.equipamentos_quantidade} equipamento(s)"
+                linhas.append([
+                    Paragraph(self._texto(unidade.nome_unidade), styles["Small"]),
+                    Paragraph(self._texto(escopo_unidade.escopo.nome), styles["Small"]),
+                    Paragraph(self._texto(escopo_unidade.get_periodicidade_display()), styles["Small"]),
+                    Paragraph(self._texto(equipamentos), styles["Small"]),
+                    self._brl(escopo_unidade.valor_alocado),
+                ])
+        if not escopos_unidade:
+            return
+        story.append(Paragraph("Composição técnica por unidade", styles["SectionTitle"]))
+        tabela = Table(linhas, colWidths=[3.5 * cm, 3.4 * cm, 2.7 * cm, 4.8 * cm, 2.7 * cm], repeatRows=1)
+        tabela.setStyle(self._table_style())
+        story.append(tabela)
+        story.append(Spacer(1, 0.18 * cm))
+
+    def _resumo_valores(self, story, contrato, styles):
+        story.append(Paragraph("Resumo financeiro", styles["SectionTitle"]))
+        data = [[
+            Paragraph("<b>Valor mensal recorrente</b><br/>Cobrança mensal do contrato", styles["Small"]),
+            Paragraph(self._brl(contrato.valor_total_mensal), styles["ValueCard"]),
+            Paragraph("<b>Valor total da vigência</b><br/>Soma prevista do período contratado", styles["Small"]),
+            Paragraph(self._brl(contrato.valor_total_contrato), styles["ValueCard"]),
+        ]]
+        tabela = Table(data, colWidths=[4.6 * cm, 3.9 * cm, 4.6 * cm, 4.0 * cm])
+        tabela.setStyle(self._card_table_style())
+        story.append(tabela)
+        story.append(Spacer(1, 0.15 * cm))
+
+    def _condicoes_comerciais(self, story, contrato, empresa, styles):
+        story.append(Paragraph("Condições comerciais", styles["SectionTitle"]))
+        reajuste = "Não aplicável"
+        if contrato.reajuste_anual:
+            reajuste = contrato.get_indice_reajuste_display()
+            if contrato.indice_reajuste == contrato.IndiceReajuste.FIXO_PERCENTUAL:
+                reajuste = f"Fixo de {contrato.valor_reajuste_fixo}% ao ano"
+        dados = [
+            ["Tipo de faturamento", contrato.get_tipo_faturamento_display()],
+            ["Forma de pagamento", contrato.get_forma_pagamento_display()],
+            ["Dia de vencimento", f"Todo dia {contrato.dia_vencimento_fatura}"],
+            ["Vigência", f"{contrato.vigencia_meses} meses"],
+            ["Reajuste", reajuste],
+            ["Multa e juros", f"Multa de {contrato.multa_atraso_percentual}% e juros de {contrato.juros_dia_percentual}% ao dia"],
+            ["ART/Responsável técnico", self._responsavel_tecnico_texto(contrato)],
+            ["Validade da proposta", "30 dias a partir da emissão, salvo negociação comercial expressa."],
+        ]
+        tabela = Table([[Paragraph(f"<b>{self._texto(k)}</b>", styles["Small"]), Paragraph(self._texto(v), styles["Small"])] for k, v in dados], colWidths=[4.7 * cm, 12.4 * cm])
         tabela.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111827")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")),
-            ("PADDING", (0, 0), (-1, -1), 6),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#E2E8F0")),
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F8FAFC")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]))
         story.append(tabela)
-        story.append(Spacer(1, 0.35 * cm))
+        story.append(Spacer(1, 0.15 * cm))
+
+        diferenciais = [
+            "OS preventivas geradas automaticamente conforme periodicidade contratada.",
+            "Checklist técnico por escopo com status por item, medições e fotos quando aplicável.",
+            "Registro de anomalias e recomendações para corretivas ou retorno técnico.",
+            "Relatório técnico e histórico por unidade para acompanhamento operacional.",
+        ]
+        story.append(Paragraph("Diferenciais da entrega", styles["SectionTitle"]))
+        for item in diferenciais:
+            story.append(Paragraph(f"• {self._texto(item)}", styles["Normal"]))
+        if contrato.observacoes:
+            story.append(Spacer(1, 0.08 * cm))
+            story.append(Paragraph("<b>Observações comerciais:</b>", styles["Normal"]))
+            story.append(Paragraph(self._texto(contrato.observacoes), styles["Normal"]))
+        story.append(Spacer(1, 0.18 * cm))
+
+    def _assinaturas_proposta(self, story, contrato, empresa, styles):
+        story.append(Paragraph("Aceite da proposta", styles["SectionTitle"]))
+        story.append(Paragraph(
+            "A aprovação desta proposta autoriza a abertura do contrato de manutenção preventiva, "
+            "a geração do cronograma recorrente e a programação das visitas técnicas conforme escopo contratado.",
+            styles["Normal"],
+        ))
+        story.append(Spacer(1, 0.55 * cm))
+        assinaturas = Table(
+            [[
+                Paragraph("____________________________________<br/>Contratada<br/>" + self._texto(empresa.nome or "Empresa"), styles["CenterSmall"]),
+                Paragraph("____________________________________<br/>Contratante<br/>" + self._texto(str(contrato.cliente)), styles["CenterSmall"]),
+            ]],
+            colWidths=[8.3 * cm, 8.3 * cm],
+        )
+        assinaturas.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(assinaturas)
+
+    def _table_style(self):
+        return TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111827")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])
+
+    def _card_table_style(self):
+        return TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#E2E8F0")),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFFFFF")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ])
+
+    def _formatar_endereco_cliente(self, endereco):
+        if not endereco:
+            return ""
+        partes = [
+            endereco.logradouro,
+            endereco.numero,
+            endereco.complemento,
+            endereco.bairro,
+            f"{endereco.cidade}/{endereco.estado}",
+            f"CEP {endereco.cep}" if endereco.cep else "",
+        ]
+        return ", ".join([str(parte) for parte in partes if parte])
+
+    def _responsavel_tecnico_texto(self, contrato):
+        responsavel = contrato.responsavel_tecnico.get_full_name() if contrato.responsavel_tecnico else ""
+        responsavel = responsavel or (str(contrato.responsavel_tecnico) if contrato.responsavel_tecnico else "A definir")
+        crea = f" - CREA {contrato.responsavel_tecnico_crea}" if contrato.responsavel_tecnico_crea else ""
+        art = f" - ART {contrato.numero_art}" if contrato.numero_art else ""
+        return f"{responsavel}{crea}{art}"
+
+    def _brl(self, valor):
+        numero = Decimal(valor or 0)
+        texto = f"{numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"R$ {texto}"
+
+    def _texto(self, valor):
+        texto = str(valor or "")
+        return (
+            texto.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\n", "<br/>")
+        )
