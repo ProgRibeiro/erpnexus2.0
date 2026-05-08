@@ -140,6 +140,7 @@ export default function ClientesPage() {
   const [consultandoCNPJ, setConsultandoCNPJ] = useState(false);
   const [cnpjValido, setCnpjValido] = useState(false);
   const [cnpjErro, setCnpjErro] = useState(false);
+  const [cnpjDigitado, setCnpjDigitado] = useState("");
   const ultimaConsultaCNPJ = useRef("");
   const debounceCNPJ = useRef(null);
 
@@ -205,11 +206,13 @@ export default function ClientesPage() {
     });
   };
 
-  const consultarCNPJ = async (cnpjValue, silencioso = false) => {
-    const cnpj = cnpjValue || form.getFieldValue("cnpj_cpf") || "";
+  const consultarCNPJ = async (cnpjValue = null, silencioso = false) => {
+    const cnpj = cnpjValue ?? cnpjDigitado ?? form.getFieldValue("cnpj_cpf") ?? "";
     const cnpjLimpo = onlyDigits(cnpj);
     if (cnpjLimpo.length !== 14) {
-      if (!silencioso) message.warning("CNPJ deve ter 14 dígitos");
+      if (!silencioso) {
+        message.warning(`CNPJ deve ter 14 dígitos. Atual: ${cnpjLimpo.length}`);
+      }
       return;
     }
 
@@ -235,6 +238,7 @@ export default function ClientesPage() {
 
   const consultarCNPJAutomatico = (value) => {
     const masked = maskCNPJ(value);
+    setCnpjDigitado(masked);
     form.setFieldValue("cnpj_cpf", masked);
     setCnpjValido(false);
     setCnpjErro(false);
@@ -313,12 +317,14 @@ export default function ClientesPage() {
         uf: endereco.estado || cliente.uf || "",
         status: cliente.status || "ativo",
       });
+      setCnpjDigitado(maskCNPJ(cliente.cnpj_cpf || ""));
       setCnpjValido(onlyDigits(cliente.cnpj_cpf).length === 14);
       setCnpjErro(false);
     } else {
       setClienteSelecionado(null);
       form.resetFields();
       form.setFieldsValue({ tipo_pessoa: "juridica", status: "ativo" });
+      setCnpjDigitado("");
       setCnpjValido(false);
       setCnpjErro(false);
     }
@@ -623,7 +629,7 @@ export default function ClientesPage() {
                     <Col>
                       <Button
                         type="primary"
-                        onClick={() => consultarCNPJ()}
+                        onClick={() => consultarCNPJ(cnpjDigitado || form.getFieldValue("cnpj_cpf"))}
                         style={btnStyle}
                       >
                         Consultar
