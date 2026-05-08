@@ -111,9 +111,23 @@ const statusOptions = [
 ];
 
 function normalizeList(data) {
+  if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.results)) return data.results;
   return [];
+}
+
+function getApiErrorMessage(error, fallback) {
+  const data = error?.response?.data;
+  if (!data) return fallback;
+  if (typeof data === "string") return data;
+  if (data.detail) return data.detail;
+  if (data.non_field_errors?.length) return data.non_field_errors[0];
+  const firstKey = Object.keys(data)[0];
+  const firstValue = firstKey ? data[firstKey] : null;
+  if (Array.isArray(firstValue)) return `${firstKey}: ${firstValue[0]}`;
+  if (typeof firstValue === "string") return `${firstKey}: ${firstValue}`;
+  return fallback;
 }
 
 export default function ClientesPage() {
@@ -147,11 +161,11 @@ export default function ClientesPage() {
       if (filtros.segmento) params.segmento = filtros.segmento;
       if (filtros.status) params.status = filtros.status;
 
-      const data = await clienteService.listar(params);
-      setClientes(normalizeList(data));
-    } catch {
+      const result = await clienteService.listar(params);
+      setClientes(normalizeList(result));
+    } catch (error) {
       setClientes([]);
-      message.error("Erro ao carregar clientes");
+      message.error(getApiErrorMessage(error, "Erro ao carregar clientes"));
     } finally {
       setLoading(false);
     }
@@ -211,9 +225,9 @@ export default function ClientesPage() {
       ultimaConsultaCNPJ.current = cnpjLimpo;
       setCnpjValido(true);
       if (!silencioso) message.success("CNPJ consultado com sucesso!");
-    } catch {
+    } catch (error) {
       setCnpjErro(true);
-      if (!silencioso) message.error("CNPJ não encontrado");
+      if (!silencioso) message.error(getApiErrorMessage(error, "CNPJ não encontrado"));
     } finally {
       setConsultandoCNPJ(false);
     }
@@ -274,8 +288,8 @@ export default function ClientesPage() {
       } else {
         message.error("CEP não encontrado");
       }
-    } catch {
-      message.error("Erro ao consultar CEP");
+    } catch (error) {
+      message.error(getApiErrorMessage(error, "Erro ao consultar CEP"));
     }
   };
 
@@ -337,8 +351,8 @@ export default function ClientesPage() {
       setClienteSelecionado(null);
       form.resetFields();
       carregarClientes();
-    } catch {
-      message.error("Erro ao salvar cliente");
+    } catch (error) {
+      message.error(getApiErrorMessage(error, "Erro ao salvar cliente"));
     } finally {
       setSalvando(false);
     }
@@ -349,8 +363,8 @@ export default function ClientesPage() {
       await clienteService.deletar(id);
       message.success("Cliente deletado com sucesso!");
       carregarClientes();
-    } catch {
-      message.error("Erro ao deletar cliente");
+    } catch (error) {
+      message.error(getApiErrorMessage(error, "Erro ao deletar cliente"));
     }
   };
 
@@ -609,7 +623,7 @@ export default function ClientesPage() {
                     <Col>
                       <Button
                         type="primary"
-                        onClick={consultarCNPJ}
+                        onClick={() => consultarCNPJ()}
                         style={btnStyle}
                       >
                         Consultar

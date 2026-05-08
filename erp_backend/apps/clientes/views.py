@@ -9,7 +9,17 @@ from .serializers import ClienteSerializer
 
 class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
-    search_fields = ["nome", "cnpj_cpf", "email"]
+    search_fields = [
+        "nome",
+        "nome_fantasia",
+        "razao_social",
+        "cnpj_cpf",
+        "email",
+        "telefone",
+        "whatsapp",
+        "enderecos__cidade",
+        "enderecos__estado",
+    ]
     filterset_fields = ["status", "segmento"]
     ordering_fields = ["nome", "criado_em", "status", "segmento"]
 
@@ -25,7 +35,18 @@ class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
         if segmento:
             queryset = queryset.filter(segmento__icontains=segmento)
         if busca:
-            queryset = queryset.filter(Q(nome__icontains=busca) | Q(cnpj_cpf__icontains=busca))
+            queryset = queryset.filter(
+                Q(nome__icontains=busca)
+                | Q(nome_fantasia__icontains=busca)
+                | Q(razao_social__icontains=busca)
+                | Q(cnpj_cpf__icontains=busca)
+                | Q(email__icontains=busca)
+                | Q(telefone__icontains=busca)
+                | Q(whatsapp__icontains=busca)
+                | Q(segmento__icontains=busca)
+                | Q(enderecos__cidade__icontains=busca)
+                | Q(enderecos__estado__icontains=busca)
+            ).distinct()
         if cnpj_cpf:
             queryset = queryset.filter(cnpj_cpf__icontains=cnpj_cpf)
 
