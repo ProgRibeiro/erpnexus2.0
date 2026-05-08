@@ -20,6 +20,11 @@ env/
 media/
 staticfiles/
 *.log
+backups/
+*.dump
+*.backup
+*.bak
+*.sql
 
 # Node / React / Vite
 erp_frontend/node_modules/

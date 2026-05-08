@@ -57,6 +57,57 @@ Em dev, usar o Vite direto em 5173 com proxy para o Django em 8000.
 - **Senha**: `admin123`
 - **Banco PostgreSQL**: usuário/senha configurados em `erp_backend/settings.py`
 
+---
+
+## Backup e segurança local
+
+### Backup ativo
+
+- Backup manual do banco e da pasta `media`: `backup_banco.bat`
+- Comando Django equivalente: `cd erp_backend && python manage.py backup_sistema`
+- Pasta padrão fora do repositório: `C:\ERP_BACKUPS\ERP_NEXUS`
+- Retenção padrão: 30 dias (`ERP_BACKUP_RETENTION_DAYS=30`)
+- O backup gera:
+  - `.dump` do PostgreSQL em formato customizado (`pg_dump --format=custom`)
+  - `.zip` da pasta `media`
+  - manifesto `.txt` com dados do backup e instrução de restauração
+
+### Agendamento no Windows
+
+- Para ativar backup diário às 02:00, executar como administrador:
+
+```bash
+agendar_backup_diario.bat
+```
+
+### Restauração
+
+- Restaurar exige confirmação explícita para evitar perda acidental:
+
+```bash
+restaurar_backup.bat "C:\ERP_BACKUPS\ERP_NEXUS\erp_db_YYYYMMDD_HHMMSS.dump"
+```
+
+ou:
+
+```bash
+cd erp_backend
+python manage.py restaurar_backup --arquivo "C:\ERP_BACKUPS\ERP_NEXUS\erp_db_YYYYMMDD_HHMMSS.dump" --confirmar
+```
+
+### Proteções ativas no Django
+
+- JWT com rotação e blacklist de refresh token.
+- Rate limit básico: anônimo `20/min`, usuário `200/min`.
+- Headers: `X_FRAME_OPTIONS=DENY`, `SECURE_CONTENT_TYPE_NOSNIFF=True`, `SECURE_REFERRER_POLICY=same-origin`.
+- Cookies de sessão com `HttpOnly` e `SameSite=Lax`.
+- Variáveis prontas para modo seguro: `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_HSTS_SECONDS`.
+
+### Importante
+
+- Ambiente local de teste pode usar `DEBUG=True`.
+- Se o sistema for exposto na rede/internet ou usado com dados reais, usar `DEBUG=False`, restringir `DJANGO_ALLOWED_HOSTS`, ativar HTTPS e executar o backup diário.
+
 ### Regra fixa de ambiente local
 
 - **Nunca alterar o login ou a senha padrão de teste** sem pedido explícito do Lucas.
