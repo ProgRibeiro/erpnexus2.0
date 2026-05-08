@@ -10,10 +10,21 @@ import { money, normalizeList, pageStyle, periodicidadeOptions } from "./shared"
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
+const initialContratoValues = {
+  vigencia_meses: 12,
+  data_inicio: dayjs(),
+  tipo_faturamento: "mensal_fixo",
+  dia_vencimento_fatura: 10,
+  forma_pagamento: "boleto",
+  reajuste_anual: true,
+  indice_reajuste: "IPCA",
+};
+
 export default function NovoContrato() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [step, setStep] = useState(0);
+  const [formValues, setFormValues] = useState(initialContratoValues);
   const [clientes, setClientes] = useState([]);
   const [escopos, setEscopos] = useState([]);
   const [checklists, setChecklists] = useState({});
@@ -140,6 +151,34 @@ export default function NovoContrato() {
     return data.isValid() ? data.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
   }
 
+  function getValoresContrato() {
+    return {
+      ...initialContratoValues,
+      ...formValues,
+      ...form.getFieldsValue(true),
+    };
+  }
+
+  async function avancar() {
+    try {
+      if (step === 0) {
+        const values = await form.validateFields(["cliente", "titulo", "objeto_contrato", "data_inicio"]);
+        setFormValues((prev) => ({ ...prev, ...form.getFieldsValue(true), ...values }));
+      }
+      if (step === 1 && !escoposSelecionados.length) {
+        message.error("Selecione ao menos um escopo técnico.");
+        return;
+      }
+      if (step === 2 && (!unidades.length || unidades.some((u) => !u.nome_unidade || !u.endereco_completo))) {
+        message.error("Informe ao menos uma unidade com nome e endereço.");
+        return;
+      }
+      setStep((s) => Math.min(s + 1, 4));
+    } catch {
+      message.error("Preencha os campos obrigatórios antes de avançar.");
+    }
+  }
+
   function getApiErrorMessage(error) {
     const data = error?.response?.data;
     if (!data) return error?.message || "Erro ao salvar contrato.";
@@ -155,7 +194,17 @@ export default function NovoContrato() {
 
   async function salvar(ativar = false, gerarPdf = false) {
     try {
-      const values = await form.validateFields();
+      const values = getValoresContrato();
+      if (!values.cliente) {
+        message.error("Selecione o cliente nos dados básicos.");
+        setStep(0);
+        return;
+      }
+      if (!values.titulo || !values.objeto_contrato) {
+        message.error("Informe título e objeto do contrato.");
+        setStep(0);
+        return;
+      }
       if (!escoposSelecionados.length) {
         message.error("Selecione ao menos um escopo técnico.");
         setStep(1);
@@ -169,7 +218,7 @@ export default function NovoContrato() {
 
       setLoading(true);
       const contratoPayload = {
-        cliente: values.cliente,
+        cliente: Number(values.cliente),
         titulo: values.titulo,
         objeto_contrato: values.objeto_contrato,
         vigencia_meses: values.vigencia_meses,
@@ -247,15 +296,13 @@ export default function NovoContrato() {
       </Card>
 
       <Card style={{ marginTop: 16 }}>
-        <Form form={form} layout="vertical" initialValues={{
-          vigencia_meses: 12,
-          data_inicio: dayjs(),
-          tipo_faturamento: "mensal_fixo",
-          dia_vencimento_fatura: 10,
-          forma_pagamento: "boleto",
-          reajuste_anual: true,
-          indice_reajuste: "IPCA",
-        }}>
+        <Form
+          form={form}
+          layout="vertical"
+          preserve
+          initialValues={initialContratoValues}
+          onValuesChange={(_, allValues) => setFormValues((prev) => ({ ...prev, ...allValues }))}
+        >
           {step === 0 && (
             <>
               <Row gutter={16}>
@@ -409,7 +456,7 @@ export default function NovoContrato() {
         <Space style={{ justifyContent: "space-between", width: "100%" }}>
           <Button disabled={step === 0} onClick={() => setStep((s) => s - 1)}>Voltar</Button>
           <Space>
-            {step < 4 ? <Button type="primary" onClick={() => setStep((s) => s + 1)}>Avançar</Button> : (
+            {step < 4 ? <Button type="primary" onClick={avancar}>Avançar</Button> : (
               <>
                 <Button icon={<FilePdfOutlined />} loading={loading} onClick={() => salvar(false, true)}>Gerar PDF Proposta</Button>
                 <Button icon={<SaveOutlined />} loading={loading} onClick={() => salvar(false, false)}>Salvar Rascunho</Button>
