@@ -135,6 +135,11 @@ export default function NovoContrato() {
   const totalMensal = useMemo(() => unidades.reduce((sum, item) => sum + Number(item.valor_mensal || 0), 0), [unidades]);
   const vigencia = Form.useWatch("vigencia_meses", form) || 12;
 
+  function formatarDataInicio(value) {
+    const data = value ? dayjs(value) : dayjs();
+    return data.isValid() ? data.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
+  }
+
   function getApiErrorMessage(error) {
     const data = error?.response?.data;
     if (!data) return error?.message || "Erro ao salvar contrato.";
@@ -168,7 +173,7 @@ export default function NovoContrato() {
         titulo: values.titulo,
         objeto_contrato: values.objeto_contrato,
         vigencia_meses: values.vigencia_meses,
-        data_inicio: values.data_inicio.format("YYYY-MM-DD"),
+        data_inicio: formatarDataInicio(values.data_inicio),
         tipo_faturamento: values.tipo_faturamento,
         dia_vencimento_fatura: values.dia_vencimento_fatura,
         forma_pagamento: values.forma_pagamento,
@@ -258,7 +263,7 @@ export default function NovoContrato() {
                 <Col xs={24} md={12}><Form.Item name="titulo" label="Título" rules={[{ required: true }]}><Input placeholder="Contrato de Manutenção Preventiva 2026" /></Form.Item></Col>
                 <Col xs={24}><Form.Item name="objeto_contrato" label="Objeto do contrato" rules={[{ required: true }]}><TextArea rows={4} placeholder="Descreva o que será feito em todas as unidades..." /></Form.Item></Col>
                 <Col xs={24} md={6}><Form.Item name="vigencia_meses" label="Vigência"><Select options={[12, 24, 36].map((v) => ({ value: v, label: `${v} meses` }))} /></Form.Item></Col>
-                <Col xs={24} md={6}><Form.Item name="data_inicio" label="Início"><DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" /></Form.Item></Col>
+                <Col xs={24} md={6}><Form.Item name="data_inicio" label="Início" rules={[{ required: true, message: "Informe a data de início." }]}><DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" /></Form.Item></Col>
                 <Col xs={24} md={6}><Form.Item name="tipo_faturamento" label="Faturamento"><Select options={[{ value: "mensal_fixo", label: "Mensal fixo" }, { value: "por_os_executada", label: "Por OS executada" }, { value: "misto", label: "Misto" }]} /></Form.Item></Col>
                 <Col xs={24} md={6}><Form.Item name="forma_pagamento" label="Pagamento"><Select options={[{ value: "boleto", label: "Boleto" }, { value: "pix", label: "Pix" }, { value: "transferencia", label: "Transferência" }, { value: "debito_aut", label: "Débito automático" }]} /></Form.Item></Col>
                 <Col xs={24} md={6}><Form.Item name="dia_vencimento_fatura" label="Dia vencimento"><InputNumber min={1} max={28} style={{ width: "100%" }} /></Form.Item></Col>
