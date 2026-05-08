@@ -1,4 +1,5 @@
 import io
+import os
 from calendar import monthrange
 from datetime import date
 from decimal import Decimal
@@ -12,6 +13,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from apps.configuracoes.models import get_empresa_configurada
@@ -371,7 +374,8 @@ class GeradorPDFContrato:
         else:
             self._montar_contrato(story, contrato, styles)
 
-        doc.build(story, onFirstPage=self._rodape_pdf, onLaterPages=self._rodape_pdf)
+        rodape = lambda canvas, doc_ref: self._rodape_pdf(canvas, doc_ref, empresa)
+        doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
         buffer.seek(0)
         nome = f"{tipo}_{contrato.numero}.pdf".replace("/", "-")
         content = ContentFile(buffer.read(), name=nome)
@@ -384,20 +388,45 @@ class GeradorPDFContrato:
         return getattr(contrato, campo)
 
     def _styles(self):
+        fonte_normal, fonte_bold = self._fontes_pdf()
         styles = getSampleStyleSheet()
+        for style_name in ("Normal", "Title", "Heading1", "Heading2", "Heading3", "BodyText"):
+            if style_name in styles:
+                styles[style_name].fontName = fonte_normal
+        for style_name in ("Title", "Heading1", "Heading2", "Heading3"):
+            if style_name in styles:
+                styles[style_name].fontName = fonte_bold
+
         styles.add(ParagraphStyle(
             name="DocTitle",
             parent=styles["Title"],
-            fontName="Helvetica-Bold",
-            fontSize=22,
-            leading=26,
+            fontName=fonte_bold,
+            fontSize=20,
+            leading=24,
             textColor=colors.HexColor("#111827"),
             spaceAfter=8,
         ))
         styles.add(ParagraphStyle(
+            name="CompanyName",
+            parent=styles["Normal"],
+            fontName=fonte_bold,
+            fontSize=11,
+            leading=14,
+            textColor=colors.HexColor("#111827"),
+        ))
+        styles.add(ParagraphStyle(
+            name="Eyebrow",
+            parent=styles["Normal"],
+            fontName=fonte_bold,
+            fontSize=7,
+            leading=9,
+            textColor=colors.HexColor("#3B82F6"),
+            uppercase=True,
+        ))
+        styles.add(ParagraphStyle(
             name="SectionTitle",
             parent=styles["Heading2"],
-            fontName="Helvetica-Bold",
+            fontName=fonte_bold,
             fontSize=11,
             leading=14,
             textColor=colors.HexColor("#111827"),
@@ -407,21 +436,23 @@ class GeradorPDFContrato:
         styles.add(ParagraphStyle(
             name="Small",
             parent=styles["Normal"],
-            fontSize=8,
-            leading=10,
+            fontName=fonte_normal,
+            fontSize=8.2,
+            leading=10.6,
             textColor=colors.HexColor("#475569"),
         ))
         styles.add(ParagraphStyle(
             name="Muted",
             parent=styles["Normal"],
+            fontName=fonte_normal,
             fontSize=9,
-            leading=12,
+            leading=12.2,
             textColor=colors.HexColor("#64748B"),
         ))
         styles.add(ParagraphStyle(
             name="ValueCard",
             parent=styles["Normal"],
-            fontName="Helvetica-Bold",
+            fontName=fonte_bold,
             fontSize=16,
             leading=19,
             alignment=TA_RIGHT,
@@ -434,19 +465,50 @@ class GeradorPDFContrato:
         ))
         return styles
 
-    def _rodape_pdf(self, canvas, doc):
+    def _fontes_pdf(self):
+        normal = "Helvetica"
+        bold = "Helvetica-Bold"
+        arial = r"C:\Windows\Fonts\arial.ttf"
+        arial_bold = r"C:\Windows\Fonts\arialbd.ttf"
+        if os.path.exists(arial) and os.path.exists(arial_bold):
+            try:
+                if "ERPArial" not in pdfmetrics.getRegisteredFontNames():
+                    pdfmetrics.registerFont(TTFont("ERPArial", arial))
+                if "ERPArial-Bold" not in pdfmetrics.getRegisteredFontNames():
+                    pdfmetrics.registerFont(TTFont("ERPArial-Bold", arial_bold))
+                pdfmetrics.registerFontFamily(
+                    "ERPArial",
+                    normal="ERPArial",
+                    bold="ERPArial-Bold",
+                    italic="ERPArial",
+                    boldItalic="ERPArial-Bold",
+                )
+                normal = "ERPArial"
+                bold = "ERPArial-Bold"
+            except Exception:
+                normal = "Helvetica"
+                bold = "Helvetica-Bold"
+        return normal, bold
+
+    def _rodape_pdf(self, canvas, doc, empresa):
+        fonte_normal, _ = self._fontes_pdf()
         canvas.saveState()
         canvas.setStrokeColor(colors.HexColor("#E2E8F0"))
         canvas.line(doc.leftMargin, 1.0 * cm, doc.pagesize[0] - doc.rightMargin, 1.0 * cm)
-        canvas.setFont("Helvetica", 7)
+        canvas.setFont(fonte_normal, 7)
         canvas.setFillColor(colors.HexColor("#64748B"))
-        canvas.drawString(doc.leftMargin, 0.62 * cm, "ERP Nexus - documento gerado automaticamente")
+        empresa_nome = self._canvas_texto(empresa.razao_social or empresa.nome or "Empresa")
+        canvas.drawString(doc.leftMargin, 0.62 * cm, f"{empresa_nome} - proposta gerada pelo ERP")
         canvas.drawRightString(doc.pagesize[0] - doc.rightMargin, 0.62 * cm, f"Página {doc.page}")
         canvas.restoreState()
 
     def _cabecalho_proposta(self, story, contrato, empresa, titulo, styles):
+        nome_empresa = empresa.nome or empresa.razao_social or "Empresa"
+        razao_social = empresa.razao_social if empresa.razao_social and empresa.razao_social != nome_empresa else ""
         empresa_linhas = [
-            self._texto(empresa.razao_social or empresa.nome),
+            f"<font color='#3B82F6'><b>CONTRATADA</b></font>",
+            f"<b>{self._texto(nome_empresa)}</b>",
+            self._texto(razao_social),
             self._texto(f"CNPJ: {empresa.cnpj}") if empresa.cnpj else "",
             self._texto(empresa.endereco) if empresa.endereco else "",
             " | ".join(filter(None, [self._texto(empresa.telefone), self._texto(empresa.email), self._texto(empresa.site)])),
@@ -454,22 +516,23 @@ class GeradorPDFContrato:
         empresa_texto = "<br/>".join([linha for linha in empresa_linhas if linha])
 
         logo = self._logo_empresa(empresa)
-        marca = logo if logo else Paragraph(f"<b>{self._texto(empresa.nome or 'Empresa')}</b>", styles["Heading2"])
+        marca = logo if logo else Paragraph(f"<b>{self._texto(nome_empresa[:2].upper())}</b>", styles["DocTitle"])
         header = Table(
             [[marca, Paragraph(empresa_texto or "Dados da empresa não configurados", styles["Small"])]],
-            colWidths=[4.2 * cm, 12.9 * cm],
+            colWidths=[3.7 * cm, 13.4 * cm],
         )
         header.setStyle(TableStyle([
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
             ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+            ("ALIGN", (0, 0), (0, 0), "CENTER"),
             ("LEFTPADDING", (0, 0), (-1, -1), 10),
             ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, -1), 9),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ]))
         story.append(header)
-        story.append(Spacer(1, 0.35 * cm))
+        story.append(Spacer(1, 0.3 * cm))
 
         story.append(Paragraph(titulo, styles["DocTitle"]))
         story.append(Paragraph(self._texto(contrato.titulo), styles["Muted"]))
@@ -493,8 +556,8 @@ class GeradorPDFContrato:
             return None
         try:
             if empresa.logo and empresa.logo.path:
-                imagem = Image(empresa.logo.path, width=3.3 * cm, height=1.6 * cm, kind="proportional")
-                imagem.hAlign = "LEFT"
+                imagem = Image(empresa.logo.path, width=3.0 * cm, height=1.35 * cm, kind="proportional")
+                imagem.hAlign = "CENTER"
                 return imagem
         except (OSError, ValueError):
             return None
@@ -710,7 +773,7 @@ class GeradorPDFContrato:
         ]
         story.append(Paragraph("Diferenciais da entrega", styles["SectionTitle"]))
         for item in diferenciais:
-            story.append(Paragraph(f"• {self._texto(item)}", styles["Normal"]))
+            story.append(Paragraph(f"- {self._texto(item)}", styles["Normal"]))
         if contrato.observacoes:
             story.append(Spacer(1, 0.08 * cm))
             story.append(Paragraph("<b>Observações comerciais:</b>", styles["Normal"]))
@@ -800,3 +863,7 @@ class GeradorPDFContrato:
             .replace(">", "&gt;")
             .replace("\n", "<br/>")
         )
+
+    def _canvas_texto(self, valor):
+        texto = str(valor or "")
+        return texto.replace("\n", " ").replace("\r", " ")
