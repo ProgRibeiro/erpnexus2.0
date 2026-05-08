@@ -1,4 +1,6 @@
 from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 from rest_framework import viewsets
 
 from apps.auditoria.mixins import AuditMixin
@@ -9,6 +11,7 @@ from .serializers import ClienteSerializer
 
 class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     search_fields = [
         "nome",
         "nome_fantasia",
@@ -35,7 +38,8 @@ class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
         if segmento:
             queryset = queryset.filter(segmento__icontains=segmento)
         if busca:
-            queryset = queryset.filter(
+            busca_digits = "".join(filter(str.isdigit, str(busca)))
+            filtro_busca = (
                 Q(nome__icontains=busca)
                 | Q(nome_fantasia__icontains=busca)
                 | Q(razao_social__icontains=busca)
@@ -46,8 +50,12 @@ class ClienteViewSet(AuditMixin, viewsets.ModelViewSet):
                 | Q(segmento__icontains=busca)
                 | Q(enderecos__cidade__icontains=busca)
                 | Q(enderecos__estado__icontains=busca)
-            ).distinct()
+            )
+            if busca_digits:
+                filtro_busca |= Q(cnpj_cpf__icontains=busca_digits) | Q(cnpj_principal_grupo__icontains=busca_digits)
+            queryset = queryset.filter(filtro_busca).distinct()
         if cnpj_cpf:
-            queryset = queryset.filter(cnpj_cpf__icontains=cnpj_cpf)
+            cnpj_digits = "".join(filter(str.isdigit, str(cnpj_cpf)))
+            queryset = queryset.filter(cnpj_cpf__icontains=cnpj_digits or cnpj_cpf)
 
         return queryset
