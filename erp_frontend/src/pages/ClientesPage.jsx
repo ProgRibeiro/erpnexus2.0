@@ -143,6 +143,7 @@ export default function ClientesPage() {
   const [cnpjDigitado, setCnpjDigitado] = useState("");
   const ultimaConsultaCNPJ = useRef("");
   const debounceCNPJ = useRef(null);
+  const consultaCNPJSeq = useRef(0);
 
   const [filtros, setFiltros] = useState({
     busca: "",
@@ -207,9 +208,23 @@ export default function ClientesPage() {
   };
 
   const consultarCNPJ = async (cnpjValue = null, silencioso = false) => {
+    const consultaAtual = consultaCNPJSeq.current + 1;
+    consultaCNPJSeq.current = consultaAtual;
     const cnpj = cnpjValue ?? cnpjDigitado ?? form.getFieldValue("cnpj_cpf") ?? "";
     const cnpjLimpo = onlyDigits(cnpj);
+    const cnpjMascarado = maskCNPJ(cnpjLimpo);
+
+    if (debounceCNPJ.current) {
+      clearTimeout(debounceCNPJ.current);
+      debounceCNPJ.current = null;
+    }
+
+    setCnpjDigitado(cnpjMascarado);
+    form.setFieldValue("cnpj_cpf", cnpjMascarado);
+
     if (cnpjLimpo.length !== 14) {
+      setCnpjValido(false);
+      setCnpjErro(false);
       if (!silencioso) {
         message.warning(`CNPJ deve ter 14 dígitos. Atual: ${cnpjLimpo.length}`);
       }
@@ -224,15 +239,20 @@ export default function ClientesPage() {
       const response = await clienteService.consultarCNPJ(cnpjLimpo);
       const data = response;
 
+      if (consultaAtual !== consultaCNPJSeq.current) return;
+
       aplicarDadosCNPJ(data);
       ultimaConsultaCNPJ.current = cnpjLimpo;
       setCnpjValido(true);
       if (!silencioso) message.success("CNPJ consultado com sucesso!");
     } catch (error) {
+      if (consultaAtual !== consultaCNPJSeq.current) return;
       setCnpjErro(true);
       if (!silencioso) message.error(getApiErrorMessage(error, "CNPJ não encontrado"));
     } finally {
-      setConsultandoCNPJ(false);
+      if (consultaAtual === consultaCNPJSeq.current) {
+        setConsultandoCNPJ(false);
+      }
     }
   };
 
@@ -615,9 +635,13 @@ export default function ClientesPage() {
               ) : (
                 <>
                   <Row gutter={12} style={{ marginBottom: 12 }}>
+                    <Form.Item name="cnpj_cpf" hidden>
+                      <Input />
+                    </Form.Item>
                     <Col flex={1}>
-                      <Form.Item name="cnpj_cpf" style={{ marginBottom: 0 }}>
+                      <Form.Item style={{ marginBottom: 0 }}>
                         <Input
+                          value={cnpjDigitado}
                           placeholder="XX.XXX.XXX/XXXX-XX"
                           onChange={(e) => {
                             consultarCNPJAutomatico(e.target.value);
@@ -629,7 +653,7 @@ export default function ClientesPage() {
                     <Col>
                       <Button
                         type="primary"
-                        onClick={() => consultarCNPJ(cnpjDigitado || form.getFieldValue("cnpj_cpf"))}
+                        onClick={() => consultarCNPJ(cnpjDigitado)}
                         style={btnStyle}
                       >
                         Consultar
