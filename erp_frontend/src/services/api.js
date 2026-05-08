@@ -6,8 +6,12 @@ function getLocalTenantApiBaseUrl() {
   const envBaseUrl = import.meta.env.VITE_API_BASE_URL;
   if (envBaseUrl) return envBaseUrl;
 
-  const { hostname, protocol } = window.location;
+  const { hostname, port, protocol } = window.location;
   if (!["localhost", "127.0.0.1"].includes(hostname)) {
+    return "/api/v1";
+  }
+
+  if (port === "8000") {
     return "/api/v1";
   }
 
