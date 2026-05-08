@@ -34,7 +34,10 @@
 ```bash
 # Backend (Django)
 cd erp_backend
-python manage.py runserver 0.0.0.0:8000
+python manage.py runserver 127.0.0.1:8000
+
+# Alternativa recomendada no Windows
+iniciar-backend-seguro.bat
 
 # Frontend (Vite dev)
 cd erp_frontend
@@ -102,11 +105,15 @@ python manage.py restaurar_backup --arquivo "C:\ERP_BACKUPS\ERP_NEXUS\erp_db_YYY
 - Headers: `X_FRAME_OPTIONS=DENY`, `SECURE_CONTENT_TYPE_NOSNIFF=True`, `SECURE_REFERRER_POLICY=same-origin`.
 - Cookies de sessão com `HttpOnly` e `SameSite=Lax`.
 - Variáveis prontas para modo seguro: `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_HSTS_SECONDS`.
+- Auditoria local: `verificar_seguranca.bat` ou `cd erp_backend && python manage.py verificar_seguranca`.
+- Bloqueio de portas externas do ERP no Windows: `bloquear_acesso_externo.bat`.
+- Remoção do bloqueio, somente se for necessário acesso em rede local: `desbloquear_acesso_externo.bat`.
 
 ### Importante
 
 - Ambiente local de teste pode usar `DEBUG=True`.
-- Se o sistema for exposto na rede/internet ou usado com dados reais, usar `DEBUG=False`, restringir `DJANGO_ALLOWED_HOSTS`, ativar HTTPS e executar o backup diário.
+- Rodar o backend preso em `127.0.0.1:8000`, não em `0.0.0.0`, salvo necessidade explícita.
+- Se o sistema for exposto na rede/internet ou usado com dados reais, usar `DEBUG=False`, restringir `DJANGO_ALLOWED_HOSTS`, ativar HTTPS, executar o backup diário e manter o firewall bloqueando portas externas.
 
 ### Regra fixa de ambiente local
 

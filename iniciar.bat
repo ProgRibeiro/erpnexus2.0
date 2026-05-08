@@ -13,7 +13,7 @@ if %errorlevel% neq 0 (
 )
 echo [2/2] Iniciando servidor Django...
 cd /d "%~dp0erp_backend"
-start "ERP Nexus - Backend" cmd /k "python manage.py runserver"
+start "ERP Nexus - Backend" cmd /k "python manage.py runserver 127.0.0.1:8000"
 echo.
 echo ============================================
 echo  Sistema iniciado! Acesse:
