@@ -135,6 +135,19 @@ export default function NovoContrato() {
   const totalMensal = useMemo(() => unidades.reduce((sum, item) => sum + Number(item.valor_mensal || 0), 0), [unidades]);
   const vigencia = Form.useWatch("vigencia_meses", form) || 12;
 
+  function getApiErrorMessage(error) {
+    const data = error?.response?.data;
+    if (!data) return error?.message || "Erro ao salvar contrato.";
+    if (typeof data === "string") return data;
+    if (data.detail) return data.detail;
+    if (data.erro) return data.erro;
+    const firstKey = Object.keys(data)[0];
+    const firstValue = firstKey ? data[firstKey] : null;
+    if (Array.isArray(firstValue)) return `${firstKey}: ${firstValue[0]}`;
+    if (typeof firstValue === "string") return `${firstKey}: ${firstValue}`;
+    return JSON.stringify(data);
+  }
+
   async function salvar(ativar = false, gerarPdf = false) {
     try {
       const values = await form.validateFields();
@@ -150,7 +163,7 @@ export default function NovoContrato() {
       }
 
       setLoading(true);
-      const payload = {
+      const contratoPayload = {
         cliente: values.cliente,
         titulo: values.titulo,
         objeto_contrato: values.objeto_contrato,
@@ -166,14 +179,11 @@ export default function NovoContrato() {
         responsavel_tecnico_crea: values.responsavel_tecnico_crea || "",
         observacoes: values.observacoes || "",
       };
-      const contratoRes = await api.post("/contratos/", payload);
-      const contrato = contratoRes.data;
-
-      for (const unidade of unidades) {
-        const unidadeRes = await api.post(`/contratos/${contrato.id}/unidades/`, {
+      const unidadesPayload = unidades.map((unidade) => ({
           nome_unidade: unidade.nome_unidade,
           codigo_interno: unidade.codigo_interno || "",
           endereco_completo: unidade.endereco_completo,
+          cep: unidade.cep || "",
           cidade: unidade.cidade || "",
           estado: unidade.estado || "",
           responsavel_local: unidade.responsavel_local || "",
@@ -181,24 +191,23 @@ export default function NovoContrato() {
           email_local: unidade.email_local || "",
           valor_mensal: unidade.valor_mensal || 0,
           observacoes: unidade.observacoes || "",
-        });
-        await api.post(`/contratos/${contrato.id}/escopos-unidade/`, {
-          unidade_contrato: unidadeRes.data.id,
           escopos: unidade.escopos.map((escopo) => ({
             ...escopo,
             checklist_ids: checklistSelecionado[escopo.escopo] || [],
           })),
-        });
-      }
+      }));
 
-      await api.post(`/contratos/${contrato.id}/calcular-totais/`);
-      if (gerarPdf) await api.post(`/contratos/${contrato.id}/gerar-pdf-proposta/`);
-      if (ativar) await api.post(`/contratos/${contrato.id}/ativar/`);
+      const contratoRes = await api.post("/contratos/criar-completo/", {
+        contrato: contratoPayload,
+        unidades: unidadesPayload,
+        gerar_pdf: gerarPdf,
+        ativar,
+      });
+      const contrato = contratoRes.data;
       message.success(ativar ? "Contrato ativado e cronograma gerado." : "Contrato salvo como rascunho.");
       navigate(`/contratos/${contrato.id}`);
     } catch (error) {
-      const data = error?.response?.data;
-      message.error(data ? JSON.stringify(data) : "Erro ao salvar contrato.");
+      message.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
