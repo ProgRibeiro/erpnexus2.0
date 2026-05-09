@@ -108,7 +108,7 @@ const stageStatusMap = {
   orcamento: "orcamento_enviado",
   aprovado: "aprovada",
   execucao: "em_execucao",
-  faturamento: "faturada",
+  faturamento: "concluida",
 };
 const stageTabMap = {
   lead: "dados-gerais",
@@ -211,7 +211,7 @@ const leadSourceOptions = [
 const reportTypeOptions = [
   { value: "simples", label: "Corretivo" },
   { value: "tecnico", label: "Preventivo" },
-  { value: "fotografico", label: "Visita técnica" },
+  { value: "fotografico", label: "Manutenção geral (fotos)" },
 ];
 
 const checklistTypeOptions = [
@@ -258,8 +258,8 @@ function getStageKey(ordem) {
   const paymentStatus = String(ordem?.status_pagamento || "").toLowerCase();
 
   if (paymentStatus === "pago") return "receita";
-  if (status === "faturada") return "faturamento";
-  if (["em_execucao", "concluida"].includes(status)) return "execucao";
+  if (["concluida", "faturada"].includes(status)) return "faturamento";
+  if (status === "em_execucao") return "execucao";
   if (["aprovada", "agendada"].includes(status)) return "aprovado";
   if (status === "orcamento_enviado") return "orcamento";
   return "lead";
@@ -370,6 +370,7 @@ export default function OSDetalhePage() {
   const [checklistRespostas, setChecklistRespostas] = useState({});
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
+  const [concluindoOS, setConcluindoOS] = useState(false);
   const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
   const [tributacao, setTributacao] = useState({
     regime: "simples_nacional",
@@ -394,6 +395,8 @@ export default function OSDetalhePage() {
   const statusVisual = getStatusVisual(ordem?.status);
   const currentStage = getStageKey(ordem);
   const currentStageIndex = stageOrder.indexOf(currentStage);
+  const statusAtualOS = String(ordem?.status || "").toLowerCase();
+  const servicoFinalizado = ["concluida", "faturada"].includes(statusAtualOS);
   const selectedClient = useMemo(
     () => clients.find((cliente) => String(cliente.id) === String(watchedClient)),
     [clients, watchedClient]
@@ -1030,6 +1033,38 @@ export default function OSDetalhePage() {
         "conta_recebimento",
       ]);
       await salvarOS();
+
+      const statusAtual = String(ordem?.status || "").toLowerCase();
+      if (statusAtual === "em_execucao") {
+        const tipoRelatorio = form.getFieldValue("tipo_relatorio");
+        const observacoesTecnicas = String(form.getFieldValue("observacoes_tecnicas") || "").trim();
+        const descricaoServico = String(form.getFieldValue("descricao_servico") || "").trim();
+
+        if (!tipoRelatorio) {
+          setActiveTab("execucao");
+          message.warning("Selecione o tipo de relatório na aba Execução e fotos antes de faturar.");
+          return;
+        }
+
+        const precisaObservacaoTecnica = tipoRelatorio !== "fotografico";
+        if (precisaObservacaoTecnica && !observacoesTecnicas) {
+          setActiveTab("execucao");
+          message.warning("Preencha as observações técnicas na aba Execução e fotos antes de faturar.");
+          return;
+        }
+
+        if (!precisaObservacaoTecnica && !descricaoServico) {
+          setActiveTab("dados-gerais");
+          message.warning("No relatório de manutenção geral (fotos), preencha a descrição do serviço antes de faturar.");
+          return;
+        }
+
+        const osConcluida = await changeStatus("concluida", "OS concluída automaticamente ao iniciar faturamento.");
+        if (!osConcluida) {
+          return;
+        }
+      }
+
       const response = await api.post(`/ordens/${id}/confirmar-faturamento/`, {
         conta_bancaria: form.getFieldValue("conta_recebimento"),
       });
@@ -1055,10 +1090,73 @@ export default function OSDetalhePage() {
       setOrdem(response.data);
       preencherFormulario(response.data);
       message.success("Status atualizado.");
+      return response.data;
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       message.error("Não foi possível atualizar o status.");
+      return null;
     }
+  };
+
+  const concluirOSPelaExecucao = ({ emitirRelatorio = false } = {}) => {
+    if (servicoFinalizado) {
+      message.info("Esta OS já está concluída.");
+      if (emitirRelatorio) {
+        gerarRelatorioTecnico();
+      }
+      return;
+    }
+
+    const tipoRelatorio = form.getFieldValue("tipo_relatorio");
+    const observacoesTecnicas = String(form.getFieldValue("observacoes_tecnicas") || "").trim();
+    const descricaoServico = String(form.getFieldValue("descricao_servico") || "").trim();
+
+    if (!tipoRelatorio) {
+      setActiveTab("execucao");
+      message.warning("Selecione o tipo de relatório antes de concluir a OS.");
+      return;
+    }
+
+    const precisaObservacaoTecnica = tipoRelatorio !== "fotografico";
+
+    if (precisaObservacaoTecnica && !observacoesTecnicas) {
+      setActiveTab("execucao");
+      message.warning("Preencha as observações técnicas do relatório antes de concluir a OS.");
+      return;
+    }
+
+    if (!precisaObservacaoTecnica && !descricaoServico) {
+      setActiveTab("dados-gerais");
+      message.warning("No relatório de manutenção geral (fotos), preencha a descrição do serviço antes de concluir a OS.");
+      return;
+    }
+
+    Modal.confirm({
+      title: emitirRelatorio ? "Concluir e emitir relatório?" : "Marcar serviço como concluído?",
+      content: emitirRelatorio
+        ? "A OS será salva, marcada como concluída e o relatório técnico do serviço executado será gerado em PDF."
+        : "A OS será salva e marcada como serviço concluído. Depois disso ela fica pronta para emissão de relatório e faturamento.",
+      okText: emitirRelatorio ? "Concluir e emitir" : "Serviço concluído",
+      cancelText: "Cancelar",
+      okButtonProps: { style: { background: "#16A34A", borderColor: "#16A34A" } },
+      onOk: async () => {
+        setConcluindoOS(true);
+        try {
+          await salvarOS();
+          const updated = await changeStatus("concluida", "OS concluída pela aba Execução e fotos.");
+          if (updated) {
+            if (emitirRelatorio) {
+              await gerarRelatorioTecnico();
+              setActiveTab("execucao");
+            } else {
+              setActiveTab("faturamento");
+            }
+          }
+        } finally {
+          setConcluindoOS(false);
+        }
+      },
+    });
   };
 
   const moverParaEtapa = async (stageKey) => {
@@ -1087,6 +1185,7 @@ export default function OSDetalhePage() {
       { key: "orcamento", label: "Mover para Orçamento" },
       { key: "aprovado", label: "Mover para Aprovado" },
       { key: "execucao", label: "Mover para Em execução" },
+      { key: "concluir", label: "Concluir OS" },
       { type: "divider" },
       { key: "faturamento", label: "Ir para Faturamento" },
       { key: "historico", label: "Abrir Histórico" },
@@ -1097,6 +1196,12 @@ export default function OSDetalhePage() {
         return;
       }
       if (key === "faturamento") {
+        setActiveTab("faturamento");
+        return;
+      }
+      if (key === "concluir") {
+        await salvarOS();
+        await changeStatus("concluida", "OS concluída manualmente.");
         setActiveTab("faturamento");
         return;
       }
@@ -1626,16 +1731,55 @@ export default function OSDetalhePage() {
           <Title level={5} style={{ marginTop: 0, marginBottom: 0, color: "#6B7280", textTransform: "uppercase" }}>
             Execução do serviço
           </Title>
-          <Button
-            type="primary"
-            icon={<FilePdfOutlined />}
-            loading={gerandoRelatorioTecnico}
-            onClick={gerarRelatorioTecnico}
-            style={{ background: "#0F172A", borderColor: "#0F172A", borderRadius: 8 }}
-          >
-            Gerar Relatório Técnico
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ToolOutlined />}
+              onClick={() => setActiveTab("execucao")}
+              style={{ borderRadius: 8 }}
+            >
+              Execução / fotos
+            </Button>
+            <Button
+              type="primary"
+              icon={<FilePdfOutlined />}
+              loading={gerandoRelatorioTecnico}
+              onClick={gerarRelatorioTecnico}
+              style={{ background: "#0F172A", borderColor: "#0F172A", borderRadius: 8 }}
+            >
+              Emitir relatório do serviço
+            </Button>
+            <Button
+              icon={<FilePdfOutlined />}
+              loading={concluindoOS || gerandoRelatorioTecnico}
+              disabled={servicoFinalizado}
+              onClick={() => concluirOSPelaExecucao({ emitirRelatorio: true })}
+              style={{ borderRadius: 8 }}
+            >
+              Concluir e emitir relatório
+            </Button>
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              disabled={servicoFinalizado}
+              loading={concluindoOS}
+              onClick={() => concluirOSPelaExecucao()}
+              style={{ background: "#16A34A", borderColor: "#16A34A", borderRadius: 8 }}
+            >
+              Serviço concluído
+            </Button>
+          </Space>
         </Space>
+        <Alert
+          showIcon
+          type={servicoFinalizado ? "success" : "info"}
+          style={{ marginBottom: 16, borderRadius: 10 }}
+          message={servicoFinalizado ? "Serviço concluído" : "Fluxo de execução do serviço"}
+          description={
+            servicoFinalizado
+              ? "A OS já está concluída. Você pode emitir o relatório do serviço executado em PDF ou seguir para o faturamento."
+              : "Preencha execução, medições, observações e fotos antes/depois. Depois clique em Serviço concluído ou em Concluir e emitir relatório para finalizar e gerar o PDF."
+          }
+        />
         <Row gutter={[16, 8]}>
           <Col xs={24} md={12}>
             <Form.Item label="Técnico responsável" name="tecnico_responsavel">
@@ -1676,6 +1820,9 @@ export default function OSDetalhePage() {
             <Form.Item label="Tipo de relatório" name="tipo_relatorio">
               <Select allowClear options={reportTypeOptions} />
             </Form.Item>
+            <Text type="secondary" style={{ display: "block", marginTop: -8 }}>
+              Em "Manutenção geral (fotos)", preencha a descrição do serviço e registre as fotos.
+            </Text>
           </Col>
           <Col xs={24} md={16}>
             <Form.Item label="Checklist técnico aplicado">
@@ -2218,6 +2365,9 @@ export default function OSDetalhePage() {
             </div>
 
             <Space wrap>
+              <Button icon={<ToolOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("execucao")}>
+                Execução / concluir
+              </Button>
               <Button icon={<FilePdfOutlined />} style={subtleButtonStyle} onClick={gerarRelatorio} loading={reportLoading}>
                 Gerar relatório
               </Button>
