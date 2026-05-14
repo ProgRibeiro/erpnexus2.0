@@ -514,13 +514,24 @@ export default function NovoContrato() {
               <Divider />
               {unidades.map((unidade, unidadeIndex) => (
                 <Card key={unidade.key} size="small" title={`Escopos de ${unidade.nome_unidade || `Unidade ${unidadeIndex + 1}`}`} style={{ marginBottom: 12 }}>
+                  <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message={`Valor desta unidade: ${money.format(Number(unidade.valor_mensal || 0))}. Os escopos selecionados entram juntos nesse valor mensal.`}
+                  />
                   {unidade.escopos.map((escopo, escopoIndex) => (
                     <Row gutter={12} key={escopo.escopo} align="middle" style={{ marginBottom: 8 }}>
-                      <Col xs={24} md={5}><Text strong>{escopo.escopo_nome}</Text></Col>
-                      <Col xs={24} md={5}><Select value={escopo.periodicidade} onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "periodicidade", v)} options={periodicidadeOptions} style={{ width: "100%" }} /></Col>
-                      <Col xs={24} md={4}><InputNumber min={1} value={escopo.equipamentos_quantidade} onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "equipamentos_quantidade", v || 1)} style={{ width: "100%" }} /></Col>
-                      <Col xs={24} md={6}><Input value={escopo.equipamentos_descricao} onChange={(e) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "equipamentos_descricao", e.target.value)} placeholder="Equipamentos" /></Col>
-                      <Col xs={24} md={4}><InputNumber min={0} precision={2} value={escopo.valor_alocado} onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "valor_alocado", v || 0)} prefix="R$" style={{ width: "100%" }} /></Col>
+                      <Col xs={24} md={10}><Text strong>{escopo.escopo_nome}</Text></Col>
+                      <Col xs={24} md={6}>
+                        <Select
+                          value={escopo.periodicidade}
+                          onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "periodicidade", v)}
+                          options={periodicidadeOptions}
+                          style={{ width: "100%" }}
+                        />
+                      </Col>
+                      <Col xs={24} md={8}><Text type="secondary">Incluso no valor mensal da unidade</Text></Col>
                     </Row>
                   ))}
                 </Card>

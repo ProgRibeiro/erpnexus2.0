@@ -701,23 +701,25 @@ class GeradorPDFContrato:
         story.append(Spacer(1, 0.18 * cm))
 
     def _tabela_escopos_unidade(self, story, contrato, styles):
-        linhas = [["Unidade", "Escopo", "Periodicidade", "Equipamentos", "Valor alocado"]]
-        escopos_unidade = []
+        linhas = [["Unidade", "Escopos inclusos", "Periodicidade", "Valor mensal da unidade"]]
+        unidades = []
         for unidade in contrato.unidades.filter(ativo=True).prefetch_related("escopos__escopo"):
-            for escopo_unidade in unidade.escopos.filter(ativo=True).select_related("escopo"):
-                escopos_unidade.append(escopo_unidade)
-                equipamentos = escopo_unidade.equipamentos_descricao or f"{escopo_unidade.equipamentos_quantidade} equipamento(s)"
-                linhas.append([
-                    Paragraph(self._texto(unidade.nome_unidade), styles["Small"]),
-                    Paragraph(self._texto(escopo_unidade.escopo.nome), styles["Small"]),
-                    Paragraph(self._texto(escopo_unidade.get_periodicidade_display()), styles["Small"]),
-                    Paragraph(self._texto(equipamentos), styles["Small"]),
-                    self._brl(escopo_unidade.valor_alocado),
-                ])
-        if not escopos_unidade:
+            escopos_ativos = list(unidade.escopos.filter(ativo=True).select_related("escopo"))
+            if not escopos_ativos:
+                continue
+            unidades.append(unidade)
+            escopos = ", ".join(escopo_unidade.escopo.nome for escopo_unidade in escopos_ativos)
+            periodicidades = sorted({escopo_unidade.get_periodicidade_display() for escopo_unidade in escopos_ativos})
+            linhas.append([
+                Paragraph(self._texto(unidade.nome_unidade), styles["Small"]),
+                Paragraph(self._texto(escopos), styles["Small"]),
+                Paragraph(self._texto(", ".join(periodicidades)), styles["Small"]),
+                self._brl(unidade.valor_mensal),
+            ])
+        if not unidades:
             return
-        story.append(Paragraph("Composição técnica por unidade", styles["SectionTitle"]))
-        tabela = Table(linhas, colWidths=[3.5 * cm, 3.4 * cm, 2.7 * cm, 4.8 * cm, 2.7 * cm], repeatRows=1)
+        story.append(Paragraph("Composição técnica e valor por unidade", styles["SectionTitle"]))
+        tabela = Table(linhas, colWidths=[4.1 * cm, 6.0 * cm, 3.2 * cm, 3.8 * cm], repeatRows=1)
         tabela.setStyle(self._table_style())
         story.append(tabela)
         story.append(Spacer(1, 0.18 * cm))
