@@ -80,6 +80,51 @@ class ContratoPreventivaViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(criado_por=self.request.user if self.request.user.is_authenticated else None)
 
+    def _salvar_unidades_com_escopos(self, contrato, unidades_data, substituir=False):
+        unidades_recebidas = []
+
+        for unidade_payload in unidades_data:
+            unidade_payload = unidade_payload.copy()
+            escopos_payload = unidade_payload.pop("escopos", [])
+            unidade_id = unidade_payload.pop("id", None)
+
+            unidade = None
+            if unidade_id:
+                unidade = contrato.unidades.filter(pk=unidade_id).first()
+
+            serializer_data = {**unidade_payload, "contrato": contrato.id}
+            if unidade:
+                unidade_serializer = UnidadeContratoSerializer(unidade, data=serializer_data, partial=True)
+            else:
+                unidade_serializer = UnidadeContratoSerializer(data=serializer_data)
+            unidade_serializer.is_valid(raise_exception=True)
+            unidade = unidade_serializer.save()
+            unidades_recebidas.append(unidade.id)
+
+            for item in escopos_payload:
+                escopo_id = item.get("escopo")
+                if not escopo_id:
+                    continue
+                escopo_unidade, _ = EscopoUnidade.objects.update_or_create(
+                    unidade_contrato=unidade,
+                    escopo_id=escopo_id,
+                    defaults={
+                        "periodicidade": item.get("periodicidade", "mensal"),
+                        "equipamentos_quantidade": item.get("equipamentos_quantidade", 1),
+                        "equipamentos_descricao": item.get("equipamentos_descricao", ""),
+                        "valor_alocado": item.get("valor_alocado", 0),
+                        "ativo": item.get("ativo", True),
+                    },
+                )
+                EscopoContrato.objects.get_or_create(contrato=contrato, escopo_id=escopo_id, defaults={"ativo": True})
+                GeradorChecklistContrato().criar_padrao_para_escopo_unidade(
+                    escopo_unidade,
+                    checklist_ids=item.get("checklist_ids"),
+                )
+
+        if substituir:
+            contrato.unidades.exclude(id__in=unidades_recebidas).delete()
+
     @action(detail=False, methods=["post"], url_path="criar-completo")
     def criar_completo(self, request):
         contrato_data = request.data.get("contrato") or {}
@@ -95,33 +140,7 @@ class ContratoPreventivaViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             contrato = serializer.save(criado_por=request.user if request.user.is_authenticated else None)
 
-            for unidade_payload in unidades_data:
-                escopos_payload = unidade_payload.pop("escopos", [])
-                unidade_serializer = UnidadeContratoSerializer(data={**unidade_payload, "contrato": contrato.id})
-                unidade_serializer.is_valid(raise_exception=True)
-                unidade = unidade_serializer.save()
-
-                for item in escopos_payload:
-                    escopo_id = item.get("escopo")
-                    if not escopo_id:
-                        continue
-                    escopo_unidade, _ = EscopoUnidade.objects.update_or_create(
-                        unidade_contrato=unidade,
-                        escopo_id=escopo_id,
-                        defaults={
-                            "periodicidade": item.get("periodicidade", "mensal"),
-                            "equipamentos_quantidade": item.get("equipamentos_quantidade", 1),
-                            "equipamentos_descricao": item.get("equipamentos_descricao", ""),
-                            "valor_alocado": item.get("valor_alocado", 0),
-                            "ativo": item.get("ativo", True),
-                        },
-                    )
-                    EscopoContrato.objects.get_or_create(contrato=contrato, escopo_id=escopo_id, defaults={"ativo": True})
-                    GeradorChecklistContrato().criar_padrao_para_escopo_unidade(
-                        escopo_unidade,
-                        checklist_ids=item.get("checklist_ids"),
-                    )
-
+            self._salvar_unidades_com_escopos(contrato, unidades_data)
             contrato.recalcular_totais()
             if ativar:
                 contrato.status = ContratoPreventiva.Status.ATIVO
@@ -132,6 +151,39 @@ class ContratoPreventivaViewSet(viewsets.ModelViewSet):
 
         contrato = self.get_queryset().get(pk=contrato.pk)
         return Response(ContratoPreventivaSerializer(contrato, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="salvar-completo")
+    def salvar_completo(self, request, pk=None):
+        contrato = self.get_object()
+        contrato_data = request.data.get("contrato") or {}
+        unidades_data = request.data.get("unidades") or []
+        gerar_pdf = bool(request.data.get("gerar_pdf"))
+        ativar = bool(request.data.get("ativar"))
+
+        if not unidades_data:
+            return Response({"erro": "Informe ao menos uma unidade."}, status=400)
+
+        with transaction.atomic():
+            serializer = ContratoPreventivaSerializer(
+                contrato,
+                data=contrato_data,
+                partial=True,
+                context={"request": request},
+            )
+            serializer.is_valid(raise_exception=True)
+            contrato = serializer.save()
+
+            self._salvar_unidades_com_escopos(contrato, unidades_data, substituir=True)
+            contrato.recalcular_totais()
+            if ativar:
+                contrato.status = ContratoPreventiva.Status.ATIVO
+                contrato.save(update_fields=["status", "valor_total_mensal", "valor_total_contrato", "atualizado_em"])
+                GeradorCronograma().gerar_para_contrato(contrato)
+            if gerar_pdf:
+                GeradorPDFContrato().gerar(contrato, "proposta")
+
+        contrato = self.get_queryset().get(pk=contrato.pk)
+        return Response(ContratoPreventivaSerializer(contrato, context={"request": request}).data)
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)

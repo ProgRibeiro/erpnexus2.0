@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Checkbox, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, Space, Steps, Switch, Table, Tag, Typography, message } from "antd";
 import { CheckCircleOutlined, FilePdfOutlined, SaveOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import api from "../../services/api";
 import { money, normalizeList, pageStyle, periodicidadeOptions } from "./shared";
@@ -10,21 +10,12 @@ import { money, normalizeList, pageStyle, periodicidadeOptions } from "./shared"
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-const initialContratoValues = {
-  vigencia_meses: 12,
-  data_inicio: dayjs(),
-  tipo_faturamento: "mensal_fixo",
-  dia_vencimento_fatura: 10,
-  forma_pagamento: "boleto",
-  reajuste_anual: true,
-  indice_reajuste: "IPCA",
-};
-
-export default function NovoContrato() {
+export default function EditarContrato() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [step, setStep] = useState(0);
-  const [formValues, setFormValues] = useState(initialContratoValues);
+  const [formValues, setFormValues] = useState({});
   const [clientes, setClientes] = useState([]);
   const [escopos, setEscopos] = useState([]);
   const [checklists, setChecklists] = useState({});
@@ -34,28 +25,103 @@ export default function NovoContrato() {
   const [escopoGerado, setEscopoGerado] = useState(null);
   const [erroEscopos, setErroEscopos] = useState("");
   const [loading, setLoading] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState(""); // "", "salvando", "salvo", "erro"
+  const [autoSaveStatus, setAutoSaveStatus] = useState("");
   const autoSaveTimeoutRef = useRef(null);
-  const [contratoIdSalvo, setContratoIdSalvo] = useState(null);
+  const [contrato, setContrato] = useState(null);
 
   useEffect(() => {
     async function bootstrap() {
       try {
-        const [clientesRes, escoposRes] = await Promise.all([
+        const [clientesRes, escoposRes, contratoRes] = await Promise.all([
           api.get("/clientes/"),
           api.get("/contratos/escopos/"),
+          api.get(`/contratos/${id}/`),
         ]);
         setClientes(normalizeList(clientesRes.data));
         const escoposCarregados = normalizeList(escoposRes.data);
         setEscopos(escoposCarregados);
         setErroEscopos(escoposCarregados.length ? "" : "Nenhum escopo técnico foi retornado pela API.");
+
+        if (contratoRes.data.status !== "rascunho") {
+          message.error("Apenas contratos em rascunho podem ser editados.");
+          navigate(`/contratos/${id}`);
+          return;
+        }
+
+        setContrato(contratoRes.data);
+        carregarDadosContrato(contratoRes.data, escoposCarregados);
       } catch (error) {
-        setErroEscopos("Não foi possível carregar os escopos técnicos. Verifique se o backend está rodando no tenant demo.localhost.");
-        message.warning("Não foi possível carregar dados iniciais.");
+        setErroEscopos("Não foi possível carregar os dados iniciais.");
+        message.warning("Erro ao carregar contrato.");
       }
     }
     bootstrap();
-  }, []);
+  }, [id, navigate]);
+
+  function carregarDadosContrato(contratoData, escoposCarregados) {
+    const escoposDoContrato = contratoData.escopos_contrato?.map((ec) => {
+      const escopoCompleto = escoposCarregados.find((e) => e.id === ec.escopo);
+      return escopoCompleto || { id: ec.escopo, nome: ec.escopo_nome };
+    }) || [];
+
+    setEscoposSelecionados(escoposDoContrato);
+
+    const unidadesCarregadas = contratoData.unidades?.map((u) => ({
+      key: u.id,
+      id: u.id,
+      nome_unidade: u.nome_unidade,
+      codigo_interno: u.codigo_interno || "",
+      endereco_completo: u.endereco_completo,
+      cep: u.cep || "",
+      cidade: u.cidade || "",
+      estado: u.estado || "",
+      responsavel_local: u.responsavel_local || "",
+      telefone_local: u.telefone_local || "",
+      email_local: u.email_local || "",
+      valor_mensal: u.valor_mensal || 0,
+      observacoes: u.observacoes || "",
+      escopos: u.escopos?.map((eu) => ({
+        id: eu.id,
+        escopo: eu.escopo,
+        escopo_nome: eu.escopo_dados?.nome,
+        periodicidade: eu.periodicidade,
+        equipamentos_quantidade: eu.equipamentos_quantidade,
+        equipamentos_descricao: eu.equipamentos_descricao,
+        valor_alocado: eu.valor_alocado,
+      })) || [],
+    })) || [];
+
+    setUnidades(unidadesCarregadas);
+
+    const checklistMap = {};
+    escoposDoContrato.forEach((escopo) => {
+      const items = contratoData.unidades?.flatMap((u) =>
+        u.escopos?.find((eu) => eu.escopo === escopo.id)?.checklist?.map((c) => c.item_padrao?.id) || []
+      ) || [];
+      checklistMap[escopo.id] = [...new Set(items)];
+    });
+    setChecklistSelecionado(checklistMap);
+
+    const initialValues = {
+      cliente: contratoData.cliente,
+      titulo: contratoData.titulo,
+      objeto_contrato: contratoData.objeto_contrato,
+      vigencia_meses: contratoData.vigencia_meses,
+      data_inicio: dayjs(contratoData.data_inicio),
+      tipo_faturamento: contratoData.tipo_faturamento,
+      dia_vencimento_fatura: contratoData.dia_vencimento_fatura,
+      forma_pagamento: contratoData.forma_pagamento,
+      reajuste_anual: contratoData.reajuste_anual,
+      indice_reajuste: contratoData.indice_reajuste,
+      renovacao_automatica: contratoData.renovacao_automatica,
+      requer_art: contratoData.requer_art,
+      responsavel_tecnico_crea: contratoData.responsavel_tecnico_crea,
+      observacoes: contratoData.observacoes,
+    };
+
+    setFormValues(initialValues);
+    form.setFieldsValue(initialValues);
+  }
 
   useEffect(() => {
     async function gerarEscopoUnificado() {
@@ -75,82 +141,32 @@ export default function NovoContrato() {
     gerarEscopoUnificado();
   }, [escoposSelecionados]);
 
-  function montarContratoPayload(values) {
-    return {
-      cliente: Number(values.cliente),
-      titulo: values.titulo,
-      objeto_contrato: values.objeto_contrato,
-      vigencia_meses: values.vigencia_meses,
-      data_inicio: formatarDataInicio(values.data_inicio),
-      tipo_faturamento: values.tipo_faturamento,
-      dia_vencimento_fatura: values.dia_vencimento_fatura,
-      forma_pagamento: values.forma_pagamento,
-      reajuste_anual: Boolean(values.reajuste_anual),
-      indice_reajuste: values.indice_reajuste || "IPCA",
-      renovacao_automatica: Boolean(values.renovacao_automatica),
-      requer_art: Boolean(values.requer_art),
-      responsavel_tecnico_crea: values.responsavel_tecnico_crea || "",
-      observacoes: values.observacoes || "",
-    };
-  }
-
-  function montarUnidadesPayload() {
-    return unidades.map((unidade) => ({
-      id: unidade.id,
-      nome_unidade: unidade.nome_unidade,
-      codigo_interno: unidade.codigo_interno || "",
-      endereco_completo: unidade.endereco_completo,
-      cep: unidade.cep || "",
-      cidade: unidade.cidade || "",
-      estado: unidade.estado || "",
-      responsavel_local: unidade.responsavel_local || "",
-      telefone_local: unidade.telefone_local || "",
-      email_local: unidade.email_local || "",
-      valor_mensal: unidade.valor_mensal || 0,
-      observacoes: unidade.observacoes || "",
-      escopos: unidade.escopos.map((escopo) => ({
-        ...escopo,
-        checklist_ids: checklistSelecionado[escopo.escopo] || [],
-      })),
-    }));
-  }
-
   async function autoSalvarRascunho() {
     const values = getValoresContrato();
     const temMinimoDados = values.cliente && values.titulo && values.objeto_contrato && unidades.length > 0;
 
-    if (!temMinimoDados) {
-      console.log("[AUTOSAVE] Dados insuficientes para salvar rascunho automático");
-      return;
-    }
+    if (!temMinimoDados) return;
 
     setAutoSaveStatus("salvando");
     try {
-      const contratoPayload = montarContratoPayload(values);
-      const unidadesPayload = montarUnidadesPayload();
+      const contratoPayload = {
+        cliente: Number(values.cliente),
+        titulo: values.titulo,
+        objeto_contrato: values.objeto_contrato,
+        vigencia_meses: values.vigencia_meses,
+        data_inicio: formatarDataInicio(values.data_inicio),
+        tipo_faturamento: values.tipo_faturamento,
+        dia_vencimento_fatura: values.dia_vencimento_fatura,
+        forma_pagamento: values.forma_pagamento,
+        reajuste_anual: Boolean(values.reajuste_anual),
+        indice_reajuste: values.indice_reajuste || "IPCA",
+        renovacao_automatica: Boolean(values.renovacao_automatica),
+        requer_art: Boolean(values.requer_art),
+        responsavel_tecnico_crea: values.responsavel_tecnico_crea || "",
+        observacoes: values.observacoes || "",
+      };
 
-      if (contratoIdSalvo) {
-        console.log("[AUTOSAVE] Atualizando contrato completo existente:", contratoIdSalvo);
-        await api.post(`/contratos/${contratoIdSalvo}/salvar-completo/`, {
-          contrato: contratoPayload,
-          unidades: unidadesPayload,
-          gerar_pdf: false,
-          ativar: false,
-        });
-      } else {
-        console.log("[AUTOSAVE] Criando novo contrato como rascunho");
-        const res = await api.post("/contratos/criar-completo/", {
-          contrato: contratoPayload,
-          unidades: unidadesPayload,
-          gerar_pdf: false,
-          ativar: false,
-        });
-        if (res.data?.id) {
-          setContratoIdSalvo(res.data.id);
-          console.log("[AUTOSAVE] Contrato rascunho salvo com ID:", res.data.id);
-        }
-      }
-
+      await api.patch(`/contratos/${id}/`, contratoPayload);
       setAutoSaveStatus("salvo");
       setTimeout(() => setAutoSaveStatus(""), 2000);
     } catch (error) {
@@ -161,14 +177,10 @@ export default function NovoContrato() {
   }
 
   useEffect(() => {
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
+    if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
     autoSaveTimeoutRef.current = setTimeout(() => {
       autoSalvarRascunho();
     }, 2000);
-
     return () => {
       if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
     };
@@ -176,12 +188,16 @@ export default function NovoContrato() {
 
   async function carregarChecklist(escopoId) {
     if (checklists[escopoId]) return;
-    const res = await api.get(`/contratos/escopos/${escopoId}/checklist-padrao/`);
-    setChecklists((prev) => ({ ...prev, [escopoId]: res.data || [] }));
-    setChecklistSelecionado((prev) => ({
-      ...prev,
-      [escopoId]: (res.data || []).map((item) => item.id),
-    }));
+    try {
+      const res = await api.get(`/contratos/escopos/${escopoId}/checklist-padrao/`);
+      setChecklists((prev) => ({ ...prev, [escopoId]: res.data || [] }));
+      setChecklistSelecionado((prev) => ({
+        ...prev,
+        [escopoId]: (res.data || []).map((item) => item.id),
+      }));
+    } catch {
+      message.error("Erro ao carregar checklist.");
+    }
   }
 
   function toggleEscopo(escopo) {
@@ -255,7 +271,6 @@ export default function NovoContrato() {
 
   function getValoresContrato() {
     return {
-      ...initialContratoValues,
       ...formValues,
       ...form.getFieldsValue(true),
     };
@@ -294,11 +309,31 @@ export default function NovoContrato() {
     return JSON.stringify(data);
   }
 
+  function montarUnidadesPayload() {
+    return unidades.map((unidade) => ({
+      id: unidade.id,
+      nome_unidade: unidade.nome_unidade,
+      codigo_interno: unidade.codigo_interno || "",
+      endereco_completo: unidade.endereco_completo,
+      cep: unidade.cep || "",
+      cidade: unidade.cidade || "",
+      estado: unidade.estado || "",
+      responsavel_local: unidade.responsavel_local || "",
+      telefone_local: unidade.telefone_local || "",
+      email_local: unidade.email_local || "",
+      valor_mensal: unidade.valor_mensal || 0,
+      observacoes: unidade.observacoes || "",
+      escopos: unidade.escopos.map((escopo) => ({
+        ...escopo,
+        checklist_ids: checklistSelecionado[escopo.escopo] || [],
+      })),
+    }));
+  }
+
   async function salvar(ativar = false, gerarPdf = false) {
     try {
       const values = getValoresContrato();
-      console.log("[SAVE] Iniciando salvamento com ativar=", ativar, "gerarPdf=", gerarPdf);
-      console.log("[SAVE] Valores do contrato:", values);
+      console.log("[SAVE] Atualizando contrato com ativar=", ativar, "gerarPdf=", gerarPdf);
 
       if (!values.cliente) {
         message.error("Selecione o cliente nos dados básicos.");
@@ -321,65 +356,40 @@ export default function NovoContrato() {
         return;
       }
 
-      console.log("[SAVE] Validações passaram. Escopos:", escoposSelecionados.length, "Unidades:", unidades.length);
-      console.log("[SAVE] Contrato ID já existente:", contratoIdSalvo);
       setLoading(true);
 
-      const contratoPayload = montarContratoPayload(values);
-      const unidadesPayload = montarUnidadesPayload();
+      const contratoPayload = {
+        cliente: Number(values.cliente),
+        titulo: values.titulo,
+        objeto_contrato: values.objeto_contrato,
+        vigencia_meses: values.vigencia_meses,
+        data_inicio: formatarDataInicio(values.data_inicio),
+        tipo_faturamento: values.tipo_faturamento,
+        dia_vencimento_fatura: values.dia_vencimento_fatura,
+        forma_pagamento: values.forma_pagamento,
+        reajuste_anual: Boolean(values.reajuste_anual),
+        indice_reajuste: values.indice_reajuste || "IPCA",
+        renovacao_automatica: Boolean(values.renovacao_automatica),
+        requer_art: Boolean(values.requer_art),
+        responsavel_tecnico_crea: values.responsavel_tecnico_crea || "",
+        observacoes: values.observacoes || "",
+      };
 
-      console.log("[SAVE] Payload pronto. Enviando para API...");
-      console.log("[SAVE] contratoPayload:", contratoPayload);
-      console.log("[SAVE] unidadesPayload:", unidadesPayload);
-      console.log("[SAVE] contratoIdSalvo:", contratoIdSalvo, "ativar:", ativar);
-
-      let contratoRes;
-      try {
-        if (contratoIdSalvo) {
-          console.log("[SAVE] Atualizando contrato completo existente:", contratoIdSalvo);
-          contratoRes = await api.post(`/contratos/${contratoIdSalvo}/salvar-completo/`, {
-            contrato: contratoPayload,
-            unidades: unidadesPayload,
-            gerar_pdf: gerarPdf,
-            ativar,
-          });
-        } else {
-          console.log("[SAVE] Criando novo contrato via POST");
-          contratoRes = await api.post("/contratos/criar-completo/", {
-            contrato: contratoPayload,
-            unidades: unidadesPayload,
-            gerar_pdf: gerarPdf,
-            ativar,
-          });
-        }
-      } catch (apiError) {
-        console.error("[ERROR] Requisição para API falhou completamente:", apiError);
-        console.error("[ERROR] Status:", apiError.response?.status);
-        console.error("[ERROR] Detalhes:", apiError.response?.data);
-        throw apiError;
+      if (ativar) {
+        contratoPayload.status = "ativo";
       }
 
-      if (!contratoRes || !contratoRes.data) {
-        throw new Error("API retornou resposta vazia ou inválida.");
-      }
+      const contratoRes = await api.post(`/contratos/${id}/salvar-completo/`, {
+        contrato: contratoPayload,
+        unidades: montarUnidadesPayload(),
+        gerar_pdf: gerarPdf,
+        ativar,
+      });
 
-      console.log("[SAVE] Resposta da API recebida:", contratoRes.data);
-      const contrato = contratoRes.data;
-
-      if (!contrato.id) {
-        throw new Error("Contrato criado mas sem ID. Resposta da API: " + JSON.stringify(contrato));
-      }
-
-      if (!contratoIdSalvo) {
-        setContratoIdSalvo(contrato.id);
-        console.log("[SAVE] Novo contrato ID salvo:", contrato.id);
-      }
-
-      message.success(ativar ? "Contrato ativado e cronograma gerado." : "Contrato salvo como rascunho.");
-      setTimeout(() => navigate(`/contratos/${contrato.id}`), 500);
+      message.success(ativar ? "Contrato ativado e cronograma gerado." : "Contrato atualizado com sucesso.");
+      setTimeout(() => navigate(`/contratos/${contratoRes.data?.id || id}`), 500);
     } catch (error) {
       console.error("[ERROR] Erro ao salvar contrato:", error);
-      console.error("[ERROR] Detalhes do erro:", error.response?.data || error.message);
       message.error(getApiErrorMessage(error));
     } finally {
       setLoading(false);
@@ -394,22 +404,21 @@ export default function NovoContrato() {
     { title: "Valor mensal", width: 160, render: (_, row, idx) => <InputNumber style={{ width: "100%" }} min={0} precision={2} value={row.valor_mensal} onChange={(v) => atualizarUnidade(idx, "valor_mensal", v || 0)} prefix="R$" /> },
   ];
 
+  if (!contrato) {
+    return <div style={pageStyle}>{loading ? "Carregando..." : "Contrato não encontrado"}</div>;
+  }
+
   return (
     <div style={pageStyle}>
       <Space align="center" style={{ justifyContent: "space-between", width: "100%", marginBottom: 20 }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Novo Contrato de Preventiva</Title>
-          <Text type="secondary">Wizard em 5 etapas para proposta, contrato e cronograma recorrente</Text>
-          {contratoIdSalvo && (
-            <div style={{ marginTop: 8, fontSize: 12 }}>
-              {autoSaveStatus === "salvando" && <Text type="warning">⏳ Salvando rascunho...</Text>}
-              {autoSaveStatus === "salvo" && <Text type="success">✓ Rascunho salvo automaticamente</Text>}
-              {autoSaveStatus === "erro" && <Text type="danger">✗ Erro ao salvar rascunho</Text>}
-              {!autoSaveStatus && <Text type="secondary">ID do rascunho: {contratoIdSalvo}</Text>}
-            </div>
-          )}
+          <Title level={3} style={{ margin: 0 }}>Editar Contrato de Preventiva</Title>
+          <Text type="secondary">Rascunho - Edite os dados e salve as alterações</Text>
+          {autoSaveStatus === "salvando" && <Text type="warning" style={{ display: "block", marginTop: 8 }}>⏳ Salvando alterações...</Text>}
+          {autoSaveStatus === "salvo" && <Text type="success" style={{ display: "block", marginTop: 8 }}>✓ Alterações salvas automaticamente</Text>}
+          {autoSaveStatus === "erro" && <Text type="danger" style={{ display: "block", marginTop: 8 }}>✗ Erro ao salvar</Text>}
         </div>
-        <Button onClick={() => navigate("/contratos")}>Voltar</Button>
+        <Button onClick={() => navigate(`/contratos/${id}`)}>Voltar</Button>
       </Space>
 
       <Card>
@@ -427,7 +436,6 @@ export default function NovoContrato() {
           form={form}
           layout="vertical"
           preserve
-          initialValues={initialContratoValues}
           onValuesChange={(_, allValues) => setFormValues((prev) => ({ ...prev, ...allValues }))}
         >
           {step === 0 && (
@@ -440,16 +448,12 @@ export default function NovoContrato() {
                 <Col xs={24} md={6}><Form.Item name="data_inicio" label="Início" rules={[{ required: true, message: "Informe a data de início." }]}><DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" /></Form.Item></Col>
                 <Col xs={24} md={6}><Form.Item name="tipo_faturamento" label="Faturamento"><Select options={[{ value: "mensal_fixo", label: "Mensal fixo" }, { value: "por_os_executada", label: "Por OS executada" }, { value: "misto", label: "Misto" }]} /></Form.Item></Col>
                 <Col xs={24} md={6}><Form.Item name="forma_pagamento" label="Pagamento"><Select options={[{ value: "boleto", label: "Boleto" }, { value: "pix", label: "Pix" }, { value: "transferencia", label: "Transferência" }, { value: "debito_aut", label: "Débito automático" }]} /></Form.Item></Col>
-                <Col xs={24} md={6}><Form.Item name="dia_vencimento_fatura" label="Dia vencimento"><InputNumber min={1} max={28} style={{ width: "100%" }} /></Form.Item></Col>
-                <Col xs={24} md={6}><Form.Item name="reajuste_anual" label="Reajuste anual" valuePropName="checked"><Switch /></Form.Item></Col>
-                <Col xs={24} md={6}><Form.Item name="indice_reajuste" label="Índice"><Select options={["IPCA", "IGPM", "INPC", "fixo_percentual"].map((v) => ({ value: v, label: v }))} /></Form.Item></Col>
-                <Col xs={24} md={6}><Form.Item name="renovacao_automatica" label="Renovação automática" valuePropName="checked"><Switch /></Form.Item></Col>
               </Row>
             </>
           )}
 
           {step === 1 && (
-            <Row gutter={[16, 16]}>
+            <Row gutter={[12, 12]}>
               <Col xs={24} lg={15}>
                 {erroEscopos && (
                   <Alert
@@ -486,19 +490,6 @@ export default function NovoContrato() {
                   {escopoGerado && (
                     <Space direction="vertical" style={{ width: "100%" }}>
                       <Paragraph style={{ marginBottom: 0 }}>{escopoGerado.objetivo}</Paragraph>
-                      <div>
-                        {(escopoGerado.areas_atendidas || []).map((area) => <Tag key={area}>{area}</Tag>)}
-                      </div>
-                      <Divider style={{ margin: "8px 0" }} />
-                      {(escopoGerado.checklist_por_area || []).map((area) => (
-                        <div key={area.codigo} style={{ marginBottom: 12 }}>
-                          <Text strong>{area.area}</Text>
-                          {(area.itens || []).slice(0, 6).map((item) => (
-                            <div key={item.id}><CheckCircleOutlined style={{ color: "#10B981" }} /> {item.descricao}</div>
-                          ))}
-                          {(area.itens || []).length > 6 && <Text type="secondary">+ {(area.itens || []).length - 6} itens</Text>}
-                        </div>
-                      ))}
                     </Space>
                   )}
                 </Card>
@@ -507,73 +498,59 @@ export default function NovoContrato() {
           )}
 
           {step === 2 && (
-            <>
-              <Alert type="info" showIcon style={{ marginBottom: 12 }} message={`Total mensal atual: ${money.format(totalMensal)} | Total contrato: ${money.format(totalMensal * vigencia)}`} />
-              <Button onClick={adicionarUnidade} type="primary" style={{ marginBottom: 12 }}>+ Adicionar unidade</Button>
-              <Table rowKey="key" pagination={false} columns={unidadeColumns} dataSource={unidades} scroll={{ x: 900 }} />
-              <Divider />
-              {unidades.map((unidade, unidadeIndex) => (
-                <Card key={unidade.key} size="small" title={`Escopos de ${unidade.nome_unidade || `Unidade ${unidadeIndex + 1}`}`} style={{ marginBottom: 12 }}>
-                  {unidade.escopos.map((escopo, escopoIndex) => (
-                    <Row gutter={12} key={escopo.escopo} align="middle" style={{ marginBottom: 8 }}>
-                      <Col xs={24} md={5}><Text strong>{escopo.escopo_nome}</Text></Col>
-                      <Col xs={24} md={5}><Select value={escopo.periodicidade} onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "periodicidade", v)} options={periodicidadeOptions} style={{ width: "100%" }} /></Col>
-                      <Col xs={24} md={4}><InputNumber min={1} value={escopo.equipamentos_quantidade} onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "equipamentos_quantidade", v || 1)} style={{ width: "100%" }} /></Col>
-                      <Col xs={24} md={6}><Input value={escopo.equipamentos_descricao} onChange={(e) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "equipamentos_descricao", e.target.value)} placeholder="Equipamentos" /></Col>
-                      <Col xs={24} md={4}><InputNumber min={0} precision={2} value={escopo.valor_alocado} onChange={(v) => atualizarEscopoUnidade(unidadeIndex, escopoIndex, "valor_alocado", v || 0)} prefix="R$" style={{ width: "100%" }} /></Col>
-                    </Row>
-                  ))}
-                </Card>
-              ))}
-            </>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Button type="primary" onClick={adicionarUnidade}>+ Adicionar unidade</Button>
+              <Table
+                rowKey="key"
+                columns={unidadeColumns}
+                dataSource={unidades}
+                pagination={false}
+                size="small"
+              />
+            </Space>
           )}
 
           {step === 3 && (
             <Space direction="vertical" style={{ width: "100%" }}>
-              {escopoGerado?.checklist_geral?.length ? (
-                <Card title="Checklist geral da preventiva">
-                  <Row gutter={[8, 8]}>
-                    {escopoGerado.checklist_geral.map((item) => (
-                      <Col xs={24} md={12} key={item.ordem}>
-                        <CheckCircleOutlined style={{ color: "#10B981" }} /> {item.descricao}
-                      </Col>
+              {!escoposSelecionados.length ? (
+                <Alert type="info" showIcon message="Selecione escopos no passo anterior para configurar checklists." />
+              ) : (
+                escoposSelecionados.map((escopo) => (
+                  <Card key={escopo.id} title={`Checklist - ${escopo.nome}`} size="small">
+                    {checklists[escopo.id]?.length === 0 && <Text type="secondary">Nenhum item de checklist para este escopo.</Text>}
+                    {(checklists[escopo.id] || []).map((item) => (
+                      <Checkbox
+                        key={item.id}
+                        checked={(checklistSelecionado[escopo.id] || []).includes(item.id)}
+                        onChange={(e) => {
+                          setChecklistSelecionado((prev) => {
+                            const selecionados = [...(prev[escopo.id] || [])];
+                            if (e.target.checked) {
+                              selecionados.push(item.id);
+                            } else {
+                              selecionados.splice(selecionados.indexOf(item.id), 1);
+                            }
+                            return { ...prev, [escopo.id]: selecionados };
+                          });
+                        }}
+                      >
+                        {item.descricao}
+                      </Checkbox>
                     ))}
-                  </Row>
-                </Card>
-              ) : null}
-              {escoposSelecionados.map((escopo) => (
-                <Card key={escopo.id} title={`${escopo.nome} - checklist sugerido`}>
-                  <Checkbox.Group
-                    value={checklistSelecionado[escopo.id] || []}
-                    onChange={(values) => setChecklistSelecionado((prev) => ({ ...prev, [escopo.id]: values }))}
-                    style={{ display: "grid", gap: 8 }}
-                    options={(checklists[escopo.id] || []).map((item) => ({
-                      value: item.id,
-                      label: `${item.descricao}${item.requer_foto ? " | foto" : ""}${item.requer_medicao ? ` | medição ${item.unidade_medicao}` : ""}`,
-                    }))}
-                  />
-                  <Divider style={{ margin: "12px 0" }} />
-                  <Text type="secondary">
-                    Status disponíveis: {(escopoGerado?.status_checklist || []).map((statusItem) => statusItem.label).join(", ")}
-                  </Text>
-                  <Input style={{ marginTop: 12 }} placeholder="Adicionar item customizado ao checklist final (registrar no detalhe após salvar)" />
-                </Card>
-              ))}
+                  </Card>
+                ))
+              )}
             </Space>
           )}
 
           {step === 4 && (
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <Alert type="success" showIcon message="Resumo pronto para geração da proposta, rascunho ou ativação." />
+              <Alert type="success" showIcon message="Resumo pronto para atualização ou ativação do contrato." />
               <Row gutter={16}>
                 <Col xs={24} md={8}><Card><Text type="secondary">Escopos</Text><Title level={4}>{escoposSelecionados.length}</Title></Card></Col>
                 <Col xs={24} md={8}><Card><Text type="secondary">Unidades</Text><Title level={4}>{unidades.length}</Title></Card></Col>
                 <Col xs={24} md={8}><Card><Text type="secondary">Valor mensal</Text><Title level={4} style={{ color: "#10B981" }}>{money.format(totalMensal)}</Title></Card></Col>
               </Row>
-              <Paragraph>Ao ativar, o ERP gera automaticamente as OS planejadas conforme periodicidade de cada escopo por unidade.</Paragraph>
-              {escopoGerado?.observacao_tecnica_final && (
-                <Alert type="info" showIcon message={escopoGerado.observacao_tecnica_final} />
-              )}
               <Form.Item name="observacoes" label="Observações finais"><TextArea rows={3} /></Form.Item>
             </Space>
           )}
@@ -585,8 +562,7 @@ export default function NovoContrato() {
           <Space>
             {step < 4 ? <Button type="primary" onClick={avancar}>Avançar</Button> : (
               <>
-                <Button icon={<FilePdfOutlined />} loading={loading} onClick={() => salvar(false, true)}>Gerar PDF Proposta</Button>
-                <Button icon={<SaveOutlined />} loading={loading} onClick={() => salvar(false, false)}>Salvar Rascunho</Button>
+                <Button icon={<SaveOutlined />} loading={loading} onClick={() => salvar(false, false)}>Atualizar rascunho</Button>
                 <Button type="primary" loading={loading} onClick={() => salvar(true, true)}>Ativar Contrato</Button>
               </>
             )}
