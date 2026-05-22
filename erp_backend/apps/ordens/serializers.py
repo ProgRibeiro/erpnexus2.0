@@ -213,12 +213,15 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         motor = MotorFiscalEspecialista()
         impostos = motor.aplicar_em_ordem(ordem, fiscal_config)
         motor.aplicar_campos_ordem(ordem, impostos, fiscal_config)
+        if not ordem.valor_final_faturado and ordem.total_com_impostos:
+            ordem.valor_final_faturado = ordem.total_com_impostos
         ordem.save(
             update_fields=[
                 "valor_servicos",
                 "valor_materiais",
                 "dados_impostos",
                 "total_com_impostos",
+                "valor_final_faturado",
                 "aliquota_issqn",
                 "valor_issqn",
                 "retencao_issqn",

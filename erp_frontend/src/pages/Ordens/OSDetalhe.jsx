@@ -409,6 +409,23 @@ export default function OSDetalhePage() {
     () => orcamentoItens.reduce((acc, item) => acc + Number(item.valor_total || 0), 0),
     [orcamentoItens]
   );
+  const totaisItensFaturamento = useMemo(
+    () =>
+      orcamentoItens.reduce(
+        (acc, item) => {
+          const valor = Number(item.valor_total || 0);
+          if (item.origem_tipo === "produto") {
+            acc.materiais += valor;
+          } else {
+            acc.servicos += valor;
+          }
+          acc.subtotal += valor;
+          return acc;
+        },
+        { servicos: 0, materiais: 0, subtotal: 0 }
+      ),
+    [orcamentoItens]
+  );
 
   const beforePhotos = useMemo(
     () => (ordem?.fotos || []).filter((foto) => String(foto.tipo) === "antes"),
@@ -444,10 +461,12 @@ export default function OSDetalhePage() {
   useEffect(() => {
     const valorFinalAtual = form.getFieldValue("valor_final_faturado");
     const valorOrcado = Number(watchedValorOrcado || ordem?.valor_total_orcado || 0);
+    const valorComImpostos = Number(ordem?.total_com_impostos || 0);
+    const valorPadrao = valorComImpostos > 0 ? valorComImpostos : valorOrcado;
     if (valorOrcado > 0 && (!valorFinalAtual || Number(valorFinalAtual) === 0)) {
-      form.setFieldValue("valor_final_faturado", valorOrcado);
+      form.setFieldValue("valor_final_faturado", valorPadrao);
     }
-  }, [form, ordem?.valor_total_orcado, watchedValorOrcado]);
+  }, [form, ordem?.total_com_impostos, ordem?.valor_total_orcado, watchedValorOrcado]);
 
   useEffect(() => {
     if (!ordem?.tipo_servico || checklistTipoSelecionado) return;
@@ -493,7 +512,7 @@ export default function OSDetalhePage() {
       equipamento_modelo: ordemAtual?.equipamento_modelo || "",
       equipamento_serie: ordemAtual?.equipamento_serie || "",
       tipo_relatorio: ordemAtual?.tipo_relatorio || undefined,
-      valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.valor_total_orcado || 0),
+      valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.total_com_impostos || ordemAtual?.valor_total_orcado || 0),
       numero_nf: ordemAtual?.numero_nf || "",
       data_emissao_nf: ordemAtual?.data_emissao_nf ? dayjs(ordemAtual.data_emissao_nf) : null,
       data_vencimento: ordemAtual?.data_vencimento ? dayjs(ordemAtual.data_vencimento) : null,
@@ -611,7 +630,7 @@ export default function OSDetalhePage() {
     equipamento_modelo: values.equipamento_modelo || "",
     equipamento_serie: values.equipamento_serie || "",
     tipo_relatorio: values.tipo_relatorio || "",
-    valor_final_faturado: Number(values.valor_final_faturado || 0),
+    valor_final_faturado: Number(valorClienteComImpostos || values.valor_final_faturado || ordem?.total_com_impostos || values.valor_total_orcado || ordem?.valor_total_orcado || 0),
     numero_nf: values.numero_nf || "",
     data_emissao_nf: values.data_emissao_nf ? values.data_emissao_nf.format("YYYY-MM-DD") : null,
     data_vencimento: values.data_vencimento ? values.data_vencimento.format("YYYY-MM-DD") : null,
@@ -677,6 +696,14 @@ export default function OSDetalhePage() {
       preencherFormulario(response.data);
       message.success("Ordem de serviço salva.");
       return response.data;
+    } catch (error) {
+      console.error("Erro ao salvar OS:", error);
+      const detalhe =
+        error?.response?.status === 404
+          ? "Esta ordem de serviço não existe mais no banco atual. Volte para a listagem e abra uma OS existente."
+          : error?.response?.data?.detail || "Não foi possível salvar a ordem de serviço.";
+      message.error(detalhe);
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -731,18 +758,22 @@ export default function OSDetalhePage() {
   };
 
   const autoCalcImpostos = async () => {
-    const valorFaturado = form.getFieldValue("valor_final_faturado") || Number(ordem?.valor_total_orcado || 0);
-    if (!valorFaturado) return;
+    const valorServicos = Number(totaisItensFaturamento.servicos || ordem?.valor_servicos || ordem?.valor_total_orcado || 0);
+    const valorMateriais = Number(totaisItensFaturamento.materiais || ordem?.valor_materiais || 0);
+    if (!valorServicos && !valorMateriais) return;
     setAutoCalcLoading(true);
     try {
       const response = await api.post("/fiscal/calcular-impostos/", {
-        valor_servicos: valorFaturado,
-        valor_materiais: 0,
+        valor_servicos: valorServicos,
+        valor_materiais: valorMateriais,
       });
       const dados = response.data;
       const aliquotas = dados.aliquotas || {};
+      const totalComImpostos = Number(dados.total_geral || (valorServicos + valorMateriais) || 0);
+      form.setFieldValue("valor_final_faturado", totalComImpostos);
       setTributacao((prev) => ({
         ...prev,
+        ...dados,
         regime: dados.regime || regimeEmpresa || prev.regime,
         issqn_aliquota: Number(aliquotas.iss ?? prev.issqn_aliquota),
         pis_aliquota: Number(aliquotas.pis ?? prev.pis_aliquota),
@@ -1013,7 +1044,11 @@ export default function OSDetalhePage() {
       message.success("Relatório técnico gerado com sucesso!");
     } catch (err) {
       console.error("Erro ao gerar relatório técnico:", err);
-      message.error("Não foi possível gerar o relatório técnico.");
+      const detalhe =
+        err?.response?.status === 404
+          ? "Esta ordem de serviço não existe mais no banco atual. Volte para a listagem e abra uma OS existente."
+          : err?.response?.data?.detail || "Não foi possível gerar o relatório técnico.";
+      message.error(detalhe);
     } finally {
       setGerandoRelatorioTecnico(false);
     }
@@ -1093,7 +1128,11 @@ export default function OSDetalhePage() {
       return response.data;
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      message.error("Não foi possível atualizar o status.");
+      const detalhe =
+        error?.response?.status === 404
+          ? "Esta ordem de serviço não existe mais no banco atual. Volte para a listagem e abra uma OS existente."
+          : error?.response?.data?.detail || "Não foi possível atualizar o status.";
+      message.error(detalhe);
       return null;
     }
   };
@@ -2006,8 +2045,15 @@ export default function OSDetalhePage() {
     </Space>
   );
 
-  const setTrib = (field, value) => setTributacao((prev) => ({ ...prev, [field]: value }));
-  const calcTribImposto = (aliquota) => Number(((valorFaturadoAtual * Number(aliquota || 0)) / 100).toFixed(2));
+  const setTrib = (field, value) =>
+    setTributacao((prev) => ({
+      ...prev,
+      total_impostos: undefined,
+      total_geral: undefined,
+      [field]: value,
+    }));
+  const baseCalculoImpostos = Number(totaisItensFaturamento.subtotal || watchedValorOrcado || ordem?.valor_total_orcado || 0);
+  const calcTribImposto = (aliquota) => Number(((baseCalculoImpostos * Number(aliquota || 0)) / 100).toFixed(2));
   const valorCalcISSQN = calcTribImposto(tributacao.issqn_aliquota);
   const valorRetidoISSQN = tributacao.issqn_retencao ? valorCalcISSQN : 0;
   const valorCalcPIS = calcTribImposto(tributacao.pis_aliquota);
@@ -2016,6 +2062,11 @@ export default function OSDetalhePage() {
   const valorCalcCSLL = calcTribImposto(tributacao.csll_aliquota);
   const valorCalcIBS = calcTribImposto(tributacao.ibs_aliquota);
   const valorCalcCBS = calcTribImposto(tributacao.cbs_aliquota);
+  const totalImpostosCalculadosPorAliquotas = valorCalcISSQN + valorCalcPIS + valorCalcCOFINS + valorCalcIRPJ + valorCalcCSLL + valorCalcIBS + valorCalcCBS;
+  const totalImpostosPorFora = Number(
+    tributacao.total_impostos ?? totalImpostosCalculadosPorAliquotas
+  );
+  const valorClienteComImpostos = Number((baseCalculoImpostos + totalImpostosPorFora).toFixed(2));
   const totalRetencoesTrib = valorRetidoISSQN + valorCalcPIS + valorCalcCOFINS + valorCalcIRPJ + valorCalcCSLL;
   const valorLiquidoNF = valorFaturadoAtual - totalRetencoesTrib;
 
@@ -2234,6 +2285,24 @@ export default function OSDetalhePage() {
 
         <Row gutter={[12, 12]}>
           <Col xs={24} sm={8}>
+            <div style={{ background: "#F8FAFC", borderRadius: 8, padding: "10px 14px" }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Valor dos itens</Text>
+              <Text strong style={{ color: "#334155", fontSize: 15 }}>{formatMoney(baseCalculoImpostos)}</Text>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <div style={{ background: "#EFF6FF", borderRadius: 8, padding: "10px 14px" }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Impostos por fora</Text>
+              <Text strong style={{ color: "#2563EB", fontSize: 15 }}>{formatMoney(totalImpostosPorFora)}</Text>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <div style={{ background: "#DBEAFE", borderRadius: 8, padding: "10px 14px" }}>
+              <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Cliente paga</Text>
+              <Text strong style={{ color: "#1D4ED8", fontSize: 15 }}>{formatMoney(valorClienteComImpostos)}</Text>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
             <div style={{ background: "#FEF3C7", borderRadius: 8, padding: "10px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Total retenções</Text>
               <Text strong style={{ color: "#D97706", fontSize: 15 }}>{formatMoney(totalRetencoesTrib)}</Text>
@@ -2261,7 +2330,7 @@ export default function OSDetalhePage() {
           showIcon
           style={{ borderRadius: 12, marginBottom: 16 }}
           message="Resumo financeiro da OS"
-          description={`Valor faturado: ${formatMoney(valorFaturadoAtual)} • Custos lançados: ${formatMoney(expenseSummary.total)} • Margem atual: ${formatMoney(margemAtual)}`}
+          description={`Itens: ${formatMoney(baseCalculoImpostos)} • Impostos por fora: ${formatMoney(totalImpostosPorFora)} • Cliente paga: ${formatMoney(valorFaturadoAtual || valorClienteComImpostos)} • Custos lançados: ${formatMoney(expenseSummary.total)} • Margem atual: ${formatMoney(margemAtual)}`}
         />
         <Space wrap>
           <Button type="primary" icon={<CheckCircleOutlined />} style={primaryButtonStyle} onClick={confirmarFaturamento} loading={sendingBilling}>

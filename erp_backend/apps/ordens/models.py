@@ -43,6 +43,10 @@ class OrdemServico(models.Model):
         EMAIL = "email", "Email"
         OUTRO = "outro", "Outro"
 
+    class OrigemSistema(models.TextChoices):
+        ERP = "erp", "ERP Nexus"
+        FACILITIES = "facilities", "Facilities"
+
     class TipoRelatorio(models.TextChoices):
         SIMPLES = "simples", "Simples"
         TECNICO = "tecnico", "Tecnico"
@@ -80,6 +84,15 @@ class OrdemServico(models.Model):
         choices=OrigemLead.choices,
         blank=True,
     )
+    origem_sistema = models.CharField(
+        max_length=20,
+        choices=OrigemSistema.choices,
+        default=OrigemSistema.ERP,
+    )
+    origem_referencia_tipo = models.CharField(max_length=50, blank=True)
+    origem_referencia_id = models.PositiveIntegerField(null=True, blank=True)
+    tenant_contratante_id = models.PositiveIntegerField(null=True, blank=True)
+    tenant_prestador_id = models.PositiveIntegerField(null=True, blank=True)
     cliente = models.ForeignKey(
         Cliente,
         on_delete=models.PROTECT,
@@ -421,6 +434,7 @@ class ChatOS(models.Model):
         related_name="mensagens_os",
     )
     mensagem = models.TextField()
+    origem = models.CharField(max_length=20, blank=True, default="")
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

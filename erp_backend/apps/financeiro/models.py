@@ -105,6 +105,20 @@ class Lancamento(models.Model):
         blank=True,
         related_name="lancamentos_financeiros",
     )
+    movimentacao_estoque = models.ForeignKey(
+        "estoque.MovimentacaoEstoque",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lancamentos_financeiros",
+    )
+    venda = models.ForeignKey(
+        "loja.Venda",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lancamentos_financeiros",
+    )
     fornecedor_cliente = models.CharField(max_length=180, blank=True)
     numero_documento = models.CharField(max_length=80, blank=True)
     observacoes = models.TextField(blank=True)

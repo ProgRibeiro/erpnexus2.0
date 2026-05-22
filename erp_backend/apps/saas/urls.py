@@ -40,5 +40,7 @@ urlpatterns = [
     # Aprovadores de alçada
     path('aprovadores-alcada/', views.AprovadorAlcadaListCreateView.as_view(), name='saas-aprovador-list'),
     path('aprovadores-alcada/<int:pk>/', views.AprovadorAlcadaDetailView.as_view(), name='saas-aprovador-detail'),
-]
 
+    # Licitações e Propostas
+    path('licitacoes/<int:licitacao_id>/proposta/', views.enviar_proposta, name='saas-enviar-proposta'),
+]

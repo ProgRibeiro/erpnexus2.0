@@ -128,6 +128,7 @@ export default function ContratoDetalhe() {
         <Space wrap>
           <Button onClick={() => navigate("/contratos")}>Voltar</Button>
           <Button icon={<ReloadOutlined />} onClick={fetchContrato}>Atualizar</Button>
+          {contrato.status === "rascunho" && <Button type="primary" onClick={() => navigate(`/contratos/editar/${id}`)}>Editar</Button>}
           <Button icon={<FilePdfOutlined />} loading={gerando === "proposta"} onClick={() => gerarPdf("proposta")}>PDF Proposta</Button>
           <Button icon={<FilePdfOutlined />} loading={gerando === "contrato"} onClick={() => gerarPdf("contrato")}>PDF Contrato</Button>
           <Button danger icon={<StopOutlined />} onClick={rescindir}>Rescindir</Button>

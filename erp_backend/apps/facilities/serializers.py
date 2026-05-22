@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.ordens.models import OrdemServico
 from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
     ChamadoFacilities, ContratoTerceirizado,
@@ -148,7 +149,7 @@ class PropostaLicitacaoSerializer(serializers.ModelSerializer):
         fields = [
             "id", "uuid", "licitacao", "prestador_nome", "prestador_email",
             "valor", "prazo_execucao_dias", "condicao_pagamento", "validade_proposta",
-            "itens_orcamento", "observacoes", "status", "enviado_em",
+            "itens_orcamento", "arquivo_proposta", "observacoes", "status", "enviado_em",
         ]
         read_only_fields = ["id", "uuid", "enviado_em", "status"]
 
@@ -158,15 +159,55 @@ class LicitacaoSerializer(serializers.ModelSerializer):
     propostas_count = serializers.SerializerMethodField()
     ativo_tag = serializers.CharField(source="ativo.tag", read_only=True, allow_null=True)
     ativo_nome = serializers.CharField(source="ativo.nome", read_only=True, allow_null=True)
+    prestadores_convidados_nomes = serializers.SerializerMethodField()
+    minha_proposta = serializers.SerializerMethodField()
+    ordem_servico_numero = serializers.SerializerMethodField()
+    ordem_servico_status = serializers.SerializerMethodField()
+    ordem_servico_token_relatorio = serializers.SerializerMethodField()
 
     class Meta:
         model = Licitacao
         fields = [
-            "id", "titulo", "descricao", "tipo_servico", "ativo", "ativo_tag", "ativo_nome",
-            "modo", "status", "prazo_propostas", "valor_maximo",
-            "propostas", "propostas_count", "criado_em", "atualizado_em",
+            "id", "tenant_contratante", "titulo", "descricao", "tipo_servico",
+            "ativo", "ativo_tag", "ativo_nome", "modo", "status",
+            "prazo_propostas", "valor_maximo", "prestadores_convidados",
+            "prestadores_convidados_nomes", "propostas", "propostas_count", "minha_proposta",
+            "ordem_servico_id", "ordem_servico_numero", "ordem_servico_status", "ordem_servico_token_relatorio",
+            "budget_mensal_id", "valor_budget_reservado", "aprovada_em",
+            "criado_em", "atualizado_em",
         ]
-        read_only_fields = ["id", "criado_em", "atualizado_em"]
+        read_only_fields = ["id", "tenant_contratante", "criado_em", "atualizado_em"]
 
     def get_propostas_count(self, obj):
         return obj.propostas.count()
+
+    def get_prestadores_convidados_nomes(self, obj):
+        return [p.nome for p in obj.prestadores_convidados.all()]
+
+    def get_minha_proposta(self, obj):
+        request = self.context.get("request")
+        if not request or not getattr(request, "user", None) or not request.user.is_authenticated:
+            return None
+
+        proposta = obj.propostas.filter(prestador_email=request.user.email).order_by("-enviado_em").first()
+        if proposta is None:
+            return None
+
+        return PropostaLicitacaoSerializer(proposta).data
+
+    def _get_ordem_servico(self, obj):
+        if not obj.ordem_servico_id:
+            return None
+        return OrdemServico.objects.filter(pk=obj.ordem_servico_id).first()
+
+    def get_ordem_servico_numero(self, obj):
+        ordem = self._get_ordem_servico(obj)
+        return ordem.numero if ordem else None
+
+    def get_ordem_servico_status(self, obj):
+        ordem = self._get_ordem_servico(obj)
+        return ordem.status if ordem else None
+
+    def get_ordem_servico_token_relatorio(self, obj):
+        ordem = self._get_ordem_servico(obj)
+        return str(ordem.token_relatorio) if ordem else None

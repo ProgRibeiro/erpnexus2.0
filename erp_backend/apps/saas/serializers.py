@@ -94,9 +94,17 @@ class SolicitacaoAprovacaoSerializer(serializers.ModelSerializer):
 
 
 class PrestadorContratadoSerializer(serializers.ModelSerializer):
+    tenant_prestador_nome = serializers.CharField(source='tenant_prestador.nome', read_only=True)
+    tenant_contratante_nome = serializers.CharField(source='tenant_contratante.nome', read_only=True)
+
     class Meta:
         model = PrestadorContratado
-        fields = '__all__'
+        fields = [
+            'id', 'tenant_contratante', 'tenant_contratante_nome',
+            'tenant_prestador', 'tenant_prestador_nome',
+            'empresas_atendidas', 'valor_hora_padrao',
+            'sla_atendimento_horas', 'ativo', 'contrato_pdf'
+        ]
 
 
 class ChamadoPlataformaSerializer(serializers.ModelSerializer):

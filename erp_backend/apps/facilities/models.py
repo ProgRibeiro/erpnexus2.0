@@ -328,6 +328,7 @@ class Licitacao(models.Model):
         CONCLUIDA = "concluida", "Concluída"
         CANCELADA = "cancelada", "Cancelada"
 
+    tenant_contratante = models.ForeignKey("saas.Tenant", on_delete=models.CASCADE, related_name="licitacoes_facilities", null=True, blank=True)
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
     tipo_servico = models.CharField(max_length=100)
@@ -336,6 +337,11 @@ class Licitacao(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.RASCUNHO)
     prazo_propostas = models.DateTimeField(null=True, blank=True)
     valor_maximo = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    prestadores_convidados = models.ManyToManyField("saas.Tenant", related_name="convites_licitacao_facilities", blank=True)
+    ordem_servico_id = models.IntegerField(null=True, blank=True)
+    budget_mensal_id = models.IntegerField(null=True, blank=True)
+    valor_budget_reservado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    aprovada_em = models.DateTimeField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -356,6 +362,7 @@ class PropostaLicitacao(models.Model):
 
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     licitacao = models.ForeignKey(Licitacao, on_delete=models.CASCADE, related_name="propostas")
+    tenant_prestador_id = models.PositiveIntegerField(null=True, blank=True)
     prestador_nome = models.CharField(max_length=200, blank=True)
     prestador_email = models.EmailField(blank=True)
     valor = models.DecimalField(max_digits=14, decimal_places=2)
@@ -363,6 +370,7 @@ class PropostaLicitacao(models.Model):
     condicao_pagamento = models.CharField(max_length=50, blank=True)
     validade_proposta = models.DateField(null=True, blank=True)
     itens_orcamento = models.JSONField(default=list, blank=True)
+    arquivo_proposta = models.FileField(upload_to="facilities/propostas/", null=True, blank=True)
     observacoes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ENVIADA)
     enviado_em = models.DateTimeField(auto_now_add=True)

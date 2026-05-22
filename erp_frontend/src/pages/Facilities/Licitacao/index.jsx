@@ -24,12 +24,17 @@ import {
   PlusOutlined,
   TeamOutlined,
   CheckOutlined,
+  FileTextOutlined,
+  PaperClipOutlined,
 } from "@ant-design/icons";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+const formatMoney = (value) =>
+  `R$ ${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
 const STATUS_CONFIG = {
   rascunho:   { color: "default", label: "Rascunho" },
@@ -43,11 +48,13 @@ export default function LicitacaoFacilitiesPage() {
   const [licitacoes, setLicitacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ativos, setAtivos] = useState([]);
+  const [prestadores, setPrestadores] = useState([]);
   const [modalNova, setModalNova] = useState(false);
   const [modalPropostas, setModalPropostas] = useState(null);
   const [criarLoading, setCriarLoading] = useState(false);
   const [aceitarLoading, setAceitarLoading] = useState(null);
   const [tabAtiva, setTabAtiva] = useState("publicada");
+  const [modoSelecionado, setModoSelecionado] = useState("aberta");
   const [form] = Form.useForm();
 
   const fetchLicitacoes = useCallback(async () => {
@@ -71,10 +78,21 @@ export default function LicitacaoFacilitiesPage() {
     }
   }, []);
 
+  const fetchPrestadores = useCallback(async () => {
+    try {
+      // Busca prestadores homologados/contratados do módulo SaaS
+      const res = await api.get("/saas/prestadores-contratados/");
+      setPrestadores(res.data.results ?? res.data);
+    } catch {
+      // ignorar erro
+    }
+  }, []);
+
   useEffect(() => {
     fetchLicitacoes();
     fetchAtivos();
-  }, [fetchLicitacoes, fetchAtivos]);
+    fetchPrestadores();
+  }, [fetchLicitacoes, fetchAtivos, fetchPrestadores]);
 
   const handleCriar = async (values) => {
     setCriarLoading(true);
@@ -88,13 +106,17 @@ export default function LicitacaoFacilitiesPage() {
         ativo: values.ativo || null,
         modo: values.modo || "aberta",
         status: "publicada",
+        prestadores_convidados: values.prestadores_convidados || [],
       });
       message.success("Licitação publicada com sucesso!");
       setModalNova(false);
       form.resetFields();
+      setModoSelecionado("aberta");
       fetchLicitacoes();
-    } catch {
-      message.error("Erro ao publicar licitação");
+    } catch (err) {
+      console.error(err);
+      const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : "Erro de conexão";
+      message.error(`Erro ao publicar licitação: ${errorMsg}`);
     } finally {
       setCriarLoading(false);
     }
@@ -151,6 +173,7 @@ export default function LicitacaoFacilitiesPage() {
                     <Space wrap>
                       <Tag color={statusConf.color} style={{ borderRadius: 6 }}>{statusConf.label}</Tag>
                       <Tag color="blue" style={{ borderRadius: 6 }}>{l.tipo_servico}</Tag>
+                      {l.modo === "convidada" && <Tag color="purple">Convidada</Tag>}
                     </Space>
                     <Text strong style={{ fontSize: 16 }}>{l.titulo}</Text>
                     <Space wrap>
@@ -190,7 +213,13 @@ export default function LicitacaoFacilitiesPage() {
       title: "Valor",
       dataIndex: "valor",
       key: "valor",
-      render: (v) => `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      render: formatMoney,
+    },
+    {
+      title: "Itens",
+      key: "itens",
+      width: 90,
+      render: (_, row) => `${row.itens_orcamento?.length || 0} item(s)`,
     },
     {
       title: "Prazo (dias)",
@@ -202,6 +231,27 @@ export default function LicitacaoFacilitiesPage() {
       dataIndex: "observacoes",
       key: "observacoes",
       ellipsis: true,
+    },
+    {
+      title: "Anexo",
+      key: "arquivo_proposta",
+      width: 92,
+      render: (_, row) =>
+        row.arquivo_proposta ? (
+          <Button
+            type="link"
+            size="small"
+            icon={<PaperClipOutlined />}
+            href={row.arquivo_proposta}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => event.stopPropagation()}
+          >
+            Abrir
+          </Button>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
     },
     {
       title: "Status",
@@ -232,6 +282,63 @@ export default function LicitacaoFacilitiesPage() {
     },
   ];
 
+  const renderDetalhesProposta = (proposta) => {
+    const itensProposta = proposta.itens_orcamento || [];
+
+    return (
+      <div style={{ padding: "8px 8px 12px", background: "#F8FAFC", borderRadius: 8 }}>
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Space wrap>
+            <Tag color="blue">
+              <FileTextOutlined style={{ marginRight: 4 }} />
+              {itensProposta.length} item(s) cotado(s)
+            </Tag>
+            {proposta.condicao_pagamento && <Tag>Pagamento: {proposta.condicao_pagamento}</Tag>}
+            {proposta.validade_proposta && <Tag>Validade: {new Date(proposta.validade_proposta).toLocaleDateString("pt-BR")}</Tag>}
+          </Space>
+
+          <Table
+            size="small"
+            rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}
+            dataSource={itensProposta}
+            pagination={false}
+            locale={{ emptyText: "Nenhum item informado nesta proposta" }}
+            columns={[
+              { title: "Item cotado", dataIndex: "descricao", ellipsis: true },
+              { title: "Qtd", dataIndex: "quantidade", width: 80 },
+              { title: "Un.", dataIndex: "unidade", width: 80 },
+              { title: "Valor unit.", dataIndex: "valor_unitario", width: 130, render: formatMoney },
+              {
+                title: "Total",
+                dataIndex: "valor_total",
+                width: 130,
+                render: (value, row) => formatMoney(value ?? Number(row.quantidade || 0) * Number(row.valor_unitario || 0)),
+              },
+            ]}
+          />
+
+          {proposta.observacoes && (
+            <div style={{ padding: 12, border: "1px solid #E2E8F0", borderRadius: 8, background: "#FFFFFF" }}>
+              <Text strong>Observações do prestador</Text>
+              <Text style={{ display: "block", marginTop: 4 }}>{proposta.observacoes}</Text>
+            </div>
+          )}
+
+          {proposta.arquivo_proposta && (
+            <Button
+              icon={<PaperClipOutlined />}
+              href={proposta.arquivo_proposta}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Abrir anexo da proposta
+            </Button>
+          )}
+        </Space>
+      </div>
+    );
+  };
+
   return (
     <div style={{ padding: "24px", background: "#F8FAFC", minHeight: "100vh" }}>
       {/* Header */}
@@ -247,7 +354,11 @@ export default function LicitacaoFacilitiesPage() {
           type="primary"
           icon={<PlusOutlined />}
           style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8 }}
-          onClick={() => { setModalNova(true); form.resetFields(); }}
+          onClick={() => {
+            setModalNova(true);
+            setModoSelecionado("aberta");
+            form.resetFields();
+          }}
         >
           Nova Licitação
         </Button>
@@ -307,13 +418,36 @@ export default function LicitacaoFacilitiesPage() {
             </Col>
             <Col span={12}>
               <Form.Item name="modo" label="Modo" initialValue="aberta">
-                <Select>
+                <Select onChange={(v) => setModoSelecionado(v)}>
                   <Option value="aberta">Aberta (qualquer prestador)</Option>
                   <Option value="convidada">Convidada</Option>
                 </Select>
               </Form.Item>
             </Col>
           </Row>
+
+          {modoSelecionado === "convidada" && (
+            <Form.Item
+              name="prestadores_convidados"
+              label="Prestadores convidados"
+              rules={[{ required: true, message: "Selecione ao menos um prestador" }]}
+              extra="Somente prestadores homologados podem ser convidados"
+            >
+              <Select
+                mode="multiple"
+                placeholder="Selecione os prestadores"
+                allowClear
+                showSearch
+                optionFilterProp="children"
+              >
+                {prestadores.map((p) => (
+                  <Option key={p.tenant_prestador} value={p.tenant_prestador}>
+                    {p.tenant_prestador_nome}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
 
           <Form.Item name="descricao" label="Descrição">
             <TextArea rows={3} placeholder="Descreva o serviço necessário..." />
@@ -380,7 +514,11 @@ export default function LicitacaoFacilitiesPage() {
             columns={colunasPropostas(modalPropostas)}
             rowKey="id"
             pagination={false}
-            scroll={{ x: 700 }}
+            expandable={{
+              expandedRowRender: renderDetalhesProposta,
+              rowExpandable: (row) => Boolean(row.itens_orcamento?.length || row.observacoes || row.arquivo_proposta),
+            }}
+            scroll={{ x: 900 }}
             locale={{ emptyText: "Nenhuma proposta recebida ainda" }}
           />
         )}

@@ -15,8 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auditoria.models import LogAuditoria
-
-from .models import ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, LogStatusOS, OrdemServico, RespostaChecklist
+from .models import AnexoChatOS, ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, ItemOrcamento, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .services import PedidoCompraInteligente
 from .serializers import (
@@ -62,6 +61,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             )
             .prefetch_related("itens", "fotos", "mensagens__anexos", "despesas", "logs_status")
         )
+
+        if getattr(self, "action", None) != "list":
+            return queryset
+
         status_param = self.request.query_params.get("status")
         modo = self.request.query_params.get("modo")  # "orcamento" para página de orçamentos
         tecnico = self.request.query_params.get("tecnico") or self.request.query_params.get(
@@ -107,6 +110,22 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(data_agendada__lte=periodo_fim)
 
         return queryset
+
+    def _usuario_pode_usar_chat_facilities(self, ordem, usuario):
+        if not ordem.tenant_contratante_id or not ordem.tenant_prestador_id:
+            return True
+
+        if getattr(usuario, "is_superuser", False):
+            return True
+
+        tenant_usuario_id = getattr(usuario, "tenant_id", None)
+        if tenant_usuario_id is None:
+            return False
+
+        if tenant_usuario_id in {ordem.tenant_contratante_id, ordem.tenant_prestador_id}:
+            return True
+
+        return False
 
     def perform_create(self, serializer):
         ordem = serializer.save(criado_por=self.request.user, atualizado_por=self.request.user)
@@ -247,9 +266,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             status_anterior = ordem.status
+            if not ordem.valor_final_faturado:
+                ordem.valor_final_faturado = ordem.total_com_impostos or ordem.valor_total_orcado
             ordem.status = OrdemServico.Status.FATURADA
             ordem.atualizado_por = request.user
-            ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
+            ordem.save(update_fields=["valor_final_faturado", "status", "atualizado_por", "atualizado_em"])
 
             if status_anterior != ordem.status:
                 LogStatusOS.objects.create(
@@ -265,7 +286,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 tipo=Lancamento.Tipo.RECEITA,
                 defaults={"cor": "#3B82F6"},
             )
-            valor_receber = ordem.valor_final_faturado or ordem.valor_total_orcado
+            valor_receber = ordem.valor_final_faturado or ordem.total_com_impostos or ordem.valor_total_orcado
             motor_fiscal = ordem.dados_impostos.get("motor_fiscal", {}) if isinstance(ordem.dados_impostos, dict) else {}
             financeiro_fiscal = motor_fiscal.get("financeiro", {}) if isinstance(motor_fiscal, dict) else {}
             if financeiro_fiscal.get("criar_contas_receber_por") == "valor_liquido" and ordem.valor_liquido_nf:
@@ -379,6 +400,18 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get", "post"], url_path="chat")
     def chat(self, request, pk=None):
         ordem = self.get_object()
+        if (
+            ordem.origem_sistema == OrdemServico.OrigemSistema.FACILITIES
+            and not self._usuario_pode_usar_chat_facilities(ordem, request.user)
+        ):
+            return Response(
+                {
+                    "erro": "Chat interno indisponível para usuário sem conexão com esta OS espelhada",
+                    "codigo": "CHAT_SEM_CONEXAO",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         if request.method == "GET":
             mensagens = ordem.mensagens.select_related("usuario").prefetch_related("anexos")
             return Response(ChatOSSerializer(mensagens, many=True).data)
@@ -389,6 +422,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             os=ordem,
             usuario=request.user,
             mensagem=serializer.validated_data["mensagem"],
+            origem=(
+                "facilities"
+                if ordem.origem_sistema == OrdemServico.OrigemSistema.FACILITIES
+                else "erp"
+            ),
         )
         return Response(ChatOSSerializer(mensagem).data, status=status.HTTP_201_CREATED)
 

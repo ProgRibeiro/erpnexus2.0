@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from apps.ordens.models import DespesaOS
+from apps.financeiro.services import GeradorLancamentoFinanceiro
 
 from .models import MovimentacaoEstoque, Produto, AlertaEstoque
 
@@ -50,6 +51,24 @@ def notificar_movimentacao_registrada(sender, instance, created, **kwargs):
     if instance.os:
         # Aqui poderia enviar notificação para o financeiro/administrativo
         pass
+
+
+@receiver(post_save, sender=MovimentacaoEstoque)
+def gerar_lancamento_entrada(sender, instance, created, **kwargs):
+    """
+    Automatically creates DESPESA Lancamento when product enters inventory (ENTRADA).
+    Integrates inventory movements with financial module.
+    """
+    if not created or instance.tipo != MovimentacaoEstoque.Tipo.ENTRADA:
+        return
+
+    try:
+        gerador = GeradorLancamentoFinanceiro()
+        # Check if "já foi pago" is indicated in observações
+        ja_foi_pago = "já foi pago" in (instance.observacoes or "").lower()
+        gerador.criar_despesa_entrada(instance, ja_foi_pago=ja_foi_pago)
+    except Exception as e:
+        print(f"Erro ao gerar Lancamento para MovimentacaoEstoque #{instance.id}: {str(e)}")
 
 
 @receiver(post_save, sender=DespesaOS)
