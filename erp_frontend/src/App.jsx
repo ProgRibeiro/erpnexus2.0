@@ -27,6 +27,7 @@ import OrdensPage from "./pages/Ordens/OrdensPage";
 import OSDetalhe from "./pages/Ordens/OSDetalhe";
 import OrcamentoDetalhe from "./pages/Orcamentos/OrcamentoDetalhe";
 import ImpressaoOrcamento from "./pages/Orcamentos/ImpressaoOrcamento";
+import OrcamentoInteligente from "./pages/Orcamentos/OrcamentoInteligente";
 import NovoOrcamento from "./pages/Orcamentos/NovoOrcamento";
 import OrcamentoUnificado from "./pages/Orcamentos/OrcamentoUnificado";
 import OrcamentosPage from "./pages/Orcamentos/OrcamentosPage";
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="/ordens/novo" element={<NovaOS />} />
             <Route path="/ordens/:id" element={<OSDetalhe />} />
             <Route path="/orcamentos" element={<OrcamentosPage />} />
+            <Route path="/orcamentos/inteligente" element={<OrcamentoInteligente />} />
             <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
             <Route path="/orcamentos/:id" element={<OrcamentoDetalhe />} />
             <Route path="/contratos" element={<ContratosPage />} />

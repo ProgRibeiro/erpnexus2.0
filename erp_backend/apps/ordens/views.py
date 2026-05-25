@@ -1,6 +1,7 @@
 from io import BytesIO
 from datetime import datetime, timedelta
 from collections import defaultdict
+from decimal import Decimal
 
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -15,9 +16,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auditoria.models import LogAuditoria
+from apps.clientes.models import Cliente
 from .models import AnexoChatOS, ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, ItemOrcamento, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
-from .services import PedidoCompraInteligente
+from .services import MotorOrcamentoInteligente, PedidoCompraInteligente
 from .serializers import (
     ChatOSSerializer,
     ChecklistItemSerializer,
@@ -156,6 +158,115 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         )
         if ordem.tem_pedido_compra and ordem.pdf_pc:
             PedidoCompraInteligente().registrar_aprendizado(ordem, usuario=self.request.user)
+
+    def _get_cliente_motor(self, request):
+        cliente_id = request.data.get("cliente") or request.data.get("cliente_id")
+        if not cliente_id:
+            return None
+        try:
+            return Cliente.objects.get(pk=cliente_id)
+        except Cliente.DoesNotExist:
+            return None
+
+    def _dados_motor_orcamento(self, request):
+        arquivos = request.FILES.getlist("fotos") or request.FILES.getlist("foto") or request.FILES.getlist("arquivos")
+        return {
+            "descricao": request.data.get("descricao", ""),
+            "email_texto": request.data.get("email_texto", ""),
+            "observacoes_foto": request.data.get("observacoes_foto", ""),
+            "arquivos": arquivos,
+            "cliente": self._get_cliente_motor(request),
+        }
+
+    @action(detail=False, methods=["post"], url_path="motor-orcamento/analisar")
+    def motor_orcamento_analisar(self, request):
+        dados = self._dados_motor_orcamento(request)
+        sugestao = MotorOrcamentoInteligente().analisar(**dados)
+        if request.data.get("cliente") and not dados["cliente"]:
+            return Response(
+                {"detail": "Cliente não encontrado para gerar a análise."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(sugestao)
+
+    @action(detail=False, methods=["post"], url_path="motor-orcamento/criar")
+    def motor_orcamento_criar(self, request):
+        dados = self._dados_motor_orcamento(request)
+        cliente = dados["cliente"]
+        if not cliente:
+            return Response(
+                {"detail": "Selecione um cliente para criar o orçamento inteligente."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sugestao = MotorOrcamentoInteligente().analisar(**dados)
+        itens_sugeridos = request.data.get("itens")
+        if itens_sugeridos:
+            itens = itens_sugeridos
+        else:
+            itens = sugestao["itens"]
+
+        with transaction.atomic():
+            ordem = OrdemServico.objects.create(
+                cliente=cliente,
+                status=OrdemServico.Status.RASCUNHO,
+                tipo_servico=sugestao["tipo_servico"],
+                prioridade=sugestao["prioridade"],
+                origem_lead=OrdemServico.OrigemLead.EMAIL if dados["email_texto"] else OrdemServico.OrigemLead.OUTRO,
+                descricao_servico=sugestao["descricao_servico"],
+                condicao_pagamento=request.data.get("condicao_pagamento", "A combinar"),
+                validade_orcamento=timezone.localdate() + timedelta(days=15),
+                observacoes_tecnicas=(
+                    "Orçamento gerado pelo motor inteligente local. "
+                    f"Confiança: {sugestao['confianca']}%. Revisar antes de enviar ao cliente."
+                ),
+                criado_por=request.user if request.user.is_authenticated else None,
+                atualizado_por=request.user if request.user.is_authenticated else None,
+            )
+
+            for index, item in enumerate(itens):
+                ItemOrcamento.objects.create(
+                    os=ordem,
+                    origem_tipo=item.get("origem_tipo") or ItemOrcamento.OrigemTipo.AVULSO,
+                    produto_id=item.get("produto") or None,
+                    servico_id=item.get("servico") or None,
+                    codigo_referencia=item.get("codigo_referencia", ""),
+                    unidade_referencia=item.get("unidade_referencia", "uni"),
+                    descricao=item.get("descricao") or f"Item {index + 1}",
+                    quantidade=Decimal(str(item.get("quantidade") or 1)),
+                    valor_unitario=Decimal(str(item.get("valor_unitario") or 0)),
+                    ordem=item.get("ordem", index),
+                )
+
+            for index, arquivo in enumerate(dados["arquivos"]):
+                FotoOS.objects.create(
+                    os=ordem,
+                    tipo=FotoOS.Tipo.ANTES,
+                    arquivo=arquivo,
+                    legenda=request.data.get("observacoes_foto", "Foto usada no orçamento inteligente")[:255],
+                    enviado_por=request.user if request.user.is_authenticated else None,
+                    ordem=index,
+                )
+
+            ChatOS.objects.create(
+                os=ordem,
+                usuario=request.user if request.user.is_authenticated else None,
+                origem="motor_orcamento",
+                mensagem=(
+                    "Motor de orçamento inteligente criou este rascunho.\n"
+                    f"Confiança: {sugestao['confianca']}%.\n"
+                    f"Avisos: {'; '.join(sugestao.get('avisos') or ['sem avisos'])}"
+                ),
+            )
+
+        ordem.refresh_from_db()
+        return Response(
+            {
+                "ordem": self.get_serializer(ordem).data,
+                "sugestao": sugestao,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=True, methods=["post"], url_path="mudar-status")
     def mudar_status(self, request, pk=None):

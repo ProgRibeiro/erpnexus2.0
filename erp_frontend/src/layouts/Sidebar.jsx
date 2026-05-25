@@ -15,6 +15,7 @@ import {
   SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
   ToolOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
@@ -33,6 +34,7 @@ const ITENS_PRESTADOR = [
     type: 'group',
     children: [
       { key: 'orcamentos', icon: <FileTextOutlined />, label: 'Orçamentos', path: '/orcamentos' },
+      { key: 'orcamento-inteligente', icon: <ThunderboltOutlined />, label: 'Orçamento Inteligente', path: '/orcamentos/inteligente' },
       { key: 'contratos-preventiva', icon: <FileProtectOutlined />, label: 'Contratos Preventiva', path: '/contratos' },
       { key: 'ordens', icon: <FileTextOutlined />, label: 'Ordens de Serviço', path: '/ordens' },
       { key: 'clientes', icon: <TeamOutlined />, label: 'Clientes', path: '/clientes' },
@@ -141,6 +143,7 @@ export default function Sidebar() {
   const getSelectedKey = () => {
     const p = location.pathname;
     if (p === '/' || p === '/dashboard') return 'dashboard';
+    if (p.startsWith('/orcamentos/inteligente')) return 'orcamento-inteligente';
     if (p.startsWith('/orcamentos')) return 'orcamentos';
     if (p.startsWith('/contratos')) return 'contratos-preventiva';
     if (p.startsWith('/ordens')) return 'ordens';

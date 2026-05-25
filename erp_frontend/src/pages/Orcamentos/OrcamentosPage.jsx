@@ -29,6 +29,7 @@ import {
   PlusOutlined,
   RiseOutlined,
   SearchOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
@@ -424,24 +425,39 @@ export default function OrcamentosPage() {
           <Title level={1} style={{ color: "#111827", fontSize: 24, fontWeight: 800, margin: 0 }}>
             Orçamentos
           </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate("/orcamentos/novo")}
-            style={{
-              background: "#3B82F6",
-              borderColor: "#3B82F6",
-              color: "#ffffff",
-              height: "40px",
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              fontWeight: 500,
-              fontSize: "14px",
-              borderRadius: "8px",
-            }}
-          >
-            Novo Orçamento
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ThunderboltOutlined />}
+              onClick={() => navigate("/orcamentos/inteligente")}
+              style={{
+                height: "40px",
+                paddingLeft: "18px",
+                paddingRight: "18px",
+                fontWeight: 700,
+                borderRadius: "8px",
+              }}
+            >
+              Inteligente
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate("/orcamentos/novo")}
+              style={{
+                background: "#3B82F6",
+                borderColor: "#3B82F6",
+                color: "#ffffff",
+                height: "40px",
+                paddingLeft: "20px",
+                paddingRight: "20px",
+                fontWeight: 500,
+                fontSize: "14px",
+                borderRadius: "8px",
+              }}
+            >
+              Novo Orçamento
+            </Button>
+          </Space>
         </div>
 
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
