@@ -19,6 +19,7 @@ import RelatorioPublicoPage from "./pages/RelatorioPublico";
 import AlertasEstoquePage from "./pages/Estoque/Alertas";
 import EntradaEstoquePage from "./pages/Estoque/EntradaEstoque";
 import EstoquePage from "./pages/Estoque";
+import CatalogoInteligentePage from "./pages/CatalogoInteligente";
 import ProdutoDetalhePage from "./pages/Estoque/ProdutoDetalhe";
 import SaidaEstoquePage from "./pages/Estoque/SaidaEstoque";
 import LoginPage from "./pages/Auth/LoginPage";
@@ -117,6 +118,7 @@ export default function App() {
             <Route path="/financeiro/contas" element={<ContasBancariasPage />} />
             <Route path="/financeiro/relatorios" element={<RelatoriosFinanceirosPage />} />
             <Route path="/estoque" element={<EstoquePage />} />
+            <Route path="/catalogo-inteligente" element={<CatalogoInteligentePage />} />
             <Route path="/estoque/produtos/:id" element={<ProdutoDetalhePage />} />
             <Route path="/estoque/entrada" element={<EntradaEstoquePage />} />
             <Route path="/estoque/saida" element={<SaidaEstoquePage />} />

@@ -49,6 +49,7 @@ const ITENS_PRESTADOR = [
     type: 'group',
     children: [
       { key: 'estoque', icon: <ShoppingCartOutlined />, label: 'Estoque', path: '/estoque' },
+      { key: 'catalogo-inteligente', icon: <ThunderboltOutlined />, label: 'Motor de Catálogo', path: '/catalogo-inteligente' },
       { key: 'financeiro', icon: <DollarOutlined />, label: 'Financeiro', path: '/financeiro' },
       { key: 'faturamento', icon: <FileTextOutlined />, label: 'Faturamento', path: '/faturamento' },
       { key: 'crm', icon: <TeamOutlined />, label: 'CRM', path: '/crm' },
@@ -151,6 +152,7 @@ export default function Sidebar() {
     if (p.startsWith('/agenda')) return 'agenda';
     if (p.startsWith('/servicos')) return 'servicos';
     if (p.startsWith('/terceiros')) return 'terceiros';
+    if (p.startsWith('/catalogo-inteligente')) return 'catalogo-inteligente';
     if (p.startsWith('/estoque')) return 'estoque';
     if (p.startsWith('/financeiro')) return 'financeiro';
     if (p.startsWith('/faturamento')) return 'faturamento';

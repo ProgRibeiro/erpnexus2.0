@@ -8,6 +8,7 @@ from .views import (
     ServicoViewSet,
     ImportExcelViewSet,
     AlertaEstoqueViewSet,
+    MotorCatalogoViewSet,
     relatorio_estoque,
     relatorio_produtos,
     dashboard_estoque,
@@ -20,6 +21,7 @@ router.register("movimentacoes", MovimentacaoEstoqueViewSet, basename="estoque-m
 router.register("alertas", AlertaEstoqueViewSet, basename="estoque-alertas")
 router.register("servicos", ServicoViewSet, basename="estoque-servicos")
 router.register("excel-import", ImportExcelViewSet, basename="excel-import")
+router.register("motor-catalogo", MotorCatalogoViewSet, basename="motor-catalogo")
 
 urlpatterns = [
     path("relatorio/", relatorio_estoque, name="estoque-relatorio"),

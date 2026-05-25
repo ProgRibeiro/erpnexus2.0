@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.http import FileResponse
 from django.db.models import Sum, Q
 
@@ -15,6 +15,7 @@ from .serializers import (
     ServicoSerializer,
     AlertaEstoqueSerializer,
 )
+from .services import MotorCatalogoInteligente
 
 
 class CategoriaProdutoViewSet(viewsets.ModelViewSet):
@@ -220,6 +221,43 @@ class ServicoViewSet(viewsets.ModelViewSet):
     ordering_fields = ["nome", "preco_padrao", "categoria", "criado_em"]
     ordering = ["categoria", "nome"]
     permission_classes = [IsAuthenticated]
+
+
+class MotorCatalogoViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
+
+    @action(detail=False, methods=["post"])
+    def analisar(self, request):
+        arquivo = request.FILES.get("arquivo")
+        texto = request.data.get("texto", "")
+        markup = request.data.get("markup_padrao")
+        despesas = request.data.get("despesas_padrao")
+
+        if not arquivo and not texto:
+            return Response(
+                {"detail": "Envie uma planilha/CSV em 'arquivo' ou cole uma lista em 'texto'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        resultado = MotorCatalogoInteligente().analisar(
+            texto=texto,
+            arquivo=arquivo,
+            markup_padrao=markup,
+            despesas_padrao=despesas,
+        )
+        return Response(resultado)
+
+    @action(detail=False, methods=["post"])
+    def criar(self, request):
+        itens = request.data.get("itens", [])
+        if not isinstance(itens, list) or not itens:
+            return Response(
+                {"detail": "Envie uma lista de itens analisados em 'itens'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        resultado = MotorCatalogoInteligente().criar(itens)
+        return Response(resultado, status=status.HTTP_201_CREATED if not resultado["erros"] else status.HTTP_207_MULTI_STATUS)
 
 
 # Imports necessários para templates Excel
