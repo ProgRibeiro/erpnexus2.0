@@ -210,7 +210,7 @@ class MotorCatalogoInteligente:
         if "\t" in amostra:
             delimitador = "\t"
         primeira = amostra.splitlines()[0]
-        if delimitador in primeira and any(chave in self._normalizar(primeira) for chave in ["nome", "descricao", "preco", "valor", "tipo"]):
+        if delimitador in primeira and self._parece_cabecalho(primeira, delimitador):
             reader = csv.DictReader(io.StringIO(amostra), delimiter=delimitador)
             return [{self._map_header(k, i): v for i, (k, v) in enumerate(row.items())} for row in reader]
 
@@ -225,6 +225,16 @@ class MotorCatalogoInteligente:
             else:
                 linhas.append({"nome": linha})
         return linhas
+
+    def _parece_cabecalho(self, primeira_linha, delimitador):
+        celulas = [self._normalizar(celula) for celula in primeira_linha.split(delimitador)]
+        campos_reconhecidos = {
+            self._map_header(celula, index)
+            for index, celula in enumerate(celulas)
+            if celula
+        }
+        campos_base = {"nome", "descricao", "tipo", "categoria", "unidade", "custo", "venda"}
+        return "nome" in campos_reconhecidos and len(campos_reconhecidos.intersection(campos_base)) >= 2
 
     def _partes_para_linha(self, partes):
         linha = {"nome": partes[0]}

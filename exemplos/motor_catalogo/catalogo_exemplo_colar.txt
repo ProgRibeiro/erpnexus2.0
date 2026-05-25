@@ -1,0 +1,7 @@
+Limpeza quimica de split; tipo: servico; categoria: hvac; venda: 280; unidade: uni; tributacao: iss
+Instalacao de ar-condicionado split ate 12000 BTUs; tipo: servico; categoria: instalacao; custo: 0; venda: 850; unidade: uni; tributacao: iss; codigo_lc116: 14.01
+Manutencao corretiva com diagnostico tecnico; tipo: servico; categoria: manutencao; venda: 450; unidade: uni; tributacao: iss
+Capacitor 45uF; tipo: produto; categoria: Ar condicionado / HVAC; custo: 38; markup: 60; unidade: un; estoque_minimo: 5; localizacao: A1
+Rele termico compressor; tipo: produto; categoria: Ar condicionado / HVAC; custo: 72; venda: 145; unidade: un; estoque_minimo: 3; localizacao: A2
+Disjuntor bipolar 32A; tipo: produto; categoria: Eletrica; custo: 41,50; markup: 45; unidade: un; estoque_minimo: 4; localizacao: E1
+Tubo de cobre 1/4; tipo: produto; categoria: Ar condicionado / HVAC; custo: 18,90; markup: 55; unidade: m; estoque_minimo: 20; localizacao: C3

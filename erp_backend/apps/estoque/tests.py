@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from .models import CategoriaProduto, Produto, MovimentacaoEstoque, AlertaEstoque
+from .models import CategoriaProduto, Produto, MovimentacaoEstoque, AlertaEstoque, Servico
+from .services import MotorCatalogoInteligente
 
 User = get_user_model()
 
@@ -127,3 +128,63 @@ class MovimentacaoEstoqueTestCase(TestCase):
         self.assertEqual(self.produto.estoque_atual, Decimal("5"))
         self.assertTrue(self.produto.em_alerta)
         self.assertEqual(AlertaEstoque.objects.count(), 1)
+
+
+class MotorCatalogoInteligenteTestCase(TestCase):
+    def setUp(self):
+        self.motor = MotorCatalogoInteligente()
+
+    def test_analisar_texto_separa_produto_e_servico(self):
+        texto = "\n".join([
+            "Limpeza quimica de split; tipo: servico; categoria: hvac; venda: 280",
+            "Capacitor 45uF; tipo: produto; categoria: Ar condicionado / HVAC; custo: 38; markup: 60",
+        ])
+
+        resultado = self.motor.analisar(texto=texto)
+
+        self.assertEqual(resultado["resumo"]["total_linhas"], 2)
+        self.assertEqual(resultado["resumo"]["servicos"], 1)
+        self.assertEqual(resultado["resumo"]["produtos"], 1)
+        self.assertEqual(resultado["itens"][0]["tipo"], "servico")
+        self.assertEqual(resultado["itens"][1]["tipo"], "produto")
+        self.assertEqual(resultado["itens"][1]["preco_custo"], "38.00")
+        self.assertGreater(Decimal(resultado["itens"][1]["preco_venda"]), Decimal("38.00"))
+
+    def test_criar_itens_em_lote_cria_produto_servico_e_categoria(self):
+        itens = self.motor.analisar(
+            texto="\n".join([
+                "Manutencao corretiva de ar-condicionado; tipo: servico; categoria: hvac; venda: 450",
+                "Rele termico compressor; tipo: produto; categoria: Ar condicionado / HVAC; custo: 72; venda: 145",
+            ])
+        )["itens"]
+
+        resultado = self.motor.criar(itens)
+
+        self.assertEqual(resultado["erros"], [])
+        self.assertEqual(resultado["servicos_criados"], 1)
+        self.assertEqual(resultado["produtos_criados"], 1)
+        self.assertTrue(Servico.objects.filter(nome="Manutencao corretiva de ar-condicionado").exists())
+        produto = Produto.objects.get(nome="Rele termico compressor")
+        self.assertEqual(produto.preco_custo, Decimal("72.00"))
+        self.assertEqual(produto.preco_venda, Decimal("145.00"))
+        self.assertEqual(produto.categoria.nome, "Ar condicionado / HVAC")
+
+    def test_criar_itens_em_lote_atualiza_existentes(self):
+        categoria = CategoriaProduto.objects.create(nome="Ar condicionado / HVAC")
+        Produto.objects.create(
+            nome="Capacitor 45uF",
+            categoria=categoria,
+            preco_custo=Decimal("30.00"),
+            preco_venda=Decimal("60.00"),
+            preco_manual=True,
+        )
+
+        itens = self.motor.analisar(
+            texto="Capacitor 45uF; tipo: produto; categoria: Ar condicionado / HVAC; custo: 40; venda: 80"
+        )["itens"]
+        resultado = self.motor.criar(itens)
+
+        self.assertEqual(resultado["produtos_criados"], 0)
+        self.assertEqual(resultado["produtos_atualizados"], 1)
+        self.assertEqual(Produto.objects.count(), 1)
+        self.assertEqual(Produto.objects.get(nome="Capacitor 45uF").preco_venda, Decimal("80.00"))

@@ -1,0 +1,25 @@
+Exemplos do Motor de Catalogo
+
+Tela:
+http://127.0.0.1:5173/catalogo-inteligente
+
+Como testar com texto:
+1. Abra catalogo_exemplo_colar.txt.
+2. Copie todo o conteudo.
+3. Cole no campo "Lista ou texto da IA".
+4. Clique em "Analisar catalogo".
+5. Revise a previa e clique em "Criar em lote".
+
+Como testar com planilha:
+1. Abra catalogo_exemplo_planilha.csv no Excel para revisar, se quiser.
+2. Na tela do Motor de Catalogo, envie esse CSV no campo de upload.
+3. Clique em "Analisar catalogo".
+4. Revise produtos, servicos, valores, markup e impostos.
+5. Clique em "Criar em lote".
+
+Observacoes:
+- Produtos sao gravados no Estoque.
+- Servicos sao gravados no modulo Servicos.
+- Se o nome ou codigo ja existir, o motor atualiza em vez de duplicar.
+- Servicos usam ISS padrao da empresa.
+- Produtos usam a carga fiscal padrao da empresa, despesas e markup para sugerir preco de venda quando o valor nao vem informado.

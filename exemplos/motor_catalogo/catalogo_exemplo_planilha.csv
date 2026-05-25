@@ -1,0 +1,8 @@
+tipo;nome;descricao;categoria;unidade;custo;venda;markup;estoque_minimo;localizacao;tributacao;codigo_lc116
+servico;Limpeza quimica de split;Limpeza e higienizacao de evaporadora e filtros;hvac;uni;0;280;35;0;;iss;14.01
+servico;Instalacao de ar-condicionado split ate 12000 BTUs;Instalacao completa com teste operacional;instalacao;uni;0;850;35;0;;iss;14.01
+servico;Manutencao corretiva com diagnostico tecnico;Diagnostico, testes eletricos e avaliacao operacional;manutencao;uni;0;450;35;0;;iss;14.01
+produto;Capacitor 45uF;Capacitor para compressor de ar-condicionado;Ar condicionado / HVAC;un;38;;60;5;A1;icms;
+produto;Rele termico compressor;Rele termico para protecao de compressor;Ar condicionado / HVAC;un;72;145;45;3;A2;icms;
+produto;Disjuntor bipolar 32A;Disjuntor bipolar para circuitos de climatizacao;Eletrica;un;41,50;;45;4;E1;icms;
+produto;Tubo de cobre 1/4;Tubo de cobre para linha frigorifica;Ar condicionado / HVAC;m;18,90;;55;20;C3;icms;
