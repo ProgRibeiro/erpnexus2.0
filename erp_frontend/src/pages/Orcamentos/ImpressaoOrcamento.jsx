@@ -382,32 +382,33 @@ export default function ImpressaoOrcamento() {
         .print-compact.proposal-document .proposal-footer { padding-top: 9px !important; padding-bottom: 9px !important; }
         .print-single-page.proposal-document .proposal-totals { break-inside: avoid; page-break-inside: avoid; }
         .proposal-document {
-          aspect-ratio: 297 / 210;
           position: relative;
-          overflow: hidden !important;
+          overflow: visible !important;
         }
         .proposal-items-section {
-          padding-bottom: 128px !important;
+          padding-bottom: 18px !important;
         }
         .proposal-totals {
-          position: absolute !important;
-          right: 32px !important;
-          bottom: 56px !important;
-          width: 310px !important;
-          padding: 0 !important;
+          position: static !important;
+          width: 100% !important;
+          padding: 0 32px 18px !important;
           z-index: 2 !important;
+          background: #FFFFFF;
         }
         .proposal-totals > div {
-          width: 100% !important;
+          width: min(100%, 350px) !important;
           min-width: 0 !important;
           max-width: 100% !important;
+          margin-left: auto !important;
         }
         .proposal-footer {
-          position: absolute !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
+          position: static !important;
           z-index: 3 !important;
+        }
+        .proposal-table-wrap {
+          width: 100%;
+          overflow-x: auto;
+          border-radius: 8px;
         }
         .item-row:nth-child(even) td { background: #F8FAFC; }
         .item-row:hover td { background: #F1F5F9 !important; transition: background 0.15s; }
@@ -426,6 +427,90 @@ export default function ImpressaoOrcamento() {
           font-weight: 900;
           flex-shrink: 0;
         }
+        @media (max-width: 960px) {
+          .proposal-document {
+            max-width: 100% !important;
+            aspect-ratio: auto !important;
+            border-radius: 8px !important;
+          }
+          .proposal-header {
+            grid-template-columns: 1fr !important;
+          }
+          .proposal-header-actions {
+            grid-template-columns: 1fr 1fr !important;
+            padding-top: 0 !important;
+          }
+          .proposal-info-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .proposal-totals {
+            padding: 0 24px 18px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .proposal-header > div,
+          .proposal-header-actions,
+          .proposal-description,
+          .proposal-items-section,
+          .proposal-totals,
+          .proposal-logos,
+          .proposal-footer {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+          .proposal-header-actions {
+            grid-template-columns: 1fr !important;
+          }
+          .proposal-company-name {
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+          }
+          .proposal-number-box,
+          .proposal-total-final-value {
+            font-size: 20px !important;
+          }
+          .proposal-items-table {
+            min-width: 720px;
+          }
+          .proposal-totals > div {
+            width: 100% !important;
+          }
+          .proposal-footer {
+            align-items: flex-start !important;
+          }
+          .proposal-footer > div:last-child {
+            text-align: left !important;
+          }
+        }
+        @media print {
+          .proposal-document {
+            overflow: hidden !important;
+          }
+          .proposal-items-section {
+            padding-bottom: 128px !important;
+          }
+          .proposal-totals {
+            position: absolute !important;
+            right: 20px !important;
+            bottom: 34px !important;
+            width: 78mm !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+          .proposal-totals > div {
+            width: 100% !important;
+            margin-left: 0 !important;
+          }
+          .proposal-footer {
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+          }
+          .proposal-table-wrap {
+            overflow: visible !important;
+          }
+        }
       `}</style>
 
       {/* ── TOOLBAR ── */}
@@ -438,7 +523,7 @@ export default function ImpressaoOrcamento() {
       </div>
 
       {/* ── DOCUMENTO ── */}
-      <div className={`doc-sheet proposal-document ${printSizeClass}`} style={{ width: "100%", maxWidth: 1100, margin: "0 auto", background: "#FFFFFF", borderRadius: 10, boxShadow: "0 24px 70px rgba(15,23,42,0.16), 0 4px 18px rgba(15,23,42,0.08)", overflow: "hidden", border: "1px solid #DDE3EE", aspectRatio: "297 / 210", position: "relative" }}>
+      <div className={`doc-sheet proposal-document ${printSizeClass}`} style={{ width: "100%", maxWidth: 1100, margin: "0 auto", background: "#FFFFFF", borderRadius: 10, boxShadow: "0 24px 70px rgba(15,23,42,0.16), 0 4px 18px rgba(15,23,42,0.08)", border: "1px solid #DDE3EE", position: "relative" }}>
         <Skeleton active loading={loading} paragraph={{ rows: 18 }} style={{ padding: 32 }}>
 
           <div className="proposal-header" style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", minHeight: 132, background: "#111827" }}>
@@ -466,7 +551,7 @@ export default function ImpressaoOrcamento() {
                 </div>
               </div>
             </div>
-            <div style={{ padding: "22px 28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "stretch" }}>
+            <div className="proposal-header-actions" style={{ padding: "22px 28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, alignItems: "stretch" }}>
               <div style={{ border: "1px solid #374151", borderRadius: 10, padding: "12px 14px" }}>
                 <div style={{ color: "#93C5FD", fontSize: 9, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase" }}>Orçamento</div>
                 <div style={{ color: "#FFFFFF", fontSize: 23, fontWeight: 900, marginTop: 5 }}>{orcamento?.numero || `ORC-${id}`}</div>
@@ -486,7 +571,7 @@ export default function ImpressaoOrcamento() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 14, padding: "16px 24px 12px", background: "#F8FAFC", borderBottom: "1px solid #E5E7EB" }}>
+          <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 14, padding: "16px 24px 12px", background: "#F8FAFC", borderBottom: "1px solid #E5E7EB" }}>
             <div style={{ background: "#FFFFFF", border: "1px solid #D1D5DB", borderRadius: 9, padding: 13 }}>
               <div style={{ color: "#111827", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Cliente</div>
               <div style={{ color: "#111827", fontSize: 13, fontWeight: 850 }}>{orcamento?.cliente_nome || "-"}</div>
@@ -547,6 +632,7 @@ export default function ImpressaoOrcamento() {
               </span>
             </div>
 
+            <div className="proposal-table-wrap">
             <table className="proposal-items-table" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, marginTop: 0, border: "1px solid #CBD5E1", borderRadius: 8, overflow: "hidden" }}>
               <thead>
                 <tr style={{ background: "#111827" }}>
@@ -592,6 +678,7 @@ export default function ImpressaoOrcamento() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* ═══════════════════════════════════════
