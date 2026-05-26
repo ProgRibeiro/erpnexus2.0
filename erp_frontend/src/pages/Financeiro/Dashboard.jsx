@@ -26,6 +26,7 @@ import {
   CheckCircleOutlined,
   EditOutlined,
   FileTextOutlined,
+  FolderOpenOutlined,
   PlusOutlined,
   ReconciliationOutlined,
   WalletOutlined,
@@ -468,6 +469,9 @@ export default function FinanceiroDashboard() {
             <Button icon={<BankOutlined />} onClick={() => navigate("/financeiro/contas")}>
               Contas bancárias
             </Button>
+            <Button icon={<FolderOpenOutlined />} onClick={() => navigate("/financeiro/cadastros")}>
+              Cadastros
+            </Button>
             <Button icon={<ReconciliationOutlined />} onClick={() => navigate("/financeiro/lancamentos?importar=1")}>
               Importar extrato
             </Button>
@@ -491,6 +495,51 @@ export default function FinanceiroDashboard() {
               <Space direction="vertical" style={{ width: "100%" }}>
                 <Text strong>Cobertura de compromissos</Text>
                 <Progress percent={cobertura} strokeColor={cobertura >= 80 ? "#10B981" : "#F59E0B"} />
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} md={8}>
+            <Card bordered={false} style={cardStyle} bodyStyle={{ padding: 18 }}>
+              <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                <Text strong>Rotina de recebimentos</Text>
+                <Text type="secondary">Acompanhe clientes em aberto, vencidos e previsões de entrada.</Text>
+                <Space wrap>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/financeiro/lancamentos?novo=1&tipo=receita")}>
+                    Nova receita
+                  </Button>
+                  <Button onClick={() => navigate("/financeiro/lancamentos?tipo=receita")}>Ver recebimentos</Button>
+                </Space>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card bordered={false} style={cardStyle} bodyStyle={{ padding: 18 }}>
+              <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                <Text strong>Rotina de pagamentos</Text>
+                <Text type="secondary">Cadastre despesas, boletos, fornecedores e baixas de saída.</Text>
+                <Space wrap>
+                  <Button danger icon={<PlusOutlined />} onClick={() => navigate("/financeiro/lancamentos?novo=1&tipo=despesa")}>
+                    Nova despesa
+                  </Button>
+                  <Button onClick={() => navigate("/financeiro/lancamentos?tipo=despesa")}>Ver pagamentos</Button>
+                </Space>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card bordered={false} style={cardStyle} bodyStyle={{ padding: 18 }}>
+              <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                <Text strong>Cadastros do financeiro</Text>
+                <Text type="secondary">Organize contas bancárias, categorias e transferências internas.</Text>
+                <Space wrap>
+                  <Button icon={<FolderOpenOutlined />} onClick={() => navigate("/financeiro/cadastros")}>
+                    Abrir cadastros
+                  </Button>
+                  <Button onClick={() => navigate("/financeiro/relatorios")}>Relatórios</Button>
+                </Space>
               </Space>
             </Card>
           </Col>

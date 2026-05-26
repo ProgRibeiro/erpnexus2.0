@@ -116,6 +116,7 @@ export default function App() {
             <Route path="/financeiro/lancamentos/novo" element={<NovoLancamentoPage />} />
             <Route path="/financeiro/lancamentos/:id" element={<NovoLancamentoPage />} />
             <Route path="/financeiro/contas" element={<ContasBancariasPage />} />
+            <Route path="/financeiro/cadastros" element={<ContasBancariasPage />} />
             <Route path="/financeiro/relatorios" element={<RelatoriosFinanceirosPage />} />
             <Route path="/estoque" element={<EstoquePage />} />
             <Route path="/catalogo-inteligente" element={<CatalogoInteligentePage />} />

@@ -78,6 +78,16 @@ const financeiroService = {
       : await api.post("/financeiro/categorias/", payload);
     return response.data;
   },
+  listarTransferencias: async (params) => {
+    const response = await api.get("/financeiro/transferencias/", { params });
+    return unwrap(response.data);
+  },
+  salvarTransferencia: async (payload, id) => {
+    const response = id
+      ? await api.patch(`/financeiro/transferencias/${id}/`, payload)
+      : await api.post("/financeiro/transferencias/", payload);
+    return response.data;
+  },
   resumoCategorias: async (params) => {
     const response = await api.get("/financeiro/categorias/resumo/", { params });
     return response.data;

@@ -22,6 +22,7 @@ import {
   InputNumber,
   Upload,
   Alert,
+  Statistic,
 } from "antd";
 import {
   DeleteOutlined,
@@ -33,6 +34,7 @@ import {
   UploadOutlined,
   FileTextOutlined,
   BankOutlined,
+  FolderOpenOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -208,6 +210,7 @@ function FormularioLancamento({
   lancamento,
   contas,
   categorias,
+  initialTipo = "despesa",
   onSave,
   onClose,
 }) {
@@ -227,10 +230,11 @@ function FormularioLancamento({
       setValorAtual(Number(lancamento.valor) || 0);
     } else if (visible) {
       form.resetFields();
-      setTipoSelecionado("despesa");
+      setTipoSelecionado(initialTipo);
+      form.setFieldValue("tipo", initialTipo);
       setValorAtual(0);
     }
-  }, [visible, lancamento, form]);
+  }, [visible, lancamento, form, initialTipo]);
 
   const handleSubmit = async (values) => {
     setSaving(true);
@@ -637,6 +641,7 @@ export default function LancamentosPage() {
   const [importVisible, setImportVisible] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [handledQueryAction, setHandledQueryAction] = useState("");
+  const [initialTipo, setInitialTipo] = useState("despesa");
 
   const recarregarLancamentos = () => {
     setReloadKey((current) => current + 1);
@@ -699,6 +704,7 @@ export default function LancamentosPage() {
     if ((!novo && !importar && !editarId && !baixaId) || handledQueryAction === actionKey) return;
 
     if (novo) {
+      setInitialTipo(searchParams.get("tipo") === "receita" ? "receita" : "despesa");
       setSelectedLancamento(null);
       setFormVisible(true);
       setHandledQueryAction(actionKey);
@@ -724,6 +730,20 @@ export default function LancamentosPage() {
     }
     setHandledQueryAction(actionKey);
   }, [searchParams, lancamentos, handledQueryAction]);
+
+  const resumoLancamentos = useMemo(() => {
+    return lancamentos.reduce(
+      (acc, item) => {
+        const valor = Number(item.valor || 0);
+        if (item.tipo === "receita") acc.receitas += valor;
+        if (item.tipo === "despesa") acc.despesas += valor;
+        if (item.status === "pendente") acc.pendentes += 1;
+        if (item.status === "atrasado") acc.atrasados += 1;
+        return acc;
+      },
+      { receitas: 0, despesas: 0, pendentes: 0, atrasados: 0 }
+    );
+  }, [lancamentos]);
 
   const handleSaveLancamento = async (payload) => {
     try {
@@ -828,7 +848,15 @@ export default function LancamentosPage() {
       dataIndex: "descricao",
       key: "descricao",
       ellipsis: true,
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text, record) => (
+        <Space direction="vertical" size={2}>
+          <Text strong>{text}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {[record.fornecedor_cliente, record.numero_documento].filter(Boolean).join(" · ") ||
+              "Sem cliente/fornecedor informado"}
+          </Text>
+        </Space>
+      ),
     },
     {
       title: "Tipo",
@@ -873,7 +901,7 @@ export default function LancamentosPage() {
               setDetailsVisible(true);
             }}
           >
-            Detalhes
+            Mais informações
           </Button>
           <Button
             size="small"
@@ -937,7 +965,14 @@ export default function LancamentosPage() {
           <Title level={1} style={{ color: "#111827", fontSize: 24, fontWeight: 800, margin: 0 }}>
             Lançamentos
           </Title>
-          <Space>
+          <Space wrap>
+            <Button
+              icon={<FolderOpenOutlined />}
+              onClick={() => navigate("/financeiro/cadastros")}
+              style={{ height: 40, borderRadius: 8, fontWeight: 600 }}
+            >
+              Cadastros
+            </Button>
             <Button
               icon={<BankOutlined />}
               onClick={() => setImportVisible(true)}
@@ -949,6 +984,7 @@ export default function LancamentosPage() {
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => {
+                setInitialTipo("receita");
                 setSelectedLancamento(null);
                 setFormVisible(true);
               }}
@@ -964,10 +1000,45 @@ export default function LancamentosPage() {
                 borderRadius: "8px",
               }}
             >
-              Novo Lançamento
+              Nova receita
+            </Button>
+            <Button
+              danger
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setInitialTipo("despesa");
+                setSelectedLancamento(null);
+                setFormVisible(true);
+              }}
+              style={{ height: 40, borderRadius: 8, fontWeight: 700 }}
+            >
+              Nova despesa
             </Button>
           </Space>
         </div>
+
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={cardStyle}>
+              <Statistic title="Receitas na lista" value={resumoLancamentos.receitas} precision={2} prefix="R$" valueStyle={{ color: "#10B981" }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={cardStyle}>
+              <Statistic title="Despesas na lista" value={resumoLancamentos.despesas} precision={2} prefix="R$" valueStyle={{ color: "#EF4444" }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={cardStyle}>
+              <Statistic title="Pendentes" value={resumoLancamentos.pendentes} suffix={`/${lancamentos.length}`} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={cardStyle}>
+              <Statistic title="Atrasados" value={resumoLancamentos.atrasados} valueStyle={{ color: resumoLancamentos.atrasados ? "#dc2626" : "#111827" }} />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Filtros */}
         <Card bordered={false} style={filterStyle} bodyStyle={{ padding: 16 }}>
@@ -1098,6 +1169,7 @@ export default function LancamentosPage() {
           lancamento={selectedLancamento}
           contas={contas}
           categorias={categorias}
+          initialTipo={initialTipo}
           onSave={handleSaveLancamento}
           onClose={() => {
             setFormVisible(false);
