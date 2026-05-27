@@ -6,7 +6,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.http import FileResponse
 from django.db.models import Sum, Q
 
-from .models import CategoriaProduto, MovimentacaoEstoque, Produto, Servico, AlertaEstoque
+from .models import CategoriaProduto, MotorInteligenciaConhecimento, MovimentacaoEstoque, Produto, Servico, AlertaEstoque
 from .serializers import (
     CategoriaProdutoSerializer,
     MovimentacaoEstoqueSerializer,
@@ -14,8 +14,9 @@ from .serializers import (
     ProdutoSerializer,
     ServicoSerializer,
     AlertaEstoqueSerializer,
+    MotorInteligenciaConhecimentoSerializer,
 )
-from .services import MotorCatalogoInteligente
+from .services import MemoriaMotorInteligente, MotorCatalogoInteligente
 
 
 class CategoriaProdutoViewSet(viewsets.ModelViewSet):
@@ -258,6 +259,44 @@ class MotorCatalogoViewSet(viewsets.ViewSet):
             )
         resultado = MotorCatalogoInteligente().criar(itens)
         return Response(resultado, status=status.HTTP_201_CREATED if not resultado["erros"] else status.HTTP_207_MULTI_STATUS)
+
+
+class MotorInteligenciaViewSet(viewsets.ModelViewSet):
+    serializer_class = MotorInteligenciaConhecimentoSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["ativo", "escopo", "tipo", "produto", "servico"]
+    search_fields = ["titulo", "entrada", "resposta"]
+    ordering_fields = ["atualizado_em", "vezes_usado", "confianca", "titulo"]
+    ordering = ["-atualizado_em"]
+
+    def get_queryset(self):
+        return MotorInteligenciaConhecimento.objects.select_related("produto", "servico", "criado_por")
+
+    def perform_create(self, serializer):
+        if not serializer.validated_data.get("termos"):
+            texto = " ".join([
+                serializer.validated_data.get("titulo", ""),
+                serializer.validated_data.get("entrada", ""),
+                serializer.validated_data.get("resposta", ""),
+            ])
+            serializer.validated_data["termos"] = sorted(MemoriaMotorInteligente()._tokens(texto))
+        serializer.save(criado_por=self.request.user)
+
+    @action(detail=False, methods=["post"])
+    def chat(self, request):
+        mensagem = request.data.get("mensagem", "")
+        contexto = request.data.get("contexto", {})
+        if not mensagem:
+            return Response({"detail": "Envie uma mensagem para ensinar ou consultar o motor."}, status=status.HTTP_400_BAD_REQUEST)
+        resposta = MemoriaMotorInteligente().responder_chat(mensagem, usuario=request.user, contexto=contexto)
+        return Response(resposta, status=status.HTTP_201_CREATED if resposta["acao"] == "aprendido" else status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"])
+    def consultar(self, request):
+        texto = request.data.get("texto", "")
+        escopo = request.data.get("escopo")
+        sugestoes = MemoriaMotorInteligente().buscar(texto, escopo=escopo, limite=10, incrementar=False)
+        return Response({"sugestoes": sugestoes})
 
 
 # Imports necessários para templates Excel

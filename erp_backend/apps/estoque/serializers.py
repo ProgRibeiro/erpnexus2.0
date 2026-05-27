@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from .models import CategoriaProduto, MovimentacaoEstoque, Produto, Servico, AlertaEstoque
+from .models import (
+    AlertaEstoque,
+    CategoriaProduto,
+    MotorInteligenciaConhecimento,
+    MovimentacaoEstoque,
+    Produto,
+    Servico,
+)
 
 
 class CategoriaProdutoSerializer(serializers.ModelSerializer):
@@ -146,3 +153,34 @@ class ServicoSerializer(serializers.ModelSerializer):
         model = Servico
         fields = "__all__"
         read_only_fields = ["codigo", "criado_em"]
+
+
+class MotorInteligenciaConhecimentoSerializer(serializers.ModelSerializer):
+    produto_nome = serializers.CharField(source="produto.nome", read_only=True)
+    servico_nome = serializers.CharField(source="servico.nome", read_only=True)
+    criado_por_nome = serializers.CharField(source="criado_por.nome_completo", read_only=True)
+
+    class Meta:
+        model = MotorInteligenciaConhecimento
+        fields = [
+            "id",
+            "titulo",
+            "escopo",
+            "tipo",
+            "entrada",
+            "resposta",
+            "termos",
+            "payload",
+            "produto",
+            "produto_nome",
+            "servico",
+            "servico_nome",
+            "confianca",
+            "ativo",
+            "vezes_usado",
+            "criado_por",
+            "criado_por_nome",
+            "criado_em",
+            "atualizado_em",
+        ]
+        read_only_fields = ["id", "vezes_usado", "criado_por", "criado_por_nome", "criado_em", "atualizado_em"]

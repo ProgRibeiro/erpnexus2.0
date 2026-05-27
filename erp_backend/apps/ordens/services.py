@@ -9,6 +9,7 @@ from django.utils import timezone
 from pypdf import PdfReader
 
 from apps.estoque.models import Produto, Servico
+from apps.estoque.services import MemoriaMotorInteligente
 from .models import ItemOrcamento
 from .models import AprendizadoPedidoCompra
 
@@ -280,8 +281,12 @@ class MotorOrcamentoInteligente:
         quantidade_base = self._inferir_quantidade(texto_normalizado)
         tipo_servico = self._inferir_tipo_servico(texto_normalizado)
         prioridade = self._inferir_prioridade(texto_normalizado)
+        memoria = MemoriaMotorInteligente().aplicar_em_orcamento(texto_base)
+        tipo_servico = memoria.get("tipo_servico") or tipo_servico
+        prioridade = memoria.get("prioridade") or prioridade
 
         itens = self._montar_itens(tokens, texto_normalizado, quantidade_base, tipo_servico)
+        itens = self._aplicar_itens_memoria(itens, memoria, quantidade_base)
         if not itens:
             itens.append(self._item_avulso(
                 descricao="Diagnóstico técnico e elaboração de orçamento",
@@ -310,12 +315,37 @@ class MotorOrcamentoInteligente:
             "subtotal": str(subtotal.quantize(Decimal("0.01"))),
             "confianca": confianca,
             "avisos": self._avisos(confianca, arquivos, texto_base),
+            "memoria_aplicada": memoria.get("conhecimentos", []),
             "integracoes": {
                 "produtos": "Itens vinculados ao estoque quando há produto correspondente.",
                 "servicos": "Itens vinculados ao cadastro de serviços quando há serviço correspondente.",
                 "financeiro": "Receita será criada pelo fluxo de faturamento após aprovação, execução e confirmação.",
             },
         }
+
+    def _aplicar_itens_memoria(self, itens, memoria, quantidade_base):
+        existentes_servicos = {item.get("servico") for item in itens if item.get("servico")}
+        existentes_produtos = {item.get("produto") for item in itens if item.get("produto")}
+        for tipo, obj, conhecimento in memoria.get("itens", [])[:4]:
+            if tipo == "servico" and obj.id not in existentes_servicos:
+                itens.insert(0, self._item_servico(
+                    obj,
+                    quantidade_base,
+                    0,
+                    f"Memória ensinada: {conhecimento['titulo']}.",
+                ))
+                existentes_servicos.add(obj.id)
+            if tipo == "produto" and obj.id not in existentes_produtos:
+                itens.append(self._item_produto(
+                    obj,
+                    Decimal("1"),
+                    len(itens),
+                    f"Memória ensinada: {conhecimento['titulo']}.",
+                ))
+                existentes_produtos.add(obj.id)
+        for index, item in enumerate(itens):
+            item["ordem"] = index
+        return itens
 
     def _montar_itens(self, tokens, texto_normalizado, quantidade_base, tipo_servico):
         itens = []

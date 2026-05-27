@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   InputNumber,
+  List,
   Row,
   Space,
   Table,
@@ -21,6 +22,7 @@ import {
   DatabaseOutlined,
   FileSearchOutlined,
   InboxOutlined,
+  MessageOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -64,6 +66,9 @@ export default function CatalogoInteligentePage() {
   const [files, setFiles] = useState([]);
   const [analisando, setAnalisando] = useState(false);
   const [criando, setCriando] = useState(false);
+  const [ensinando, setEnsinando] = useState(false);
+  const [mensagemMotor, setMensagemMotor] = useState("");
+  const [respostaMotor, setRespostaMotor] = useState(null);
   const [resultado, setResultado] = useState(null);
 
   const itens = resultado?.itens || [];
@@ -115,6 +120,27 @@ export default function CatalogoInteligentePage() {
       message.error(error?.response?.data?.detail || "Não foi possível criar os itens.");
     } finally {
       setCriando(false);
+    }
+  }
+
+  async function conversarComMotor() {
+    if (!mensagemMotor.trim()) {
+      message.warning("Digite uma regra ou pergunta para o motor.");
+      return;
+    }
+    setEnsinando(true);
+    try {
+      const response = await api.post("/estoque/motor-inteligencia/chat/", {
+        mensagem: mensagemMotor,
+        contexto: { escopo: "orcamento" },
+      });
+      setRespostaMotor(response.data);
+      setMensagemMotor("");
+      message.success(response.data.acao === "aprendido" ? "Motor aprendeu a regra." : "Motor respondeu com a memória atual.");
+    } catch (error) {
+      message.error(error?.response?.data?.detail || "Não foi possível conversar com o motor.");
+    } finally {
+      setEnsinando(false);
     }
   }
 
@@ -184,59 +210,105 @@ export default function CatalogoInteligentePage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={9}>
-          <Card bordered={false} style={panelStyle} title="Entrada">
-            <Form
-              form={form}
-              layout="vertical"
-              initialValues={{
-                markup_padrao: 35,
-                despesas_padrao: 8,
-                texto: "Limpeza química de split; tipo: serviço; categoria: hvac; venda: 280\nCapacitor 45uF; tipo: produto; categoria: Ar condicionado / HVAC; custo: 38; markup: 60\nRelé térmico compressor; produto; custo: 72; venda: 145",
-              }}
-            >
-              <Form.Item label="Lista ou texto da IA" name="texto">
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card bordered={false} style={panelStyle} title="Entrada">
+              <Form
+                form={form}
+                layout="vertical"
+                initialValues={{
+                  markup_padrao: 35,
+                  despesas_padrao: 8,
+                  texto: "Limpeza química de split; tipo: serviço; categoria: hvac; venda: 280\nCapacitor 45uF; tipo: produto; categoria: Ar condicionado / HVAC; custo: 38; markup: 60\nRelé térmico compressor; produto; custo: 72; venda: 145",
+                }}
+              >
+                <Form.Item label="Lista ou texto da IA" name="texto">
+                  <TextArea
+                    rows={10}
+                    placeholder="Cole aqui uma lista. Ex.: Produto; categoria; custo; venda; unidade"
+                  />
+                </Form.Item>
+
+                <Row gutter={12}>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label="Markup padrão (%)" name="markup_padrao">
+                      <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label="Despesas padrão (%)" name="despesas_padrao">
+                      <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Dragger
+                  maxCount={1}
+                  accept=".xlsx,.xls,.xlsm,.csv,.txt,.tsv"
+                  fileList={files}
+                  beforeUpload={() => false}
+                  onChange={({ fileList }) => setFiles(fileList)}
+                >
+                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                  <p className="ant-upload-text">Planilha, CSV ou TXT</p>
+                </Dragger>
+
+                <Button
+                  block
+                  type="primary"
+                  icon={<FileSearchOutlined />}
+                  loading={analisando}
+                  onClick={analisar}
+                  style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, marginTop: 16 }}
+                >
+                  Analisar catálogo
+                </Button>
+              </Form>
+            </Card>
+
+            <Card bordered={false} style={panelStyle} title="Ensinar o motor">
+              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                <Text type="secondary">
+                  Escreva uma regra. Ex.: Quando o cliente falar split pingando, sugira limpeza de dreno e revisão de bandeja.
+                </Text>
                 <TextArea
-                  rows={10}
-                  placeholder="Cole aqui uma lista. Ex.: Produto; categoria; custo; venda; unidade"
+                  rows={4}
+                  value={mensagemMotor}
+                  onChange={(event) => setMensagemMotor(event.target.value)}
+                  placeholder="Quando acontecer X, sugira Y"
                 />
-              </Form.Item>
-
-              <Row gutter={12}>
-                <Col xs={24} sm={12}>
-                  <Form.Item label="Markup padrão (%)" name="markup_padrao">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Form.Item label="Despesas padrão (%)" name="despesas_padrao">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Dragger
-                maxCount={1}
-                accept=".xlsx,.xls,.xlsm,.csv,.txt,.tsv"
-                fileList={files}
-                beforeUpload={() => false}
-                onChange={({ fileList }) => setFiles(fileList)}
-              >
-                <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-                <p className="ant-upload-text">Planilha, CSV ou TXT</p>
-              </Dragger>
-
-              <Button
-                block
-                type="primary"
-                icon={<FileSearchOutlined />}
-                loading={analisando}
-                onClick={analisar}
-                style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, marginTop: 16 }}
-              >
-                Analisar catálogo
-              </Button>
-            </Form>
-          </Card>
+                <Button
+                  block
+                  icon={<MessageOutlined />}
+                  loading={ensinando}
+                  onClick={conversarComMotor}
+                  style={{ borderRadius: 8, fontWeight: 700 }}
+                >
+                  Enviar para a memória
+                </Button>
+                {respostaMotor && (
+                  <Alert
+                    type={respostaMotor.acao === "aprendido" ? "success" : "info"}
+                    showIcon
+                    message={respostaMotor.resposta}
+                  />
+                )}
+                {(respostaMotor?.sugestoes || []).length > 0 && (
+                  <List
+                    size="small"
+                    dataSource={respostaMotor.sugestoes}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <Space direction="vertical" size={2}>
+                          <Text strong>{item.titulo}</Text>
+                          <Text type="secondary">{item.resposta}</Text>
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </Space>
+            </Card>
+          </Space>
         </Col>
 
         <Col xs={24} xl={15}>

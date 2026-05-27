@@ -8,7 +8,244 @@ from openpyxl import load_workbook
 
 from apps.configuracoes.models import get_empresa_configurada
 
-from .models import CategoriaProduto, Produto, Servico
+from .models import CategoriaProduto, MotorInteligenciaConhecimento, Produto, Servico
+
+
+class MemoriaMotorInteligente:
+    STOPWORDS = {
+        "para", "com", "sem", "uma", "uns", "das", "dos", "por", "que", "nao", "não",
+        "quando", "entao", "então", "deve", "devo", "usar", "sugira", "sugerir",
+        "cliente", "servico", "serviço", "produto", "orcamento", "orçamento",
+    }
+
+    def buscar(self, texto, escopo=None, limite=5, incrementar=False):
+        tokens = self._tokens(texto)
+        if not tokens:
+            return []
+
+        escopos = [MotorInteligenciaConhecimento.Escopo.GERAL]
+        if escopo:
+            escopos.append(escopo)
+
+        qs = (
+            MotorInteligenciaConhecimento.objects
+            .select_related("produto", "servico")
+            .filter(ativo=True, escopo__in=escopos)
+            .order_by("-atualizado_em")[:400]
+        )
+        ranqueados = []
+        for item in qs:
+            texto_item = " ".join([
+                item.titulo,
+                item.entrada,
+                item.resposta,
+                " ".join(item.termos or []),
+                getattr(item.produto, "nome", "") or "",
+                getattr(item.servico, "nome", "") or "",
+            ])
+            item_tokens = self._tokens(texto_item)
+            intersecao = tokens.intersection(item_tokens)
+            if not intersecao:
+                continue
+            score = len(intersecao) * 10 + min(item.confianca, 100) / 10 + min(item.vezes_usado, 20)
+            ranqueados.append((score, item, sorted(intersecao)))
+
+        ranqueados.sort(key=lambda registro: registro[0], reverse=True)
+        conhecimentos = [self._serializar(item, score, termos) for score, item, termos in ranqueados[:limite]]
+        if incrementar and conhecimentos:
+            ids = [item["id"] for item in conhecimentos]
+            for conhecimento in MotorInteligenciaConhecimento.objects.filter(id__in=ids):
+                conhecimento.vezes_usado += 1
+                conhecimento.save(update_fields=["vezes_usado"])
+        return conhecimentos
+
+    def ensinar_por_chat(self, mensagem, usuario=None, contexto=None):
+        contexto = contexto or {}
+        dados = self._extrair_ensino(mensagem, contexto)
+        conhecimento = MotorInteligenciaConhecimento.objects.create(
+            titulo=dados["titulo"],
+            escopo=dados["escopo"],
+            tipo=dados["tipo"],
+            entrada=dados["entrada"],
+            resposta=dados["resposta"],
+            termos=sorted(self._tokens(" ".join([dados["titulo"], dados["entrada"], dados["resposta"]]))),
+            payload=dados["payload"],
+            produto_id=dados.get("produto"),
+            servico_id=dados.get("servico"),
+            confianca=dados["confianca"],
+            criado_por=usuario if getattr(usuario, "is_authenticated", False) else None,
+        )
+        return conhecimento
+
+    def responder_chat(self, mensagem, usuario=None, contexto=None):
+        texto = str(mensagem or "").strip()
+        contexto = contexto or {}
+        if self._parece_ensino(texto):
+            conhecimento = self.ensinar_por_chat(texto, usuario=usuario, contexto=contexto)
+            return {
+                "acao": "aprendido",
+                "resposta": f"Aprendi: {conhecimento.titulo}. Vou usar isso em {conhecimento.get_escopo_display().lower()}.",
+                "conhecimento": self._serializar(conhecimento, 100, conhecimento.termos),
+                "sugestoes": self.buscar(texto, escopo=conhecimento.escopo, limite=3),
+            }
+
+        escopo = contexto.get("escopo") or self._inferir_escopo(texto)
+        encontrados = self.buscar(texto, escopo=escopo, limite=5, incrementar=True)
+        if encontrados:
+            principal = encontrados[0]
+            return {
+                "acao": "resposta",
+                "resposta": principal["resposta"],
+                "conhecimento": principal,
+                "sugestoes": encontrados,
+            }
+
+        return {
+            "acao": "sem_memoria",
+            "resposta": "Ainda não tenho uma regra específica para isso. Você pode me ensinar escrevendo: 'Quando acontecer X, sugira Y'.",
+            "conhecimento": None,
+            "sugestoes": [],
+        }
+
+    def aplicar_em_orcamento(self, texto):
+        conhecimentos = self.buscar(texto, escopo=MotorInteligenciaConhecimento.Escopo.ORCAMENTO, limite=6, incrementar=True)
+        itens = []
+        tipo_servico = None
+        prioridade = None
+        for conhecimento in conhecimentos:
+            payload = conhecimento.get("payload") or {}
+            tipo_servico = tipo_servico or payload.get("tipo_servico")
+            prioridade = prioridade or payload.get("prioridade")
+            if conhecimento.get("servico_id"):
+                try:
+                    servico = Servico.objects.get(id=conhecimento["servico_id"], ativo=True)
+                    itens.append(("servico", servico, conhecimento))
+                except Servico.DoesNotExist:
+                    pass
+            if conhecimento.get("produto_id"):
+                try:
+                    produto = Produto.objects.get(id=conhecimento["produto_id"], ativo=True)
+                    itens.append(("produto", produto, conhecimento))
+                except Produto.DoesNotExist:
+                    pass
+        return {"conhecimentos": conhecimentos, "itens": itens, "tipo_servico": tipo_servico, "prioridade": prioridade}
+
+    def _extrair_ensino(self, mensagem, contexto):
+        texto = str(mensagem or "").strip()
+        escopo = contexto.get("escopo") or self._inferir_escopo(texto)
+        tipo = contexto.get("tipo") or MotorInteligenciaConhecimento.Tipo.REGRA
+        entrada = texto
+        resposta = texto
+
+        match = re.search(r"quando\s+(.+?)(?:,\s*|\s+)(?:sugira|use|usar|considere|responda|entao|então)\s+(.+)", texto, re.IGNORECASE)
+        if match:
+            entrada = match.group(1).strip()
+            resposta = match.group(2).strip()
+
+        payload = {}
+        tipo_servico = self._inferir_tipo_servico(texto)
+        if tipo_servico:
+            payload["tipo_servico"] = tipo_servico
+        if any(chave in self._normalizar(texto) for chave in ["urgente", "emergencia", "emergência", "parado"]):
+            payload["prioridade"] = "urgente"
+
+        servico = self._melhor_servico(texto)
+        produto = self._melhor_produto(texto)
+
+        titulo = contexto.get("titulo") or entrada[:90] or "Conhecimento ensinado"
+        return {
+            "titulo": titulo,
+            "escopo": escopo,
+            "tipo": tipo,
+            "entrada": entrada,
+            "resposta": resposta,
+            "payload": payload,
+            "produto": produto.id if produto else None,
+            "servico": servico.id if servico else None,
+            "confianca": int(contexto.get("confianca") or 85),
+        }
+
+    def _parece_ensino(self, texto):
+        normalizado = self._normalizar(texto)
+        return normalizado.startswith(("aprenda", "ensine", "ensinar")) or "quando " in normalizado and any(
+            chave in normalizado for chave in ["sugira", "use", "usar", "considere", "responda", "entao", "então"]
+        )
+
+    def _inferir_escopo(self, texto):
+        normalizado = self._normalizar(texto)
+        if any(chave in normalizado for chave in ["orcamento", "orçamento", "os ", "cliente pediu", "sugira"]):
+            return MotorInteligenciaConhecimento.Escopo.ORCAMENTO
+        if any(chave in normalizado for chave in ["catalogo", "catálogo", "produto", "servico", "serviço", "estoque"]):
+            return MotorInteligenciaConhecimento.Escopo.CATALOGO
+        return MotorInteligenciaConhecimento.Escopo.GERAL
+
+    def _inferir_tipo_servico(self, texto):
+        normalizado = self._normalizar(texto)
+        mapa = {
+            "hvac": ["hvac", "split", "ar condicionado", "condensadora", "evaporadora"],
+            "refrigeracao": ["refrigeracao", "refrigeração", "camara", "câmara", "freezer"],
+            "eletrica": ["eletrica", "elétrica", "disjuntor", "quadro", "tomada", "curto"],
+            "civil": ["civil", "pintura", "parede", "gesso", "piso"],
+            "instalacao": ["instalacao", "instalação", "instalar"],
+            "manutencao": ["manutencao", "manutenção", "preventiva", "corretiva"],
+        }
+        for tipo, termos in mapa.items():
+            if any(termo in normalizado for termo in termos):
+                return tipo
+        return None
+
+    def _melhor_servico(self, texto):
+        tokens = self._tokens(texto)
+        melhor = (0, None)
+        for servico in Servico.objects.filter(ativo=True)[:300]:
+            score = len(tokens.intersection(self._tokens(" ".join([servico.nome, servico.descricao, servico.categoria]))))
+            if score > melhor[0]:
+                melhor = (score, servico)
+        return melhor[1] if melhor[0] >= 2 else None
+
+    def _melhor_produto(self, texto):
+        tokens = self._tokens(texto)
+        melhor = (0, None)
+        for produto in Produto.objects.select_related("categoria").filter(ativo=True)[:500]:
+            score = len(tokens.intersection(self._tokens(" ".join([
+                produto.nome,
+                produto.descricao,
+                produto.categoria.nome if produto.categoria else "",
+            ]))))
+            if score > melhor[0]:
+                melhor = (score, produto)
+        return melhor[1] if melhor[0] >= 2 else None
+
+    def _serializar(self, item, score, termos):
+        return {
+            "id": item.id,
+            "titulo": item.titulo,
+            "escopo": item.escopo,
+            "tipo": item.tipo,
+            "entrada": item.entrada,
+            "resposta": item.resposta,
+            "payload": item.payload,
+            "produto_id": item.produto_id,
+            "produto_nome": item.produto.nome if item.produto else "",
+            "servico_id": item.servico_id,
+            "servico_nome": item.servico.nome if item.servico else "",
+            "confianca": item.confianca,
+            "vezes_usado": item.vezes_usado,
+            "score": round(float(score), 2),
+            "termos_match": list(termos or []),
+        }
+
+    def _tokens(self, texto):
+        return {
+            token
+            for token in re.findall(r"[a-z0-9]{3,}", self._normalizar(texto))
+            if token not in self.STOPWORDS
+        }
+
+    def _normalizar(self, value):
+        texto = unicodedata.normalize("NFKD", str(value or "").lower())
+        texto = "".join(char for char in texto if not unicodedata.combining(char))
+        return re.sub(r"\s+", " ", texto).strip()
 
 
 class MotorCatalogoInteligente:
@@ -142,8 +379,20 @@ class MotorCatalogoInteligente:
         nome = self._limpar(linha.get("nome") or linha.get("descricao") or "")
         descricao = self._limpar(linha.get("descricao") or "")
         texto = self._normalizar(" ".join([nome, descricao, str(linha.get("categoria") or ""), str(linha.get("tipo") or "")]))
+        memoria = MemoriaMotorInteligente().buscar(
+            texto,
+            escopo=MotorInteligenciaConhecimento.Escopo.CATALOGO,
+            limite=3,
+            incrementar=True,
+        )
         tipo = self._inferir_tipo(linha.get("tipo"), texto)
+        tipo = (memoria[0].get("payload") or {}).get("tipo") or tipo if memoria else tipo
+        if memoria and memoria[0].get("servico_id"):
+            tipo = "servico"
+        if memoria and memoria[0].get("produto_id"):
+            tipo = "produto"
         categoria = self._inferir_categoria(linha.get("categoria"), texto, tipo)
+        categoria = (memoria[0].get("payload") or {}).get("categoria") or categoria if memoria else categoria
         unidade = self._inferir_unidade(linha.get("unidade"), tipo)
         custo = self._decimal(linha.get("custo"), Decimal("0.00"))
         venda_informada = self._decimal(linha.get("venda"), None)
@@ -153,6 +402,8 @@ class MotorCatalogoInteligente:
         venda = venda_informada if venda_informada is not None else self._calcular_venda(custo, markup, aliquota, despesas)
         if venda == 0 and custo == 0:
             venda = self._preco_padrao_por_texto(texto, tipo)
+        if memoria and (memoria[0].get("payload") or {}).get("preco_venda"):
+            venda = self._decimal(memoria[0]["payload"].get("preco_venda"), venda)
 
         return {
             "linha": indice,
@@ -171,7 +422,8 @@ class MotorCatalogoInteligente:
             "localizacao": self._limpar(linha.get("localizacao") or ""),
             "tributacao": "iss" if tipo == "servico" else self._limpar(linha.get("tributacao") or "icms"),
             "codigo_lc116": self._limpar(linha.get("codigo_lc116") or ""),
-            "motivo": self._motivo(tipo, venda_informada, fiscal),
+            "motivo": self._motivo(tipo, venda_informada, fiscal, memoria),
+            "memoria_aplicada": memoria,
         }
 
     def _extrair_linhas(self, texto="", arquivo=None):
@@ -333,7 +585,9 @@ class MotorCatalogoInteligente:
             return Decimal("350.00")
         return Decimal("0.00")
 
-    def _motivo(self, tipo, venda_informada, fiscal):
+    def _motivo(self, tipo, venda_informada, fiscal, memoria=None):
+        if memoria:
+            return f"Memória aplicada: {memoria[0]['titulo']}."
         if venda_informada is not None:
             return "Preço de venda informado na entrada; impostos fiscais mantidos para referência."
         if tipo == "servico":

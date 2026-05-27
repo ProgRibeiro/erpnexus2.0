@@ -282,3 +282,53 @@ class Servico(models.Model):
 
     def __str__(self):
         return f"{self.codigo} - {self.nome}"
+
+
+class MotorInteligenciaConhecimento(models.Model):
+    class Escopo(models.TextChoices):
+        GERAL = "geral", "Geral"
+        ORCAMENTO = "orcamento", "Orçamento"
+        CATALOGO = "catalogo", "Catálogo"
+        FINANCEIRO = "financeiro", "Financeiro"
+        ESTOQUE = "estoque", "Estoque"
+
+    class Tipo(models.TextChoices):
+        REGRA = "regra", "Regra"
+        SINONIMO = "sinonimo", "Sinônimo"
+        PRECO = "preco", "Preço"
+        PROCEDIMENTO = "procedimento", "Procedimento"
+        RESPOSTA = "resposta", "Resposta"
+
+    titulo = models.CharField(max_length=180)
+    escopo = models.CharField(max_length=30, choices=Escopo.choices, default=Escopo.GERAL)
+    tipo = models.CharField(max_length=30, choices=Tipo.choices, default=Tipo.REGRA)
+    entrada = models.TextField(help_text="Frase, situação ou padrão que ativa este conhecimento.")
+    resposta = models.TextField(help_text="Como o motor deve agir ou responder.")
+    termos = models.JSONField(default=list, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+    produto = models.ForeignKey(Produto, null=True, blank=True, on_delete=models.SET_NULL, related_name="conhecimentos_motor")
+    servico = models.ForeignKey(Servico, null=True, blank=True, on_delete=models.SET_NULL, related_name="conhecimentos_motor")
+    confianca = models.PositiveIntegerField(default=80)
+    ativo = models.BooleanField(default=True)
+    vezes_usado = models.PositiveIntegerField(default=0)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="conhecimentos_motor_criados",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-atualizado_em", "titulo"]
+        verbose_name = "Conhecimento do motor"
+        verbose_name_plural = "Conhecimentos do motor"
+        indexes = [
+            models.Index(fields=["escopo", "tipo", "ativo"]),
+            models.Index(fields=["ativo", "-atualizado_em"]),
+        ]
+
+    def __str__(self):
+        return f"{self.titulo} ({self.escopo})"
