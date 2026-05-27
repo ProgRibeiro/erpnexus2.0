@@ -304,10 +304,13 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         ordem.atualizado_por = request.user
         ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
         estoque_resultado = []
+        aprendizado_resultado = []
         if status_novo == OrdemServico.Status.CONCLUIDA:
             from apps.estoque.services import MotorEstoqueOS
+            from apps.estoque.services import MemoriaMotorInteligente
 
             estoque_resultado = MotorEstoqueOS().processar_conclusao_os(ordem, usuario=request.user)
+            aprendizado_resultado = MemoriaMotorInteligente().aprender_com_ordem(ordem, usuario=request.user)
         if status_novo in [OrdemServico.Status.APROVADA, OrdemServico.Status.EM_EXECUCAO, OrdemServico.Status.CONCLUIDA]:
             from apps.terceiros.services import criar_contas_pagar_terceiros
 
@@ -321,6 +324,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         )
         data = self.get_serializer(ordem).data
         data["estoque_processado"] = estoque_resultado
+        data["motor_aprendizados"] = [
+            {"id": item.id, "titulo": item.titulo, "status_revisao": item.status_revisao}
+            for item in aprendizado_resultado
+        ]
         return Response(data)
 
     @action(detail=True, methods=["post"], url_path="confirmar-faturamento")

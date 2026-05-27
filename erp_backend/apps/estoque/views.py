@@ -270,7 +270,7 @@ class MotorInteligenciaViewSet(viewsets.ModelViewSet):
     ordering = ["-atualizado_em"]
 
     def get_queryset(self):
-        return MotorInteligenciaConhecimento.objects.select_related("produto", "servico", "criado_por")
+        return MotorInteligenciaConhecimento.objects.select_related("produto", "servico", "criado_por", "os_origem")
 
     def perform_create(self, serializer):
         if not serializer.validated_data.get("termos"):
@@ -297,6 +297,46 @@ class MotorInteligenciaViewSet(viewsets.ModelViewSet):
         escopo = request.data.get("escopo")
         sugestoes = MemoriaMotorInteligente().buscar(texto, escopo=escopo, limite=10, incrementar=False)
         return Response({"sugestoes": sugestoes})
+
+    @action(detail=False, methods=["get"], url_path="dashboard")
+    def dashboard(self, request):
+        return Response(MemoriaMotorInteligente().painel_memoria())
+
+    @action(detail=False, methods=["post"], url_path="aprender-os")
+    def aprender_os(self, request):
+        from apps.ordens.models import OrdemServico
+
+        memoria = MemoriaMotorInteligente()
+        os_id = request.data.get("os") or request.data.get("os_id")
+        if os_id:
+            try:
+                ordem = OrdemServico.objects.prefetch_related("itens__produto", "itens__servico").get(pk=os_id)
+            except OrdemServico.DoesNotExist:
+                return Response({"detail": "OS não encontrada para aprendizado."}, status=status.HTTP_404_NOT_FOUND)
+            aprendidos = memoria.aprender_com_ordem(ordem, usuario=request.user)
+        else:
+            aprendidos = memoria.aprender_com_ordens_concluidas(
+                limite=request.data.get("limite", 20),
+                usuario=request.user,
+            )
+        serializer = self.get_serializer(aprendidos, many=True)
+        return Response({"total": len(aprendidos), "conhecimentos": serializer.data}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def aprovar(self, request, pk=None):
+        conhecimento = self.get_object()
+        conhecimento.status_revisao = MotorInteligenciaConhecimento.StatusRevisao.APROVADO
+        conhecimento.ativo = True
+        conhecimento.save(update_fields=["status_revisao", "ativo", "atualizado_em"])
+        return Response(self.get_serializer(conhecimento).data)
+
+    @action(detail=True, methods=["post"])
+    def rejeitar(self, request, pk=None):
+        conhecimento = self.get_object()
+        conhecimento.status_revisao = MotorInteligenciaConhecimento.StatusRevisao.REJEITADO
+        conhecimento.ativo = False
+        conhecimento.save(update_fields=["status_revisao", "ativo", "atualizado_em"])
+        return Response(self.get_serializer(conhecimento).data)
 
 
 # Imports necessários para templates Excel

@@ -299,6 +299,17 @@ class MotorInteligenciaConhecimento(models.Model):
         PROCEDIMENTO = "procedimento", "Procedimento"
         RESPOSTA = "resposta", "Resposta"
 
+    class Origem(models.TextChoices):
+        CHAT = "chat", "Chat"
+        OS_CONCLUIDA = "os_concluida", "OS concluída"
+        CATALOGO = "catalogo", "Catálogo"
+        MANUAL = "manual", "Manual"
+
+    class StatusRevisao(models.TextChoices):
+        PENDENTE = "pendente", "Pendente"
+        APROVADO = "aprovado", "Aprovado"
+        REJEITADO = "rejeitado", "Rejeitado"
+
     titulo = models.CharField(max_length=180)
     escopo = models.CharField(max_length=30, choices=Escopo.choices, default=Escopo.GERAL)
     tipo = models.CharField(max_length=30, choices=Tipo.choices, default=Tipo.REGRA)
@@ -311,6 +322,15 @@ class MotorInteligenciaConhecimento(models.Model):
     confianca = models.PositiveIntegerField(default=80)
     ativo = models.BooleanField(default=True)
     vezes_usado = models.PositiveIntegerField(default=0)
+    origem = models.CharField(max_length=30, choices=Origem.choices, default=Origem.CHAT)
+    status_revisao = models.CharField(max_length=30, choices=StatusRevisao.choices, default=StatusRevisao.APROVADO)
+    os_origem = models.ForeignKey(
+        OrdemServico,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="conhecimentos_motor",
+    )
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -328,6 +348,7 @@ class MotorInteligenciaConhecimento(models.Model):
         indexes = [
             models.Index(fields=["escopo", "tipo", "ativo"]),
             models.Index(fields=["ativo", "-atualizado_em"]),
+            models.Index(fields=["origem", "status_revisao"]),
         ]
 
     def __str__(self):

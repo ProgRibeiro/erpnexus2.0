@@ -4,6 +4,7 @@ import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
 
+from django.db.models import Count
 from openpyxl import load_workbook
 
 from apps.configuracoes.models import get_empresa_configurada
@@ -73,6 +74,8 @@ class MemoriaMotorInteligente:
             produto_id=dados.get("produto"),
             servico_id=dados.get("servico"),
             confianca=dados["confianca"],
+            origem=MotorInteligenciaConhecimento.Origem.CHAT,
+            status_revisao=MotorInteligenciaConhecimento.StatusRevisao.APROVADO,
             criado_por=usuario if getattr(usuario, "is_authenticated", False) else None,
         )
         return conhecimento
@@ -129,6 +132,94 @@ class MemoriaMotorInteligente:
                 except Produto.DoesNotExist:
                     pass
         return {"conhecimentos": conhecimentos, "itens": itens, "tipo_servico": tipo_servico, "prioridade": prioridade}
+
+    def aprender_com_ordem(self, ordem, usuario=None):
+        if not ordem or not getattr(ordem, "pk", None):
+            return []
+        if ordem.status not in ["concluida", "faturada"]:
+            return []
+
+        itens = list(ordem.itens.select_related("produto", "servico").all())
+        if not itens:
+            return []
+
+        entrada = self._entrada_da_ordem(ordem, itens)
+        termos = sorted(self._tokens(entrada))
+        payload_base = self._payload_ordem(ordem, itens)
+        aprendidos = []
+
+        for item in itens:
+            produto = item.produto if item.origem_tipo == "produto" else None
+            servico = item.servico if item.origem_tipo == "servico" else None
+            if not produto and not servico and not item.descricao:
+                continue
+
+            alvo = servico or produto
+            titulo_alvo = getattr(alvo, "nome", "") or item.descricao[:80]
+            tipo = (
+                MotorInteligenciaConhecimento.Tipo.PRECO
+                if item.valor_unitario
+                else MotorInteligenciaConhecimento.Tipo.REGRA
+            )
+            resposta = self._resposta_ordem(ordem, item, produto=produto, servico=servico)
+            payload = {
+                **payload_base,
+                "item_origem_id": item.id,
+                "valor_unitario": str(item.valor_unitario or 0),
+                "quantidade_media": str(item.quantidade or 1),
+            }
+            filtros = {
+                "os_origem": ordem,
+                "produto": produto,
+                "servico": servico,
+                "entrada": entrada[:1000],
+            }
+            conhecimento, _ = MotorInteligenciaConhecimento.objects.update_or_create(
+                **filtros,
+                defaults={
+                    "titulo": f"{titulo_alvo} em {ordem.get_tipo_servico_display()}",
+                    "escopo": MotorInteligenciaConhecimento.Escopo.ORCAMENTO,
+                    "tipo": tipo,
+                    "resposta": resposta,
+                    "termos": termos,
+                    "payload": payload,
+                    "confianca": self._confianca_aprendizado(ordem, item, produto, servico),
+                    "ativo": True,
+                    "origem": MotorInteligenciaConhecimento.Origem.OS_CONCLUIDA,
+                    "status_revisao": MotorInteligenciaConhecimento.StatusRevisao.PENDENTE,
+                    "criado_por": usuario if getattr(usuario, "is_authenticated", False) else None,
+                },
+            )
+            aprendidos.append(conhecimento)
+        return aprendidos
+
+    def aprender_com_ordens_concluidas(self, limite=20, usuario=None):
+        from apps.ordens.models import OrdemServico
+
+        ordens = (
+            OrdemServico.objects
+            .filter(status__in=[OrdemServico.Status.CONCLUIDA, OrdemServico.Status.FATURADA])
+            .prefetch_related("itens__produto", "itens__servico")
+            .order_by("-atualizado_em")[: int(limite or 20)]
+        )
+        aprendidos = []
+        for ordem in ordens:
+            aprendidos.extend(self.aprender_com_ordem(ordem, usuario=usuario))
+        return aprendidos
+
+    def painel_memoria(self):
+        qs = MotorInteligenciaConhecimento.objects.all()
+        por_status = qs.values("status_revisao").annotate(total=Count("id"))
+        por_origem = qs.values("origem").annotate(total=Count("id"))
+        return {
+            "total": qs.count(),
+            "ativos": qs.filter(ativo=True).count(),
+            "pendentes": qs.filter(status_revisao=MotorInteligenciaConhecimento.StatusRevisao.PENDENTE).count(),
+            "aprovados": qs.filter(status_revisao=MotorInteligenciaConhecimento.StatusRevisao.APROVADO).count(),
+            "rejeitados": qs.filter(status_revisao=MotorInteligenciaConhecimento.StatusRevisao.REJEITADO).count(),
+            "por_status": {item["status_revisao"]: item["total"] for item in por_status},
+            "por_origem": {item["origem"]: item["total"] for item in por_origem},
+        }
 
     def _extrair_ensino(self, mensagem, contexto):
         texto = str(mensagem or "").strip()
@@ -231,9 +322,78 @@ class MemoriaMotorInteligente:
             "servico_nome": item.servico.nome if item.servico else "",
             "confianca": item.confianca,
             "vezes_usado": item.vezes_usado,
+            "origem": item.origem,
+            "status_revisao": item.status_revisao,
+            "os_origem_id": item.os_origem_id,
             "score": round(float(score), 2),
             "termos_match": list(termos or []),
         }
+
+    def _entrada_da_ordem(self, ordem, itens):
+        partes = [
+            ordem.descricao_servico,
+            ordem.observacoes_tecnicas,
+            ordem.equipamento_marca,
+            ordem.equipamento_modelo,
+            ordem.equipamento_serie,
+            " ".join(item.descricao for item in itens if item.descricao),
+        ]
+        texto = " ".join(parte for parte in partes if parte)
+        return texto[:1000] or f"OS {ordem.numero or ordem.id} {ordem.get_tipo_servico_display()}"
+
+    def _payload_ordem(self, ordem, itens):
+        produtos = [
+            {"id": item.produto_id, "nome": item.produto.nome, "quantidade": str(item.quantidade)}
+            for item in itens
+            if item.produto_id and item.produto
+        ]
+        servicos = [
+            {"id": item.servico_id, "nome": item.servico.nome, "quantidade": str(item.quantidade)}
+            for item in itens
+            if item.servico_id and item.servico
+        ]
+        checklist = [
+            resposta.item.texto
+            for resposta in ordem.respostas_checklist.select_related("item").all()[:12]
+            if resposta.valor_bool is True or resposta.valor_texto or resposta.valor_numero is not None
+        ]
+        return {
+            "tipo_servico": ordem.tipo_servico,
+            "prioridade": ordem.prioridade,
+            "cliente_id": ordem.cliente_id,
+            "cliente_nome": getattr(ordem.cliente, "nome", ""),
+            "os_numero": ordem.numero,
+            "valor_total_orcado": str(ordem.valor_total_orcado or 0),
+            "valor_final_faturado": str(ordem.valor_final_faturado or 0),
+            "produtos_usados": produtos,
+            "servicos_executados": servicos,
+            "checklist_sugerido": checklist,
+        }
+
+    def _resposta_ordem(self, ordem, item, produto=None, servico=None):
+        alvo = getattr(servico or produto, "nome", "") or item.descricao
+        partes = [f"Em casos parecidos com {ordem.get_tipo_servico_display()}, considerar {alvo}."]
+        if item.valor_unitario:
+            partes.append(f"Valor unitário praticado: R$ {Decimal(item.valor_unitario).quantize(Decimal('0.01'))}.")
+        if produto:
+            partes.append("Verificar disponibilidade no estoque antes de aprovar.")
+        if ordem.prioridade in ["alta", "urgente"]:
+            partes.append(f"Prioridade histórica: {ordem.get_prioridade_display()}.")
+        return " ".join(partes)
+
+    def _confianca_aprendizado(self, ordem, item, produto, servico):
+        score = 58
+        if servico:
+            score += 14
+        if produto:
+            score += 10
+        if item.valor_unitario:
+            score += 8
+        if ordem.valor_final_faturado or ordem.valor_total_orcado:
+            score += 5
+        if ordem.respostas_checklist.exists():
+            score += 5
+        return min(score, 92)
 
     def _tokens(self, texto):
         return {

@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
   Card,
   Col,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -23,6 +24,7 @@ import {
   FileSearchOutlined,
   InboxOutlined,
   MessageOutlined,
+  ReloadOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -69,6 +71,10 @@ export default function CatalogoInteligentePage() {
   const [ensinando, setEnsinando] = useState(false);
   const [mensagemMotor, setMensagemMotor] = useState("");
   const [respostaMotor, setRespostaMotor] = useState(null);
+  const [memorias, setMemorias] = useState([]);
+  const [dashboardMemoria, setDashboardMemoria] = useState(null);
+  const [carregandoMemoria, setCarregandoMemoria] = useState(false);
+  const [aprendendoOS, setAprendendoOS] = useState(false);
   const [resultado, setResultado] = useState(null);
 
   const itens = resultado?.itens || [];
@@ -81,6 +87,55 @@ export default function CatalogoInteligentePage() {
       valor: itens.reduce((sum, item) => sum + Number(item.preco_venda || 0), 0),
     };
   }, [itens]);
+
+  useEffect(() => {
+    carregarMemoria();
+  }, []);
+
+  function normalizarLista(data) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.results)) return data.results;
+    return [];
+  }
+
+  async function carregarMemoria() {
+    setCarregandoMemoria(true);
+    try {
+      const [listaResponse, dashboardResponse] = await Promise.all([
+        api.get("/estoque/motor-inteligencia/", { params: { ordering: "-atualizado_em" } }),
+        api.get("/estoque/motor-inteligencia/dashboard/"),
+      ]);
+      setMemorias(normalizarLista(listaResponse.data).slice(0, 8));
+      setDashboardMemoria(dashboardResponse.data);
+    } catch (error) {
+      message.error("Não foi possível carregar a memória do motor.");
+    } finally {
+      setCarregandoMemoria(false);
+    }
+  }
+
+  async function aprenderComOS() {
+    setAprendendoOS(true);
+    try {
+      const response = await api.post("/estoque/motor-inteligencia/aprender-os/", { limite: 25 });
+      message.success(`Motor aprendeu ${response.data.total || 0} registro(s) das OS concluídas.`);
+      carregarMemoria();
+    } catch (error) {
+      message.error(error?.response?.data?.detail || "Não foi possível aprender com as OS concluídas.");
+    } finally {
+      setAprendendoOS(false);
+    }
+  }
+
+  async function revisarMemoria(id, acao) {
+    try {
+      await api.post(`/estoque/motor-inteligencia/${id}/${acao}/`);
+      message.success(acao === "aprovar" ? "Aprendizado aprovado." : "Aprendizado rejeitado.");
+      carregarMemoria();
+    } catch (error) {
+      message.error("Não foi possível revisar o aprendizado.");
+    }
+  }
 
   async function analisar() {
     const values = await form.validateFields();
@@ -137,6 +192,7 @@ export default function CatalogoInteligentePage() {
       setRespostaMotor(response.data);
       setMensagemMotor("");
       message.success(response.data.acao === "aprendido" ? "Motor aprendeu a regra." : "Motor respondeu com a memória atual.");
+      carregarMemoria();
     } catch (error) {
       message.error(error?.response?.data?.detail || "Não foi possível conversar com o motor.");
     } finally {
@@ -301,6 +357,72 @@ export default function CatalogoInteligentePage() {
                         <Space direction="vertical" size={2}>
                           <Text strong>{item.titulo}</Text>
                           <Text type="secondary">{item.resposta}</Text>
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </Space>
+            </Card>
+
+            <Card
+              bordered={false}
+              style={panelStyle}
+              title="Memória do ERP"
+              extra={
+                <Button size="small" icon={<ReloadOutlined />} loading={carregandoMemoria} onClick={carregarMemoria}>
+                  Atualizar
+                </Button>
+              }
+            >
+              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                <Row gutter={[8, 8]}>
+                  <Col span={8}>
+                    <Text type="secondary">Ativos</Text>
+                    <div style={{ fontSize: 20, fontWeight: 900 }}>{dashboardMemoria?.ativos || 0}</div>
+                  </Col>
+                  <Col span={8}>
+                    <Text type="secondary">Pendentes</Text>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: "#F59E0B" }}>{dashboardMemoria?.pendentes || 0}</div>
+                  </Col>
+                  <Col span={8}>
+                    <Text type="secondary">Total</Text>
+                    <div style={{ fontSize: 20, fontWeight: 900 }}>{dashboardMemoria?.total || 0}</div>
+                  </Col>
+                </Row>
+
+                <Button block icon={<ThunderboltOutlined />} loading={aprendendoOS} onClick={aprenderComOS}>
+                  Aprender com OS concluídas
+                </Button>
+
+                {memorias.length === 0 ? (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sem memórias registradas" />
+                ) : (
+                  <List
+                    size="small"
+                    loading={carregandoMemoria}
+                    dataSource={memorias}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                          <Space wrap>
+                            <Text strong>{item.titulo}</Text>
+                            <Tag color={item.status_revisao === "aprovado" ? "green" : item.status_revisao === "rejeitado" ? "red" : "gold"}>
+                              {item.status_revisao}
+                            </Tag>
+                            <Tag>{item.origem}</Tag>
+                          </Space>
+                          <Text type="secondary">{item.resposta}</Text>
+                          {item.status_revisao === "pendente" && (
+                            <Space>
+                              <Button size="small" type="primary" onClick={() => revisarMemoria(item.id, "aprovar")}>
+                                Aprovar
+                              </Button>
+                              <Button size="small" danger onClick={() => revisarMemoria(item.id, "rejeitar")}>
+                                Rejeitar
+                              </Button>
+                            </Space>
+                          )}
                         </Space>
                       </List.Item>
                     )}
