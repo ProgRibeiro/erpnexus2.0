@@ -48,7 +48,23 @@
       "Bash(python -B manage.py runserver 0.0.0.0:8000)",
       "Bash(python -m json.tool sleep 1 cat /tmp/login_view_called.txt)",
       "Bash(jobs -p)",
-      "Bash(xargs kill *)"
+      "Bash(xargs kill *)",
+      "Bash(git pull *)",
+      "Bash(python manage.py migrate --noinput)",
+      "Bash(python erp_backend/manage.py runserver 0.0.0.0:8000)",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "Bash(npm list *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"./setup-android.ps1\")",
+      "Bash(npx cross-env *)",
+      "Bash(npx cap *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"./install-android.ps1\")",
+      "Bash(tee android-install.log)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"./install-android-fixed.ps1\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8000\")",
+      "Bash(findstr \":5173\")",
+      "mcp__plugin_playwright_playwright__browser_navigate"
     ]
   }
 }

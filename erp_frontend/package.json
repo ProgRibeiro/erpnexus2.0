@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "mobile:setup": "bash scripts/setup-mobile-capacitor.sh",
-    "mobile:build": "MOBILE=true vite build",
+    "mobile:build": "cross-env MOBILE=true vite build",
     "mobile:sync": "npm run mobile:build && cap sync",
     "mobile:open:android": "cap open android",
     "mobile:run:android": "npm run mobile:build && cap sync android && cap run android",
