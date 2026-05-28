@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ERP Nexus</string>
+    <string name="title_activity_main">ERP Nexus</string>
+    <string name="package_name">br.com.erpnexus.app</string>
+    <string name="custom_url_scheme">br.com.erpnexus.app</string>
+</resources>
