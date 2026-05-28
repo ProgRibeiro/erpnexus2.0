@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "br.com.erpnexus.app",
   appName: "ERP Nexus",
-  webDir: "../erp_backend/frontend_dist",
+  webDir: "frontend_dist_mobile",
 
   // Live reload em celular na mesma rede:
   // 1. Ajuste a URL para o IP da sua maquina.

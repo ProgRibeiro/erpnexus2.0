@@ -8,11 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "mobile:setup": "bash scripts/setup-mobile-capacitor.sh",
-    "mobile:sync": "npm run build && cap sync",
+    "mobile:build": "MOBILE=true vite build",
+    "mobile:sync": "npm run mobile:build && cap sync",
     "mobile:open:android": "cap open android",
-    "mobile:run:android": "cap run android",
+    "mobile:run:android": "npm run mobile:build && cap sync android && cap run android",
     "mobile:open:ios": "cap open ios",
-    "mobile:run:ios": "cap run ios"
+    "mobile:run:ios": "npm run mobile:build && cap sync ios && cap run ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
