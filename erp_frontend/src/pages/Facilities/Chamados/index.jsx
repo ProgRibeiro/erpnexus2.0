@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   Row, Col, Card, Tag, Button, Modal, Form, Input, Select,
-  Typography, Space, message, Spin, Badge, Divider, Tooltip,
+  Typography, Space, message, Spin, Badge, Divider, Tooltip, Rate, InputNumber,
 } from "antd";
 import {
   PlusOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined,
-  LinkOutlined, CopyOutlined,
+  LinkOutlined, CopyOutlined, CarOutlined, ToolOutlined, MessageOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -28,24 +28,33 @@ const statusCor = {
   aberto: "#EF4444",
   aguardando_orcamento: "#F59E0B",
   aguardando_aprovacao: "#F97316",
+  em_rota: "#06B6D4",
+  em_atendimento: "#3B82F6",
   em_execucao: "#3B82F6",
+  resolvido: "#10B981",
   concluido: "#10B981",
+  fechado: "#64748B",
   cancelado: "#6B7280",
 };
 const statusLabel = {
   aberto: "Aberto",
   aguardando_orcamento: "Ag. Orçamento",
   aguardando_aprovacao: "Ag. Aprovação",
+  em_rota: "Em Rota",
+  em_atendimento: "Em Atendimento",
   em_execucao: "Em Execução",
+  resolvido: "Resolvido",
   concluido: "Concluído",
+  fechado: "Fechado",
   cancelado: "Cancelado",
 };
 
 const colunas = [
   { key: "aberto", label: "Aberto", color: "#EF4444", statuses: ["aberto"] },
   { key: "aguardando", label: "Aguardando", color: "#F59E0B", statuses: ["aguardando_orcamento", "aguardando_aprovacao"] },
+  { key: "em_rota", label: "Em Rota", color: "#06B6D4", statuses: ["em_rota", "em_atendimento"] },
   { key: "em_execucao", label: "Em Execução", color: "#3B82F6", statuses: ["em_execucao"] },
-  { key: "concluido", label: "Concluído", color: "#10B981", statuses: ["concluido"] },
+  { key: "concluido", label: "Concluído", color: "#10B981", statuses: ["concluido", "resolvido", "fechado"] },
 ];
 
 const borderColor = (prioridade) => {
@@ -63,14 +72,21 @@ export default function ChamadosFacilities() {
   const [modalRecusar, setModalRecusar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [obsRecusa, setObsRecusa] = useState("");
+  const [chat, setChat] = useState([]);
+  const [mensagemChat, setMensagemChat] = useState("");
+  const [valorCustoExtra, setValorCustoExtra] = useState(null);
+  const [descricaoCustoExtra, setDescricaoCustoExtra] = useState("");
+  const [avaliacao, setAvaliacao] = useState(0);
+  const [nps, setNps] = useState(null);
+  const [comentarioAvaliacao, setComentarioAvaliacao] = useState("");
   const [form] = Form.useForm();
 
   const carregar = () => {
     setLoading(true);
     Promise.all([
-      api.get("/portal/contratante/chamados/"),
-      api.get("/portal/contratante/unidades/"),
-      api.get("/portal/contratante/prestadores/"),
+      api.get("/facilities/chamados/"),
+      Promise.resolve({ data: [] }),
+      Promise.resolve({ data: [] }),
     ])
       .then(([c, u, p]) => {
         setChamados(Array.isArray(c.data) ? c.data : (c.data?.results || []));
@@ -83,10 +99,92 @@ export default function ChamadosFacilities() {
 
   useEffect(() => { carregar(); }, []);
 
+  const abrirDetalhe = async (chamado) => {
+    setModalDetalhe(chamado);
+    setAvaliacao(chamado.avaliacao_prestador || chamado.avaliacao || 0);
+    setNps(chamado.nps || null);
+    setComentarioAvaliacao(chamado.comentario_avaliacao || "");
+    try {
+      const r = await api.get(`/facilities/chamados/${chamado.id}/chat-plataforma/`);
+      setChat(Array.isArray(r.data) ? r.data : (r.data?.results || []));
+    } catch {
+      setChat([]);
+    }
+  };
+
+  const executarAcao = async (acao, sucesso) => {
+    if (!modalDetalhe?.id) return;
+    try {
+      const r = await api.post(`/facilities/chamados/${modalDetalhe.id}/${acao}/`);
+      message.success(sucesso);
+      setModalDetalhe(r.data);
+      carregar();
+      abrirDetalhe(r.data);
+    } catch {
+      message.error("Não foi possível atualizar o chamado.");
+    }
+  };
+
+  const enviarMensagem = async () => {
+    if (!modalDetalhe?.id || !mensagemChat.trim()) return;
+    try {
+      const r = await api.post(`/facilities/chamados/${modalDetalhe.id}/chat-plataforma/`, { mensagem: mensagemChat });
+      setChat((atual) => [...atual, r.data]);
+      setMensagemChat("");
+    } catch {
+      message.error("Erro ao enviar comentário.");
+    }
+  };
+
+  const solicitarCustoExtra = async () => {
+    if (!modalDetalhe?.id || !valorCustoExtra) {
+      message.warning("Informe o valor do custo extra.");
+      return;
+    }
+    try {
+      const r = await api.post(`/facilities/chamados/${modalDetalhe.id}/solicitar-custo-extra/`, {
+        valor: valorCustoExtra,
+        descricao: descricaoCustoExtra,
+      });
+      message.success("Custo extra enviado para aprovação.");
+      setValorCustoExtra(null);
+      setDescricaoCustoExtra("");
+      setModalDetalhe(r.data);
+      carregar();
+      abrirDetalhe(r.data);
+    } catch {
+      message.error("Erro ao solicitar custo extra.");
+    }
+  };
+
+  const avaliarChamado = async () => {
+    if (!modalDetalhe?.id) return;
+    try {
+      const r = await api.post(`/facilities/chamados/${modalDetalhe.id}/avaliar/`, {
+        avaliacao,
+        nps,
+        comentario_avaliacao: comentarioAvaliacao,
+      });
+      message.success("Avaliação salva.");
+      setModalDetalhe(r.data);
+      carregar();
+    } catch {
+      message.error("Erro ao salvar avaliação.");
+    }
+  };
+
   const salvar = async (values) => {
     setSaving(true);
     try {
-      await api.post("/portal/contratante/chamados/", values);
+      await api.post("/facilities/chamados/", {
+        titulo: values.tipo_servico,
+        descricao: values.descricao,
+        prioridade: values.prioridade,
+        local: values.local || "",
+        solicitante_nome: values.solicitante_nome || "Admin Teste",
+        solicitante_email: values.solicitante_email || "admin@admin.com",
+        sla_horas: values.sla_horas || 24,
+      });
       message.success("Chamado aberto com sucesso!");
       setModalNovo(false);
       form.resetFields();
@@ -100,7 +198,7 @@ export default function ChamadosFacilities() {
 
   const aprovarOrcamento = async (chamadoId) => {
     try {
-      await api.post(`/portal/contratante/chamados/${chamadoId}/aprovar-orcamento/`);
+      await api.post(`/facilities/chamados/${chamadoId}/aprovar-custo-extra/`);
       message.success("Orçamento aprovado!");
       setModalDetalhe(null);
       carregar();
@@ -111,7 +209,7 @@ export default function ChamadosFacilities() {
 
   const recusarOrcamento = async (chamadoId) => {
     try {
-      await api.post(`/portal/contratante/chamados/${chamadoId}/recusar-orcamento/`, { observacao: obsRecusa });
+      await api.post(`/facilities/chamados/${chamadoId}/recusar-custo-extra/`, { observacao: obsRecusa });
       message.success("Orçamento recusado.");
       setModalRecusar(false);
       setModalDetalhe(null);
@@ -171,19 +269,29 @@ export default function ChamadosFacilities() {
                         borderLeft: `4px solid ${borderColor(c.prioridade)}`,
                       }}
                       bodyStyle={{ padding: "12px 14px" }}
-                      onClick={() => setModalDetalhe(c)}
+                      onClick={() => abrirDetalhe(c)}
                     >
                       <div style={{ fontWeight: 600, fontSize: 12, color: "#6B7280", marginBottom: 2 }}>{c.numero}</div>
                       <div style={{ fontWeight: 500, marginBottom: 6, color: "#111827", fontSize: 13 }}>
-                        {c.tipo_servico || "Sem tipo"}
+                        {c.titulo || c.tipo_servico || "Sem tipo"}
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                         <Tag color={prioridadeCor[c.prioridade]} style={{ fontSize: 11 }}>
                           {prioridadeLabel[c.prioridade] || c.prioridade}
                         </Tag>
                         <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: "auto" }}>
-                          <ClockCircleOutlined /> {dayjs(c.abertura).fromNow()}
+                          <ClockCircleOutlined /> {dayjs(c.aberto_em || c.abertura).fromNow()}
                         </span>
+                      </div>
+                      <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                        <Tag color={c.sla_estourado ? "red" : "green"} style={{ margin: 0 }}>
+                          SLA {c.sla_estourado ? "estourado" : `${c.sla_horas || 24}h`}
+                        </Tag>
+                        {c.custo_extra_status && c.custo_extra_status !== "sem_custo" && (
+                          <Tag color={c.custo_extra_status === "aprovado" ? "green" : c.custo_extra_status === "recusado" ? "red" : "orange"} style={{ margin: 0 }}>
+                            Extra {c.custo_extra_status}
+                          </Tag>
+                        )}
                       </div>
                       {c.valor_orcado && (
                         <div style={{ marginTop: 6, fontSize: 12, color: "#F59E0B", fontWeight: 600 }}>
@@ -228,15 +336,32 @@ export default function ChamadosFacilities() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="unidade_id" label="Unidade" rules={[{ required: true, message: "Selecione a unidade" }]}>
-                <Select showSearch placeholder="Selecione a unidade" optionFilterProp="children">
-                  {unidades.map((u) => (
-                    <Option key={u.id} value={u.id}>{u.nome} {u.codigo_interno ? `(${u.codigo_interno})` : ""}</Option>
-                  ))}
-                </Select>
+              <Form.Item name="local" label="Local">
+                <Input placeholder="Unidade, prédio, andar, sala ou ativo" />
               </Form.Item>
             </Col>
           </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="solicitante_nome" label="Solicitante">
+                <Input placeholder="Nome de quem abriu" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="sla_horas" label="SLA (horas)" initialValue={24}>
+                <InputNumber min={1} style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          {unidades.length > 0 && (
+            <Form.Item name="unidade_id" label="Unidade">
+              <Select showSearch placeholder="Selecione a unidade" optionFilterProp="children">
+                  {unidades.map((u) => (
+                    <Option key={u.id} value={u.id}>{u.nome} {u.codigo_interno ? `(${u.codigo_interno})` : ""}</Option>
+                  ))}
+              </Select>
+            </Form.Item>
+          )}
 
           <Divider style={{ margin: "8px 0 14px" }}>Prestador de Serviço</Divider>
 
@@ -282,11 +407,26 @@ export default function ChamadosFacilities() {
               <Tag color="default" style={{ background: statusCor[modalDetalhe.status] + "20", color: statusCor[modalDetalhe.status], border: `1px solid ${statusCor[modalDetalhe.status]}40` }}>
                 {statusLabel[modalDetalhe.status] || modalDetalhe.status}
               </Tag>
+              <Tag color={modalDetalhe.sla_estourado ? "red" : "green"}>
+                SLA {modalDetalhe.sla_estourado ? "estourado" : `${modalDetalhe.sla_horas || 24}h`}
+              </Tag>
             </div>
+
+            <Space wrap style={{ marginBottom: 14 }}>
+              <Button icon={<CarOutlined />} onClick={() => executarAcao("em-rota", "Chamado marcado em rota.")}>
+                Em rota
+              </Button>
+              <Button icon={<ToolOutlined />} onClick={() => executarAcao("iniciar-execucao", "Execução iniciada.")}>
+                Iniciar execução
+              </Button>
+              <Button type="primary" icon={<CheckOutlined />} onClick={() => executarAcao("concluir", "Chamado concluído.")} style={{ background: "#10B981", borderColor: "#10B981" }}>
+                Concluir
+              </Button>
+            </Space>
 
             <div style={{ marginBottom: 12 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>Tipo de serviço</Text>
-              <div style={{ fontWeight: 600, color: "#111827" }}>{modalDetalhe.tipo_servico || "-"}</div>
+              <div style={{ fontWeight: 600, color: "#111827" }}>{modalDetalhe.titulo || modalDetalhe.tipo_servico || "-"}</div>
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -297,11 +437,11 @@ export default function ChamadosFacilities() {
             <Row gutter={16} style={{ marginBottom: 12 }}>
               <Col span={12}>
                 <Text type="secondary" style={{ fontSize: 12 }}>Abertura</Text>
-                <div style={{ fontWeight: 500 }}>{dayjs(modalDetalhe.abertura).format("DD/MM/YYYY HH:mm")}</div>
+                <div style={{ fontWeight: 500 }}>{dayjs(modalDetalhe.aberto_em || modalDetalhe.abertura).format("DD/MM/YYYY HH:mm")}</div>
               </Col>
               <Col span={12}>
                 <Text type="secondary" style={{ fontSize: 12 }}>Unidade</Text>
-                <div style={{ fontWeight: 500 }}>{modalDetalhe.unidade_nome || modalDetalhe.unidade_id || "-"}</div>
+                <div style={{ fontWeight: 500 }}>{modalDetalhe.local || modalDetalhe.unidade_nome || modalDetalhe.unidade_id || "-"}</div>
               </Col>
             </Row>
 
@@ -344,7 +484,7 @@ export default function ChamadosFacilities() {
                     style={{ background: "#25D366", borderColor: "#25D366", color: "#fff" }}
                     onClick={() => {
                       const link = `${window.location.origin}/chamado-externo/${modalDetalhe.numero}`;
-                      const texto = encodeURIComponent(`Olá! Você recebeu um chamado de serviço (${modalDetalhe.numero}).\nTipo: ${modalDetalhe.tipo_servico}\nAcesse: ${link}`);
+                      const texto = encodeURIComponent(`Olá! Você recebeu um chamado de serviço (${modalDetalhe.numero}).\nTipo: ${modalDetalhe.titulo || modalDetalhe.tipo_servico}\nAcesse: ${link}`);
                       window.open(`https://wa.me/?text=${texto}`, "_blank");
                     }}
                   >
@@ -397,6 +537,73 @@ export default function ChamadosFacilities() {
                   >
                     Recusar Orçamento
                   </Button>
+                </Space>
+              </>
+            )}
+
+            <Divider style={{ margin: "14px 0" }}>Custo extra</Divider>
+            <Row gutter={10}>
+              <Col span={9}>
+                <InputNumber
+                  min={0}
+                  step={0.01}
+                  value={valorCustoExtra}
+                  onChange={setValorCustoExtra}
+                  placeholder="Valor"
+                  style={{ width: "100%" }}
+                />
+              </Col>
+              <Col span={10}>
+                <Input value={descricaoCustoExtra} onChange={(e) => setDescricaoCustoExtra(e.target.value)} placeholder="Motivo / escopo" />
+              </Col>
+              <Col span={5}>
+                <Button onClick={solicitarCustoExtra} block>Enviar</Button>
+              </Col>
+            </Row>
+            {modalDetalhe.custo_extra_status && modalDetalhe.custo_extra_status !== "sem_custo" && (
+              <Space wrap style={{ marginTop: 10 }}>
+                <Tag color={modalDetalhe.custo_extra_status === "aprovado" ? "green" : modalDetalhe.custo_extra_status === "recusado" ? "red" : "orange"}>
+                  {modalDetalhe.custo_extra_status}
+                </Tag>
+                <Button size="small" onClick={() => api.post(`/facilities/chamados/${modalDetalhe.id}/aprovar-custo-extra/`).then((r) => { message.success("Custo extra aprovado."); setModalDetalhe(r.data); carregar(); })}>
+                  Aprovar extra
+                </Button>
+                <Button size="small" danger onClick={() => api.post(`/facilities/chamados/${modalDetalhe.id}/recusar-custo-extra/`, { observacao: "Recusado pelo contratante" }).then((r) => { message.success("Custo extra recusado."); setModalDetalhe(r.data); carregar(); })}>
+                  Recusar extra
+                </Button>
+              </Space>
+            )}
+
+            <Divider style={{ margin: "14px 0" }}>Chat e comentários</Divider>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <div style={{ maxHeight: 150, overflow: "auto", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: 10 }}>
+                {chat.length === 0 ? (
+                  <Text type="secondary">Nenhum comentário ainda.</Text>
+                ) : chat.map((m) => (
+                  <div key={m.id} style={{ marginBottom: 8 }}>
+                    <Text strong>{m.usuario_nome || "Usuário"}</Text>
+                    <Text type="secondary" style={{ fontSize: 11, marginLeft: 8 }}>{m.criado_em ? dayjs(m.criado_em).format("DD/MM HH:mm") : ""}</Text>
+                    <div style={{ color: "#374151" }}>{m.mensagem}</div>
+                  </div>
+                ))}
+              </div>
+              <Input.Search
+                enterButton={<MessageOutlined />}
+                value={mensagemChat}
+                onChange={(e) => setMensagemChat(e.target.value)}
+                onSearch={enviarMensagem}
+                placeholder="Adicionar comentário ao chamado"
+              />
+            </Space>
+
+            {["concluido", "resolvido", "fechado"].includes(modalDetalhe.status) && (
+              <>
+                <Divider style={{ margin: "14px 0" }}>Avaliação</Divider>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Rate value={avaliacao} onChange={setAvaliacao} />
+                  <InputNumber min={0} max={10} value={nps} onChange={setNps} placeholder="NPS 0-10" style={{ width: 140 }} />
+                  <Input.TextArea rows={2} value={comentarioAvaliacao} onChange={(e) => setComentarioAvaliacao(e.target.value)} placeholder="Comentário da avaliação" />
+                  <Button type="primary" onClick={avaliarChamado} style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>Salvar avaliação</Button>
                 </Space>
               </>
             )}

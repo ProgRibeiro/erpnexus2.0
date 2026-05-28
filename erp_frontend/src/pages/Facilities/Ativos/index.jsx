@@ -66,6 +66,7 @@ export default function AtivosPage() {
       const payload = {
         ...values,
         data_instalacao: values.data_instalacao ? values.data_instalacao.format("YYYY-MM-DD") : null,
+        garantia_fim: values.garantia_fim ? values.garantia_fim.format("YYYY-MM-DD") : null,
       };
       await api.post("/facilities/ativos/", payload);
       message.success("Ativo cadastrado com sucesso!");
@@ -100,7 +101,25 @@ export default function AtivosPage() {
       key: "local",
       width: 180,
       render: (_, r) =>
-        [r.localizacao_predio, r.localizacao_andar, r.localizacao_sala].filter(Boolean).join(" / ") || "-",
+        [r.unidade_nome, r.localizacao_predio, r.localizacao_andar, r.localizacao_sala].filter(Boolean).join(" / ") || "-",
+    },
+    {
+      title: "Documentos",
+      dataIndex: "documentos_count",
+      key: "documentos_count",
+      width: 110,
+      render: (v) => <Tag color={v ? "blue" : "default"}>{v || 0}</Tag>,
+    },
+    {
+      title: "Garantia",
+      dataIndex: "garantia_fim",
+      key: "garantia_fim",
+      width: 120,
+      render: (d) => {
+        if (!d) return "-";
+        const diff = dayjs(d).diff(dayjs(), "day");
+        return <Tag color={diff < 0 ? "red" : diff <= 30 ? "orange" : "green"}>{dayjs(d).format("DD/MM/YYYY")}</Tag>;
+      },
     },
     {
       title: "Status",
@@ -240,6 +259,11 @@ export default function AtivosPage() {
           </Row>
           <Row gutter={16}>
             <Col span={8}>
+              <Form.Item name="unidade_nome" label="Unidade">
+                <Input placeholder="Loja, filial ou unidade" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
               <Form.Item name="localizacao_predio" label="Prédio">
                 <Input placeholder="Prédio A" />
               </Form.Item>
@@ -249,9 +273,21 @@ export default function AtivosPage() {
                 <Input placeholder="2º Andar" />
               </Form.Item>
             </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={8}>
               <Form.Item name="localizacao_sala" label="Sala">
                 <Input placeholder="Sala 210" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="area_m2" label="Área atendida (m²)">
+                <InputNumber style={{ width: "100%" }} min={0} step={0.01} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="garantia_fim" label="Fim da Garantia">
+                <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
               </Form.Item>
             </Col>
           </Row>
@@ -272,6 +308,21 @@ export default function AtivosPage() {
               </Form.Item>
             </Col>
           </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="latitude" label="Latitude">
+                <InputNumber style={{ width: "100%" }} step={0.0000001} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="longitude" label="Longitude">
+                <InputNumber style={{ width: "100%" }} step={0.0000001} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="manual_url" label="URL do manual / documentação">
+            <Input placeholder="https://..." />
+          </Form.Item>
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item name="data_instalacao" label="Data Instalação">

@@ -28,8 +28,13 @@ class Ativo(models.Model):
     localizacao_predio = models.CharField(max_length=100, blank=True)
     localizacao_andar = models.CharField(max_length=50, blank=True)
     localizacao_sala = models.CharField(max_length=100, blank=True)
+    unidade_nome = models.CharField(max_length=160, blank=True)
+    area_m2 = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     foto = models.ImageField(upload_to="facilities/ativos/", null=True, blank=True)
     manual_url = models.URLField(blank=True)
+    garantia_fim = models.DateField(null=True, blank=True)
     data_instalacao = models.DateField(null=True, blank=True)
     vida_util_anos = models.PositiveIntegerField(null=True, blank=True)
     fabricante = models.CharField(max_length=100, blank=True)
@@ -71,6 +76,9 @@ class PlanoManutencao(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     periodicidade = models.CharField(max_length=20, choices=PERIODICIDADE_CHOICES)
     descricao = models.TextField(blank=True)
+    norma_referencia = models.CharField(max_length=120, blank=True)
+    gerar_relatorio_pmoc = models.BooleanField(default=False)
+    notificar_dias_antes = models.PositiveIntegerField(default=3)
     proxima_execucao = models.DateField(null=True, blank=True)
     ultima_execucao = models.DateField(null=True, blank=True)
     ativo_plano = models.BooleanField(default=True)
@@ -107,10 +115,20 @@ class ChamadoFacilities(models.Model):
     ]
     STATUS_CHOICES = [
         ("aberto", "Aberto"),
+        ("em_rota", "Em Rota"),
         ("em_atendimento", "Em Atendimento"),
+        ("em_execucao", "Em Execução"),
         ("aguardando", "Aguardando"),
+        ("aguardando_aprovacao", "Aguardando Aprovação"),
         ("resolvido", "Resolvido"),
+        ("concluido", "Concluído"),
         ("fechado", "Fechado"),
+    ]
+    ORCAMENTO_STATUS = [
+        ("sem_custo", "Sem custo extra"),
+        ("pendente", "Pendente de aprovação"),
+        ("aprovado", "Aprovado"),
+        ("recusado", "Recusado"),
     ]
 
     numero = models.CharField(max_length=20, unique=True)
@@ -132,8 +150,15 @@ class ChamadoFacilities(models.Model):
     )
     sla_horas = models.PositiveIntegerField(default=8)
     aberto_em = models.DateTimeField(auto_now_add=True)
+    em_rota_em = models.DateTimeField(null=True, blank=True)
+    inicio_execucao_em = models.DateTimeField(null=True, blank=True)
     resolvido_em = models.DateTimeField(null=True, blank=True)
+    concluido_em = models.DateTimeField(null=True, blank=True)
+    custo_extra_valor = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    custo_extra_descricao = models.TextField(blank=True)
+    custo_extra_status = models.CharField(max_length=30, choices=ORCAMENTO_STATUS, default="sem_custo")
     avaliacao = models.PositiveIntegerField(null=True, blank=True)
+    nps = models.SmallIntegerField(null=True, blank=True)
     comentario_avaliacao = models.TextField(blank=True)
     foto_antes = models.ImageField(upload_to="facilities/chamados/", null=True, blank=True)
     foto_depois = models.ImageField(upload_to="facilities/chamados/", null=True, blank=True)
@@ -142,6 +167,7 @@ class ChamadoFacilities(models.Model):
     tenant_prestador_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
     chamado_plataforma_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
     ordem_servico_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    centro_custo = models.CharField(max_length=120, blank=True)
 
     class Meta:
         ordering = ["-aberto_em"]
@@ -158,6 +184,66 @@ class ChamadoFacilities(models.Model):
             ultimo = ChamadoFacilities.objects.filter(numero__startswith=f"FAC-{ano}").count()
             self.numero = f"FAC-{ano}-{str(ultimo + 1).zfill(4)}"
         super().save(*args, **kwargs)
+
+    @property
+    def sla_estourado(self):
+        from django.utils import timezone
+        base_fim = self.concluido_em or self.resolvido_em or timezone.now()
+        return base_fim > self.aberto_em + timezone.timedelta(hours=self.sla_horas)
+
+
+class DocumentoFacilities(models.Model):
+    class Tipo(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        ART = "art", "ART"
+        LAUDO = "laudo", "Laudo"
+        GARANTIA = "garantia", "Garantia"
+        PMOC = "pmoc", "PMOC"
+        NR = "nr", "NR / Certificado"
+        OUTRO = "outro", "Outro"
+
+    ativo = models.ForeignKey(Ativo, null=True, blank=True, on_delete=models.CASCADE, related_name="documentos")
+    chamado = models.ForeignKey(ChamadoFacilities, null=True, blank=True, on_delete=models.CASCADE, related_name="documentos")
+    plano = models.ForeignKey(PlanoManutencao, null=True, blank=True, on_delete=models.CASCADE, related_name="documentos")
+    titulo = models.CharField(max_length=180)
+    tipo = models.CharField(max_length=30, choices=Tipo.choices, default=Tipo.OUTRO)
+    arquivo = models.FileField(upload_to="facilities/documentos/", null=True, blank=True)
+    url = models.URLField(blank=True)
+    data_emissao = models.DateField(null=True, blank=True)
+    data_validade = models.DateField(null=True, blank=True, db_index=True)
+    observacoes = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["data_validade", "titulo"]
+        verbose_name = "Documento Facilities"
+        verbose_name_plural = "Documentos Facilities"
+
+    def __str__(self):
+        return self.titulo
+
+
+class ExecucaoManutencao(models.Model):
+    plano = models.ForeignKey(PlanoManutencao, on_delete=models.CASCADE, related_name="execucoes")
+    chamado = models.ForeignKey(ChamadoFacilities, null=True, blank=True, on_delete=models.SET_NULL, related_name="execucoes_preventiva")
+    executado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    executado_em = models.DateTimeField(auto_now_add=True)
+    checklist_respostas = models.JSONField(default=list, blank=True)
+    observacoes = models.TextField(blank=True)
+    foto_antes = models.ImageField(upload_to="facilities/preventiva/", null=True, blank=True)
+    foto_depois = models.ImageField(upload_to="facilities/preventiva/", null=True, blank=True)
+    assinatura_digital = models.TextField(blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    relatorio_pmoc = models.FileField(upload_to="facilities/pmoc/", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-executado_em"]
+        verbose_name = "Execução de Manutenção"
+        verbose_name_plural = "Execuções de Manutenção"
+
+    def __str__(self):
+        return f"{self.plano} - {self.executado_em:%d/%m/%Y}"
 
 
 class ComunicacaoPlataforma(models.Model):

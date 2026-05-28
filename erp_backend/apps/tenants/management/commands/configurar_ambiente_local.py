@@ -16,16 +16,25 @@ class Command(BaseCommand):
                 "status": "ativo",
             },
         )
-        demo = Client.objects.get(schema_name="demo_erp")
-        facilities = Client.objects.get(schema_name="demo_facilities")
+        demo, _ = Client.objects.get_or_create(
+            schema_name="demo_erp",
+            defaults={
+                "nome": "ERP Nexus Demo",
+                "tipo_produto": "ambos",
+                "plano": "enterprise",
+                "status": "ativo",
+            },
+        )
+        facilities = Client.objects.filter(schema_name="demo_facilities").first()
 
         dominios = [
             ("localhost", demo, True),
             ("127.0.0.1", demo, False),
             ("demo.localhost", demo, True),
-            ("facilities.localhost", facilities, True),
             ("public.localhost", public, True),
         ]
+        if facilities is not None:
+            dominios.append(("facilities.localhost", facilities, True))
 
         for domain, tenant, is_primary in dominios:
             Domain.objects.update_or_create(

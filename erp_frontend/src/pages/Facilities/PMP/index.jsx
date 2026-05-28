@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Table, Button, Modal, Form, Input, Select, DatePicker, Tag,
-  Row, Col, Card, Typography, message, Space, Collapse,
+  Row, Col, Card, Typography, message, Space, Collapse, Switch, InputNumber,
 } from "antd";
 import { PlusOutlined, CheckOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -30,8 +30,10 @@ export default function PMPPage() {
   const [ativos, setAtivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [planoExecucao, setPlanoExecucao] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
+  const [execForm] = Form.useForm();
 
   const carregar = () => {
     setLoading(true);
@@ -71,6 +73,29 @@ export default function PMPPage() {
     try {
       await api.post(`/facilities/planos/${planoId}/registrar_execucao/`);
       message.success("Execução registrada! Próxima data calculada.");
+      carregar();
+    } catch {
+      message.error("Erro ao registrar execução.");
+    }
+  };
+
+  const salvarExecucao = async (values) => {
+    if (!planoExecucao?.id) return;
+    try {
+      await api.post(`/facilities/planos/${planoExecucao.id}/registrar_execucao/`, {
+        observacoes: values.observacoes || "",
+        assinatura_digital: values.assinatura_digital || "",
+        latitude: values.latitude || null,
+        longitude: values.longitude || null,
+        checklist_respostas: planoExecucao.checklist?.map((item) => ({
+          item_id: item.id,
+          descricao: item.descricao,
+          executado: Boolean(values[`check_${item.id}`]),
+        })) || [],
+      });
+      message.success("Execução registrada com evidências.");
+      setPlanoExecucao(null);
+      execForm.resetFields();
       carregar();
     } catch {
       message.error("Erro ao registrar execução.");
@@ -133,7 +158,7 @@ export default function PMPPage() {
         <Button
           size="small"
           icon={<CheckOutlined />}
-          onClick={(e) => { e.stopPropagation(); registrarExecucao(r.id); }}
+          onClick={(e) => { e.stopPropagation(); setPlanoExecucao(r); }}
           style={{ borderColor: "#10B981", color: "#10B981" }}
         >
           Registrar Exec.
@@ -273,8 +298,69 @@ export default function PMPPage() {
           <Form.Item name="proxima_execucao" label="Próxima Execução">
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="norma_referencia" label="Norma / Referência">
+                <Input placeholder="PMOC, NBR 16401, NBR 5674" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="notificar_dias_antes" label="Avisar antes" initialValue={3}>
+                <InputNumber style={{ width: "100%" }} min={0} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="gerar_relatorio_pmoc" label="Relatório PMOC" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+          </Row>
           <Form.Item name="descricao" label="Descrição">
             <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={planoExecucao ? `Registrar execução — ${planoExecucao.nome}` : "Registrar execução"}
+        open={!!planoExecucao}
+        onCancel={() => { setPlanoExecucao(null); execForm.resetFields(); }}
+        onOk={() => execForm.submit()}
+        okText="Registrar"
+        cancelText="Cancelar"
+        width={680}
+        okButtonProps={{ style: { background: "#10B981", borderColor: "#10B981" } }}
+      >
+        <Form form={execForm} layout="vertical" onFinish={salvarExecucao}>
+          <div style={{ marginBottom: 12 }}>
+            <Text type="secondary">Checklist digital</Text>
+            <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
+              {(planoExecucao?.checklist || []).length === 0 ? (
+                <Text type="secondary">Sem itens cadastrados.</Text>
+              ) : planoExecucao.checklist.map((item) => (
+                <Form.Item key={item.id} name={`check_${item.id}`} valuePropName="checked" style={{ marginBottom: 4 }}>
+                  <Switch checkedChildren="OK" unCheckedChildren="Pendente" /> <span style={{ marginLeft: 8 }}>{item.descricao}</span>
+                </Form.Item>
+              ))}
+            </Space>
+          </div>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="latitude" label="Latitude">
+                <InputNumber style={{ width: "100%" }} step={0.0000001} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="longitude" label="Longitude">
+                <InputNumber style={{ width: "100%" }} step={0.0000001} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="assinatura_digital" label="Assinatura digital">
+            <Input placeholder="Nome do responsável / protocolo" />
+          </Form.Item>
+          <Form.Item name="observacoes" label="Observações da execução">
+            <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
       </Modal>

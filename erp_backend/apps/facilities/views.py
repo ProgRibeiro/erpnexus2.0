@@ -19,7 +19,8 @@ from apps.saas.models import BudgetAnual, BudgetMensal, CategoriaBudget, Prestad
 
 from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
-    ChamadoFacilities, ContratoTerceirizado,
+    ChamadoFacilities, ContratoTerceirizado, DocumentoFacilities,
+    ExecucaoManutencao,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
     Licitacao, PropostaLicitacao, OutboxMessage, ComunicacaoPlataforma,
 )
@@ -27,6 +28,7 @@ from .serializers import (
     AtivoSerializer, AtivoDetalheSerializer,
     PlanoManutencaoSerializer, ChecklistItemSerializer,
     ChamadoFacilitiesSerializer, ContratoTerceirizadoSerializer,
+    DocumentoFacilitiesSerializer, ExecucaoManutencaoSerializer,
     ProjetoObraSerializer, ProjetoObraDetalheSerializer,
     FaseObraSerializer, DiarioObraSerializer, BoletimMedicaoSerializer,
     LicitacaoSerializer, PropostaLicitacaoSerializer, ComunicacaoPlataformaSerializer,
@@ -180,6 +182,26 @@ class PlanoManutencaoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def registrar_execucao(self, request, pk=None):
         plano = self.get_object()
+        checklist_respostas = request.data.get("checklist_respostas", [])
+        if isinstance(checklist_respostas, str):
+            try:
+                checklist_respostas = json.loads(checklist_respostas)
+            except json.JSONDecodeError:
+                checklist_respostas = []
+
+        ExecucaoManutencao.objects.create(
+            plano=plano,
+            chamado_id=request.data.get("chamado") or None,
+            executado_por=request.user if request.user.is_authenticated else None,
+            checklist_respostas=checklist_respostas if isinstance(checklist_respostas, list) else [],
+            observacoes=request.data.get("observacoes", ""),
+            foto_antes=request.FILES.get("foto_antes"),
+            foto_depois=request.FILES.get("foto_depois"),
+            assinatura_digital=request.data.get("assinatura_digital", ""),
+            latitude=request.data.get("latitude") or None,
+            longitude=request.data.get("longitude") or None,
+            relatorio_pmoc=request.FILES.get("relatorio_pmoc"),
+        )
         plano.ultima_execucao = datetime.date.today()
         periodicidade_dias = {
             "diaria": 1, "semanal": 7, "quinzenal": 15, "mensal": 30,
@@ -198,6 +220,26 @@ class ChecklistItemViewSet(viewsets.ModelViewSet):
     filterset_fields = ["plano"]
 
 
+class DocumentoFacilitiesViewSet(viewsets.ModelViewSet):
+    queryset = DocumentoFacilities.objects.select_related("ativo", "chamado", "plano")
+    serializer_class = DocumentoFacilitiesSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["ativo", "chamado", "plano", "tipo"]
+    search_fields = ["titulo", "observacoes"]
+    ordering_fields = ["data_validade", "criado_em"]
+
+
+class ExecucaoManutencaoViewSet(viewsets.ModelViewSet):
+    queryset = ExecucaoManutencao.objects.select_related("plano", "plano__ativo", "chamado", "executado_por")
+    serializer_class = ExecucaoManutencaoSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["plano", "chamado"]
+    ordering_fields = ["executado_em"]
+
+    def perform_create(self, serializer):
+        serializer.save(executado_por=self.request.user)
+
+
 class ChamadoFacilitiesViewSet(viewsets.ModelViewSet):
     queryset = ChamadoFacilities.objects.select_related("ativo", "tecnico_responsavel").all()
     serializer_class = ChamadoFacilitiesSerializer
@@ -206,12 +248,22 @@ class ChamadoFacilitiesViewSet(viewsets.ModelViewSet):
     search_fields = ["numero", "titulo", "solicitante_nome", "local"]
     ordering_fields = ["aberto_em", "prioridade"]
 
+    def _salvar_evento_chamado(self, chamado, mensagem, origem=None):
+        _criar_mensagem_plataforma(
+            escopo=ComunicacaoPlataforma.Escopo.CHAMADO,
+            chamado=chamado,
+            usuario=self.request.user,
+            origem_sistema=origem or ComunicacaoPlataforma.OrigemSistema.SISTEMA,
+            mensagem=mensagem,
+        )
+
     @action(detail=True, methods=["post"])
     def resolver(self, request, pk=None):
         chamado = self.get_object()
         chamado.status = "resolvido"
         chamado.resolvido_em = timezone.now()
         chamado.save()
+        self._salvar_evento_chamado(chamado, "Chamado marcado como resolvido.")
         return Response(ChamadoFacilitiesSerializer(chamado).data)
 
     @action(detail=True, methods=["post"])
@@ -220,7 +272,10 @@ class ChamadoFacilitiesViewSet(viewsets.ModelViewSet):
         chamado.status = "fechado"
         if not chamado.resolvido_em:
             chamado.resolvido_em = timezone.now()
+        if not chamado.concluido_em:
+            chamado.concluido_em = timezone.now()
         chamado.save()
+        self._salvar_evento_chamado(chamado, "Chamado fechado.")
         return Response(ChamadoFacilitiesSerializer(chamado).data)
 
     @action(detail=True, methods=["post"])
@@ -235,6 +290,82 @@ class ChamadoFacilitiesViewSet(viewsets.ModelViewSet):
             usuario=request.user,
             mensagem=f"Chamado assumido pelo prestador: {_resolver_nome_usuario(request.user)}.",
         )
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"], url_path="em-rota")
+    def em_rota(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.status = "em_rota"
+        chamado.em_rota_em = timezone.now()
+        if not chamado.tecnico_responsavel_id and request.user.is_authenticated:
+            chamado.tecnico_responsavel = request.user
+        chamado.save()
+        self._salvar_evento_chamado(chamado, "Prestador em rota para atendimento.")
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"], url_path="iniciar-execucao")
+    def iniciar_execucao(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.status = "em_execucao"
+        chamado.inicio_execucao_em = timezone.now()
+        if not chamado.tecnico_responsavel_id and request.user.is_authenticated:
+            chamado.tecnico_responsavel = request.user
+        chamado.save()
+        self._salvar_evento_chamado(chamado, "Execução iniciada.")
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"])
+    def concluir(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.status = "concluido"
+        chamado.concluido_em = timezone.now()
+        chamado.resolvido_em = chamado.resolvido_em or chamado.concluido_em
+        chamado.foto_depois = request.FILES.get("foto_depois") or chamado.foto_depois
+        chamado.save()
+        self._salvar_evento_chamado(chamado, "Chamado concluído pelo prestador.")
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"], url_path="solicitar-custo-extra")
+    def solicitar_custo_extra(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.custo_extra_valor = _decimal_from_payload(request.data.get("valor"), "0")
+        chamado.custo_extra_descricao = request.data.get("descricao", "")
+        chamado.custo_extra_status = "pendente"
+        chamado.status = "aguardando_aprovacao"
+        chamado.save()
+        self._salvar_evento_chamado(
+            chamado,
+            f"Custo extra solicitado para aprovação: R$ {chamado.custo_extra_valor}.",
+        )
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"], url_path="aprovar-custo-extra")
+    def aprovar_custo_extra(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.custo_extra_status = "aprovado"
+        chamado.status = "em_execucao"
+        chamado.save()
+        self._salvar_evento_chamado(chamado, "Custo extra aprovado pelo contratante.")
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"], url_path="recusar-custo-extra")
+    def recusar_custo_extra(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.custo_extra_status = "recusado"
+        chamado.status = "em_execucao"
+        chamado.save()
+        motivo = request.data.get("observacao") or "Sem observação."
+        self._salvar_evento_chamado(chamado, f"Custo extra recusado pelo contratante. Motivo: {motivo}")
+        return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["post"])
+    def avaliar(self, request, pk=None):
+        chamado = self.get_object()
+        chamado.avaliacao = request.data.get("avaliacao") or chamado.avaliacao
+        chamado.nps = request.data.get("nps") or chamado.nps
+        chamado.comentario_avaliacao = request.data.get("comentario_avaliacao", chamado.comentario_avaliacao)
+        chamado.save()
+        self._salvar_evento_chamado(chamado, "Atendimento avaliado pelo contratante.")
         return Response(ChamadoFacilitiesSerializer(chamado).data)
 
     @action(detail=True, methods=["get", "post"], url_path="chat-plataforma")

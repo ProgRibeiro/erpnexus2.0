@@ -84,6 +84,22 @@ export default function AtivoDetalhe() {
     },
   ];
 
+  const documentosCols = [
+    { title: "Documento", dataIndex: "titulo", key: "titulo", ellipsis: true },
+    { title: "Tipo", dataIndex: "tipo", key: "tipo", width: 120, render: (t) => <Tag>{t?.toUpperCase()}</Tag> },
+    {
+      title: "Validade",
+      dataIndex: "data_validade",
+      key: "data_validade",
+      width: 130,
+      render: (d) => {
+        if (!d) return "-";
+        const diff = dayjs(d).diff(dayjs(), "day");
+        return <Tag color={diff < 0 ? "red" : diff <= 30 ? "orange" : "green"}>{dayjs(d).format("DD/MM/YYYY")}</Tag>;
+      },
+    },
+  ];
+
   return (
     <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
       <Space style={{ marginBottom: 16 }}>
@@ -141,9 +157,11 @@ export default function AtivoDetalhe() {
               <Descriptions.Item label="Status">
                 <Tag color={statusCor[ativo.status]}>{statusLabel[ativo.status]}</Tag>
               </Descriptions.Item>
+              <Descriptions.Item label="Unidade">{ativo.unidade_nome || "-"}</Descriptions.Item>
               <Descriptions.Item label="Prédio">{ativo.localizacao_predio || "-"}</Descriptions.Item>
               <Descriptions.Item label="Andar">{ativo.localizacao_andar || "-"}</Descriptions.Item>
               <Descriptions.Item label="Sala">{ativo.localizacao_sala || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Área atendida">{ativo.area_m2 ? `${ativo.area_m2} m²` : "-"}</Descriptions.Item>
               <Descriptions.Item label="Fabricante">{ativo.fabricante || "-"}</Descriptions.Item>
               <Descriptions.Item label="Modelo">{ativo.modelo || "-"}</Descriptions.Item>
               <Descriptions.Item label="Nº de Série">{ativo.numero_serie || "-"}</Descriptions.Item>
@@ -153,6 +171,17 @@ export default function AtivoDetalhe() {
               <Descriptions.Item label="Vida Útil">
                 {ativo.vida_util_anos ? `${ativo.vida_util_anos} anos` : "-"}
               </Descriptions.Item>
+              <Descriptions.Item label="Garantia">
+                {ativo.garantia_fim ? (
+                  <Tag color={dayjs(ativo.garantia_fim).diff(dayjs(), "day") < 0 ? "red" : "green"}>
+                    {dayjs(ativo.garantia_fim).format("DD/MM/YYYY")}
+                  </Tag>
+                ) : "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Coordenadas">
+                {ativo.latitude && ativo.longitude ? `${ativo.latitude}, ${ativo.longitude}` : "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Manual">{ativo.manual_url ? <a href={ativo.manual_url} target="_blank" rel="noreferrer">Abrir</a> : "-"}</Descriptions.Item>
               <Descriptions.Item label="Custo Aquisição">
                 {ativo.custo_aquisicao
                   ? `R$ ${Number(ativo.custo_aquisicao).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
@@ -189,6 +218,21 @@ export default function AtivoDetalhe() {
         extra={<Tag color="orange">{ativo.chamados_count || 0} chamados</Tag>}
       >
         <HistoricoChamados ativoId={id} columns={chamadosCols} />
+      </Card>
+
+      <Card
+        title="Documentos e Conformidade"
+        style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)", marginTop: 16 }}
+        extra={<Tag color="blue">{ativo.documentos_count || 0} docs</Tag>}
+      >
+        <Table
+          dataSource={ativo.documentos || []}
+          columns={documentosCols}
+          rowKey="id"
+          pagination={false}
+          size="small"
+          locale={{ emptyText: "Nenhum documento anexado" }}
+        />
       </Card>
 
       <Modal

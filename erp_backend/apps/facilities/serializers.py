@@ -2,7 +2,8 @@ from rest_framework import serializers
 from apps.ordens.models import OrdemServico
 from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
-    ChamadoFacilities, ContratoTerceirizado,
+    ChamadoFacilities, ContratoTerceirizado, DocumentoFacilities,
+    ExecucaoManutencao,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
     Licitacao, PropostaLicitacao, ComunicacaoPlataforma,
 )
@@ -15,8 +16,52 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
+class DocumentoFacilitiesSerializer(serializers.ModelSerializer):
+    dias_para_vencer = serializers.SerializerMethodField()
+    vencido = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentoFacilities
+        fields = [
+            "id", "ativo", "chamado", "plano", "titulo", "tipo", "arquivo", "url",
+            "data_emissao", "data_validade", "dias_para_vencer", "vencido",
+            "observacoes", "criado_em",
+        ]
+        read_only_fields = ["id", "criado_em", "dias_para_vencer", "vencido"]
+
+    def get_dias_para_vencer(self, obj):
+        if not obj.data_validade:
+            return None
+        from django.utils import timezone
+        return (obj.data_validade - timezone.localdate()).days
+
+    def get_vencido(self, obj):
+        if not obj.data_validade:
+            return False
+        from django.utils import timezone
+        return obj.data_validade < timezone.localdate()
+
+
+class ExecucaoManutencaoSerializer(serializers.ModelSerializer):
+    plano_nome = serializers.CharField(source="plano.nome", read_only=True)
+    ativo_tag = serializers.CharField(source="plano.ativo.tag", read_only=True)
+    ativo_nome = serializers.CharField(source="plano.ativo.nome", read_only=True)
+    executado_por_nome = serializers.CharField(source="executado_por.get_full_name", read_only=True, allow_null=True)
+
+    class Meta:
+        model = ExecucaoManutencao
+        fields = [
+            "id", "plano", "plano_nome", "ativo_tag", "ativo_nome", "chamado",
+            "executado_por", "executado_por_nome", "executado_em",
+            "checklist_respostas", "observacoes", "foto_antes", "foto_depois",
+            "assinatura_digital", "latitude", "longitude", "relatorio_pmoc",
+        ]
+        read_only_fields = ["id", "executado_por", "executado_por_nome", "executado_em"]
+
+
 class PlanoManutencaoSerializer(serializers.ModelSerializer):
     checklist = ChecklistItemSerializer(many=True, read_only=True)
+    execucoes = ExecucaoManutencaoSerializer(many=True, read_only=True)
     ativo_tag = serializers.CharField(source="ativo.tag", read_only=True)
     ativo_nome = serializers.CharField(source="ativo.nome", read_only=True)
 
@@ -24,8 +69,9 @@ class PlanoManutencaoSerializer(serializers.ModelSerializer):
         model = PlanoManutencao
         fields = [
             "id", "ativo", "ativo_tag", "ativo_nome", "nome", "tipo", "periodicidade",
-            "descricao", "proxima_execucao", "ultima_execucao", "ativo_plano",
-            "checklist", "criado_em",
+            "descricao", "norma_referencia", "gerar_relatorio_pmoc",
+            "notificar_dias_antes", "proxima_execucao", "ultima_execucao",
+            "ativo_plano", "checklist", "execucoes", "criado_em",
         ]
         read_only_fields = ["id", "criado_em"]
 
@@ -33,15 +79,17 @@ class PlanoManutencaoSerializer(serializers.ModelSerializer):
 class AtivoSerializer(serializers.ModelSerializer):
     planos_count = serializers.SerializerMethodField()
     chamados_count = serializers.SerializerMethodField()
+    documentos_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Ativo
         fields = [
             "id", "tag", "nome", "descricao", "categoria", "localizacao_predio",
-            "localizacao_andar", "localizacao_sala", "foto", "manual_url",
+            "localizacao_andar", "localizacao_sala", "unidade_nome", "area_m2",
+            "latitude", "longitude", "foto", "manual_url", "garantia_fim",
             "data_instalacao", "vida_util_anos", "fabricante", "modelo",
             "numero_serie", "status", "custo_aquisicao", "planos_count",
-            "chamados_count", "criado_em", "atualizado_em",
+            "chamados_count", "documentos_count", "criado_em", "atualizado_em",
         ]
         read_only_fields = ["id", "criado_em", "atualizado_em"]
 
@@ -51,12 +99,16 @@ class AtivoSerializer(serializers.ModelSerializer):
     def get_chamados_count(self, obj):
         return obj.chamados.count()
 
+    def get_documentos_count(self, obj):
+        return obj.documentos.count()
+
 
 class AtivoDetalheSerializer(AtivoSerializer):
     planos = PlanoManutencaoSerializer(many=True, read_only=True)
+    documentos = DocumentoFacilitiesSerializer(many=True, read_only=True)
 
     class Meta(AtivoSerializer.Meta):
-        fields = AtivoSerializer.Meta.fields + ["planos"]
+        fields = AtivoSerializer.Meta.fields + ["planos", "documentos"]
 
 
 class ChamadoFacilitiesSerializer(serializers.ModelSerializer):
@@ -70,12 +122,15 @@ class ChamadoFacilitiesSerializer(serializers.ModelSerializer):
             "id", "numero", "titulo", "descricao", "ativo", "ativo_tag", "ativo_nome",
             "prioridade", "status", "solicitante_nome", "solicitante_email",
             "solicitante_ramal", "local", "tecnico_responsavel", "tecnico_nome",
-            "sla_horas", "aberto_em", "resolvido_em", "avaliacao",
-            "comentario_avaliacao", "foto_antes", "foto_depois",
+            "sla_horas", "sla_estourado", "aberto_em", "em_rota_em",
+            "inicio_execucao_em", "resolvido_em", "concluido_em", "avaliacao",
+            "nps", "comentario_avaliacao", "foto_antes", "foto_depois",
+            "custo_extra_valor", "custo_extra_descricao", "custo_extra_status",
+            "centro_custo",
             "origem_sistema", "tenant_contratante_id", "tenant_prestador_id",
             "chamado_plataforma_id", "ordem_servico_id",
         ]
-        read_only_fields = ["id", "numero", "aberto_em"]
+        read_only_fields = ["id", "numero", "aberto_em", "sla_estourado"]
 
 
 class ComunicacaoPlataformaSerializer(serializers.ModelSerializer):
