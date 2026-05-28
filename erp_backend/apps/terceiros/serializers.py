@@ -19,7 +19,7 @@ class TerceirizadoSerializer(serializers.ModelSerializer):
         from apps.financeiro.models import Lancamento
 
         lancamentos = Lancamento.objects.filter(
-            itens_terceirizados__terceirizado=obj,
+            itens_terceirizados__terceiro=obj,
             tipo=Lancamento.Tipo.DESPESA,
             status__in=[Lancamento.Status.PENDENTE, Lancamento.Status.ATRASADO],
         ).distinct()
@@ -30,7 +30,7 @@ class TerceirizadoSerializer(serializers.ModelSerializer):
         from apps.financeiro.models import Lancamento
 
         total = Lancamento.objects.filter(
-            itens_terceirizados__terceirizado=obj,
+            itens_terceirizados__terceiro=obj,
             tipo=Lancamento.Tipo.DESPESA,
             status__in=[Lancamento.Status.PENDENTE, Lancamento.Status.ATRASADO],
         ).distinct().aggregate(total=Sum("valor")).get("total")

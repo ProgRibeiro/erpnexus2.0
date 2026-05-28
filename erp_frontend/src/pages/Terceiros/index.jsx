@@ -58,6 +58,18 @@ function onlyDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function getApiErrorMessage(error) {
+  const data = error?.response?.data;
+  if (!data) return "Não foi possível salvar o terceirizado.";
+  if (typeof data === "string") return data;
+  if (data.detail) return data.detail;
+  const firstField = Object.keys(data)[0];
+  const firstError = firstField ? data[firstField] : null;
+  if (Array.isArray(firstError)) return `${firstField}: ${firstError.join(" ")}`;
+  if (typeof firstError === "string") return `${firstField}: ${firstError}`;
+  return "Não foi possível salvar o terceirizado.";
+}
+
 export default function TerceirosPage() {
   const [terceiros, setTerceiros] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -114,8 +126,8 @@ export default function TerceirosPage() {
       message.success("Terceirizado salvo.");
       setDrawerAberto(false);
       carregar();
-    } catch {
-      message.error("Não foi possível salvar o terceirizado.");
+    } catch (error) {
+      message.error(getApiErrorMessage(error));
     } finally {
       setSalvando(false);
     }
