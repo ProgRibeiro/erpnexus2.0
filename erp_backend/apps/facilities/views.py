@@ -21,7 +21,7 @@ from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
     ChamadoFacilities, ContratoTerceirizado,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
-    Licitacao, PropostaLicitacao, OutboxMessage,
+    Licitacao, PropostaLicitacao, OutboxMessage, ComunicacaoPlataforma,
 )
 from .serializers import (
     AtivoSerializer, AtivoDetalheSerializer,
@@ -29,7 +29,7 @@ from .serializers import (
     ChamadoFacilitiesSerializer, ContratoTerceirizadoSerializer,
     ProjetoObraSerializer, ProjetoObraDetalheSerializer,
     FaseObraSerializer, DiarioObraSerializer, BoletimMedicaoSerializer,
-    LicitacaoSerializer, PropostaLicitacaoSerializer,
+    LicitacaoSerializer, PropostaLicitacaoSerializer, ComunicacaoPlataformaSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,51 @@ def _resolver_nome_usuario(usuario):
 
 def _resolver_tenant_usuario(usuario):
     return getattr(usuario, "tenant", None)
+
+
+def _origem_chat_usuario(usuario):
+    tenant = _resolver_tenant_usuario(usuario)
+    if tenant is not None and getattr(tenant, "tipo", "") == "facilities":
+        return ComunicacaoPlataforma.OrigemSistema.CONTRATANTE
+    return ComunicacaoPlataforma.OrigemSistema.PRESTADOR
+
+
+def _criar_mensagem_plataforma(
+    *,
+    escopo,
+    mensagem,
+    usuario=None,
+    chamado=None,
+    licitacao=None,
+    ordem_servico_id=None,
+    origem_sistema=None,
+    tenant_contratante_id=None,
+    tenant_prestador_id=None,
+):
+    if not str(mensagem or "").strip():
+        return None
+    tenant_usuario = _resolver_tenant_usuario(usuario) if usuario and getattr(usuario, "is_authenticated", False) else None
+    tenant_contratante_id = tenant_contratante_id or (
+        getattr(chamado, "tenant_contratante_id", None)
+        or getattr(licitacao, "tenant_contratante_id", None)
+        or (tenant_usuario.id if tenant_usuario is not None and getattr(tenant_usuario, "tipo", "") == "facilities" else None)
+    )
+    tenant_prestador_id = tenant_prestador_id or (
+        getattr(chamado, "tenant_prestador_id", None)
+        or (tenant_usuario.id if tenant_usuario is not None and getattr(tenant_usuario, "tipo", "") != "facilities" else None)
+    )
+    return ComunicacaoPlataforma.objects.create(
+        escopo=escopo,
+        chamado=chamado,
+        licitacao=licitacao,
+        ordem_servico_id=ordem_servico_id or getattr(chamado, "ordem_servico_id", None) or getattr(licitacao, "ordem_servico_id", None),
+        tenant_contratante_id=tenant_contratante_id,
+        tenant_prestador_id=tenant_prestador_id,
+        origem_sistema=origem_sistema or _origem_chat_usuario(usuario),
+        usuario=usuario if usuario and getattr(usuario, "is_authenticated", False) else None,
+        usuario_nome=_resolver_nome_usuario(usuario) if usuario else "Sistema",
+        mensagem=str(mensagem).strip(),
+    )
 
 
 def _decimal_from_payload(value, default="0"):
@@ -184,7 +229,90 @@ class ChamadoFacilitiesViewSet(viewsets.ModelViewSet):
         chamado.status = "em_atendimento"
         chamado.tecnico_responsavel = request.user
         chamado.save()
+        _criar_mensagem_plataforma(
+            escopo=ComunicacaoPlataforma.Escopo.CHAMADO,
+            chamado=chamado,
+            usuario=request.user,
+            mensagem=f"Chamado assumido pelo prestador: {_resolver_nome_usuario(request.user)}.",
+        )
         return Response(ChamadoFacilitiesSerializer(chamado).data)
+
+    @action(detail=True, methods=["get", "post"], url_path="chat-plataforma")
+    def chat_plataforma(self, request, pk=None):
+        chamado = self.get_object()
+        if request.method == "GET":
+            mensagens = chamado.mensagens_plataforma.select_related("usuario")
+            return Response(ComunicacaoPlataformaSerializer(mensagens, many=True).data)
+
+        mensagem = request.data.get("mensagem", "")
+        if not str(mensagem or "").strip():
+            return Response({"detail": "Digite uma mensagem para enviar."}, status=status.HTTP_400_BAD_REQUEST)
+        registro = _criar_mensagem_plataforma(
+            escopo=ComunicacaoPlataforma.Escopo.CHAMADO,
+            chamado=chamado,
+            usuario=request.user,
+            mensagem=mensagem,
+            origem_sistema=request.data.get("origem_sistema") or None,
+        )
+        return Response(ComunicacaoPlataformaSerializer(registro).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="gerar-os")
+    @transaction.atomic
+    def gerar_os(self, request, pk=None):
+        chamado = self.get_object()
+        if chamado.ordem_servico_id:
+            ordem = OrdemServico.objects.filter(pk=chamado.ordem_servico_id).first()
+            if ordem is not None:
+                return Response({"ordem_servico_id": ordem.id, "ordem_servico_numero": ordem.numero, "status": ordem.status})
+
+        nome_cliente = chamado.solicitante_nome or "Cliente Facilities"
+        cliente = Cliente.objects.filter(nome=nome_cliente).first()
+        if cliente is None and chamado.solicitante_email:
+            cliente = Cliente.objects.filter(email=chamado.solicitante_email).first()
+        if cliente is None:
+            cliente = Cliente.objects.create(
+                nome=nome_cliente,
+                nome_fantasia=nome_cliente,
+                email=chamado.solicitante_email or "",
+                status=Cliente.Status.ATIVO,
+                observacoes="Cliente criado automaticamente a partir de chamado externo Facilities.",
+            )
+
+        ordem = OrdemServico.objects.create(
+            cliente=cliente,
+            status=OrdemServico.Status.ABERTA,
+            origem_sistema=OrdemServico.OrigemSistema.FACILITIES,
+            origem_referencia_tipo="chamado_facilities",
+            origem_referencia_id=chamado.id,
+            tenant_contratante_id=chamado.tenant_contratante_id,
+            tenant_prestador_id=chamado.tenant_prestador_id,
+            tipo_servico=TIPO_SERVICO_PARA_OS.get(str(chamado.ativo.categoria if chamado.ativo else "").lower(), OrdemServico.TipoServico.OUTRO),
+            prioridade={
+                "critica": OrdemServico.Prioridade.URGENTE,
+                "alta": OrdemServico.Prioridade.ALTA,
+                "media": OrdemServico.Prioridade.MEDIA,
+                "baixa": OrdemServico.Prioridade.BAIXA,
+            }.get(chamado.prioridade, OrdemServico.Prioridade.MEDIA),
+            descricao_servico=f"{chamado.titulo}\n\n{chamado.descricao}",
+            observacoes_tecnicas=f"OS criada a partir do chamado externo {chamado.numero}. Local: {chamado.local or '-'}",
+            tecnico_responsavel=chamado.tecnico_responsavel,
+            criado_por=request.user if request.user.is_authenticated else None,
+            atualizado_por=request.user if request.user.is_authenticated else None,
+        )
+        chamado.ordem_servico_id = ordem.id
+        chamado.status = "em_atendimento"
+        if not chamado.tecnico_responsavel_id and request.user.is_authenticated:
+            chamado.tecnico_responsavel = request.user
+        chamado.save(update_fields=["ordem_servico_id", "status", "tecnico_responsavel", "atualizado_em"] if hasattr(chamado, "atualizado_em") else ["ordem_servico_id", "status", "tecnico_responsavel"])
+        _criar_mensagem_plataforma(
+            escopo=ComunicacaoPlataforma.Escopo.CHAMADO,
+            chamado=chamado,
+            ordem_servico_id=ordem.id,
+            usuario=request.user,
+            origem_sistema=ComunicacaoPlataforma.OrigemSistema.SISTEMA,
+            mensagem=f"OS {ordem.numero} criada no ERP do prestador a partir deste chamado.",
+        )
+        return Response({"ordem_servico_id": ordem.id, "ordem_servico_numero": ordem.numero, "status": ordem.status}, status=status.HTTP_201_CREATED)
 
 
 class ContratoTerceirizadoViewSet(viewsets.ModelViewSet):
@@ -456,6 +584,15 @@ class LicitacaoViewSet(viewsets.ModelViewSet):
 
         self._registrar_historico_cliente(licitacao, proposta, ordem, request.user)
         self._registrar_auditoria_aprovacao(request, licitacao, proposta, ordem, budget_mensal)
+        _criar_mensagem_plataforma(
+            escopo=ComunicacaoPlataforma.Escopo.LICITACAO,
+            licitacao=licitacao,
+            ordem_servico_id=ordem.id,
+            usuario=request.user,
+            origem_sistema=ComunicacaoPlataforma.OrigemSistema.SISTEMA,
+            tenant_prestador_id=proposta.tenant_prestador_id,
+            mensagem=f"Proposta de {proposta.prestador_nome or proposta.prestador_email} aceita. OS {ordem.numero} criada no ERP do prestador.",
+        )
 
         return Response({
             "ok": True,
@@ -631,6 +768,26 @@ class LicitacaoViewSet(viewsets.ModelViewSet):
             },
         )
 
+    @action(detail=True, methods=["get", "post"], url_path="chat-plataforma")
+    def chat_plataforma(self, request, pk=None):
+        licitacao = self.get_object()
+        if request.method == "GET":
+            mensagens = licitacao.mensagens_plataforma.select_related("usuario")
+            return Response(ComunicacaoPlataformaSerializer(mensagens, many=True).data)
+
+        mensagem = request.data.get("mensagem", "")
+        if not str(mensagem or "").strip():
+            return Response({"detail": "Digite uma mensagem para enviar."}, status=status.HTTP_400_BAD_REQUEST)
+        registro = _criar_mensagem_plataforma(
+            escopo=ComunicacaoPlataforma.Escopo.LICITACAO,
+            licitacao=licitacao,
+            usuario=request.user,
+            mensagem=mensagem,
+            origem_sistema=request.data.get("origem_sistema") or None,
+            tenant_prestador_id=request.data.get("tenant_prestador_id") or None,
+        )
+        return Response(ComunicacaoPlataformaSerializer(registro).data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def propostas(self, request, pk=None):
@@ -793,6 +950,16 @@ class LicitacaoViewSet(viewsets.ModelViewSet):
                     "prazo_dias": prazo_dias,
                 },
                 status="pendente",
+            )
+            _criar_mensagem_plataforma(
+                escopo=ComunicacaoPlataforma.Escopo.LICITACAO,
+                licitacao=licitacao,
+                usuario=request.user,
+                tenant_prestador_id=getattr(tenant_prestador, "id", None),
+                mensagem=(
+                    f"Proposta enviada por {nome_prestador}. "
+                    f"Valor: R$ {valor_total}. Prazo: {prazo_dias} dia(s)."
+                ),
             )
 
             logger.info(

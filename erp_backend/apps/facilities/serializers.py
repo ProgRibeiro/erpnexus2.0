@@ -4,7 +4,7 @@ from .models import (
     Ativo, PlanoManutencao, ChecklistItem,
     ChamadoFacilities, ContratoTerceirizado,
     ProjetoObra, FaseObra, DiarioObra, BoletimMedicao,
-    Licitacao, PropostaLicitacao,
+    Licitacao, PropostaLicitacao, ComunicacaoPlataforma,
 )
 
 
@@ -72,8 +72,27 @@ class ChamadoFacilitiesSerializer(serializers.ModelSerializer):
             "solicitante_ramal", "local", "tecnico_responsavel", "tecnico_nome",
             "sla_horas", "aberto_em", "resolvido_em", "avaliacao",
             "comentario_avaliacao", "foto_antes", "foto_depois",
+            "origem_sistema", "tenant_contratante_id", "tenant_prestador_id",
+            "chamado_plataforma_id", "ordem_servico_id",
         ]
         read_only_fields = ["id", "numero", "aberto_em"]
+
+
+class ComunicacaoPlataformaSerializer(serializers.ModelSerializer):
+    usuario_email = serializers.EmailField(source="usuario.email", read_only=True, allow_null=True)
+
+    class Meta:
+        model = ComunicacaoPlataforma
+        fields = [
+            "id", "escopo", "chamado", "licitacao", "ordem_servico_id",
+            "tenant_contratante_id", "tenant_prestador_id", "origem_sistema",
+            "usuario", "usuario_email", "usuario_nome", "mensagem", "anexos",
+            "criado_em", "lido_contratante", "lido_prestador",
+        ]
+        read_only_fields = [
+            "id", "usuario", "usuario_email", "usuario_nome", "criado_em",
+            "lido_contratante", "lido_prestador",
+        ]
 
 
 class ContratoTerceirizadoSerializer(serializers.ModelSerializer):

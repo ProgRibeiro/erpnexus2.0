@@ -27,6 +27,7 @@ import {
   TeamOutlined,
   DollarOutlined,
   SendOutlined,
+  MessageOutlined,
   EyeOutlined,
   PlusOutlined,
   DeleteOutlined,
@@ -86,6 +87,10 @@ export default function LicitacoesPage() {
   const [propostaLoading, setPropostaLoading] = useState(false);
   const [arquivoProposta, setArquivoProposta] = useState([]);
   const [modalDetalheProposta, setModalDetalheProposta] = useState(null);
+  const [modalChat, setModalChat] = useState(null);
+  const [chat, setChat] = useState([]);
+  const [chatTexto, setChatTexto] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
   const [itens, setItens] = useState([
     { descricao: "", qtd: 1, unidade: "un", valor_unit: 0 },
   ]);
@@ -140,6 +145,40 @@ export default function LicitacoesPage() {
     setArquivoProposta([]);
     // Gera chave de idempotência única por abertura de modal
     setIdempotencyKey(crypto.randomUUID());
+  };
+
+  const abrirChat = async (licitacao) => {
+    setModalChat(licitacao);
+    setChatTexto("");
+    await carregarChat(licitacao.id);
+  };
+
+  const carregarChat = async (id) => {
+    try {
+      setChatLoading(true);
+      const response = await api.get(`/facilities/licitacoes/${id}/chat-plataforma/`);
+      setChat(response.data.results ?? response.data);
+    } catch {
+      message.error("Erro ao carregar chat da licitação");
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const enviarChat = async () => {
+    if (!modalChat || !chatTexto.trim()) return;
+    try {
+      setChatLoading(true);
+      await api.post(`/facilities/licitacoes/${modalChat.id}/chat-plataforma/`, {
+        mensagem: chatTexto.trim(),
+      });
+      setChatTexto("");
+      await carregarChat(modalChat.id);
+    } catch {
+      message.error("Erro ao enviar mensagem");
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const handleEnviarProposta = async (values) => {
@@ -403,33 +442,38 @@ export default function LicitacoesPage() {
                   </Col>
 
                   <Col xs={24} md={8} style={{ textAlign: "right" }}>
-                    {jaEnviou ? (
-                      <Tooltip title="Você já enviou proposta para esta licitação">
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      {jaEnviou ? (
+                        <Tooltip title="Você já enviou proposta para esta licitação">
+                          <Button
+                            icon={<EyeOutlined />}
+                            onClick={() => setModalDetalheProposta(l.minha_proposta)}
+                            style={{ borderRadius: 8, width: "100%" }}
+                          >
+                            Ver Proposta
+                          </Button>
+                        </Tooltip>
+                      ) : l.status === "publicada" ? (
                         <Button
-                          icon={<EyeOutlined />}
-                          onClick={() => setModalDetalheProposta(l.minha_proposta)}
-                          style={{ borderRadius: 8, width: "100%" }}
+                          type="primary"
+                          icon={<SendOutlined />}
+                          style={{
+                            background: "#10B981",
+                            borderColor: "#10B981",
+                            borderRadius: 8,
+                            width: "100%",
+                          }}
+                          onClick={() => abrirModal(l)}
                         >
-                          Ver Proposta
+                          Enviar Proposta
                         </Button>
-                      </Tooltip>
-                    ) : l.status === "publicada" ? (
-                      <Button
-                        type="primary"
-                        icon={<SendOutlined />}
-                        style={{
-                          background: "#10B981",
-                          borderColor: "#10B981",
-                          borderRadius: 8,
-                          width: "100%",
-                        }}
-                        onClick={() => abrirModal(l)}
-                      >
-                        Enviar Proposta
+                      ) : (
+                        <Tag color={statusConf.color}>{statusConf.label}</Tag>
+                      )}
+                      <Button icon={<MessageOutlined />} style={{ borderRadius: 8, width: "100%" }} onClick={() => abrirChat(l)}>
+                        Chat da licitação
                       </Button>
-                    ) : (
-                      <Tag color={statusConf.color}>{statusConf.label}</Tag>
-                    )}
+                    </Space>
                   </Col>
                 </Row>
               </Card>
@@ -829,6 +873,59 @@ export default function LicitacoesPage() {
               </Form>
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!modalChat}
+        onCancel={() => setModalChat(null)}
+        title={<Space><MessageOutlined /> Chat da licitação</Space>}
+        footer={null}
+        width={680}
+      >
+        {modalChat && (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Card size="small" style={{ borderRadius: 10 }}>
+              <Text strong>{modalChat.titulo}</Text>
+              <div style={{ color: "#64748B", fontSize: 13, marginTop: 4 }}>
+                Comunicação entre ERP do contratante e ERP do prestador.
+              </div>
+            </Card>
+            <div style={{ maxHeight: 340, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+              {chat.length === 0 ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sem mensagens ainda" />
+              ) : chat.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    alignSelf: item.origem_sistema === "prestador" ? "flex-end" : "flex-start",
+                    maxWidth: "86%",
+                    background: item.origem_sistema === "prestador" ? "#EFF6FF" : "#F8FAFC",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                  }}
+                >
+                  <Text strong style={{ fontSize: 12 }}>{item.usuario_nome || item.origem_sistema}</Text>
+                  <div style={{ fontSize: 13, color: "#334155", marginTop: 2 }}>{item.mensagem}</div>
+                  <Text type="secondary" style={{ fontSize: 11 }}>
+                    {new Date(item.criado_em).toLocaleString("pt-BR")}
+                  </Text>
+                </div>
+              ))}
+            </div>
+            <Input.TextArea
+              rows={3}
+              value={chatTexto}
+              onChange={(event) => setChatTexto(event.target.value)}
+              placeholder="Enviar pergunta, alinhamento técnico ou negociação para a outra ponta..."
+            />
+            <div style={{ textAlign: "right" }}>
+              <Button type="primary" icon={<SendOutlined />} loading={chatLoading} onClick={enviarChat}>
+                Enviar mensagem
+              </Button>
+            </div>
+          </Space>
         )}
       </Modal>
 

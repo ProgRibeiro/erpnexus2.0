@@ -137,6 +137,11 @@ class ChamadoFacilities(models.Model):
     comentario_avaliacao = models.TextField(blank=True)
     foto_antes = models.ImageField(upload_to="facilities/chamados/", null=True, blank=True)
     foto_depois = models.ImageField(upload_to="facilities/chamados/", null=True, blank=True)
+    origem_sistema = models.CharField(max_length=30, default="facilities", db_index=True)
+    tenant_contratante_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    tenant_prestador_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    chamado_plataforma_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    ordem_servico_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-aberto_em"]
@@ -153,6 +158,57 @@ class ChamadoFacilities(models.Model):
             ultimo = ChamadoFacilities.objects.filter(numero__startswith=f"FAC-{ano}").count()
             self.numero = f"FAC-{ano}-{str(ultimo + 1).zfill(4)}"
         super().save(*args, **kwargs)
+
+
+class ComunicacaoPlataforma(models.Model):
+    class Escopo(models.TextChoices):
+        CHAMADO = "chamado", "Chamado"
+        LICITACAO = "licitacao", "Licitação"
+        ORDEM = "ordem", "Ordem de Serviço"
+
+    class OrigemSistema(models.TextChoices):
+        CONTRATANTE = "contratante", "Contratante"
+        PRESTADOR = "prestador", "Prestador"
+        SISTEMA = "sistema", "Sistema"
+
+    escopo = models.CharField(max_length=30, choices=Escopo.choices)
+    chamado = models.ForeignKey(
+        ChamadoFacilities,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="mensagens_plataforma",
+    )
+    licitacao = models.ForeignKey(
+        "Licitacao",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="mensagens_plataforma",
+    )
+    ordem_servico_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    tenant_contratante_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    tenant_prestador_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    origem_sistema = models.CharField(max_length=30, choices=OrigemSistema.choices, default=OrigemSistema.PRESTADOR)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    usuario_nome = models.CharField(max_length=150, blank=True)
+    mensagem = models.TextField()
+    anexos = models.JSONField(default=list, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    lido_contratante = models.BooleanField(default=False)
+    lido_prestador = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["criado_em", "id"]
+        verbose_name = "Mensagem de plataforma"
+        verbose_name_plural = "Mensagens de plataforma"
+        indexes = [
+            models.Index(fields=["escopo", "criado_em"]),
+            models.Index(fields=["tenant_contratante_id", "tenant_prestador_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_escopo_display()} - {self.usuario_nome or self.get_origem_sistema_display()}"
 
 
 class ContratoTerceirizado(models.Model):
