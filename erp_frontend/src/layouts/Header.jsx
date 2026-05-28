@@ -1,4 +1,4 @@
-import { Layout, Space, Button, Dropdown, Avatar, Badge, Tooltip } from 'antd';
+import { Layout, Space, Button, Dropdown, Badge, Tooltip } from 'antd';
 import {
   BellOutlined,
   LogoutOutlined,
@@ -114,29 +114,15 @@ export default function Header() {
         {/* Breadcrumb */}
         <div className="erp-breadcrumb">
           <span className="erp-breadcrumb-root">{sidebarName}</span>
-          <RightOutlined style={{ fontSize: 10, color: '#CBD5E1', margin: '0 6px' }} />
+          <RightOutlined className="erp-breadcrumb-icon" />
           <span className="erp-breadcrumb-page">{pageLabel}</span>
         </div>
 
-        {/* Ações do lado direito */}
-        <Space size={8}>
+        <Space size={8} className="erp-topbar-actions">
           <Button
             icon={<ShopOutlined />}
             onClick={() => window.open('/loja', '_blank', 'noopener,noreferrer')}
-            style={{
-              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              fontWeight: 600,
-              fontSize: 13,
-              height: 36,
-              paddingInline: '14px',
-              boxShadow: '0 2px 6px rgba(59,130,246,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
+            className="erp-store-button"
           >
             Modo Loja
           </Button>
@@ -145,39 +131,22 @@ export default function Header() {
             <Badge count={0} size="small">
               <Button
                 type="text"
-                icon={<BellOutlined style={{ fontSize: 18, color: '#64748B' }} />}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                icon={<BellOutlined />}
+                className="erp-icon-button"
               />
             </Badge>
           </Tooltip>
 
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
             <div
-              style={{
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '4px 8px',
-                borderRadius: 8,
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#F1F5F9')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className="erp-user-trigger"
             >
               <AvatarUsuario nome={user?.nome || 'Usuário'} size="small" />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <span style={{ fontSize: 13, color: '#0F172A', fontWeight: 600 }}>
+              <div className="erp-user-trigger-copy">
+                <span className="erp-user-trigger-name">
                   {user?.nome?.split(' ')[0] || 'Usuário'}
                 </span>
-                <span style={{ fontSize: 11, color: '#94A3B8' }}>
+                <span className="erp-user-trigger-role">
                   {user?.perfil || user?.role || 'Admin'}
                 </span>
               </div>

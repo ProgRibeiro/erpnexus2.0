@@ -62,62 +62,46 @@ export default function MainLayout() {
         collapsedWidth={0}
         trigger={null}
       >
-        {/* ── Brand panel ─────────────────────── */}
         <div className="erp-brand-panel">
-          <div
-            className="erp-brand-mark"
-            style={{
-              background: brand.gradient,
-              boxShadow: brand.shadow,
-              fontSize: 17,
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-            }}
-          >
-            {brand.letter}
+          <div className="erp-brand-row">
+            <div
+              className="erp-brand-mark"
+              style={{
+                background: brand.gradient,
+                boxShadow: brand.shadow,
+              }}
+            >
+              {brand.letter}
+            </div>
+            <div className="erp-brand-copy">
+              <h2 className="erp-brand-title">{brand.titulo}</h2>
+              <p className="erp-brand-subtitle">{brand.subtitulo}</p>
+            </div>
           </div>
-          <h2 className="erp-brand-title">{brand.titulo}</h2>
-          <p className="erp-brand-subtitle">{brand.subtitulo}</p>
+          <div className="erp-brand-status">
+            <span className="erp-brand-status-dot" />
+            Ambiente local
+          </div>
         </div>
 
-        {/* ── Menu ────────────────────────────── */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           <Sidebar />
         </div>
 
-        {/* ── User footer ─────────────────────── */}
         <div className="erp-sidebar-footer">
           <Avatar
             size={36}
-            style={{ background: '#3B82F6', fontWeight: 700, fontSize: 14, flexShrink: 0 }}
+            className="erp-sidebar-avatar"
           >
             {getInitials(user?.nome || 'U')}
           </Avatar>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#F9FAFB',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <div className="erp-sidebar-user-name">
               {user?.nome?.split(' ')[0] || 'Usuário'}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: '#10B981',
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: 11, color: 'rgba(156,163,175,0.8)' }}>Sessão ativa</span>
+            <div className="erp-sidebar-user-status">
+              <span className="erp-sidebar-user-dot" />
+              <span>Sessão ativa</span>
             </div>
           </div>
           <Tooltip title="Sair" placement="top">
@@ -126,7 +110,7 @@ export default function MainLayout() {
               size="small"
               icon={<LogoutOutlined />}
               onClick={handleLogout}
-              style={{ color: 'rgba(156,163,175,0.6)', flexShrink: 0 }}
+              className="erp-sidebar-logout"
             />
           </Tooltip>
         </div>
