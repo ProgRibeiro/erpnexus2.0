@@ -1,0 +1,309 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: "N"
+          - generic [ref=e9]:
+            - heading "ERP Nexus" [level=2] [ref=e10]
+            - paragraph [ref=e11]: Prestador de serviços
+        - generic [ref=e12]: Ambiente local
+      - menu [ref=e15]:
+        - text: PRINCIPAL
+        - group [ref=e16]:
+          - menuitem "dashboard Dashboard" [ref=e17] [cursor=pointer]:
+            - img "dashboard" [ref=e18]:
+              - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+        - text: OPERAÇÕES
+        - group [ref=e22]:
+          - menuitem "file-text Orçamentos" [ref=e23] [cursor=pointer]:
+            - img "file-text" [ref=e24]:
+              - img [ref=e25]
+            - generic [ref=e27]: Orçamentos
+          - menuitem "thunderbolt Orçamento Inteligente" [ref=e28] [cursor=pointer]:
+            - img "thunderbolt" [ref=e29]:
+              - img [ref=e30]
+            - generic [ref=e32]: Orçamento Inteligente
+          - menuitem "file-protect Contratos Preventiva" [ref=e33] [cursor=pointer]:
+            - img "file-protect" [ref=e34]:
+              - img [ref=e35]
+            - generic [ref=e37]: Contratos Preventiva
+          - menuitem "file-text Ordens de Serviço" [ref=e38] [cursor=pointer]:
+            - img "file-text" [ref=e39]:
+              - img [ref=e40]
+            - generic [ref=e42]: Ordens de Serviço
+          - menuitem "team Clientes" [ref=e43] [cursor=pointer]:
+            - img "team" [ref=e44]:
+              - img [ref=e45]
+            - generic [ref=e47]: Clientes
+          - menuitem "calendar Agenda" [ref=e48] [cursor=pointer]:
+            - img "calendar" [ref=e49]:
+              - img [ref=e50]
+            - generic [ref=e52]: Agenda
+          - menuitem "tool Serviços" [ref=e53] [cursor=pointer]:
+            - img "tool" [ref=e54]:
+              - img [ref=e55]
+            - generic [ref=e57]: Serviços
+          - menuitem "team Terceirizados" [ref=e58] [cursor=pointer]:
+            - img "team" [ref=e59]:
+              - img [ref=e60]
+            - generic [ref=e62]: Terceirizados
+          - menuitem "team Equipe & Técnicos" [ref=e63] [cursor=pointer]:
+            - img "team" [ref=e64]:
+              - img [ref=e65]
+            - generic [ref=e67]: Equipe & Técnicos
+        - text: GESTÃO
+        - group [ref=e68]:
+          - menuitem "shopping-cart Estoque" [ref=e69] [cursor=pointer]:
+            - img "shopping-cart" [ref=e70]:
+              - img [ref=e71]
+            - generic [ref=e73]: Estoque
+          - menuitem "thunderbolt Motor de Catálogo" [ref=e74] [cursor=pointer]:
+            - img "thunderbolt" [ref=e75]:
+              - img [ref=e76]
+            - generic [ref=e78]: Motor de Catálogo
+          - menuitem "dollar Financeiro" [ref=e79] [cursor=pointer]:
+            - img "dollar" [ref=e80]:
+              - img [ref=e81]
+            - generic [ref=e83]: Financeiro
+          - menuitem "file-text Faturamento" [ref=e84] [cursor=pointer]:
+            - img "file-text" [ref=e85]:
+              - img [ref=e86]
+            - generic [ref=e88]: Faturamento
+          - menuitem "team CRM" [ref=e89] [cursor=pointer]:
+            - img "team" [ref=e90]:
+              - img [ref=e91]
+            - generic [ref=e93]: CRM
+        - text: CLIENTES FACILITIES
+        - group [ref=e94]:
+          - menuitem "alert Chamados Externos" [ref=e95] [cursor=pointer]:
+            - img "alert" [ref=e96]:
+              - img [ref=e97]
+            - generic [ref=e99]: Chamados Externos
+          - menuitem "trophy Licitações" [ref=e100] [cursor=pointer]:
+            - img "trophy" [ref=e101]:
+              - img [ref=e102]
+            - generic [ref=e104]: Licitações
+        - text: SISTEMA
+        - group [ref=e105]:
+          - menuitem "dollar Fiscal" [ref=e106] [cursor=pointer]:
+            - img "dollar" [ref=e107]:
+              - img [ref=e108]
+            - generic [ref=e110]: Fiscal
+          - menuitem "setting Configurações" [ref=e111] [cursor=pointer]:
+            - img "setting" [ref=e112]:
+              - img [ref=e113]
+            - generic [ref=e115]: Configurações
+      - generic [ref=e116]:
+        - generic [ref=e118]: U
+        - generic [ref=e119]:
+          - generic [ref=e120]: Usuário
+          - generic [ref=e123]: Sessão ativa
+        - button "logout" [ref=e124] [cursor=pointer]:
+          - img "logout" [ref=e126]:
+            - img [ref=e127]
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]: ERP Nexus
+          - img "right" [ref=e134]:
+            - img [ref=e135]
+          - generic [ref=e137]: Orçamentos
+        - generic [ref=e138]:
+          - button "shop Modo Loja" [ref=e140] [cursor=pointer]:
+            - img "shop" [ref=e142]:
+              - img [ref=e143]
+            - generic [ref=e145]: Modo Loja
+          - button "bell" [ref=e148] [cursor=pointer]:
+            - img "bell" [ref=e150]:
+              - img [ref=e151]
+          - generic [ref=e154] [cursor=pointer]:
+            - generic [ref=e156]: U
+            - generic [ref=e157]:
+              - generic [ref=e158]: Usuário
+              - generic [ref=e159]: admin
+    - main [ref=e160]:
+      - generic [ref=e796]:
+        - generic [ref=e799]:
+          - generic [ref=e800]:
+            - heading "OS-2026-0351" [level=1] [ref=e802]
+            - generic [ref=e806]: Rascunho
+          - generic [ref=e807]:
+            - button "edit Editar" [ref=e809] [cursor=pointer]:
+              - img "edit" [ref=e811]:
+                - img [ref=e812]
+              - generic [ref=e814]: Editar
+            - button "send Enviar" [ref=e816] [cursor=pointer]:
+              - img "send" [ref=e818]:
+                - img [ref=e819]
+              - generic [ref=e821]: Enviar
+            - button "eye Imprimir" [ref=e823] [cursor=pointer]:
+              - img "eye" [ref=e825]:
+                - img [ref=e826]
+              - generic [ref=e828]: Imprimir
+            - button "delete Excluir" [ref=e830] [cursor=pointer]:
+              - img "delete" [ref=e832]:
+                - img [ref=e833]
+              - generic [ref=e835]: Excluir
+        - generic [ref=e837]:
+          - generic [ref=e840]:
+            - heading "Cliente" [level=4] [ref=e841]
+            - generic [ref=e842]:
+              - generic [ref=e845]:
+                - generic "Cliente" [ref=e847]
+                - generic [ref=e851] [cursor=pointer]:
+                  - generic [ref=e853]:
+                    - combobox "Cliente" [disabled] [ref=e855]
+                    - generic "Shopping Del Rey BDIL" [ref=e856]
+                  - generic:
+                    - img:
+                      - img
+              - generic [ref=e859]:
+                - generic "Contato responsável" [ref=e861]
+                - generic [ref=e865] [cursor=pointer]:
+                  - combobox "Contato responsável" [disabled] [ref=e869]
+                  - generic:
+                    - img:
+                      - img
+            - table [ref=e872]:
+              - rowgroup [ref=e873]:
+                - 'row "CNPJ : 11950487018803 Telefone : 1130836478 Email : -" [ref=e874]':
+                  - 'cell "CNPJ : 11950487018803" [ref=e875]':
+                    - generic [ref=e876]:
+                      - generic [ref=e877]: "CNPJ :"
+                      - generic [ref=e878]: "11950487018803"
+                  - 'cell "Telefone : 1130836478" [ref=e879]':
+                    - generic [ref=e880]:
+                      - generic [ref=e881]: "Telefone :"
+                      - generic [ref=e882]: "1130836478"
+                  - 'cell "Email : -" [ref=e883]':
+                    - generic [ref=e884]:
+                      - generic [ref=e885]: "Email :"
+                      - generic [ref=e886]: "-"
+          - generic [ref=e889]:
+            - heading "Serviço" [level=4] [ref=e890]
+            - generic [ref=e891]:
+              - generic [ref=e894]:
+                - generic "Tipo de serviço" [ref=e896]
+                - generic [ref=e900] [cursor=pointer]:
+                  - generic [ref=e902]:
+                    - combobox "Tipo de serviço" [disabled] [ref=e904]
+                    - generic "HVAC" [ref=e905]
+                  - generic:
+                    - img:
+                      - img
+              - generic [ref=e908]:
+                - generic "Prioridade" [ref=e910]
+                - generic [ref=e914] [cursor=pointer]:
+                  - generic [ref=e916]:
+                    - combobox "Prioridade" [disabled] [ref=e918]
+                    - generic "Normal" [ref=e919]
+                  - generic:
+                    - img:
+                      - img
+              - generic [ref=e922]:
+                - generic "Validade do orçamento" [ref=e924]
+                - generic [ref=e929]:
+                  - textbox "Validade do orçamento" [disabled] [ref=e930]:
+                    - /placeholder: Selecionar data
+                    - text: 01/07/2026
+                  - generic:
+                    - img "calendar":
+                      - img
+              - generic [ref=e933]:
+                - generic "Descrição do serviço" [ref=e935]
+                - textbox "Descrição do serviço" [disabled] [ref=e939]: Limpeza das grelhas com pintura
+              - generic [ref=e942]:
+                - generic "Condição de pagamento" [ref=e944]
+                - generic [ref=e948] [cursor=pointer]:
+                  - combobox "Condição de pagamento" [disabled] [ref=e952]
+                  - generic:
+                    - img:
+                      - img
+              - generic [ref=e956]:
+                - generic "Observações e termos" [ref=e958]
+                - textbox "Observações e termos" [disabled] [ref=e962]
+          - generic [ref=e965]:
+            - heading "Itens do orçamento" [level=4] [ref=e968]
+            - table [ref=e975]:
+              - rowgroup [ref=e982]:
+                - row "Origem Descrição Qtd Valor Unit (R$) Total" [ref=e983]:
+                  - columnheader "Origem" [ref=e984]
+                  - columnheader "Descrição" [ref=e985]
+                  - columnheader "Qtd" [ref=e986]
+                  - columnheader "Valor Unit (R$)" [ref=e987]
+                  - columnheader "Total" [ref=e988]
+              - rowgroup [ref=e989]:
+                - row "Avulso Limpeza das grelhas com pintura - | un 1 R$ 1.245,00 R$ 1.245,00" [ref=e990] [cursor=pointer]:
+                  - cell "Avulso" [ref=e991]:
+                    - generic [ref=e992]: Avulso
+                  - cell "Limpeza das grelhas com pintura - | un" [ref=e993]:
+                    - generic [ref=e994]:
+                      - generic [ref=e995]: Limpeza das grelhas com pintura
+                      - generic [ref=e996]: "- | un"
+                  - cell "1" [ref=e997]
+                  - cell "R$ 1.245,00" [ref=e998]
+                  - cell "R$ 1.245,00" [ref=e999]:
+                    - strong [ref=e1001]: R$ 1.245,00
+            - separator [ref=e1002]
+            - generic [ref=e1003]:
+              - generic [ref=e1004]:
+                - text: Subtotal serviços
+                - generic [ref=e1005]: R$ 1.245,00
+              - generic [ref=e1006]:
+                - text: Subtotal produtos
+                - generic [ref=e1007]: R$ 0,00
+              - generic [ref=e1008]:
+                - text: Impostos
+                - generic [ref=e1009]: R$ 203,31
+            - generic [ref=e1010]:
+              - generic [ref=e1011]: Desconto
+              - generic [ref=e1012] [cursor=pointer]:
+                - generic [ref=e1014]:
+                  - combobox [disabled] [ref=e1016]
+                  - generic "R$ fixo" [ref=e1017]
+                - generic:
+                  - img:
+                    - img
+              - generic [ref=e1019]:
+                - generic [ref=e1020]: R$
+                - spinbutton [disabled] [ref=e1023]: 0,00
+              - generic [ref=e1024]: sem desconto
+            - alert [ref=e1025]:
+              - img "info-circle" [ref=e1026]:
+                - img [ref=e1027]
+              - generic [ref=e1029]:
+                - generic [ref=e1030]: Descrição dos impostos pagos
+                - generic [ref=e1032]:
+                  - generic [ref=e1033]: ISS R$ 62,25 | PIS R$ 8,09 | COFINS R$ 37,35 | IRPJ R$ 59,76 | CSLL R$ 35,86
+                  - generic [ref=e1034]:
+                    - text: "Total estimado:"
+                    - strong [ref=e1035]: R$ 203,31
+                  - generic [ref=e1036]: Motor fiscal encontrou 1 alerta(s). Cálculo realizado com recomendações.
+            - alert [ref=e1037]:
+              - img "exclamation-circle" [ref=e1038]:
+                - img [ref=e1039]
+              - generic [ref=e1041]:
+                - generic [ref=e1043]:
+                  - generic [ref=e1044]: Motor fiscal especialista
+                  - generic [ref=e1046]: Confiança 77%
+                  - generic [ref=e1048]: Nota NFSE
+                  - generic [ref=e1050]: LC 116 14.01
+                - generic [ref=e1052]:
+                  - generic [ref=e1054]:
+                    - strong [ref=e1056]: Código LC 116 14.01 aplicado automaticamente.
+                    - generic [ref=e1057]: A classificação foi sugerida pela descrição/tipo de serviço.
+                  - generic [ref=e1059]:
+                    - strong [ref=e1061]: Código IBGE ausente ou incompleto.
+                    - generic [ref=e1062]: A NFS-e pode rejeitar ou escriturar município incorreto.
+                  - generic [ref=e1063]: "Reforma Tributária: estrutura preparada para CBS/IBS e transição 2026-2033."
+            - generic [ref=e1064]:
+              - generic [ref=e1065]: Total com impostos
+              - generic [ref=e1066]: R$ 1.448,31
+          - generic [ref=e1069]:
+            - heading "Timeline de status" [level=4] [ref=e1070]
+            - list [ref=e1071]:
+              - listitem [ref=e1072]:
+                - generic [ref=e1074]: "Criado em: 01/06/2026 11:16"

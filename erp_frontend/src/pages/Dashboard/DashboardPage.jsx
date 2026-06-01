@@ -63,7 +63,7 @@ const emptyDashboard = {
 
 const pageStyle = {
   minHeight: "100vh",
-  background: "#F4F6F9",
+  background: "#F8FAFC",
   padding: "24px 28px",
   fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
@@ -512,10 +512,10 @@ function DashboardPage() {
 
   return (
     <div style={pageStyle}>
-      {/* Hero header dark - dark gradient background with greeting + date + 3 micro-stats */}
+      {/* Hero header - light gradient background with greeting + date + 3 micro-stats */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0F172A 0%, #1A2744 60%, #0F172A 100%)",
+          background: "linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 60%, #EFF6FF 100%)",
           borderRadius: 16,
           padding: "28px 32px",
           marginBottom: 28,
@@ -524,6 +524,7 @@ function DashboardPage() {
           justifyContent: "space-between",
           gap: 24,
           flexWrap: "wrap",
+          border: "1px solid #E2E8F0",
         }}
       >
         {/* Left side: greeting + date */}
@@ -531,7 +532,7 @@ function DashboardPage() {
           <Title
             level={2}
             style={{
-              color: "#FFFFFF",
+              color: "#1E293B",
               fontSize: 24,
               fontWeight: 800,
               margin: 0,
@@ -540,7 +541,7 @@ function DashboardPage() {
           >
             {getGreeting()}, {getFirstName(user)}! 👋
           </Title>
-          <Text style={{ color: "#94A3B8", fontSize: 13, marginTop: 2, display: "block" }}>
+          <Text style={{ color: "#64748B", fontSize: 13, marginTop: 2, display: "block" }}>
             {getFormattedDate()}
           </Text>
         </div>
@@ -559,7 +560,7 @@ function DashboardPage() {
           <div>
             <Text
               style={{
-                color: "#94A3B8",
+                color: "#64748B",
                 fontSize: 11,
                 fontWeight: 600,
                 textTransform: "uppercase",
@@ -572,7 +573,7 @@ function DashboardPage() {
             </Text>
             <Text
               style={{
-                color: "#10B981",
+                color: "#059669",
                 fontSize: 18,
                 fontWeight: 800,
                 letterSpacing: "-0.01em",
@@ -583,13 +584,13 @@ function DashboardPage() {
           </div>
 
           {/* Separator */}
-          <span style={{ width: 1, height: 40, background: "#1E293B" }} />
+          <span style={{ width: 1, height: 40, background: "#CBD5E1" }} />
 
           {/* Lucro/Margin approximation (use variation as proxy) */}
           <div>
             <Text
               style={{
-                color: "#94A3B8",
+                color: "#64748B",
                 fontSize: 11,
                 fontWeight: 600,
                 textTransform: "uppercase",
@@ -602,7 +603,7 @@ function DashboardPage() {
             </Text>
             <Text
               style={{
-                color: "#8B5CF6",
+                color: "#7C3AED",
                 fontSize: 18,
                 fontWeight: 800,
                 letterSpacing: "-0.01em",
@@ -615,13 +616,13 @@ function DashboardPage() {
           </div>
 
           {/* Separator */}
-          <span style={{ width: 1, height: 40, background: "#1E293B" }} />
+          <span style={{ width: 1, height: 40, background: "#CBD5E1" }} />
 
           {/* Saldo (awaiting billing as proxy) */}
           <div>
             <Text
               style={{
-                color: "#94A3B8",
+                color: "#64748B",
                 fontSize: 11,
                 fontWeight: 600,
                 textTransform: "uppercase",
@@ -634,7 +635,7 @@ function DashboardPage() {
             </Text>
             <Text
               style={{
-                color: "#F59E0B",
+                color: "#EA580C",
                 fontSize: 18,
                 fontWeight: 800,
                 letterSpacing: "-0.01em",
@@ -695,12 +696,12 @@ function DashboardPage() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={14}>
-          <Card bordered={false} style={{ ...panelStyle, background: "#0F172A" }} bodyStyle={{ padding: "20px 20px 16px" }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: "20px 20px 16px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 8 }} title={{ width: "55%" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
                 <div>
-                  <h2 style={{ ...sectionTitleStyle, color: "#FFFFFF" }}>Receita vs Despesa</h2>
-                  <Text style={{ color: "#94A3B8", fontSize: 12 }}>últimos 6 meses</Text>
+                  <h2 style={{ ...sectionTitleStyle, color: "#1E293B" }}>Receita vs Despesa</h2>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>últimos 6 meses</Text>
                 </div>
               </div>
               <div style={{ height: 320, width: "100%" }}>
@@ -708,24 +709,24 @@ function DashboardPage() {
                   <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -60, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#059669" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#F87171" stopOpacity={0} />
-                        <stop offset="95%" stopColor="#F87171" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#DC2626" stopOpacity={0} />
+                        <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#1E293B" strokeDasharray="0" vertical={false} />
+                    <CartesianGrid stroke="#E2E8F0" strokeDasharray="0" vertical={false} />
                     <XAxis
                       dataKey="mes"
-                      stroke="#64748B"
+                      stroke="#CBD5E1"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fontWeight: 500, fill: "#64748B" }}
                     />
                     <YAxis
-                      stroke="#64748B"
+                      stroke="#CBD5E1"
                       axisLine={false}
                       tickFormatter={(value) => shortCurrencyFormatter.format(value)}
                       tickLine={false}
@@ -734,25 +735,25 @@ function DashboardPage() {
                     />
                     <Tooltip
                       formatter={(value) => currencyFormatter.format(value)}
-                      labelStyle={{ color: "#FFFFFF", fontWeight: 700, fontSize: 13 }}
+                      labelStyle={{ color: "#1E293B", fontWeight: 700, fontSize: 13 }}
                       contentStyle={{
-                        border: "1px solid #1E293B",
+                        border: "1px solid #E2E8F0",
                         borderRadius: 10,
-                        background: "#1E293B",
-                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+                        background: "#F8FAFC",
+                        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.06)",
                         fontSize: 13,
                       }}
-                      cursor={{ fill: "rgba(16, 185, 129, 0.05)" }}
+                      cursor={{ fill: "rgba(5, 150, 105, 0.03)" }}
                     />
                     <Legend
                       iconType="circle"
                       iconSize={8}
-                      wrapperStyle={{ fontSize: 12, paddingTop: 8, color: "#CBD5E1" }}
+                      wrapperStyle={{ fontSize: 12, paddingTop: 8, color: "#64748B" }}
                     />
                     <Area
                       type="monotone"
                       dataKey="receita"
-                      stroke="#10B981"
+                      stroke="#059669"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#colorReceita)"
@@ -762,7 +763,7 @@ function DashboardPage() {
                     <Line
                       type="monotone"
                       dataKey="despesa"
-                      stroke="#F87171"
+                      stroke="#DC2626"
                       strokeWidth={2}
                       dot={false}
                       name="Despesa"
@@ -776,19 +777,19 @@ function DashboardPage() {
         </Col>
 
         <Col xs={24} lg={10}>
-          <Card bordered={false} style={{ ...panelStyle, background: "#0F172A", height: "100%" }} bodyStyle={{ padding: "20px 20px 16px" }}>
+          <Card bordered={false} style={{ ...panelStyle, height: "100%" }} bodyStyle={{ padding: "20px 20px 16px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 7 }} title={{ width: "45%" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
-                  <h2 style={{ ...sectionTitleStyle, color: "#FFFFFF" }}>Distribuição OS</h2>
-                  <Text style={{ color: "#94A3B8", fontSize: 12 }}>por status</Text>
+                  <h2 style={{ ...sectionTitleStyle, color: "#1E293B" }}>Distribuição OS</h2>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>por status</Text>
                 </div>
               </div>
               <div style={{ height: 280, width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 {scheduledOrders.length === 0 ? (
                   <Empty
-                    image={<FileTextOutlined style={{ color: "#64748B", fontSize: 40 }} />}
-                    description={<span style={{ color: "#94A3B8", fontSize: 13 }}>Sem dados</span>}
+                    image={<FileTextOutlined style={{ color: "#CBD5E1", fontSize: 40 }} />}
+                    description={<span style={{ color: "#64748B", fontSize: 13 }}>Sem dados</span>}
                     style={{ margin: "0" }}
                   />
                 ) : (
@@ -810,10 +811,10 @@ function DashboardPage() {
                       <Tooltip
                         formatter={(value) => value}
                         contentStyle={{
-                          border: "1px solid #1E293B",
+                          border: "1px solid #E2E8F0",
                           borderRadius: 10,
-                          background: "#1E293B",
-                          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+                          background: "#F8FAFC",
+                          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.06)",
                           fontSize: 12,
                         }}
                       />
@@ -835,7 +836,7 @@ function DashboardPage() {
                           flexShrink: 0,
                         }}
                       />
-                      <Text style={{ color: "#CBD5E1", fontSize: 12 }}>
+                      <Text style={{ color: "#475569", fontSize: 12 }}>
                         {item.name}: {item.value}
                       </Text>
                     </div>
@@ -850,11 +851,11 @@ function DashboardPage() {
       {/* Pipeline section */}
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24}>
-          <Card bordered={false} style={{ ...panelStyle, background: "#0F172A" }} bodyStyle={{ padding: "24px 28px" }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: "24px 28px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 3 }} title={{ width: "30%" }}>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ ...sectionTitleStyle, color: "#FFFFFF" }}>Pipeline de Orçamentos</h2>
-                <Text style={{ color: "#94A3B8", fontSize: 12 }}>Visualização do funil de conversão</Text>
+                <h2 style={{ ...sectionTitleStyle, color: "#1E293B" }}>Pipeline de Orçamentos</h2>
+                <Text style={{ color: "#64748B", fontSize: 12 }}>Visualização do funil de conversão</Text>
               </div>
               <div
                 style={{
@@ -870,7 +871,7 @@ function DashboardPage() {
                 <div style={{ flex: "1 1 auto", minWidth: 120, textAlign: "center" }}>
                   <div
                     style={{
-                      background: "linear-gradient(135deg, #64748B 0%, #475569 100%)",
+                      background: "linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%)",
                       borderRadius: 12,
                       padding: "20px 16px",
                       marginBottom: 12,
@@ -878,15 +879,16 @@ function DashboardPage() {
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "flex-end",
+                      border: "1px solid #D1D5DB",
                     }}
                   >
-                    <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
+                    <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
                       Rascunho
                     </Text>
-                    <Text style={{ color: "#E2E8F0", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
+                    <Text style={{ color: "#1E293B", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
                       {pieChartData.find((p) => p.name === "Rascunho")?.value || 0}
                     </Text>
-                    <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 4 }}>
+                    <Text style={{ color: "#64748B", fontSize: 12, marginTop: 4 }}>
                       {shortCurrencyFormatter.format(
                         chartData[chartData.length - 1]?.receita * 0.2 || 0
                       )}
@@ -895,7 +897,7 @@ function DashboardPage() {
                 </div>
 
                 {/* Arrow */}
-                <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: "#64748B", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: "#CBD5E1", marginBottom: 12 }}>
                   →
                 </div>
 
@@ -903,7 +905,7 @@ function DashboardPage() {
                 <div style={{ flex: "1.5 1 auto", minWidth: 140, textAlign: "center" }}>
                   <div
                     style={{
-                      background: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
+                      background: "linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)",
                       borderRadius: 12,
                       padding: "20px 16px",
                       marginBottom: 12,
@@ -911,15 +913,16 @@ function DashboardPage() {
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "flex-end",
+                      border: "1px solid #93C5FD",
                     }}
                   >
-                    <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
+                    <Text style={{ color: "#1E40AF", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
                       Enviado
                     </Text>
-                    <Text style={{ color: "#E2E8F0", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
+                    <Text style={{ color: "#1E293B", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
                       {pieChartData.find((p) => p.name === "Enviado")?.value || 0}
                     </Text>
-                    <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 4 }}>
+                    <Text style={{ color: "#1E40AF", fontSize: 12, marginTop: 4 }}>
                       {shortCurrencyFormatter.format(
                         chartData[chartData.length - 1]?.receita * 0.5 || 0
                       )}
@@ -928,7 +931,7 @@ function DashboardPage() {
                 </div>
 
                 {/* Arrow */}
-                <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: "#64748B", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: "#CBD5E1", marginBottom: 12 }}>
                   →
                 </div>
 
@@ -936,7 +939,7 @@ function DashboardPage() {
                 <div style={{ flex: "2 1 auto", minWidth: 160, textAlign: "center" }}>
                   <div
                     style={{
-                      background: "linear-gradient(135deg, #10B981 0%, #047857 100%)",
+                      background: "linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%)",
                       borderRadius: 12,
                       padding: "20px 16px",
                       marginBottom: 12,
@@ -944,15 +947,16 @@ function DashboardPage() {
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "flex-end",
+                      border: "1px solid #86EFAC",
                     }}
                   >
-                    <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
+                    <Text style={{ color: "#15803D", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
                       Aprovado
                     </Text>
-                    <Text style={{ color: "#E2E8F0", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
+                    <Text style={{ color: "#1E293B", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
                       {pieChartData.find((p) => p.name === "Concluída")?.value || 0}
                     </Text>
-                    <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 4 }}>
+                    <Text style={{ color: "#15803D", fontSize: 12, marginTop: 4 }}>
                       {shortCurrencyFormatter.format(
                         chartData[chartData.length - 1]?.receita || 0
                       )}
