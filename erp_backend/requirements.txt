@@ -21,3 +21,4 @@ redis==5.2.1
 requests==2.33.1
 reportlab==4.2.5
 weasyprint==63.1
+whitenoise==6.7.0

@@ -1,0 +1,36 @@
+[Unit]
+Description=ERP Nexus - Gunicorn Application Server
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=erp
+Group=www-data
+WorkingDirectory=/opt/erpnexus/erp_backend
+
+# Ambiente
+EnvironmentFile=/opt/erpnexus/erp_backend/.env
+Environment="PATH=/opt/erpnexus/erp_backend/.venv/bin"
+
+# Comando
+ExecStart=/opt/erpnexus/erp_backend/.venv/bin/gunicorn \
+    --workers 4 \
+    --worker-class sync \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --access-logfile /opt/erpnexus/logs/gunicorn_access.log \
+    --error-logfile /opt/erpnexus/logs/gunicorn_error.log \
+    --log-level info \
+    config.wsgi:application
+
+# Reiniciar policies
+Restart=on-failure
+RestartSec=10s
+
+# Limites
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gunicorn
+
+[Install]
+WantedBy=multi-user.target

@@ -64,7 +64,21 @@
       "Bash(netstat -ano)",
       "Bash(findstr \":8000\")",
       "Bash(findstr \":5173\")",
-      "mcp__plugin_playwright_playwright__browser_navigate"
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "Bash(git push *)",
+      "mcp__plugin_playwright_playwright__browser_tabs",
+      "Bash(mkdir -p \"c:\\\\Users\\\\lucas\\\\Documents\\\\ERP NOVO EM PRODUÇÃO\\\\deploy\")",
+      "Bash(dir erp_backend)",
+      "Bash(findstr venv *)",
+      "Bash(pip list *)",
+      "Bash(Get-Service PostgreSQL* -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Name, Status)",
+      "Bash(findstr :5173)",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_press_key"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\lucas\\Documents\\ERP NOVO EM PRODUÇÃO"
     ]
   }
 }

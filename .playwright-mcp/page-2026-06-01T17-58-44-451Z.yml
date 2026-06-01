@@ -1,0 +1,989 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: "N"
+          - generic [ref=e9]:
+            - heading "ERP Nexus" [level=2] [ref=e10]
+            - paragraph [ref=e11]: Prestador de serviços
+        - generic [ref=e12]: Ambiente local
+      - menu [ref=e15]:
+        - text: PRINCIPAL
+        - group [ref=e16]:
+          - menuitem "dashboard Dashboard" [ref=e17] [cursor=pointer]:
+            - img "dashboard" [ref=e18]:
+              - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+        - text: OPERAÇÕES
+        - group [ref=e22]:
+          - menuitem "file-text Orçamentos" [ref=e23] [cursor=pointer]:
+            - img "file-text" [ref=e24]:
+              - img [ref=e25]
+            - generic [ref=e27]: Orçamentos
+          - menuitem "thunderbolt Orçamento Inteligente" [ref=e28] [cursor=pointer]:
+            - img "thunderbolt" [ref=e29]:
+              - img [ref=e30]
+            - generic [ref=e32]: Orçamento Inteligente
+          - menuitem "file-protect Contratos Preventiva" [ref=e33] [cursor=pointer]:
+            - img "file-protect" [ref=e34]:
+              - img [ref=e35]
+            - generic [ref=e37]: Contratos Preventiva
+          - menuitem "file-text Ordens de Serviço" [ref=e38] [cursor=pointer]:
+            - img "file-text" [ref=e39]:
+              - img [ref=e40]
+            - generic [ref=e42]: Ordens de Serviço
+          - menuitem "team Clientes" [ref=e43] [cursor=pointer]:
+            - img "team" [ref=e44]:
+              - img [ref=e45]
+            - generic [ref=e47]: Clientes
+          - menuitem "calendar Agenda" [ref=e48] [cursor=pointer]:
+            - img "calendar" [ref=e49]:
+              - img [ref=e50]
+            - generic [ref=e52]: Agenda
+          - menuitem "tool Serviços" [ref=e53] [cursor=pointer]:
+            - img "tool" [ref=e54]:
+              - img [ref=e55]
+            - generic [ref=e57]: Serviços
+          - menuitem "team Terceirizados" [ref=e58] [cursor=pointer]:
+            - img "team" [ref=e59]:
+              - img [ref=e60]
+            - generic [ref=e62]: Terceirizados
+          - menuitem "team Equipe & Técnicos" [ref=e63] [cursor=pointer]:
+            - img "team" [ref=e64]:
+              - img [ref=e65]
+            - generic [ref=e67]: Equipe & Técnicos
+        - text: GESTÃO
+        - group [ref=e68]:
+          - menuitem "shopping-cart Estoque" [ref=e69] [cursor=pointer]:
+            - img "shopping-cart" [ref=e70]:
+              - img [ref=e71]
+            - generic [ref=e73]: Estoque
+          - menuitem "thunderbolt Motor de Catálogo" [ref=e74] [cursor=pointer]:
+            - img "thunderbolt" [ref=e75]:
+              - img [ref=e76]
+            - generic [ref=e78]: Motor de Catálogo
+          - menuitem "dollar Financeiro" [ref=e79] [cursor=pointer]:
+            - img "dollar" [ref=e80]:
+              - img [ref=e81]
+            - generic [ref=e83]: Financeiro
+          - menuitem "file-text Faturamento" [ref=e84] [cursor=pointer]:
+            - img "file-text" [ref=e85]:
+              - img [ref=e86]
+            - generic [ref=e88]: Faturamento
+          - menuitem "team CRM" [ref=e89] [cursor=pointer]:
+            - img "team" [ref=e90]:
+              - img [ref=e91]
+            - generic [ref=e93]: CRM
+        - text: CLIENTES FACILITIES
+        - group [ref=e94]:
+          - menuitem "alert Chamados Externos" [ref=e95] [cursor=pointer]:
+            - img "alert" [ref=e96]:
+              - img [ref=e97]
+            - generic [ref=e99]: Chamados Externos
+          - menuitem "trophy Licitações" [ref=e100] [cursor=pointer]:
+            - img "trophy" [ref=e101]:
+              - img [ref=e102]
+            - generic [ref=e104]: Licitações
+        - text: SISTEMA
+        - group [ref=e105]:
+          - menuitem "dollar Fiscal" [ref=e106] [cursor=pointer]:
+            - img "dollar" [ref=e107]:
+              - img [ref=e108]
+            - generic [ref=e110]: Fiscal
+          - menuitem "setting Configurações" [ref=e111] [cursor=pointer]:
+            - img "setting" [ref=e112]:
+              - img [ref=e113]
+            - generic [ref=e115]: Configurações
+      - generic [ref=e116]:
+        - generic [ref=e118]: U
+        - generic [ref=e119]:
+          - generic [ref=e120]: Usuário
+          - generic [ref=e123]: Sessão ativa
+        - button "logout" [ref=e124] [cursor=pointer]:
+          - img "logout" [ref=e126]:
+            - img [ref=e127]
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]: ERP Nexus
+          - img "right" [ref=e134]:
+            - img [ref=e135]
+          - generic [ref=e137]: Orçamentos
+        - generic [ref=e138]:
+          - button "shop Modo Loja" [ref=e140] [cursor=pointer]:
+            - img "shop" [ref=e142]:
+              - img [ref=e143]
+            - generic [ref=e145]: Modo Loja
+          - button "bell" [ref=e148] [cursor=pointer]:
+            - img "bell" [ref=e150]:
+              - img [ref=e151]
+          - generic [ref=e154] [cursor=pointer]:
+            - generic [ref=e156]: U
+            - generic [ref=e157]:
+              - generic [ref=e158]: Usuário
+              - generic [ref=e159]: admin
+    - main [ref=e160]:
+      - generic [ref=e162]:
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - heading "Orçamentos" [level=2] [ref=e165]
+            - text: Pipeline de propostas comerciais
+          - generic [ref=e166]:
+            - button "thunderbolt Inteligente" [ref=e168] [cursor=pointer]:
+              - img "thunderbolt" [ref=e170]:
+                - img [ref=e171]
+              - generic [ref=e173]: Inteligente
+            - button "plus Novo Orçamento" [ref=e175] [cursor=pointer]:
+              - img "plus" [ref=e177]:
+                - img [ref=e178]
+              - generic [ref=e181]: Novo Orçamento
+        - generic [ref=e182]:
+          - generic [ref=e187]:
+            - generic [ref=e188]:
+              - generic [ref=e189]: "20"
+              - text: Pendentes
+              - generic [ref=e190]: R$ 99.194,00
+            - img "clock-circle" [ref=e194]:
+              - img [ref=e195]
+          - generic [ref=e202]:
+            - generic [ref=e203]:
+              - generic [ref=e204]: "0"
+              - text: Aprovados este mês
+              - generic [ref=e205]: R$ 0,00
+            - img "check-circle" [ref=e207]:
+              - img [ref=e208]
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - generic [ref=e217]: "0"
+              - text: Recusados
+              - generic [ref=e218]: R$ 0,00
+            - img "close-circle" [ref=e220]:
+              - img [ref=e221]
+          - generic [ref=e227]:
+            - generic [ref=e228]:
+              - generic [ref=e229]: 0%
+              - text: Taxa de conversão
+            - img "rise" [ref=e232]:
+              - img [ref=e233]
+        - generic [ref=e236]:
+          - heading "Pipeline Visual" [level=3] [ref=e237]
+          - generic [ref=e238]:
+            - generic [ref=e240] [cursor=pointer]:
+              - generic [ref=e241]: Rascunho
+              - generic [ref=e242]: "20"
+            - generic [ref=e243]: →
+            - generic [ref=e245] [cursor=pointer]:
+              - generic [ref=e246]: Enviado
+              - generic [ref=e247]: "0"
+            - generic [ref=e248]: →
+            - generic [ref=e250] [cursor=pointer]:
+              - generic [ref=e251]: Aprovado
+              - generic [ref=e252]: "0"
+            - generic [ref=e253]: →
+            - generic [ref=e255] [cursor=pointer]:
+              - generic [ref=e256]: Recusado
+              - generic [ref=e257]: "0"
+        - generic [ref=e260]:
+          - generic [ref=e262]:
+            - img "search" [ref=e264]:
+              - img [ref=e265]
+            - textbox "Busca por número ou cliente" [ref=e267]
+          - generic [ref=e270] [cursor=pointer]:
+            - generic [ref=e272]:
+              - combobox [ref=e274]
+              - generic: Status
+            - generic:
+              - img:
+                - img
+          - generic [ref=e276]:
+            - textbox "Data inicial" [ref=e278]
+            - generic "to" [ref=e280]:
+              - img "swap-right" [ref=e281]:
+                - img [ref=e282]
+            - textbox "Data final" [ref=e285]
+            - generic:
+              - img "calendar":
+                - img
+          - button "Limpar filtros" [ref=e287] [cursor=pointer]:
+            - generic [ref=e288]: Limpar filtros
+        - generic [ref=e293]:
+          - table [ref=e297]:
+            - rowgroup [ref=e307]:
+              - row "Select all Número Cliente Descrição resumida do serviço Valor total Validade Status Ações" [ref=e308]:
+                - columnheader "Select all" [ref=e309]:
+                  - checkbox "Select all" [ref=e313] [cursor=pointer]
+                - columnheader "Número" [ref=e315]
+                - columnheader "Cliente" [ref=e316]
+                - columnheader "Descrição resumida do serviço" [ref=e317]
+                - columnheader "Valor total" [ref=e318]
+                - columnheader "Validade" [ref=e319]
+                - columnheader "Status" [ref=e320]
+                - columnheader "Ações" [ref=e321]
+            - rowgroup [ref=e322]:
+              - generic:
+                - generic:
+                  - generic:
+                    - checkbox
+              - row "ORC-2026-0351 Shopping Del Rey BDIL Limpeza das grelhas com pintura R$ 1.245,00 01/07/2026 Rascunho eye edit check-circle file-pdf" [ref=e323] [cursor=pointer]:
+                - cell [ref=e324]:
+                  - checkbox [ref=e327]
+                - cell "ORC-2026-0351" [ref=e329]:
+                  - button "ORC-2026-0351" [ref=e330]:
+                    - generic [ref=e331]: ORC-2026-0351
+                - cell "Shopping Del Rey BDIL" [ref=e332]:
+                  - strong [ref=e334]: Shopping Del Rey BDIL
+                - cell "Limpeza das grelhas com pintura" [ref=e335]:
+                  - generic [ref=e336]: Limpeza das grelhas com pintura
+                - cell "R$ 1.245,00" [ref=e337]:
+                  - strong [ref=e339]: R$ 1.245,00
+                - cell "01/07/2026" [ref=e340]
+                - cell "Rascunho" [ref=e341]:
+                  - generic [ref=e342]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e345]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0350 MILANO COMERCIO VAREJISTA DE ALIMENTOS S.A. Limpeza Química R$ 850,00 01/07/2026 Rascunho eye edit check-circle file-pdf" [ref=e346] [cursor=pointer]:
+                - cell [ref=e347]:
+                  - checkbox [ref=e350]
+                - cell "ORC-2026-0350" [ref=e352]:
+                  - button "ORC-2026-0350" [ref=e353]:
+                    - generic [ref=e354]: ORC-2026-0350
+                - cell "MILANO COMERCIO VAREJISTA DE ALIMENTOS S.A." [ref=e355]:
+                  - strong [ref=e357]: MILANO COMERCIO VAREJISTA DE ALIMENTOS S.A.
+                - cell "Limpeza Química" [ref=e358]:
+                  - generic [ref=e359]: Limpeza Química
+                - cell "R$ 850,00" [ref=e360]:
+                  - strong [ref=e362]: R$ 850,00
+                - cell "01/07/2026" [ref=e363]
+                - cell "Rascunho" [ref=e364]:
+                  - generic [ref=e365]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e368]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0349 LIVE ROUPAS ESPORTIVAS LTDA. Montagem de nicho R$ 680,00 27/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e369] [cursor=pointer]:
+                - cell [ref=e370]:
+                  - checkbox [ref=e373]
+                - cell "ORC-2026-0349" [ref=e375]:
+                  - button "ORC-2026-0349" [ref=e376]:
+                    - generic [ref=e377]: ORC-2026-0349
+                - cell "LIVE ROUPAS ESPORTIVAS LTDA." [ref=e378]:
+                  - strong [ref=e380]: LIVE ROUPAS ESPORTIVAS LTDA.
+                - cell "Montagem de nicho" [ref=e381]:
+                  - generic [ref=e382]: Montagem de nicho
+                - cell "R$ 680,00" [ref=e383]:
+                  - strong [ref=e385]: R$ 680,00
+                - cell "27/06/2026" [ref=e386]
+                - cell "Rascunho" [ref=e387]:
+                  - generic [ref=e388]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e391]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0347 CIA. HERING - BARRA SHOPPING fornecimento Bebedouro refrigerado p/garrafão 220v preto SV5500B Polar CX 1 UN R$ 685,00 26/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e392] [cursor=pointer]:
+                - cell [ref=e393]:
+                  - checkbox [ref=e396]
+                - cell "ORC-2026-0347" [ref=e398]:
+                  - button "ORC-2026-0347" [ref=e399]:
+                    - generic [ref=e400]: ORC-2026-0347
+                - cell "CIA. HERING - BARRA SHOPPING" [ref=e401]:
+                  - strong [ref=e403]: CIA. HERING - BARRA SHOPPING
+                - cell "fornecimento Bebedouro refrigerado p/garrafão 220v preto SV5500B Polar CX 1 UN" [ref=e404]:
+                  - generic [ref=e405]: fornecimento Bebedouro refrigerado p/garrafão 220v preto SV5500B Polar CX 1 UN
+                - cell "R$ 685,00" [ref=e406]:
+                  - strong [ref=e408]: R$ 685,00
+                - cell "26/06/2026" [ref=e409]
+                - cell "Rascunho" [ref=e410]:
+                  - generic [ref=e411]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e414]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0346 CIA. HERING - OUTLET INSTALAÇÃO DE EQUIPAMENTO DE 25TR R$ 50.000,00 26/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e415] [cursor=pointer]:
+                - cell [ref=e416]:
+                  - checkbox [ref=e419]
+                - cell "ORC-2026-0346" [ref=e421]:
+                  - button "ORC-2026-0346" [ref=e422]:
+                    - generic [ref=e423]: ORC-2026-0346
+                - cell "CIA. HERING - OUTLET" [ref=e424]:
+                  - strong [ref=e426]: CIA. HERING - OUTLET
+                - cell "INSTALAÇÃO DE EQUIPAMENTO DE 25TR" [ref=e427]:
+                  - generic [ref=e428]: INSTALAÇÃO DE EQUIPAMENTO DE 25TR
+                - cell "R$ 50.000,00" [ref=e429]:
+                  - strong [ref=e431]: R$ 50.000,00
+                - cell "26/06/2026" [ref=e432]
+                - cell "Rascunho" [ref=e433]:
+                  - generic [ref=e434]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e437]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0345 CIA. HERING - NORTE SHOPPING FORNECIMENTO DE PERFIL TRANSVISION R$ 4.121,00 26/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e438] [cursor=pointer]:
+                - cell [ref=e439]:
+                  - checkbox [ref=e442]
+                - cell "ORC-2026-0345" [ref=e444]:
+                  - button "ORC-2026-0345" [ref=e445]:
+                    - generic [ref=e446]: ORC-2026-0345
+                - cell "CIA. HERING - NORTE SHOPPING" [ref=e447]:
+                  - strong [ref=e449]: CIA. HERING - NORTE SHOPPING
+                - cell "FORNECIMENTO DE PERFIL TRANSVISION" [ref=e450]:
+                  - generic [ref=e451]: FORNECIMENTO DE PERFIL TRANSVISION
+                - cell "R$ 4.121,00" [ref=e452]:
+                  - strong [ref=e454]: R$ 4.121,00
+                - cell "26/06/2026" [ref=e455]
+                - cell "Rascunho" [ref=e456]:
+                  - generic [ref=e457]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e460]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0344 COPA ENERGIA Fornecimento de uma placa universal de 30000btus. R$ 1.069,00 26/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e461] [cursor=pointer]:
+                - cell [ref=e462]:
+                  - checkbox [ref=e465]
+                - cell "ORC-2026-0344" [ref=e467]:
+                  - button "ORC-2026-0344" [ref=e468]:
+                    - generic [ref=e469]: ORC-2026-0344
+                - cell "COPA ENERGIA" [ref=e470]:
+                  - strong [ref=e472]: COPA ENERGIA
+                - cell "Fornecimento de uma placa universal de 30000btus." [ref=e473]:
+                  - generic [ref=e474]: Fornecimento de uma placa universal de 30000btus.
+                - cell "R$ 1.069,00" [ref=e475]:
+                  - strong [ref=e477]: R$ 1.069,00
+                - cell "26/06/2026" [ref=e478]
+                - cell "Rascunho" [ref=e479]:
+                  - generic [ref=e480]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e483]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0055 CIA. HERING - IPANEMA limpeza quimica de 2 split R$ 560,00 09/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e484] [cursor=pointer]:
+                - cell [ref=e485]:
+                  - checkbox [ref=e488]
+                - cell "ORC-2026-0055" [ref=e490]:
+                  - button "ORC-2026-0055" [ref=e491]:
+                    - generic [ref=e492]: ORC-2026-0055
+                - cell "CIA. HERING - IPANEMA" [ref=e493]:
+                  - strong [ref=e495]: CIA. HERING - IPANEMA
+                - cell "limpeza quimica de 2 split" [ref=e496]:
+                  - generic [ref=e497]: limpeza quimica de 2 split
+                - cell "R$ 560,00" [ref=e498]:
+                  - strong [ref=e500]: R$ 560,00
+                - cell "09/06/2026" [ref=e501]
+                - cell "Rascunho" [ref=e502]:
+                  - generic [ref=e503]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e506]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0054 CIA. HERING - IPANEMA Chamado emergencial R$ 550,00 24/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e507] [cursor=pointer]:
+                - cell [ref=e508]:
+                  - checkbox [ref=e511]
+                - cell "ORC-2026-0054" [ref=e513]:
+                  - button "ORC-2026-0054" [ref=e514]:
+                    - generic [ref=e515]: ORC-2026-0054
+                - cell "CIA. HERING - IPANEMA" [ref=e516]:
+                  - strong [ref=e518]: CIA. HERING - IPANEMA
+                - cell "Chamado emergencial" [ref=e519]:
+                  - generic [ref=e520]: Chamado emergencial
+                - cell "R$ 550,00" [ref=e521]:
+                  - strong [ref=e523]: R$ 550,00
+                - cell "24/06/2026" [ref=e524]
+                - cell "Rascunho" [ref=e525]:
+                  - generic [ref=e526]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e529]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0053 FARM Serviço de marcenaria R$ 2.698,00 24/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e530] [cursor=pointer]:
+                - cell [ref=e531]:
+                  - checkbox [ref=e534]
+                - cell "ORC-2026-0053" [ref=e536]:
+                  - button "ORC-2026-0053" [ref=e537]:
+                    - generic [ref=e538]: ORC-2026-0053
+                - cell "FARM" [ref=e539]:
+                  - strong [ref=e541]: FARM
+                - cell "Serviço de marcenaria" [ref=e542]:
+                  - generic [ref=e543]: Serviço de marcenaria
+                - cell "R$ 2.698,00" [ref=e544]:
+                  - strong [ref=e546]: R$ 2.698,00
+                - cell "24/06/2026" [ref=e547]
+                - cell "Rascunho" [ref=e548]:
+                  - generic [ref=e549]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e552]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0052 FADEL TRANSPORTES E LOGISTICA LTDA Civil abertura para circulação de ar R$ 600,00 24/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e553] [cursor=pointer]:
+                - cell [ref=e554]:
+                  - checkbox [ref=e557]
+                - cell "ORC-2026-0052" [ref=e559]:
+                  - button "ORC-2026-0052" [ref=e560]:
+                    - generic [ref=e561]: ORC-2026-0052
+                - cell "FADEL TRANSPORTES E LOGISTICA LTDA" [ref=e562]:
+                  - strong [ref=e564]: FADEL TRANSPORTES E LOGISTICA LTDA
+                - cell "Civil abertura para circulação de ar" [ref=e565]:
+                  - generic [ref=e566]: Civil abertura para circulação de ar
+                - cell "R$ 600,00" [ref=e567]:
+                  - strong [ref=e569]: R$ 600,00
+                - cell "24/06/2026" [ref=e570]
+                - cell "Rascunho" [ref=e571]:
+                  - generic [ref=e572]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e575]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0051 FADEL TRANSPORTES E LOGISTICA LTDA Serviço conserto de portas e tomadas R$ 1.100,00 24/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e576] [cursor=pointer]:
+                - cell [ref=e577]:
+                  - checkbox [ref=e580]
+                - cell "ORC-2026-0051" [ref=e582]:
+                  - button "ORC-2026-0051" [ref=e583]:
+                    - generic [ref=e584]: ORC-2026-0051
+                - cell "FADEL TRANSPORTES E LOGISTICA LTDA" [ref=e585]:
+                  - strong [ref=e587]: FADEL TRANSPORTES E LOGISTICA LTDA
+                - cell "Serviço conserto de portas e tomadas" [ref=e588]:
+                  - generic [ref=e589]: Serviço conserto de portas e tomadas
+                - cell "R$ 1.100,00" [ref=e590]:
+                  - strong [ref=e592]: R$ 1.100,00
+                - cell "24/06/2026" [ref=e593]
+                - cell "Rascunho" [ref=e594]:
+                  - generic [ref=e595]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e598]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0050 FADEL TRANSPORTES E LOGISTICA LTDA Manutenção e limpeza R$ 2.707,00 24/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e599] [cursor=pointer]:
+                - cell [ref=e600]:
+                  - checkbox [ref=e603]
+                - cell "ORC-2026-0050" [ref=e605]:
+                  - button "ORC-2026-0050" [ref=e606]:
+                    - generic [ref=e607]: ORC-2026-0050
+                - cell "FADEL TRANSPORTES E LOGISTICA LTDA" [ref=e608]:
+                  - strong [ref=e610]: FADEL TRANSPORTES E LOGISTICA LTDA
+                - cell "Manutenção e limpeza" [ref=e611]:
+                  - generic [ref=e612]: Manutenção e limpeza
+                - cell "R$ 2.707,00" [ref=e613]:
+                  - strong [ref=e615]: R$ 2.707,00
+                - cell "24/06/2026" [ref=e616]
+                - cell "Rascunho" [ref=e617]:
+                  - generic [ref=e618]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e621]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0049 FADEL TRANSPORTES E LOGISTICA LTDA Manutenção corretiva elétrica R$ 1.587,00 24/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e622] [cursor=pointer]:
+                - cell [ref=e623]:
+                  - checkbox [ref=e626]
+                - cell "ORC-2026-0049" [ref=e628]:
+                  - button "ORC-2026-0049" [ref=e629]:
+                    - generic [ref=e630]: ORC-2026-0049
+                - cell "FADEL TRANSPORTES E LOGISTICA LTDA" [ref=e631]:
+                  - strong [ref=e633]: FADEL TRANSPORTES E LOGISTICA LTDA
+                - cell "Manutenção corretiva elétrica" [ref=e634]:
+                  - generic [ref=e635]: Manutenção corretiva elétrica
+                - cell "R$ 1.587,00" [ref=e636]:
+                  - strong [ref=e638]: R$ 1.587,00
+                - cell "24/06/2026" [ref=e639]
+                - cell "Rascunho" [ref=e640]:
+                  - generic [ref=e641]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e644]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0048 FARM BOT PRAIA SHOP Manutenção corretiva - Substituição de lamina R$ 560,00 21/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e645] [cursor=pointer]:
+                - cell [ref=e646]:
+                  - checkbox [ref=e649]
+                - cell "ORC-2026-0048" [ref=e651]:
+                  - button "ORC-2026-0048" [ref=e652]:
+                    - generic [ref=e653]: ORC-2026-0048
+                - cell "FARM BOT PRAIA SHOP" [ref=e654]:
+                  - strong [ref=e656]: FARM BOT PRAIA SHOP
+                - cell "Manutenção corretiva - Substituição de lamina" [ref=e657]:
+                  - generic [ref=e658]: Manutenção corretiva - Substituição de lamina
+                - cell "R$ 560,00" [ref=e659]:
+                  - strong [ref=e661]: R$ 560,00
+                - cell "21/06/2026" [ref=e662]
+                - cell "Rascunho" [ref=e663]:
+                  - generic [ref=e664]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e667]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0047 COPA ENERGIA INSTALAÇÕES DOS CONDICIONADORES DE AR, TIPO SPLIT HI WALL 12.000 BTUS (NOVO); TESTE DE ESTANQUEIDADE; INFRAESTRUTURA DE COBRE PARA O CONDICIONADOR DE AR; CABO DE COMUNICAÇÃO PARA CONDICIONADOR DE AR; TROCA DO SUPORTE PARA FIXACÃO UNIDADE CONDENSADORA. R$ 4.638,00 18/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e668] [cursor=pointer]:
+                - cell [ref=e669]:
+                  - checkbox [ref=e672]
+                - cell "ORC-2026-0047" [ref=e674]:
+                  - button "ORC-2026-0047" [ref=e675]:
+                    - generic [ref=e676]: ORC-2026-0047
+                - cell "COPA ENERGIA" [ref=e677]:
+                  - strong [ref=e679]: COPA ENERGIA
+                - cell "INSTALAÇÕES DOS CONDICIONADORES DE AR, TIPO SPLIT HI WALL 12.000 BTUS (NOVO); TESTE DE ESTANQUEIDADE; INFRAESTRUTURA DE COBRE PARA O CONDICIONADOR DE AR; CABO DE COMUNICAÇÃO PARA CONDICIONADOR DE AR; TROCA DO SUPORTE PARA FIXACÃO UNIDADE CONDENSADORA." [ref=e680]:
+                  - generic [ref=e681]: INSTALAÇÕES DOS CONDICIONADORES DE AR, TIPO SPLIT HI WALL 12.000 BTUS (NOVO); TESTE DE ESTANQUEIDADE; INFRAESTRUTURA DE COBRE PARA O CONDICIONADOR DE AR; CABO DE COMUNICAÇÃO PARA CONDICIONADOR DE AR; TROCA DO SUPORTE PARA FIXACÃO UNIDADE CONDENSADORA.
+                - cell "R$ 4.638,00" [ref=e682]:
+                  - strong [ref=e684]: R$ 4.638,00
+                - cell "18/06/2026" [ref=e685]
+                - cell "Rascunho" [ref=e686]:
+                  - generic [ref=e687]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e690]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0046 BACIO DI LATTE - ARPOADOR Montagem de estrutura metalica R$ 15.899,00 18/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e691] [cursor=pointer]:
+                - cell [ref=e692]:
+                  - checkbox [ref=e695]
+                - cell "ORC-2026-0046" [ref=e697]:
+                  - button "ORC-2026-0046" [ref=e698]:
+                    - generic [ref=e699]: ORC-2026-0046
+                - cell "BACIO DI LATTE - ARPOADOR" [ref=e700]:
+                  - strong [ref=e702]: BACIO DI LATTE - ARPOADOR
+                - cell "Montagem de estrutura metalica" [ref=e703]:
+                  - generic [ref=e704]: Montagem de estrutura metalica
+                - cell "R$ 15.899,00" [ref=e705]:
+                  - strong [ref=e707]: R$ 15.899,00
+                - cell "18/06/2026" [ref=e708]
+                - cell "Rascunho" [ref=e709]:
+                  - generic [ref=e710]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e713]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0045 BACIO DI LATTE - SAVASSI Pintura das grelhas R$ 1.685,00 18/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e714] [cursor=pointer]:
+                - cell [ref=e715]:
+                  - checkbox [ref=e718]
+                - cell "ORC-2026-0045" [ref=e720]:
+                  - button "ORC-2026-0045" [ref=e721]:
+                    - generic [ref=e722]: ORC-2026-0045
+                - cell "BACIO DI LATTE - SAVASSI" [ref=e723]:
+                  - strong [ref=e725]: BACIO DI LATTE - SAVASSI
+                - cell "Pintura das grelhas" [ref=e726]:
+                  - generic [ref=e727]: Pintura das grelhas
+                - cell "R$ 1.685,00" [ref=e728]:
+                  - strong [ref=e730]: R$ 1.685,00
+                - cell "18/06/2026" [ref=e731]
+                - cell "Rascunho" [ref=e732]:
+                  - generic [ref=e733]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e736]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0044 COPA ENERGIA - SEDE 01 Fornecimento de split 12000 e instalação R$ 3.980,00 17/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e737] [cursor=pointer]:
+                - cell [ref=e738]:
+                  - checkbox [ref=e741]
+                - cell "ORC-2026-0044" [ref=e743]:
+                  - button "ORC-2026-0044" [ref=e744]:
+                    - generic [ref=e745]: ORC-2026-0044
+                - cell "COPA ENERGIA - SEDE 01" [ref=e746]:
+                  - strong [ref=e748]: COPA ENERGIA - SEDE 01
+                - cell "Fornecimento de split 12000 e instalação" [ref=e749]:
+                  - generic [ref=e750]: Fornecimento de split 12000 e instalação
+                - cell "R$ 3.980,00" [ref=e751]:
+                  - strong [ref=e753]: R$ 3.980,00
+                - cell "17/06/2026" [ref=e754]
+                - cell "Rascunho" [ref=e755]:
+                  - generic [ref=e756]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e759]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+              - row "ORC-2026-0043 COPA ENERGIA Manutenção preventiva R$ 3.980,00 17/06/2026 Rascunho eye edit check-circle file-pdf" [ref=e760] [cursor=pointer]:
+                - cell [ref=e761]:
+                  - checkbox [ref=e764]
+                - cell "ORC-2026-0043" [ref=e766]:
+                  - button "ORC-2026-0043" [ref=e767]:
+                    - generic [ref=e768]: ORC-2026-0043
+                - cell "COPA ENERGIA" [ref=e769]:
+                  - strong [ref=e771]: COPA ENERGIA
+                - cell "Manutenção preventiva" [ref=e772]:
+                  - generic [ref=e773]: Manutenção preventiva
+                - cell "R$ 3.980,00" [ref=e774]:
+                  - strong [ref=e776]: R$ 3.980,00
+                - cell "17/06/2026" [ref=e777]
+                - cell "Rascunho" [ref=e778]:
+                  - generic [ref=e779]: Rascunho
+                - cell "eye edit check-circle file-pdf" [ref=e782]:
+                  - generic:
+                    - generic:
+                      - button "eye":
+                        - generic:
+                          - img "eye":
+                            - img
+                    - generic:
+                      - button "edit":
+                        - generic:
+                          - img "edit":
+                            - img
+                    - generic:
+                      - button "check-circle":
+                        - generic:
+                          - img "check-circle":
+                            - img
+                    - generic:
+                      - button "file-pdf":
+                        - generic:
+                          - img "file-pdf":
+                            - img
+          - list [ref=e783]:
+            - listitem "Página anterior" [ref=e784]:
+              - button "left" [disabled] [ref=e785]:
+                - img "left" [ref=e786]:
+                  - img [ref=e787]
+            - listitem "1" [active] [ref=e789] [cursor=pointer]:
+              - generic [ref=e790]: "1"
+            - listitem "Próxima página" [ref=e791]:
+              - button "right" [disabled] [ref=e792]:
+                - img "right" [ref=e793]:
+                  - img [ref=e794]
+        - generic:
+          - generic:
+            - strong: 0 orçamentos selecionados
+          - button "Limpar seleção":
+            - generic: Limpar seleção
+          - button "merge-cells Unificar Orçamentos":
+            - generic:
+              - img "merge-cells":
+                - img
+            - generic: Unificar Orçamentos
