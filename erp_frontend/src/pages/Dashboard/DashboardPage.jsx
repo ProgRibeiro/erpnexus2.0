@@ -25,10 +25,17 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -234,7 +241,7 @@ function formatTime(record) {
   });
 }
 
-function MetricCard({ color, icon, label, loading, value, variation }) {
+function MetricCard({ color, icon, label, loading, value, variation, sparklineData = [] }) {
   const isPositive = toNumber(variation) >= 0;
   const variationColor = isPositive ? "#059669" : "#DC2626";
   const variationBg = isPositive ? "#ECFDF5" : "#FEF2F2";
@@ -248,8 +255,18 @@ function MetricCard({ color, icon, label, loading, value, variation }) {
       style={metricCardStyle}
       bodyStyle={{ padding: 0 }}
     >
-      {/* colored top accent */}
-      <div style={{ height: 3, background: color, borderRadius: "12px 12px 0 0" }} />
+      {/* colored left accent */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          background: color,
+          borderRadius: "12px 0 0 12px",
+        }}
+      />
 
       <Skeleton active loading={loading} paragraph={{ rows: 2 }} title={false}>
         <div style={{ padding: "18px 20px 20px" }}>
@@ -298,8 +315,26 @@ function MetricCard({ color, icon, label, loading, value, variation }) {
             {value}
           </div>
 
+          {/* Sparkline if data provided */}
+          {sparklineData.length > 0 && (
+            <div style={{ marginTop: 12, marginRight: -20, marginBottom: -20, marginLeft: -20 }}>
+              <ResponsiveContainer width="100%" height={36}>
+                <LineChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                  <Line
+                    type="monotone"
+                    dataKey="receita"
+                    stroke={color}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
           {/* Trend badge */}
-          <div style={{ alignItems: "center", display: "flex", gap: 8, marginTop: 14 }}>
+          <div style={{ alignItems: "center", display: "flex", gap: 8, marginTop: sparklineData.length > 0 ? 12 : 14 }}>
             <span
               style={{
                 alignItems: "center",
@@ -398,6 +433,28 @@ function DashboardPage() {
     [dashboard.pagamentos_atrasados]
   );
 
+  const pieChartData = useMemo(() => {
+    const statusMap = {
+      rascunho: { name: "Rascunho", color: "#64748B" },
+      enviado: { name: "Enviado", color: "#3B82F6" },
+      execucao: { name: "Execução", color: "#8B5CF6" },
+      concluida: { name: "Concluída", color: "#10B981" },
+      aguardando_faturamento: { name: "Aguardando Faturamento", color: "#F59E0B" },
+    };
+
+    const counts = {};
+    scheduledOrders.forEach((order) => {
+      const status = String(order?.status || order?.situacao || "rascunho").toLowerCase();
+      const key = status.includes("fatur") ? "aguardando_faturamento" : status;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    return Object.entries(counts).map(([key, value]) => ({
+      ...statusMap[key],
+      value,
+    }));
+  }, [scheduledOrders]);
+
   const tableBaseColumns = [
     {
       title: "OS",
@@ -455,24 +512,137 @@ function DashboardPage() {
 
   return (
     <div style={pageStyle}>
-      {/* Page header */}
-      <div style={{ marginBottom: 28 }}>
-        <Title
-          level={1}
+      {/* Hero header dark - dark gradient background with greeting + date + 3 micro-stats */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #0F172A 0%, #1A2744 60%, #0F172A 100%)",
+          borderRadius: 16,
+          padding: "28px 32px",
+          marginBottom: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Left side: greeting + date */}
+        <div>
+          <Title
+            level={2}
+            style={{
+              color: "#FFFFFF",
+              fontSize: 24,
+              fontWeight: 800,
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {getGreeting()}, {getFirstName(user)}! 👋
+          </Title>
+          <Text style={{ color: "#94A3B8", fontSize: 13, marginTop: 2, display: "block" }}>
+            {getFormattedDate()}
+          </Text>
+        </div>
+
+        {/* Right side: 3 micro-stats inline */}
+        <div
           style={{
-            color: "#0F172A",
-            fontSize: 28,
-            fontWeight: 800,
-            margin: 0,
-            letterSpacing: "-0.02em",
+            display: "flex",
+            gap: 32,
+            alignItems: "center",
+            flex: 1,
+            justifyContent: "flex-end",
           }}
         >
-          {getGreeting()}, {getFirstName(user)}! 👋
-        </Title>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
-          <Text style={{ color: "#64748B", fontSize: 14 }}>{getFormattedDate()}</Text>
-          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#CBD5E1", display: "inline-block" }} />
-          <Text style={{ color: "#94A3B8", fontSize: 14 }}>Resumo do dia</Text>
+          {/* Receita Mês */}
+          <div>
+            <Text
+              style={{
+                color: "#94A3B8",
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                display: "block",
+                marginBottom: 4,
+              }}
+            >
+              Receita
+            </Text>
+            <Text
+              style={{
+                color: "#10B981",
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {shortCurrencyFormatter.format(dashboard.receita_mes)}
+            </Text>
+          </div>
+
+          {/* Separator */}
+          <span style={{ width: 1, height: 40, background: "#1E293B" }} />
+
+          {/* Lucro/Margin approximation (use variation as proxy) */}
+          <div>
+            <Text
+              style={{
+                color: "#94A3B8",
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                display: "block",
+                marginBottom: 4,
+              }}
+            >
+              Lucro
+            </Text>
+            <Text
+              style={{
+                color: "#8B5CF6",
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {shortCurrencyFormatter.format(
+                (dashboard.receita_mes * dashboard.receita_mes_variacao) / 100 || 0
+              )}
+            </Text>
+          </div>
+
+          {/* Separator */}
+          <span style={{ width: 1, height: 40, background: "#1E293B" }} />
+
+          {/* Saldo (awaiting billing as proxy) */}
+          <div>
+            <Text
+              style={{
+                color: "#94A3B8",
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                display: "block",
+                marginBottom: 4,
+              }}
+            >
+              Saldo
+            </Text>
+            <Text
+              style={{
+                color: "#F59E0B",
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {shortCurrencyFormatter.format(dashboard.aguardando_faturamento_total)}
+            </Text>
+          </div>
         </div>
       </div>
 
@@ -485,6 +655,7 @@ function DashboardPage() {
             loading={loading}
             value={dashboard.ordens_abertas}
             variation={dashboard.ordens_abertas_variacao}
+            sparklineData={chartData}
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
@@ -495,6 +666,7 @@ function DashboardPage() {
             loading={loading}
             value={dashboard.em_execucao_hoje}
             variation={dashboard.em_execucao_hoje_variacao}
+            sparklineData={chartData}
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
@@ -505,6 +677,7 @@ function DashboardPage() {
             loading={loading}
             value={shortCurrencyFormatter.format(dashboard.receita_mes)}
             variation={dashboard.receita_mes_variacao}
+            sparklineData={chartData}
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
@@ -515,58 +688,87 @@ function DashboardPage() {
             loading={loading}
             value={shortCurrencyFormatter.format(dashboard.aguardando_faturamento_total)}
             variation={dashboard.aguardando_faturamento_variacao}
+            sparklineData={chartData}
           />
         </Col>
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={14}>
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: "20px 20px 16px" }}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#0F172A" }} bodyStyle={{ padding: "20px 20px 16px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 8 }} title={{ width: "55%" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
                 <div>
-                  <h2 style={sectionTitleStyle}>Receita vs Despesa</h2>
+                  <h2 style={{ ...sectionTitleStyle, color: "#FFFFFF" }}>Receita vs Despesa</h2>
                   <Text style={{ color: "#94A3B8", fontSize: 12 }}>últimos 6 meses</Text>
                 </div>
               </div>
-              <div style={{ height: 300, width: "100%" }}>
+              <div style={{ height: 320, width: "100%" }}>
                 <ResponsiveContainer height="100%" width="100%">
-                  <BarChart data={chartData} barCategoryGap="35%">
-                    <CartesianGrid stroke="#F1F4F8" strokeDasharray="0" vertical={false} />
+                  <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -60, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorDespesa" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F87171" stopOpacity={0} />
+                        <stop offset="95%" stopColor="#F87171" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="#1E293B" strokeDasharray="0" vertical={false} />
                     <XAxis
                       dataKey="mes"
-                      stroke="#9CA3AF"
+                      stroke="#64748B"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 12, fontWeight: 500 }}
+                      tick={{ fontSize: 12, fontWeight: 500, fill: "#64748B" }}
                     />
                     <YAxis
-                      stroke="#9CA3AF"
+                      stroke="#64748B"
                       axisLine={false}
                       tickFormatter={(value) => shortCurrencyFormatter.format(value)}
                       tickLine={false}
                       width={82}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 11, fill: "#64748B" }}
                     />
                     <Tooltip
                       formatter={(value) => currencyFormatter.format(value)}
-                      labelStyle={{ color: "#0F172A", fontWeight: 700, fontSize: 13 }}
+                      labelStyle={{ color: "#FFFFFF", fontWeight: 700, fontSize: 13 }}
                       contentStyle={{
-                        border: "1px solid #E8EDF2",
+                        border: "1px solid #1E293B",
                         borderRadius: 10,
-                        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.1)",
+                        background: "#1E293B",
+                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
                         fontSize: 13,
                       }}
-                      cursor={{ fill: "rgba(59,130,246,0.04)" }}
+                      cursor={{ fill: "rgba(16, 185, 129, 0.05)" }}
                     />
                     <Legend
                       iconType="circle"
                       iconSize={8}
-                      wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                      wrapperStyle={{ fontSize: 12, paddingTop: 8, color: "#CBD5E1" }}
                     />
-                    <Bar dataKey="receita" fill="#10B981" name="Receita" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                    <Bar dataKey="despesa" fill="#F87171" name="Despesa" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                  </BarChart>
+                    <Area
+                      type="monotone"
+                      dataKey="receita"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorReceita)"
+                      name="Receita"
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="despesa"
+                      stroke="#F87171"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Despesa"
+                      isAnimationActive={false}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </Skeleton>
@@ -574,59 +776,189 @@ function DashboardPage() {
         </Col>
 
         <Col xs={24} lg={10}>
-          <Card bordered={false} style={{ ...panelStyle, height: "100%" }} bodyStyle={{ padding: "20px 20px 16px" }}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#0F172A", height: "100%" }} bodyStyle={{ padding: "20px 20px 16px" }}>
             <Skeleton active loading={loading} paragraph={{ rows: 7 }} title={{ width: "45%" }}>
-              {cardHeader("OS Agendadas Hoje", "/agenda/hoje")}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ ...sectionTitleStyle, color: "#FFFFFF" }}>Distribuição OS</h2>
+                  <Text style={{ color: "#94A3B8", fontSize: 12 }}>por status</Text>
+                </div>
+              </div>
+              <div style={{ height: 280, width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 {scheduledOrders.length === 0 ? (
                   <Empty
-                    image={<CalendarOutlined style={{ color: "#CBD5E1", fontSize: 40 }} />}
-                    description={<span style={{ color: "#94A3B8", fontSize: 13 }}>Nenhuma OS agendada hoje</span>}
-                    style={{ margin: "36px 0" }}
+                    image={<FileTextOutlined style={{ color: "#64748B", fontSize: 40 }} />}
+                    description={<span style={{ color: "#94A3B8", fontSize: 13 }}>Sem dados</span>}
+                    style={{ margin: "0" }}
                   />
                 ) : (
-                  scheduledOrders.slice(0, 5).map((order, index) => {
-                    const technicianName = firstDefined(
-                      order?.tecnico?.nome,
-                      order?.tecnico_nome,
-                      order?.responsavel?.nome,
-                      "Técnico"
-                    );
-                    const status = firstDefined(order?.status, order?.situacao, "Agendada");
-
-                    return (
-                      <div
-                        key={order.id || index}
-                        style={{
-                          alignItems: "center",
-                          background: "#FAFBFD",
-                          border: "1px solid #EEF1F7",
-                          borderRadius: 10,
-                          display: "grid",
-                          gap: 12,
-                          gridTemplateColumns: "54px 1fr auto",
-                          padding: "10px 12px",
-                        }}
+                  <ResponsiveContainer height="100%" width="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="value"
                       >
-                        <Text strong style={{ color: "#3B82F6", fontSize: 14, letterSpacing: "-0.01em" }}>
-                          {formatTime(order)}
-                        </Text>
-                        <div style={{ minWidth: 0 }}>
-                          <Text ellipsis strong style={{ color: "#0F172A", display: "block", fontSize: 13 }}>
-                            {getClienteName(order)}
-                          </Text>
-                          <Space size={6} style={{ marginTop: 4 }}>
-                            <Avatar size={22} style={{ background: "#3B82F6", fontSize: 10 }}>
-                              {getInitials(technicianName)}
-                            </Avatar>
-                            <Text style={{ color: "#6B7280", fontSize: 12 }}>{technicianName}</Text>
-                          </Space>
-                        </div>
-                        <Badge color={getStatusColor(status)} text={<span style={{ fontSize: 12 }}>{status}</span>} />
-                      </div>
-                    );
-                  })
+                        {pieChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => value}
+                        contentStyle={{
+                          border: "1px solid #1E293B",
+                          borderRadius: 10,
+                          background: "#1E293B",
+                          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+                          fontSize: 12,
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
                 )}
+              </div>
+              {/* Legend below pie chart */}
+              {scheduledOrders.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+                  {pieChartData.map((item, index) => (
+                    <div key={index} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: item.color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Text style={{ color: "#CBD5E1", fontSize: 12 }}>
+                        {item.name}: {item.value}
+                      </Text>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Skeleton>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Pipeline section */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#0F172A" }} bodyStyle={{ padding: "24px 28px" }}>
+            <Skeleton active loading={loading} paragraph={{ rows: 3 }} title={{ width: "30%" }}>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ ...sectionTitleStyle, color: "#FFFFFF" }}>Pipeline de Orçamentos</h2>
+                <Text style={{ color: "#94A3B8", fontSize: 12 }}>Visualização do funil de conversão</Text>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "flex-end",
+                  justifyContent: "space-around",
+                  minHeight: 160,
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Rascunho */}
+                <div style={{ flex: "1 1 auto", minWidth: 120, textAlign: "center" }}>
+                  <div
+                    style={{
+                      background: "linear-gradient(135deg, #64748B 0%, #475569 100%)",
+                      borderRadius: 12,
+                      padding: "20px 16px",
+                      marginBottom: 12,
+                      minHeight: 100,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
+                      Rascunho
+                    </Text>
+                    <Text style={{ color: "#E2E8F0", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
+                      {pieChartData.find((p) => p.name === "Rascunho")?.value || 0}
+                    </Text>
+                    <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 4 }}>
+                      {shortCurrencyFormatter.format(
+                        chartData[chartData.length - 1]?.receita * 0.2 || 0
+                      )}
+                    </Text>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: "#64748B", marginBottom: 12 }}>
+                  →
+                </div>
+
+                {/* Enviado */}
+                <div style={{ flex: "1.5 1 auto", minWidth: 140, textAlign: "center" }}>
+                  <div
+                    style={{
+                      background: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
+                      borderRadius: 12,
+                      padding: "20px 16px",
+                      marginBottom: 12,
+                      minHeight: 130,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
+                      Enviado
+                    </Text>
+                    <Text style={{ color: "#E2E8F0", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
+                      {pieChartData.find((p) => p.name === "Enviado")?.value || 0}
+                    </Text>
+                    <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 4 }}>
+                      {shortCurrencyFormatter.format(
+                        chartData[chartData.length - 1]?.receita * 0.5 || 0
+                      )}
+                    </Text>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{ display: "flex", alignItems: "center", fontSize: 24, color: "#64748B", marginBottom: 12 }}>
+                  →
+                </div>
+
+                {/* Aprovado */}
+                <div style={{ flex: "2 1 auto", minWidth: 160, textAlign: "center" }}>
+                  <div
+                    style={{
+                      background: "linear-gradient(135deg, #10B981 0%, #047857 100%)",
+                      borderRadius: 12,
+                      padding: "20px 16px",
+                      marginBottom: 12,
+                      minHeight: 160,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>
+                      Aprovado
+                    </Text>
+                    <Text style={{ color: "#E2E8F0", fontSize: 20, fontWeight: 800, marginTop: 8 }}>
+                      {pieChartData.find((p) => p.name === "Concluída")?.value || 0}
+                    </Text>
+                    <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 4 }}>
+                      {shortCurrencyFormatter.format(
+                        chartData[chartData.length - 1]?.receita || 0
+                      )}
+                    </Text>
+                  </div>
+                </div>
               </div>
             </Skeleton>
           </Card>

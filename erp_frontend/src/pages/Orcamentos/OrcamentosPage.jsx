@@ -130,27 +130,72 @@ function getStatusMeta(status) {
   return statusColorMap[status] || statusColorMap.rascunho;
 }
 
-function SummaryCard({ color, icon, label, loading, value }) {
+function SummaryCard({ color, icon, label, loading, value, monetaryValue, percentage }) {
   return (
-    <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 18 }}>
+    <Card
+      bordered={false}
+      style={{ ...panelStyle, position: "relative", overflow: "hidden" }}
+      bodyStyle={{ padding: 18 }}
+    >
+      {/* Left colored accent */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          background: color,
+        }}
+      />
+
       <Skeleton active loading={loading} paragraph={false} title={{ width: "58%" }}>
-        <div style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: 16 }}>
-          <div>
-            <div style={{ color, fontSize: 30, fontWeight: 800 }}>{value}</div>
-            <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            {/* Main value (count) */}
+            <div style={{ color: "#0F172A", fontSize: 32, fontWeight: 800, lineHeight: 1, marginBottom: 8 }}>
+              {value}
+            </div>
+
+            {/* Label */}
+            <Text style={{ color: "#6B7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               {label}
             </Text>
+
+            {/* Monetary value if provided */}
+            {monetaryValue && (
+              <div style={{ marginTop: 8, color, fontSize: 14, fontWeight: 700 }}>
+                {monetaryValue}
+              </div>
+            )}
+
+            {/* Progress bar if percentage provided */}
+            {percentage !== undefined && (
+              <div style={{ marginTop: 8, height: 4, background: "#E5E7EB", borderRadius: 2, overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    background: color,
+                    width: `${Math.min(percentage, 100)}%`,
+                    transition: "width 0.3s ease",
+                  }}
+                />
+              </div>
+            )}
           </div>
+
+          {/* Icon */}
           <div
             style={{
               alignItems: "center",
-              background: `${color}14`,
+              background: `${color}18`,
               borderRadius: 12,
               color,
               display: "flex",
-              height: 46,
+              height: 50,
               justifyContent: "center",
-              width: 46,
+              width: 50,
+              flexShrink: 0,
             }}
           >
             {icon}
@@ -245,18 +290,31 @@ export default function OrcamentosPage() {
     const currentMonth = dayjs().format("YYYY-MM");
     const result = {
       pendentes: 0,
+      pendentesTotal: 0,
       aprovados: 0,
+      aprovadosTotal: 0,
       recusados: 0,
+      recusadosTotal: 0,
       conversao: 0,
     };
 
     rows.forEach((record) => {
       const status = mapBudgetStatus(record);
       const criadoEm = record?.criado_em ? dayjs(record.criado_em) : null;
+      const value = getValue(record);
 
-      if (["rascunho", "enviado", "expirado"].includes(status)) result.pendentes += 1;
-      if (status === "aprovado" && criadoEm?.format("YYYY-MM") === currentMonth) result.aprovados += 1;
-      if (status === "recusado") result.recusados += 1;
+      if (["rascunho", "enviado", "expirado"].includes(status)) {
+        result.pendentes += 1;
+        result.pendentesTotal += value;
+      }
+      if (status === "aprovado" && criadoEm?.format("YYYY-MM") === currentMonth) {
+        result.aprovados += 1;
+        result.aprovadosTotal += value;
+      }
+      if (status === "recusado") {
+        result.recusados += 1;
+        result.recusadosTotal += value;
+      }
     });
 
     const decididos = result.aprovados + result.recusados;
@@ -413,18 +471,25 @@ export default function OrcamentosPage() {
           `}
         </style>
 
+        {/* Dark hero header */}
         <div
           style={{
-            alignItems: "center",
+            background: "linear-gradient(135deg, #0F172A 0%, #1A2744 60%, #0F172A 100%)",
+            borderRadius: 16,
+            padding: "20px 28px",
+            marginBottom: 24,
             display: "flex",
+            alignItems: "center",
             justifyContent: "space-between",
-            gap: 16,
-            marginBottom: 20,
+            gap: 24,
           }}
         >
-          <Title level={1} style={{ color: "#111827", fontSize: 24, fontWeight: 800, margin: 0 }}>
-            Orçamentos
-          </Title>
+          <div>
+            <Title level={2} style={{ color: "#FFFFFF", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
+              Orçamentos
+            </Title>
+            <Text style={{ color: "#94A3B8", fontSize: 13 }}>Pipeline de propostas comerciais</Text>
+          </div>
           <Space wrap>
             <Button
               icon={<ThunderboltOutlined />}
@@ -435,6 +500,9 @@ export default function OrcamentosPage() {
                 paddingRight: "18px",
                 fontWeight: 700,
                 borderRadius: "8px",
+                background: "#1E293B",
+                color: "#FFFFFF",
+                border: "1px solid #334155",
               }}
             >
               Inteligente
@@ -460,20 +528,181 @@ export default function OrcamentosPage() {
           </Space>
         </div>
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#D97706" icon={<ClockCircleOutlined style={{ fontSize: 22 }} />} label="Pendentes" loading={loading} value={summary.pendentes} />
+            <SummaryCard
+              color="#D97706"
+              icon={<ClockCircleOutlined style={{ fontSize: 22 }} />}
+              label="Pendentes"
+              loading={loading}
+              value={summary.pendentes}
+              monetaryValue={moneyFormatter.format(summary.pendentesTotal)}
+              percentage={(summary.pendentes / (rows.length || 1)) * 100}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#15803D" icon={<CheckCircleOutlined style={{ fontSize: 22 }} />} label="Aprovados este mês" loading={loading} value={summary.aprovados} />
+            <SummaryCard
+              color="#15803D"
+              icon={<CheckCircleOutlined style={{ fontSize: 22 }} />}
+              label="Aprovados este mês"
+              loading={loading}
+              value={summary.aprovados}
+              monetaryValue={moneyFormatter.format(summary.aprovadosTotal)}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#B91C1C" icon={<CloseCircleOutlined style={{ fontSize: 22 }} />} label="Recusados" loading={loading} value={summary.recusados} />
+            <SummaryCard
+              color="#B91C1C"
+              icon={<CloseCircleOutlined style={{ fontSize: 22 }} />}
+              label="Recusados"
+              loading={loading}
+              value={summary.recusados}
+              monetaryValue={moneyFormatter.format(summary.recusadosTotal)}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#3B82F6" icon={<RiseOutlined style={{ fontSize: 22 }} />} label="Taxa de conversão %" loading={loading} value={`${summary.conversao}%`} />
+            <SummaryCard
+              color="#3B82F6"
+              icon={<RiseOutlined style={{ fontSize: 22 }} />}
+              label="Taxa de conversão"
+              loading={loading}
+              value={`${summary.conversao}%`}
+              percentage={summary.conversao}
+            />
           </Col>
         </Row>
+
+        {/* Pipeline Funnel Visualization */}
+        <Card
+          bordered={false}
+          style={{ ...panelStyle, background: "#0F172A", marginBottom: 24 }}
+          bodyStyle={{ padding: "24px" }}
+        >
+          <h3 style={{ color: "#FFFFFF", fontSize: 14, fontWeight: 700, margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Pipeline Visual
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "flex-end",
+              justifyContent: "space-around",
+              minHeight: 140,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Rascunho */}
+            <div style={{ flex: "0.8 1", minWidth: 100, textAlign: "center", cursor: "pointer" }}>
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #64748B 0%, #475569 100%)",
+                  borderRadius: 12,
+                  padding: "16px 12px",
+                  marginBottom: 12,
+                  minHeight: 80,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+              >
+                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Rascunho</Text>
+                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                  {rows.filter((r) => mapBudgetStatus(r) === "rascunho").length}
+                </Text>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#64748B", marginBottom: 12 }}>
+              →
+            </div>
+
+            {/* Enviado */}
+            <div style={{ flex: "1.1 1", minWidth: 110, textAlign: "center", cursor: "pointer" }}>
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
+                  borderRadius: 12,
+                  padding: "16px 12px",
+                  marginBottom: 12,
+                  minHeight: 100,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+              >
+                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Enviado</Text>
+                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                  {rows.filter((r) => mapBudgetStatus(r) === "enviado").length}
+                </Text>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#64748B", marginBottom: 12 }}>
+              →
+            </div>
+
+            {/* Aprovado */}
+            <div style={{ flex: "1.4 1", minWidth: 130, textAlign: "center", cursor: "pointer" }}>
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #10B981 0%, #047857 100%)",
+                  borderRadius: 12,
+                  padding: "16px 12px",
+                  marginBottom: 12,
+                  minHeight: 120,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+              >
+                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Aprovado</Text>
+                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                  {rows.filter((r) => mapBudgetStatus(r) === "aprovado").length}
+                </Text>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#64748B", marginBottom: 12 }}>
+              →
+            </div>
+
+            {/* Recusado */}
+            <div style={{ flex: "0.7 1", minWidth: 90, textAlign: "center", cursor: "pointer" }}>
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #B91C1C 0%, #7C2D12 100%)",
+                  borderRadius: 12,
+                  padding: "16px 12px",
+                  marginBottom: 12,
+                  minHeight: 60,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+              >
+                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Recusado</Text>
+                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                  {rows.filter((r) => mapBudgetStatus(r) === "recusado").length}
+                </Text>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         <Card bordered={false} style={{ ...panelStyle, marginBottom: 16 }} bodyStyle={{ padding: 16 }}>
           <Row gutter={[12, 12]} align="middle">
