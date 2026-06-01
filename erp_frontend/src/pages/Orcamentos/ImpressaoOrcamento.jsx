@@ -127,7 +127,7 @@ export default function ImpressaoOrcamento() {
     orcamento_enviado: { label: "ENVIADO", color: "#FFFFFF", bg: "#2563EB", borderColor: "#1E40AF" },
     aprovada:          { label: "APROVADO", color: "#FFFFFF", bg: "#10B981", borderColor: "#047857" },
     cancelada:         { label: "RECUSADO", color: "#FFFFFF", bg: "#EF4444", borderColor: "#DC2626" },
-  }[orcamento?.status] || { label: "RASCUNHO", color: "#111827", bg: "#FBBF24", borderColor: "#F59E0B" };
+  }[orcamento?.status] || { label: "RASCUNHO", color: "#374151", bg: "#FBBF24", borderColor: "#F59E0B" };
 
   const gerarPdfUmaPagina = async () => {
     let wrapper = null;
@@ -540,7 +540,7 @@ export default function ImpressaoOrcamento() {
                     }
                   </div>
                   <div>
-                    <div className="proposal-company-name" style={{ color: "#111827", fontSize: 19, fontWeight: 900, lineHeight: 1.05, letterSpacing: -0.3 }}>
+                    <div className="proposal-company-name" style={{ color: "#374151", fontSize: 19, fontWeight: 900, lineHeight: 1.05, letterSpacing: -0.3 }}>
                       {empresa?.razao_social || empresa?.nome || "Sua Empresa"}
                     </div>
                     <div style={{ color: "#6B7280", fontSize: 11, marginTop: 4, fontWeight: 600 }}>
@@ -568,7 +568,7 @@ export default function ImpressaoOrcamento() {
           <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 14, padding: "16px 24px 12px", background: "#FFFFFF", borderBottom: "2px solid #E5E7EB" }}>
             <div style={{ background: "#FFFFFF", border: "2px solid #E5E7EB", borderLeft: "6px solid #3B82F6", borderRadius: 9, padding: 13 }}>
               <div style={{ color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Cliente</div>
-              <div style={{ color: "#111827", fontSize: 13, fontWeight: 850 }}>{orcamento?.cliente_nome || "-"}</div>
+              <div style={{ color: "#374151", fontSize: 13, fontWeight: 850 }}>{orcamento?.cliente_nome || "-"}</div>
               <div style={{ color: "#6B7280", fontSize: 10.5, marginTop: 6 }}>
                 {[orcamento?.cliente_cnpj_cpf, orcamento?.cliente_email, orcamento?.cliente_telefone].filter(Boolean).join("  |  ") || "Dados complementares não informados"}
               </div>
@@ -576,17 +576,17 @@ export default function ImpressaoOrcamento() {
             <div style={{ background: "#FFFFFF", border: "2px solid #E5E7EB", borderLeft: "6px solid #10B981", borderRadius: 9, padding: 13 }}>
               <div style={{ color: "#10B981", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Condições</div>
               <div style={{ display: "grid", gridTemplateColumns: "82px 1fr", gap: "5px 10px", fontSize: 10.5 }}>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Pagamento</span><span style={{ color: "#111827", fontWeight: 700 }}>{orcamento?.condicao_pagamento || "-"}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Validade</span><span style={{ color: "#111827", fontWeight: 700 }}>{orcamento?.validade_orcamento ? dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY") : "-"}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Regime</span><span style={{ color: "#111827", fontWeight: 700 }}>{regimeExibir}</span>
+                <span style={{ color: "#6B7280", fontWeight: 700 }}>Pagamento</span><span style={{ color: "#374151", fontWeight: 700 }}>{orcamento?.condicao_pagamento || "-"}</span>
+                <span style={{ color: "#6B7280", fontWeight: 700 }}>Validade</span><span style={{ color: "#374151", fontWeight: 700 }}>{orcamento?.validade_orcamento ? dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY") : "-"}</span>
+                <span style={{ color: "#6B7280", fontWeight: 700 }}>Regime</span><span style={{ color: "#374151", fontWeight: 700 }}>{regimeExibir}</span>
               </div>
             </div>
             <div style={{ background: "#FFFFFF", border: "2px solid #E5E7EB", borderLeft: "6px solid #F59E0B", borderRadius: 9, padding: 13 }}>
               <div style={{ color: "#F59E0B", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Resumo</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "5px 10px", fontSize: 10.5 }}>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Subtotal</span><span style={{ color: "#111827", fontWeight: 800 }}>{formatMoneyTrailing(subtotalItens)}</span>
+                <span style={{ color: "#6B7280", fontWeight: 700 }}>Subtotal</span><span style={{ color: "#374151", fontWeight: 800 }}>{formatMoneyTrailing(subtotalItens)}</span>
                 <span style={{ color: "#6B7280", fontWeight: 700 }}>{descontoLabelMinusculo}</span><span style={{ color: "#EF4444", fontWeight: 800 }}>- {formatMoneyTrailing(descontoOrcamento)}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Impostos estimados</span><span style={{ color: "#111827", fontWeight: 800 }}>{formatMoneyTrailing(impostoTotal)}</span>
+                <span style={{ color: "#6B7280", fontWeight: 700 }}>Impostos estimados</span><span style={{ color: "#374151", fontWeight: 800 }}>{formatMoneyTrailing(impostoTotal)}</span>
               </div>
             </div>
           </div>
@@ -606,7 +606,7 @@ export default function ImpressaoOrcamento() {
                 </span>
               </div>
               <div className="proposal-description-box" style={{ background: "#F9FAFB", border: "2px solid #E5E7EB", borderLeft: "6px solid #3B82F6", borderRadius: 8, padding: "13px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="proposal-description-text" style={{ color: "#111827", fontSize: 12.5, lineHeight: 1.55, fontWeight: 750 }}>{orcamento.descricao_servico}</div>
+                <div className="proposal-description-text" style={{ color: "#374151", fontSize: 12.5, lineHeight: 1.55, fontWeight: 750 }}>{orcamento.descricao_servico}</div>
               </div>
             </div>
           )}
@@ -650,18 +650,18 @@ export default function ImpressaoOrcamento() {
                       <td style={{ padding: "11px 14px", borderBottom: "1px solid #E5E7EB", textAlign: "center", verticalAlign: "top", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
                         <span className="proposal-item-index" style={{ background: "#EEF2FF", color: "#3B82F6" }}>{String(idx + 1).padStart(2, "0")}</span>
                       </td>
-                      <td style={{ padding: "11px 16px", borderBottom: "1px solid #E5E7EB", fontSize: 12.5, color: "#111827", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
-                        <div className="proposal-item-main" style={{ fontWeight: 850, fontSize: 13.2, lineHeight: 1.32, color: "#111827", textTransform: "uppercase" }}>{item.descricao}</div>
+                      <td style={{ padding: "11px 16px", borderBottom: "1px solid #E5E7EB", fontSize: 12.5, color: "#374151", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                        <div className="proposal-item-main" style={{ fontWeight: 850, fontSize: 13.2, lineHeight: 1.32, color: "#374151", textTransform: "uppercase" }}>{item.descricao}</div>
                         {item.unidade && (
                           <div style={{ fontSize: 10.2, color: "#6B7280", marginTop: 3, fontWeight: 650 }}>
                             {isProduto ? "Material" : "Serviço"} · {item.unidade}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#111827", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#374151", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
                         {Number(item.quantidade || 0).toLocaleString("pt-BR")}
                       </td>
-                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "right", fontSize: 12.5, color: "#111827", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "right", fontSize: 12.5, color: "#374151", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
                         {formatMoneyTrailing(item.valor_unitario)}
                       </td>
                       <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "right", fontSize: 13, fontWeight: 800, color: "#3B82F6", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
@@ -689,7 +689,7 @@ export default function ImpressaoOrcamento() {
                 ].map(({ label, value, color }) => (
                   <div key={label} className="proposal-total-line" style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "8px 18px" }}>
                     <span style={{ color: "#6B7280", fontSize: 12 }}>{label}</span>
-                    <span style={{ color: color || "#111827", fontSize: 12, fontWeight: 700 }}>{value}</span>
+                    <span style={{ color: color || "#374151", fontSize: 12, fontWeight: 700 }}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -728,7 +728,7 @@ export default function ImpressaoOrcamento() {
           ═══════════════════════════════════════ */}
           <div className="proposal-footer" style={{ background: "linear-gradient(135deg, #F3F4F6 0%, #FFFFFF 50%, #F3F4F6 100%)", borderTop: "2px solid #E5E7EB", padding: "12px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ color: "#111827", fontSize: 11, fontWeight: 800 }}>
+              <div style={{ color: "#374151", fontSize: 11, fontWeight: 800 }}>
                 {empresa?.razao_social || empresa?.nome || "ERP Nexus"}
               </div>
               <div style={{ color: "#6B7280", fontSize: 10, marginTop: 2 }}>
