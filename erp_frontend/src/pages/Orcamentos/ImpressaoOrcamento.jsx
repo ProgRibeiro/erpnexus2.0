@@ -243,7 +243,7 @@ export default function ImpressaoOrcamento() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#EEF2F7",
+        background: "#F8FAFC",
         padding: "28px 16px",
         fontFamily: "Inter, 'Segoe UI', system-ui, sans-serif",
       }}
@@ -391,7 +391,7 @@ export default function ImpressaoOrcamento() {
         .proposal-totals {
           position: static !important;
           width: 100% !important;
-          padding: 0 32px 18px !important;
+          padding: 0 32px 16px !important;
           z-index: 2 !important;
           background: #FFFFFF;
         }
@@ -412,7 +412,7 @@ export default function ImpressaoOrcamento() {
         }
         .item-row:nth-child(even) td { background: #F8FAFC; }
         .item-row:hover td { background: #F1F5F9 !important; transition: background 0.15s; }
-        .item-row td { padding: 10px 16px; border-bottom: 1px solid #E5E7EB; font-size: 12.5px; color: #111827; transition: background 0.15s; }
+        .item-row td { padding: 10px 14px; border-bottom: 1px solid #E2E8F0; font-size: 11.5px; color: #475569; transition: background 0.15s; }
         .item-row:last-child td { border-bottom: none; }
         .proposal-item-index {
           display: inline-flex;
@@ -523,70 +523,68 @@ export default function ImpressaoOrcamento() {
       </div>
 
       {/* ── DOCUMENTO ── */}
-      <div className={`doc-sheet proposal-document ${printSizeClass}`} style={{ width: "100%", maxWidth: 1100, margin: "0 auto", background: "#FFFFFF", borderRadius: 10, boxShadow: "0 24px 70px rgba(15,23,42,0.16), 0 4px 18px rgba(15,23,42,0.08)", border: "1px solid #DDE3EE", position: "relative" }}>
+      <div className={`doc-sheet proposal-document ${printSizeClass}`} style={{ width: "100%", maxWidth: 1100, margin: "0 auto", background: "#FFFFFF", borderRadius: 12, boxShadow: "0 10px 32px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)", border: "1px solid #E2E8F0", position: "relative" }}>
         <Skeleton active loading={loading} paragraph={{ rows: 18 }} style={{ padding: 32 }}>
 
-          <div className="proposal-header" style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", minHeight: 140, background: "#FFFFFF", borderBottom: "4px solid #3B82F6" }}>
-            <div style={{ padding: "28px 32px", borderLeft: "6px solid #3B82F6", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div>
-                <div className="proposal-kicker" style={{ color: "#3B82F6", fontSize: 11, fontWeight: 900, letterSpacing: "0.25em", marginBottom: 8, textTransform: "uppercase" }}>
-                  ✓ Proposta Comercial
+          <div className="proposal-header" style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr", minHeight: 130, background: "#FFFFFF", borderBottom: "2px solid #E2E8F0", alignItems: "center" }}>
+            <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div className="proposal-kicker" style={{ color: "#64748B", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 10, textTransform: "uppercase" }}>
+                Proposta Comercial
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div className="proposal-logo-box" style={{ width: 48, height: 48, borderRadius: 10, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: "1px solid #E2E8F0" }}>
+                  {logoUrl
+                    ? <img src={logoUrl} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                    : <span style={{ fontSize: 18, fontWeight: 900, color: "#3B82F6" }}>{empresaInitials}</span>
+                  }
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 6 }}>
-                  <div className="proposal-logo-box" style={{ width: 52, height: 52, borderRadius: 12, background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                    {logoUrl
-                      ? <img src={logoUrl} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-                      : <span style={{ fontSize: 20, fontWeight: 900, color: "#3B82F6" }}>{empresaInitials}</span>
-                    }
+                <div>
+                  <div className="proposal-company-name" style={{ color: "#1E293B", fontSize: 17, fontWeight: 800, lineHeight: 1.1 }}>
+                    {empresa?.razao_social || empresa?.nome || "Sua Empresa"}
                   </div>
-                  <div>
-                    <div className="proposal-company-name" style={{ color: "#374151", fontSize: 19, fontWeight: 900, lineHeight: 1.05, letterSpacing: -0.3 }}>
-                      {empresa?.razao_social || empresa?.nome || "Sua Empresa"}
-                    </div>
-                    <div style={{ color: "#6B7280", fontSize: 11, marginTop: 4, fontWeight: 600 }}>
-                      {[empresa?.email, empresa?.telefone && `(${empresa.telefone})`].filter(Boolean).join(" • ")}
-                    </div>
+                  <div style={{ color: "#64748B", fontSize: 10.5, marginTop: 3, fontWeight: 500 }}>
+                    {[empresa?.email, empresa?.telefone && `(${empresa.telefone})`].filter(Boolean).join(" • ") || "contato"}
                   </div>
                 </div>
               </div>
             </div>
-            <div className="proposal-header-actions" style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: 12, justifyContent: "space-between" }}>
-              <div style={{ background: "#EFF6FF", border: "2px solid #3B82F6", borderRadius: 12, padding: "14px 16px", textAlign: "center" }}>
-                <div style={{ color: "#1E40AF", fontSize: 10, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 6 }}>Número</div>
-                <div style={{ color: "#1E3A8A", fontSize: 26, fontWeight: 900, letterSpacing: -0.5 }}>{orcamento?.numero || `ORC-${id}`}</div>
+            <div className="proposal-header-actions" style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: 10, justifyContent: "center", textAlign: "center" }}>
+              <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px", border: "1px solid #E2E8F0" }}>
+                <div style={{ color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>Número</div>
+                <div style={{ color: "#3B82F6", fontSize: 20, fontWeight: 900, letterSpacing: -0.3 }}>{orcamento?.numero || `ORC-${id}`}</div>
               </div>
-              <div style={{ background: "#3B82F6", borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
-                <div style={{ color: "#DBEAFE", fontSize: 9.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Valor Total</div>
-                <div style={{ color: "#FFFFFF", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{formatMoneyTrailing(totalProposta)}</div>
-                <span className="proposal-status-badge" style={{ background: statusStamp.bg, color: statusStamp.color, borderRadius: 8, padding: "6px 12px", fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", display: "inline-block", border: `2px solid ${statusStamp.borderColor}` }}>
+              <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "10px 14px", border: "1px solid #E2E8F0" }}>
+                <div style={{ color: "#64748B", fontSize: 8.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Valor Total</div>
+                <div style={{ color: "#1E293B", fontSize: 16, fontWeight: 900 }}>{formatMoneyTrailing(totalProposta)}</div>
+                <span className="proposal-status-badge" style={{ background: statusStamp.bg, color: statusStamp.color, borderRadius: 6, padding: "4px 10px", fontSize: 8, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", display: "inline-block", marginTop: 6, border: "none" }}>
                   {statusStamp.label}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 14, padding: "16px 24px 12px", background: "#FFFFFF", borderBottom: "2px solid #E5E7EB" }}>
-            <div style={{ background: "#FFFFFF", border: "2px solid #E5E7EB", borderLeft: "6px solid #3B82F6", borderRadius: 9, padding: 13 }}>
-              <div style={{ color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Cliente</div>
-              <div style={{ color: "#374151", fontSize: 13, fontWeight: 850 }}>{orcamento?.cliente_nome || "-"}</div>
-              <div style={{ color: "#6B7280", fontSize: 10.5, marginTop: 6 }}>
-                {[orcamento?.cliente_cnpj_cpf, orcamento?.cliente_email, orcamento?.cliente_telefone].filter(Boolean).join("  |  ") || "Dados complementares não informados"}
+          <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 12, padding: "14px 24px", background: "#FFFFFF", borderBottom: "1px solid #E2E8F0" }}>
+            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12, transition: "all 0.2s" }}>
+              <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Cliente</div>
+              <div style={{ color: "#1E293B", fontSize: 12.5, fontWeight: 700 }}>{orcamento?.cliente_nome || "-"}</div>
+              <div style={{ color: "#64748B", fontSize: 10, marginTop: 5 }}>
+                {[orcamento?.cliente_cnpj_cpf, orcamento?.cliente_email, orcamento?.cliente_telefone].filter(Boolean).join("  •  ") || "—"}
               </div>
             </div>
-            <div style={{ background: "#FFFFFF", border: "2px solid #E5E7EB", borderLeft: "6px solid #10B981", borderRadius: 9, padding: 13 }}>
-              <div style={{ color: "#10B981", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Condições</div>
-              <div style={{ display: "grid", gridTemplateColumns: "82px 1fr", gap: "5px 10px", fontSize: 10.5 }}>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Pagamento</span><span style={{ color: "#374151", fontWeight: 700 }}>{orcamento?.condicao_pagamento || "-"}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Validade</span><span style={{ color: "#374151", fontWeight: 700 }}>{orcamento?.validade_orcamento ? dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY") : "-"}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Regime</span><span style={{ color: "#374151", fontWeight: 700 }}>{regimeExibir}</span>
+            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12 }}>
+              <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Condições</div>
+              <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: "5px 8px", fontSize: 10 }}>
+                <span style={{ color: "#64748B", fontWeight: 600 }}>Pagamento</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{orcamento?.condicao_pagamento || "-"}</span>
+                <span style={{ color: "#64748B", fontWeight: 600 }}>Validade</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{orcamento?.validade_orcamento ? dayjs(orcamento.validade_orcamento).format("DD/MM/YYYY") : "-"}</span>
+                <span style={{ color: "#64748B", fontWeight: 600 }}>Regime</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{regimeExibir}</span>
               </div>
             </div>
-            <div style={{ background: "#FFFFFF", border: "2px solid #E5E7EB", borderLeft: "6px solid #F59E0B", borderRadius: 9, padding: 13 }}>
-              <div style={{ color: "#F59E0B", fontSize: 10, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 9 }}>Resumo</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "5px 10px", fontSize: 10.5 }}>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Subtotal</span><span style={{ color: "#374151", fontWeight: 800 }}>{formatMoneyTrailing(subtotalItens)}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>{descontoLabelMinusculo}</span><span style={{ color: "#EF4444", fontWeight: 800 }}>- {formatMoneyTrailing(descontoOrcamento)}</span>
-                <span style={{ color: "#6B7280", fontWeight: 700 }}>Impostos estimados</span><span style={{ color: "#374151", fontWeight: 800 }}>{formatMoneyTrailing(impostoTotal)}</span>
+            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12 }}>
+              <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Resumo</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "5px 10px", fontSize: 10 }}>
+                <span style={{ color: "#64748B", fontWeight: 600 }}>Subtotal</span><span style={{ color: "#1E293B", fontWeight: 700 }}>{formatMoneyTrailing(subtotalItens)}</span>
+                <span style={{ color: "#64748B", fontWeight: 600 }}>{descontoLabelMinusculo}</span><span style={{ color: "#EF4444", fontWeight: 700 }}>- {formatMoneyTrailing(descontoOrcamento)}</span>
+                <span style={{ color: "#64748B", fontWeight: 600 }}>Impostos</span><span style={{ color: "#1E293B", fontWeight: 700 }}>{formatMoneyTrailing(impostoTotal)}</span>
               </div>
             </div>
           </div>
@@ -595,18 +593,12 @@ export default function ImpressaoOrcamento() {
               DESCRIÇÃO DO SERVIÇO
           ═══════════════════════════════════════ */}
           {orcamento?.descricao_servico && (
-            <div className="proposal-description" style={{ padding: "16px 32px", borderBottom: "2px solid #E5E7EB", background: "#FFFFFF" }}>
-              <div className="proposal-section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 9 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 4, height: 17, background: "#3B82F6", borderRadius: 2 }} />
-                  <span style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#3B82F6" }}>Descrição do Serviço</span>
-                </div>
-                <span style={{ color: "#6B7280", fontSize: 9.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                  Escopo
-                </span>
+            <div className="proposal-description" style={{ padding: "14px 32px", borderBottom: "1px solid #E2E8F0", background: "#FFFFFF" }}>
+              <div className="proposal-section-title" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3B82F6" }}>Descrição do Serviço</span>
               </div>
-              <div className="proposal-description-box" style={{ background: "#F9FAFB", border: "2px solid #E5E7EB", borderLeft: "6px solid #3B82F6", borderRadius: 8, padding: "13px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="proposal-description-text" style={{ color: "#374151", fontSize: 12.5, lineHeight: 1.55, fontWeight: 750 }}>{orcamento.descricao_servico}</div>
+              <div className="proposal-description-box" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "12px 14px" }}>
+                <div className="proposal-description-text" style={{ color: "#475569", fontSize: 12, lineHeight: 1.6, fontWeight: 500 }}>{orcamento.descricao_servico}</div>
               </div>
             </div>
           )}
@@ -616,55 +608,52 @@ export default function ImpressaoOrcamento() {
           ═══════════════════════════════════════ */}
           <div className="proposal-items-section" style={{ padding: "0 32px 128px", background: "#FFFFFF" }}>
             {/* Header da seção */}
-            <div className="proposal-items-title" style={{ padding: "16px 0 8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 4, height: 17, background: "#3B82F6", borderRadius: 2 }} />
-                <span style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#3B82F6" }}>Itens da Proposta</span>
-              </div>
-              <span style={{ background: "#F3F4F6", color: "#3B82F6", borderRadius: 999, padding: "3px 10px", fontSize: 10, fontWeight: 900, border: "1px solid #E5E7EB" }}>
+            <div className="proposal-items-title" style={{ padding: "14px 0 8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 0 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3B82F6" }}>Itens da Proposta</span>
+              <span style={{ background: "#F1F5F9", color: "#3B82F6", borderRadius: 999, padding: "2px 8px", fontSize: 9, fontWeight: 700, border: "1px solid #E2E8F0" }}>
                 {itens.length} {itens.length === 1 ? "item" : "itens"}
               </span>
             </div>
 
             <div className="proposal-table-wrap">
-            <table className="proposal-items-table" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, marginTop: 0, border: "2px solid #E5E7EB", borderRadius: 8, overflow: "hidden" }}>
+            <table className="proposal-items-table" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, marginTop: 0, border: "1px solid #E2E8F0", borderRadius: 8, overflow: "hidden" }}>
               <thead>
-                <tr style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F3F4F6 100%)", borderBottom: "2px solid #E5E7EB" }}>
-                  <th style={{ padding: "11px 14px", color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "center", width: 64 }}>Item</th>
-                  <th style={{ padding: "11px 16px", color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "left" }}>Descrição</th>
-                  <th style={{ padding: "11px 16px", color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "center", width: 70 }}>Qtd</th>
-                  <th style={{ padding: "11px 16px", color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "right", width: 130 }}>Preço Unit.</th>
-                  <th style={{ padding: "11px 16px", color: "#3B82F6", fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "right", width: 130 }}>Total</th>
+                <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                  <th style={{ padding: "10px 12px", color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "center", width: 64 }}>Item</th>
+                  <th style={{ padding: "10px 14px", color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left" }}>Descrição</th>
+                  <th style={{ padding: "10px 14px", color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "center", width: 70 }}>Qtd</th>
+                  <th style={{ padding: "10px 14px", color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "right", width: 130 }}>Preço Unit.</th>
+                  <th style={{ padding: "10px 14px", color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "right", width: 130 }}>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {itens.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", color: "#9CA3AF", padding: 24, fontSize: 13 }}>Nenhum item cadastrado.</td>
+                    <td colSpan={5} style={{ textAlign: "center", color: "#94A3B8", padding: 20, fontSize: 12 }}>Nenhum item cadastrado.</td>
                   </tr>
                 ) : itens.map((item, idx) => {
                   const total = Number(item.valor_total || Number(item.quantidade || 0) * Number(item.valor_unitario || 0));
                   const isProduto = item.origem_tipo === "produto";
                   return (
                     <tr key={item.id || idx} className="item-row">
-                      <td style={{ padding: "11px 14px", borderBottom: "1px solid #E5E7EB", textAlign: "center", verticalAlign: "top", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                      <td style={{ padding: "10px 12px", borderBottom: "1px solid #E2E8F0", textAlign: "center", verticalAlign: "top", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
                         <span className="proposal-item-index" style={{ background: "#EEF2FF", color: "#3B82F6" }}>{String(idx + 1).padStart(2, "0")}</span>
                       </td>
-                      <td style={{ padding: "11px 16px", borderBottom: "1px solid #E5E7EB", fontSize: 12.5, color: "#374151", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
-                        <div className="proposal-item-main" style={{ fontWeight: 850, fontSize: 13.2, lineHeight: 1.32, color: "#374151", textTransform: "uppercase" }}>{item.descricao}</div>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #E2E8F0", fontSize: 11.5, color: "#475569", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
+                        <div className="proposal-item-main" style={{ fontWeight: 700, fontSize: 12, lineHeight: 1.35, color: "#1E293B", textTransform: "uppercase" }}>{item.descricao}</div>
                         {item.unidade && (
-                          <div style={{ fontSize: 10.2, color: "#6B7280", marginTop: 3, fontWeight: 650 }}>
+                          <div style={{ fontSize: 9.5, color: "#64748B", marginTop: 3, fontWeight: 500 }}>
                             {isProduto ? "Material" : "Serviço"} · {item.unidade}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#374151", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #E2E8F0", textAlign: "center", fontSize: 11.5, fontWeight: 600, color: "#475569", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
                         {Number(item.quantidade || 0).toLocaleString("pt-BR")}
                       </td>
-                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "right", fontSize: 12.5, color: "#374151", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #E2E8F0", textAlign: "right", fontSize: 11.5, color: "#475569", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
                         {formatMoneyTrailing(item.valor_unitario)}
                       </td>
-                      <td style={{ padding: "10px 16px", borderBottom: "1px solid #E5E7EB", textAlign: "right", fontSize: 13, fontWeight: 800, color: "#3B82F6", background: idx % 2 === 0 ? "#FFFFFF" : "#F9FAFB" }}>
+                      <td style={{ padding: "10px 14px", borderBottom: "1px solid #E2E8F0", textAlign: "right", fontSize: 12, fontWeight: 700, color: "#3B82F6", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
                         {formatMoneyTrailing(total)}
                       </td>
                     </tr>
@@ -679,23 +668,23 @@ export default function ImpressaoOrcamento() {
               TOTAIS — lado direito elegante
           ═══════════════════════════════════════ */}
           <div className="proposal-totals" style={{ padding: 0, display: "flex", justifyContent: "flex-end" }}>
-            <div style={{ minWidth: 310, maxWidth: 350, background: "#FFFFFF", borderRadius: 8, border: "2px solid #E5E7EB", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
-              <div style={{ padding: "4px 0 0", borderBottom: "2px solid #E5E7EB" }}>
+            <div style={{ minWidth: 310, maxWidth: 350, background: "#FFFFFF", borderRadius: 10, border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 4px 12px rgba(15,23,42,0.04)" }}>
+              <div style={{ padding: "0", borderBottom: "1px solid #E2E8F0" }}>
                 {[
                   { label: "Subtotal", value: formatMoneyTrailing(subtotalItens) },
                   { label: descontoLabelMinusculo, value: `- ${formatMoneyTrailing(descontoOrcamento)}`, color: "#EF4444" },
                   { label: "Valor do orçamento", value: formatMoneyTrailing(totalOrcamentoSemImpostos) },
                   { label: `Impostos estimados (${aliquotaPercentual}%)`, value: formatMoneyTrailing(impostoTotal) },
                 ].map(({ label, value, color }) => (
-                  <div key={label} className="proposal-total-line" style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "8px 18px" }}>
-                    <span style={{ color: "#6B7280", fontSize: 12 }}>{label}</span>
-                    <span style={{ color: color || "#374151", fontSize: 12, fontWeight: 700 }}>{value}</span>
+                  <div key={label} className="proposal-total-line" style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "8px 16px" }}>
+                    <span style={{ color: "#64748B", fontSize: 11 }}>{label}</span>
+                    <span style={{ color: color || "#475569", fontSize: 11, fontWeight: 700 }}>{value}</span>
                   </div>
                 ))}
               </div>
-              <div className="proposal-total-final" style={{ padding: "14px 18px", background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#DBEAFE", fontWeight: 800, fontSize: 13 }}>Total da Proposta</span>
-                <span className="proposal-total-final-value" style={{ color: "#FFFFFF", fontWeight: 900, fontSize: 24, letterSpacing: -0.5 }}>{formatMoneyTrailing(totalProposta)}</span>
+              <div className="proposal-total-final" style={{ padding: "13px 16px", background: "#F0F9FF", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#64748B", fontWeight: 700, fontSize: 11 }}>Total da Proposta</span>
+                <span className="proposal-total-final-value" style={{ color: "#3B82F6", fontWeight: 900, fontSize: 22, letterSpacing: -0.3 }}>{formatMoneyTrailing(totalProposta)}</span>
               </div>
             </div>
           </div>
@@ -704,19 +693,18 @@ export default function ImpressaoOrcamento() {
               LOGOS DE CLIENTES (se houver)
           ═══════════════════════════════════════ */}
           {logosClientes.length > 0 && (
-            <div className="proposal-logos" style={{ padding: "16px 32px", borderTop: "2px solid #E5E7EB", background: "#FFFFFF" }}>
-              <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.14em", color: "#9CA3AF", marginBottom: 12, textAlign: "center" }}>
-                Empresas que confiam em nós
+            <div className="proposal-logos" style={{ padding: "12px 32px", borderTop: "1px solid #E2E8F0", background: "#FFFFFF" }}>
+              <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#94A3B8", marginBottom: 10, textAlign: "center" }}>
+                Parceiros
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: "8px 18px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: "6px 14px" }}>
                 {logosClientes.map((item) => (
                   <div key={item.id} title={item.nome} style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "6px 14px", background: "#F9FAFB",
-                    border: "1px solid #E5E7EB", borderRadius: 8,
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                    padding: "5px 12px", background: "#F8FAFC",
+                    border: "1px solid #E2E8F0", borderRadius: 6
                   }}>
-                    <img src={item.logo_url || item.logo} alt={item.nome} style={{ maxHeight: 26, maxWidth: 80, objectFit: "contain", filter: "grayscale(0%)" }} />
+                    <img src={item.logo_url || item.logo} alt={item.nome} style={{ maxHeight: 24, maxWidth: 70, objectFit: "contain" }} />
                   </div>
                 ))}
               </div>
@@ -726,21 +714,21 @@ export default function ImpressaoOrcamento() {
           {/* ═══════════════════════════════════════
               RODAPÉ
           ═══════════════════════════════════════ */}
-          <div className="proposal-footer" style={{ background: "linear-gradient(135deg, #F3F4F6 0%, #FFFFFF 50%, #F3F4F6 100%)", borderTop: "2px solid #E5E7EB", padding: "12px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <div className="proposal-footer" style={{ background: "#F8FAFC", borderTop: "1px solid #E2E8F0", padding: "10px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ color: "#374151", fontSize: 11, fontWeight: 800 }}>
+              <div style={{ color: "#1E293B", fontSize: 10, fontWeight: 700 }}>
                 {empresa?.razao_social || empresa?.nome || "ERP Nexus"}
               </div>
-              <div style={{ color: "#6B7280", fontSize: 10, marginTop: 2 }}>
+              <div style={{ color: "#64748B", fontSize: 9, marginTop: 1 }}>
                 {[empresa?.cnpj && `CNPJ ${empresa.cnpj}`, empresa?.email].filter(Boolean).join(" · ")}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ color: "#6B7280", fontSize: 10 }}>
+              <div style={{ color: "#64748B", fontSize: 9 }}>
                 Gerado em {dayjs().format("DD/MM/YYYY [às] HH:mm")}
               </div>
-              <div style={{ color: "#9CA3AF", fontSize: 9.5, marginTop: 2 }}>
-                Esta proposta é válida conforme as condições descritas acima.
+              <div style={{ color: "#94A3B8", fontSize: 8.5, marginTop: 1 }}>
+                Válida conforme condições descritas acima.
               </div>
             </div>
           </div>
