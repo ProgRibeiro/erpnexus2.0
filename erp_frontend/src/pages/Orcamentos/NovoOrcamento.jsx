@@ -72,18 +72,18 @@ const stickyHeaderStyle = {
   position: "sticky",
   top: 0,
   zIndex: 12,
-  background: "linear-gradient(135deg, #0F172A 0%, #1A2744 60%, #0F172A 100%)",
+  background: "linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 60%, #EFF6FF 100%)",
   paddingBottom: 12,
   marginBottom: 20,
-  borderBottom: "1px solid #1E293B",
+  borderBottom: "1px solid #E2E8F0",
 };
 
 const itemCardStyle = {
-  border: "1px solid #1E293B",
+  border: "1px solid #E2E8F0",
   borderRadius: 12,
   padding: 16,
-  background: "#0F172A",
-  color: "#E2E8F0",
+  background: "#FFFFFF",
+  color: "#1E293B",
 };
 
 function formatApiError(error, fallback = "Erro ao salvar.") {
@@ -739,25 +739,25 @@ export default function NovoOrcamento() {
         <div style={{ padding: "28px 32px", maxWidth: 1400, margin: "0 auto" }}>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 24, alignItems: "center" }}>
             <div>
-              <Title level={1} style={{ fontSize: 28, fontWeight: 900, margin: 0, color: "#FFFFFF" }}>
+              <Title level={1} style={{ fontSize: 28, fontWeight: 900, margin: 0, color: "#1E293B" }}>
                 Novo Orçamento
               </Title>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-                <Text style={{ color: "#93C5FD", fontWeight: 700, fontSize: 14 }}>{budgetNumber}</Text>
-                <Tag color="default" style={{ borderRadius: 999, paddingInline: 10, background: "rgba(139, 92, 246, 0.2)", color: "#C4B5FD", borderColor: "#8B5CF6" }}>
+                <Text style={{ color: "#3B82F6", fontWeight: 700, fontSize: 14 }}>{budgetNumber}</Text>
+                <Tag color="default" style={{ borderRadius: 999, paddingInline: 10, background: "#DDD6FE", color: "#7C3AED", borderColor: "#C4B5FD" }}>
                   Rascunho
                 </Tag>
               </div>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
-              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#1E293B", color: "#E2E8F0", borderColor: "#334155" }}>
+              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 Salvar rascunho
               </Button>
-              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#1E293B", color: "#E2E8F0", borderColor: "#334155" }}>
+              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 Visualizar
               </Button>
-              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 8, background: "#1E293B", color: "#E2E8F0", borderColor: "#334155" }}>
+              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 PDF
               </Button>
               <Button
@@ -781,8 +781,8 @@ export default function NovoOrcamento() {
 
       <Form form={form} layout="vertical">
         <Space direction="vertical" size={16} style={{ width: "100%", maxWidth: 1400, margin: "0 auto", paddingInline: 16 }}>
-          <Card bordered={false} style={{ ...panelStyle, background: "#111827", borderColor: "#1E293B" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0, color: "#FFFFFF" }}>Cliente</Title>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
+            <Title level={4} style={{ marginTop: 0, color: "#1E293B" }}>Cliente</Title>
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={14}>
                 <Form.Item label="Cliente" name="cliente" rules={[{ required: true, message: "Selecione o cliente" }]}>
@@ -804,15 +804,15 @@ export default function NovoOrcamento() {
               </Col>
               <Col xs={24} md={8}>
                 <Text strong>CNPJ</Text>
-                <div style={{ color: "#6B7280", marginTop: 4 }}>{selectedClient?.cnpj_cpf || "-"}</div>
+                <div style={{ color: "#64748B", marginTop: 4 }}>{selectedClient?.cnpj_cpf || "-"}</div>
               </Col>
               <Col xs={24} md={8}>
                 <Text strong>Telefone</Text>
-                <div style={{ color: "#6B7280", marginTop: 4 }}>{selectedClient?.telefone || "-"}</div>
+                <div style={{ color: "#64748B", marginTop: 4 }}>{selectedClient?.telefone || "-"}</div>
               </Col>
               <Col xs={24} md={8}>
                 <Text strong>Email</Text>
-                <div style={{ color: "#6B7280", marginTop: 4 }}>{selectedClient?.email || "-"}</div>
+                <div style={{ color: "#64748B", marginTop: 4 }}>{selectedClient?.email || "-"}</div>
               </Col>
               <Col xs={24} lg={12}>
                 <Form.Item label="Contato responsável" name="contato_responsavel">
@@ -829,8 +829,8 @@ export default function NovoOrcamento() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#111827", borderColor: "#1E293B" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0, color: "#FFFFFF" }}>Pedido de compra do cliente</Title>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
+            <Title level={4} style={{ marginTop: 0, color: "#1E293B" }}>Pedido de compra do cliente</Title>
             <Form.Item name="tem_pedido_compra" valuePropName="checked" style={{ marginBottom: 12 }}>
               <Checkbox>Cliente possui PC?</Checkbox>
             </Form.Item>
@@ -856,8 +856,8 @@ export default function NovoOrcamento() {
             ) : null}
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#111827", borderColor: "#1E293B" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0, color: "#FFFFFF" }}>Serviço</Title>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
+            <Title level={4} style={{ marginTop: 0, color: "#1E293B" }}>Serviço</Title>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
                 <Form.Item label="Tipo de serviço" name="tipo_servico" rules={[{ required: true, message: "Selecione o tipo" }]}>
@@ -887,7 +887,7 @@ export default function NovoOrcamento() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#111827", borderColor: "#1E293B" }} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
             <Space style={{ justifyContent: "space-between", width: "100%", marginBottom: 16 }} wrap>
               <Title level={4} style={{ margin: 0, color: "#FFFFFF" }}>Itens do orçamento</Title>
               <Space wrap>
@@ -967,15 +967,15 @@ export default function NovoOrcamento() {
             <FiscalIntelligenceAlert impostos={impostos} />
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#111827", borderColor: "#1E293B" }} bodyStyle={{ padding: 16 }}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 16 }}>
             <Space wrap>
-              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#1E293B", color: "#E2E8F0", borderColor: "#334155" }}>
+              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 Salvar rascunho
               </Button>
-              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#1E293B", color: "#E2E8F0", borderColor: "#334155" }}>
+              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 Visualizar impressão
               </Button>
-              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 8, background: "#1E293B", color: "#E2E8F0", borderColor: "#334155" }}>
+              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 Gerar PDF
               </Button>
               <Button
@@ -1118,7 +1118,7 @@ export default function NovoOrcamento() {
         </Form>
       </Modal>
 
-      <Drawer title="Novo Cliente" placement="right" onClose={() => setDrawerClienteAberto(false)} open={drawerClienteAberto} width={520} bodyStyle={{ background: "#0F172A" }} headerStyle={{ background: "#111827", borderColor: "#1E293B" }}>
+      <Drawer title="Novo Cliente" placement="right" onClose={() => setDrawerClienteAberto(false)} open={drawerClienteAberto} width={520} bodyStyle={{ background: "#F8FAFC" }} headerStyle={{ background: "#FFFFFF", borderColor: "#E2E8F0" }}>
         <Space direction="vertical" size={20} style={{ width: "100%" }}>
           <Card style={{ background: "#EBF2FB", border: "1px solid #BFDBFE", borderRadius: 8 }} bodyStyle={{ padding: 16 }}>
             <Text strong style={{ display: "block", marginBottom: 12 }}>CNPJ da empresa</Text>
