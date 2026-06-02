@@ -41,7 +41,7 @@ const { Text, Title, Paragraph } = Typography;
 
 const pageStyle = {
   minHeight: "100vh",
-  background: "#F4F6F9",
+  background: "#F8FAFC",
   padding: 24,
   fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
@@ -153,7 +153,7 @@ function SummaryCard({ color, icon, label, loading, value, monetaryValue, percen
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div style={{ flex: 1 }}>
             {/* Main value (count) */}
-            <div style={{ color: "#0F172A", fontSize: 32, fontWeight: 800, lineHeight: 1, marginBottom: 8 }}>
+            <div style={{ color: "#1E293B", fontSize: 32, fontWeight: 800, lineHeight: 1, marginBottom: 8 }}>
               {value}
             </div>
 
@@ -471,10 +471,10 @@ export default function OrcamentosPage() {
           `}
         </style>
 
-        {/* Dark hero header */}
+        {/* Light hero header */}
         <div
           style={{
-            background: "linear-gradient(135deg, #0F172A 0%, #1A2744 60%, #0F172A 100%)",
+            background: "linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 60%, #EFF6FF 100%)",
             borderRadius: 16,
             padding: "20px 28px",
             marginBottom: 24,
@@ -482,13 +482,14 @@ export default function OrcamentosPage() {
             alignItems: "center",
             justifyContent: "space-between",
             gap: 24,
+            border: "1px solid #E2E8F0",
           }}
         >
           <div>
-            <Title level={2} style={{ color: "#FFFFFF", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
+            <Title level={2} style={{ color: "#1E293B", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
               Orçamentos
             </Title>
-            <Text style={{ color: "#94A3B8", fontSize: 13 }}>Pipeline de propostas comerciais</Text>
+            <Text style={{ color: "#64748B", fontSize: 13 }}>Pipeline de propostas comerciais</Text>
           </div>
           <Space wrap>
             <Button
@@ -500,9 +501,9 @@ export default function OrcamentosPage() {
                 paddingRight: "18px",
                 fontWeight: 700,
                 borderRadius: "8px",
-                background: "#1E293B",
-                color: "#FFFFFF",
-                border: "1px solid #334155",
+                background: "#F1F5F9",
+                color: "#1E293B",
+                border: "1px solid #CBD5E1",
               }}
             >
               Inteligente
@@ -518,9 +519,10 @@ export default function OrcamentosPage() {
                 height: "40px",
                 paddingLeft: "20px",
                 paddingRight: "20px",
-                fontWeight: 500,
+                fontWeight: 600,
                 fontSize: "14px",
                 borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
               }}
             >
               Novo Orçamento
@@ -575,10 +577,10 @@ export default function OrcamentosPage() {
         {/* Pipeline Funnel Visualization */}
         <Card
           bordered={false}
-          style={{ ...panelStyle, background: "#0F172A", marginBottom: 24 }}
+          style={{ ...panelStyle, background: "#FFFFFF", marginBottom: 24 }}
           bodyStyle={{ padding: "24px" }}
         >
-          <h3 style={{ color: "#FFFFFF", fontSize: 14, fontWeight: 700, margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <h3 style={{ color: "#1E293B", fontSize: 14, fontWeight: 700, margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Pipeline Visual
           </h3>
           <div
@@ -595,7 +597,7 @@ export default function OrcamentosPage() {
             <div style={{ flex: "0.8 1", minWidth: 100, textAlign: "center", cursor: "pointer" }}>
               <div
                 style={{
-                  background: "linear-gradient(135deg, #64748B 0%, #475569 100%)",
+                  background: "linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%)",
                   borderRadius: 12,
                   padding: "16px 12px",
                   marginBottom: 12,
@@ -604,19 +606,20 @@ export default function OrcamentosPage() {
                   flexDirection: "column",
                   justifyContent: "flex-end",
                   transition: "transform 0.2s",
+                  border: "1px solid #D1D5DB",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
               >
-                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Rascunho</Text>
-                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                <Text style={{ color: "#6B7280", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Rascunho</Text>
+                <Text style={{ color: "#1F2937", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
                   {rows.filter((r) => mapBudgetStatus(r) === "rascunho").length}
                 </Text>
               </div>
             </div>
 
             {/* Arrow */}
-            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#64748B", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#CBD5E1", marginBottom: 12 }}>
               →
             </div>
 
@@ -624,7 +627,7 @@ export default function OrcamentosPage() {
             <div style={{ flex: "1.1 1", minWidth: 110, textAlign: "center", cursor: "pointer" }}>
               <div
                 style={{
-                  background: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
+                  background: "linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)",
                   borderRadius: 12,
                   padding: "16px 12px",
                   marginBottom: 12,
@@ -633,19 +636,20 @@ export default function OrcamentosPage() {
                   flexDirection: "column",
                   justifyContent: "flex-end",
                   transition: "transform 0.2s",
+                  border: "1px solid #93C5FD",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
               >
-                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Enviado</Text>
-                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                <Text style={{ color: "#1E40AF", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Enviado</Text>
+                <Text style={{ color: "#1E3A8A", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
                   {rows.filter((r) => mapBudgetStatus(r) === "enviado").length}
                 </Text>
               </div>
             </div>
 
             {/* Arrow */}
-            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#64748B", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#CBD5E1", marginBottom: 12 }}>
               →
             </div>
 
@@ -653,7 +657,7 @@ export default function OrcamentosPage() {
             <div style={{ flex: "1.4 1", minWidth: 130, textAlign: "center", cursor: "pointer" }}>
               <div
                 style={{
-                  background: "linear-gradient(135deg, #10B981 0%, #047857 100%)",
+                  background: "linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%)",
                   borderRadius: 12,
                   padding: "16px 12px",
                   marginBottom: 12,
@@ -662,19 +666,20 @@ export default function OrcamentosPage() {
                   flexDirection: "column",
                   justifyContent: "flex-end",
                   transition: "transform 0.2s",
+                  border: "1px solid #6EE7B7",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
               >
-                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Aprovado</Text>
-                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                <Text style={{ color: "#065F46", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Aprovado</Text>
+                <Text style={{ color: "#047857", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
                   {rows.filter((r) => mapBudgetStatus(r) === "aprovado").length}
                 </Text>
               </div>
             </div>
 
             {/* Arrow */}
-            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#64748B", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#CBD5E1", marginBottom: 12 }}>
               →
             </div>
 
@@ -682,7 +687,7 @@ export default function OrcamentosPage() {
             <div style={{ flex: "0.7 1", minWidth: 90, textAlign: "center", cursor: "pointer" }}>
               <div
                 style={{
-                  background: "linear-gradient(135deg, #B91C1C 0%, #7C2D12 100%)",
+                  background: "linear-gradient(135deg, #FECACA 0%, #FCA5A5 100%)",
                   borderRadius: 12,
                   padding: "16px 12px",
                   marginBottom: 12,
@@ -691,12 +696,13 @@ export default function OrcamentosPage() {
                   flexDirection: "column",
                   justifyContent: "flex-end",
                   transition: "transform 0.2s",
+                  border: "1px solid #F87171",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
               >
-                <Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Recusado</Text>
-                <Text style={{ color: "#E2E8F0", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                <Text style={{ color: "#7F1D1D", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Recusado</Text>
+                <Text style={{ color: "#991B1B", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
                   {rows.filter((r) => mapBudgetStatus(r) === "recusado").length}
                 </Text>
               </div>
