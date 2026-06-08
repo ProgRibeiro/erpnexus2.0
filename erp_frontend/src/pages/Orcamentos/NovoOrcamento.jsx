@@ -72,10 +72,10 @@ const stickyHeaderStyle = {
   position: "sticky",
   top: 0,
   zIndex: 12,
-  background: "linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 60%, #EFF6FF 100%)",
-  paddingBottom: 12,
-  marginBottom: 20,
+  background: "#FFFFFF",
+  marginBottom: 14,
   borderBottom: "1px solid #E2E8F0",
+  boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)",
 };
 
 const itemCardStyle = {
@@ -84,6 +84,74 @@ const itemCardStyle = {
   padding: 16,
   background: "#FFFFFF",
   color: "#1E293B",
+};
+
+const itemSectionHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 16,
+};
+
+const itemActionButtonStyle = {
+  borderRadius: 10,
+  height: 40,
+  fontWeight: 700,
+  borderColor: "#CBD5E1",
+  color: "#1E293B",
+  background: "#FFFFFF",
+};
+
+const quickTypeCardStyle = (active, color) => ({
+  width: "100%",
+  minHeight: 86,
+  border: `1px solid ${active ? color : "#E2E8F0"}`,
+  borderRadius: 12,
+  padding: 14,
+  background: active ? "#F8FAFC" : "#FFFFFF",
+  boxShadow: active ? "0 8px 20px rgba(15, 23, 42, 0.08)" : "none",
+  textAlign: "left",
+  cursor: "pointer",
+});
+
+const quickModalSectionStyle = {
+  border: "1px solid #E2E8F0",
+  borderRadius: 12,
+  padding: 16,
+  background: "#FFFFFF",
+};
+
+const compactPanelStyle = {
+  border: "1px solid #E2E8F0",
+  borderRadius: 12,
+  background: "#FFFFFF",
+  padding: 14,
+  height: "100%",
+};
+
+const compactPanelHeaderStyle = {
+  alignItems: "center",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 12,
+};
+
+const miniInfoStyle = {
+  background: "#F8FAFC",
+  border: "1px solid #E2E8F0",
+  borderRadius: 10,
+  padding: "9px 10px",
+  minHeight: 58,
+};
+
+const headerMetricStyle = {
+  background: "#FFFFFF",
+  border: "1px solid #E2E8F0",
+  borderRadius: 12,
+  padding: "10px 14px",
+  minWidth: 150,
 };
 
 function formatApiError(error, fallback = "Erro ao salvar.") {
@@ -177,6 +245,7 @@ export default function NovoOrcamento() {
   const isAdmin = ["admin", "gestor"].includes(String(user?.role || "").toLowerCase());
   const selectedClientId = Form.useWatch("cliente", form);
   const temPedidoCompra = Form.useWatch("tem_pedido_compra", form);
+  const quickItemValues = Form.useWatch([], quickItemForm) || {};
 
   const selectedClient = useMemo(
     () => clients.find((cliente) => String(cliente.id) === String(selectedClientId)),
@@ -188,6 +257,14 @@ export default function NovoOrcamento() {
     () => items.reduce((sum, item) => sum + Number(item.custo_terceiro || 0), 0),
     [items]
   );
+  const quickPreviewPrice = Number(
+    quickItemType === "produto" ? quickItemValues.preco_venda || 0 : quickItemValues.preco_padrao || 0
+  );
+  const quickPreviewCost = Number(quickItemValues.preco_custo || 0);
+  const quickPreviewMargin =
+    quickItemType === "produto" && quickPreviewPrice > 0
+      ? Math.max(0, ((quickPreviewPrice - quickPreviewCost) / quickPreviewPrice) * 100)
+      : null;
 
   useEffect(() => {
     form.setFieldsValue({
@@ -419,6 +496,21 @@ export default function NovoOrcamento() {
 
   const addManualItem = () => {
     setItems((current) => [...current, createEmptyItem(current.length)]);
+  };
+
+  const openQuickItemModal = (type = quickItemType) => {
+    setQuickItemType(type);
+    quickItemForm.resetFields();
+    quickItemForm.setFieldsValue({
+      unidade_medida: type === "produto" ? "un" : "uni",
+      categoria: form.getFieldValue("tipo_servico") || "manutencao",
+      tributacao: type === "servico" ? "iss" : undefined,
+      estoque_minimo: 0,
+      preco_custo: 0,
+      preco_venda: 0,
+      preco_padrao: 0,
+    });
+    setQuickItemModalOpen(true);
   };
 
   const addCatalogItem = () => {
@@ -736,13 +828,13 @@ export default function NovoOrcamento() {
   return (
     <div style={pageStyle}>
       <div style={stickyHeaderStyle}>
-        <div style={{ padding: "28px 32px", maxWidth: 1400, margin: "0 auto" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 24, alignItems: "center" }}>
+        <div style={{ padding: "14px 32px", maxWidth: 1480, margin: "0 auto" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
             <div>
-              <Title level={1} style={{ fontSize: 28, fontWeight: 900, margin: 0, color: "#1E293B" }}>
-                Novo Orçamento
+              <Title level={1} style={{ fontSize: 24, fontWeight: 900, margin: 0, color: "#1E293B" }}>
+                Orçamento técnico
               </Title>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
                 <Text style={{ color: "#3B82F6", fontWeight: 700, fontSize: 14 }}>{budgetNumber}</Text>
                 <Tag color="default" style={{ borderRadius: 999, paddingInline: 10, background: "#DDD6FE", color: "#7C3AED", borderColor: "#C4B5FD" }}>
                   Rascunho
@@ -750,9 +842,24 @@ export default function NovoOrcamento() {
               </div>
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
+            <Space size={10} wrap>
+              <div style={headerMetricStyle}>
+                <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Total</Text>
+                <div style={{ color: "#1E293B", fontSize: 18, fontWeight: 900 }}>
+                  {moneyFormatter.format(Number(impostos?.total_geral || totals.subtotal || 0))}
+                </div>
+              </div>
+              <div style={headerMetricStyle}>
+                <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Serviços</Text>
+                <div style={{ color: "#10B981", fontSize: 18, fontWeight: 900 }}>
+                  {moneyFormatter.format(totals.valorServicos)}
+                </div>
+              </div>
+            </Space>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "flex-end" }}>
               <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
-                Salvar rascunho
+                Salvar
               </Button>
               <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
                 Visualizar
@@ -780,128 +887,150 @@ export default function NovoOrcamento() {
       </div>
 
       <Form form={form} layout="vertical">
-        <Space direction="vertical" size={16} style={{ width: "100%", maxWidth: 1400, margin: "0 auto", paddingInline: 16 }}>
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0, color: "#1E293B" }}>Cliente</Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={14}>
-                <Form.Item label="Cliente" name="cliente" rules={[{ required: true, message: "Selecione o cliente" }]}>
-                  <Select
-                    showSearch
-                    optionFilterProp="label"
-                    placeholder="Selecione o cliente"
-                    options={clients.map((cliente) => ({
-                      label: `${cliente.nome_fantasia || cliente.nome}${cliente.cnpj_cpf ? ` - ${cliente.cnpj_cpf}` : ""}`,
-                      value: cliente.id,
-                    }))}
-                  />
-                </Form.Item>
+        <Space direction="vertical" size={14} style={{ width: "100%", maxWidth: 1480, margin: "0 auto", paddingInline: 16 }}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 14 }}>
+            <Row gutter={[12, 12]} align="stretch">
+              <Col xs={24} xl={8}>
+                <div style={compactPanelStyle}>
+                  <div style={compactPanelHeaderStyle}>
+                    <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Cliente</Text>
+                    <Button size="small" icon={<PlusOutlined />} onClick={() => setDrawerClienteAberto(true)} style={{ borderRadius: 8 }}>
+                      Novo
+                    </Button>
+                  </div>
+                  <Form.Item label="Cliente" name="cliente" rules={[{ required: true, message: "Selecione o cliente" }]} style={{ marginBottom: 10 }}>
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder="Selecione o cliente"
+                      options={clients.map((cliente) => ({
+                        label: `${cliente.nome_fantasia || cliente.nome}${cliente.cnpj_cpf ? ` - ${cliente.cnpj_cpf}` : ""}`,
+                        value: cliente.id,
+                      }))}
+                    />
+                  </Form.Item>
+                  <Row gutter={[8, 8]}>
+                    <Col xs={24} md={8}>
+                      <div style={miniInfoStyle}>
+                        <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>CNPJ</Text>
+                        <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.cnpj_cpf || "-"}</div>
+                      </div>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <div style={miniInfoStyle}>
+                        <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Telefone</Text>
+                        <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.telefone || "-"}</div>
+                      </div>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <div style={miniInfoStyle}>
+                        <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Email</Text>
+                        <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis" }}>{selectedClient?.email || "-"}</div>
+                      </div>
+                    </Col>
+                  </Row>
+                  <Form.Item label="Contato responsável" name="contato_responsavel" style={{ marginTop: 10, marginBottom: 0 }}>
+                    <Select
+                      allowClear
+                      placeholder="Selecione o contato"
+                      options={(selectedClient?.contatos || []).map((contato) => ({
+                        label: `${contato.nome}${contato.email ? ` - ${contato.email}` : ""}`,
+                        value: contato.id,
+                      }))}
+                    />
+                  </Form.Item>
+                </div>
               </Col>
-              <Col xs={24} lg={10} style={{ display: "flex", alignItems: "end" }}>
-                <Button icon={<PlusOutlined />} onClick={() => setDrawerClienteAberto(true)} style={btnPrimaryStyle}>
-                  Novo cliente
-                </Button>
+
+              <Col xs={24} xl={10}>
+                <div style={compactPanelStyle}>
+                  <div style={compactPanelHeaderStyle}>
+                    <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Escopo técnico</Text>
+                    <Tag color="blue" style={{ margin: 0, borderRadius: 999 }}>Proposta</Tag>
+                  </div>
+                  <Row gutter={[10, 8]}>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Tipo" name="tipo_servico" rules={[{ required: true, message: "Selecione o tipo" }]} style={{ marginBottom: 8 }}>
+                        <Select options={serviceOptions} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Prioridade" name="prioridade" rules={[{ required: true, message: "Selecione a prioridade" }]} style={{ marginBottom: 8 }}>
+                        <Select options={priorityOptions} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Validade" name="validade_orcamento" style={{ marginBottom: 8 }}>
+                        <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item label="Descrição do serviço" name="descricao_servico" rules={[{ required: true, message: "Descreva o serviço" }]} style={{ marginBottom: 8 }}>
+                        <TextArea rows={3} placeholder="Escopo objetivo, etapas técnicas, local, ativo/equipamento e premissas de execução" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item label="Observações e termos" name="observacoes" style={{ marginBottom: 0 }}>
+                        <TextArea rows={2} placeholder="Condições comerciais, garantia, exclusões, acesso, prazo e premissas" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
               </Col>
-              <Col xs={24} md={8}>
-                <Text strong>CNPJ</Text>
-                <div style={{ color: "#64748B", marginTop: 4 }}>{selectedClient?.cnpj_cpf || "-"}</div>
-              </Col>
-              <Col xs={24} md={8}>
-                <Text strong>Telefone</Text>
-                <div style={{ color: "#64748B", marginTop: 4 }}>{selectedClient?.telefone || "-"}</div>
-              </Col>
-              <Col xs={24} md={8}>
-                <Text strong>Email</Text>
-                <div style={{ color: "#64748B", marginTop: 4 }}>{selectedClient?.email || "-"}</div>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Form.Item label="Contato responsável" name="contato_responsavel">
-                  <Select
-                    allowClear
-                    placeholder="Selecione o contato"
-                    options={(selectedClient?.contatos || []).map((contato) => ({
-                      label: `${contato.nome}${contato.email ? ` - ${contato.email}` : ""}`,
-                      value: contato.id,
-                    }))}
-                  />
-                </Form.Item>
+
+              <Col xs={24} xl={6}>
+                <div style={compactPanelStyle}>
+                  <div style={compactPanelHeaderStyle}>
+                    <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Pedido de compra</Text>
+                    <Form.Item name="tem_pedido_compra" valuePropName="checked" style={{ margin: 0 }}>
+                      <Checkbox>Possui PC</Checkbox>
+                    </Form.Item>
+                  </div>
+                  <Row gutter={[10, 8]}>
+                    <Col xs={24}>
+                      <Form.Item label="Número PC" name="numero_pc" style={{ marginBottom: 8 }}>
+                        <Input disabled={!temPedidoCompra} placeholder="PC / PO" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} xl={24}>
+                      <Form.Item label="Valor autorizado" name="valor_autorizado_pc" style={{ marginBottom: 8 }}>
+                        <InputNumber disabled={!temPedidoCompra} min={0} step={0.01} prefix="R$" style={{ width: "100%" }} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} xl={24}>
+                      <Form.Item label="Validade PC" name="validade_pc" style={{ marginBottom: 0 }}>
+                        <DatePicker disabled={!temPedidoCompra} format="DD/MM/YYYY" style={{ width: "100%" }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
               </Col>
             </Row>
           </Card>
 
           <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0, color: "#1E293B" }}>Pedido de compra do cliente</Title>
-            <Form.Item name="tem_pedido_compra" valuePropName="checked" style={{ marginBottom: 12 }}>
-              <Checkbox>Cliente possui PC?</Checkbox>
-            </Form.Item>
-
-            {temPedidoCompra ? (
-              <Row gutter={[16, 16]}>
-                <Col xs={24} md={8}>
-                  <Form.Item label="Número PC" name="numero_pc">
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item label="Valor autorizado" name="valor_autorizado_pc">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item label="Validade" name="validade_pc">
-                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            ) : null}
-          </Card>
-
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0, color: "#1E293B" }}>Serviço</Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Form.Item label="Tipo de serviço" name="tipo_servico" rules={[{ required: true, message: "Selecione o tipo" }]}>
-                  <Select options={serviceOptions} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item label="Prioridade" name="prioridade" rules={[{ required: true, message: "Selecione a prioridade" }]}>
-                  <Select options={priorityOptions} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item label="Validade do orçamento" name="validade_orcamento">
-                  <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col xs={24}>
-                <Form.Item label="Descrição do serviço" name="descricao_servico" rules={[{ required: true, message: "Descreva o serviço" }]}>
-                  <TextArea rows={4} placeholder="Descreva o escopo do atendimento e o que será executado" />
-                </Form.Item>
-              </Col>
-              <Col xs={24}>
-                <Form.Item label="Observações e termos" name="observacoes">
-                  <TextArea rows={4} placeholder="Condições adicionais, premissas e termos comerciais" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
-
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
-            <Space style={{ justifyContent: "space-between", width: "100%", marginBottom: 16 }} wrap>
-              <Title level={4} style={{ margin: 0, color: "#FFFFFF" }}>Itens do orçamento</Title>
+            <div style={itemSectionHeaderStyle}>
+              <div>
+                <Title level={4} style={{ margin: 0, color: "#1E293B" }}>Itens do orçamento</Title>
+                <Text style={{ color: "#64748B" }}>
+                  Monte a composição comercial com serviços, produtos, custos internos e itens avulsos.
+                </Text>
+              </div>
               <Space wrap>
-                <Button icon={<ShoppingOutlined />} onClick={() => setCatalogModalOpen(true)}>
-                  Selecionar do catálogo
+                <Button icon={<ShoppingOutlined />} onClick={() => setCatalogModalOpen(true)} style={itemActionButtonStyle}>
+                  Catálogo
                 </Button>
-                <Button icon={<PlusOutlined />} onClick={() => setQuickItemModalOpen(true)}>
-                  Cadastrar item
+                <Button icon={<ToolOutlined />} onClick={() => openQuickItemModal("servico")} style={itemActionButtonStyle}>
+                  Novo serviço
                 </Button>
-                <Button icon={<ToolOutlined />} onClick={addManualItem}>
-                  Item avulso
+                <Button icon={<ShoppingOutlined />} onClick={() => openQuickItemModal("produto")} style={itemActionButtonStyle}>
+                  Novo produto
+                </Button>
+                <Button icon={<PlusOutlined />} onClick={addManualItem} style={{ ...itemActionButtonStyle, background: "#F8FAFC" }}>
+                  Avulso
                 </Button>
               </Space>
-            </Space>
+            </div>
 
             <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
               <Col xs={24} lg={6}>
@@ -1026,96 +1155,217 @@ export default function NovoOrcamento() {
 
       <Modal
         open={quickItemModalOpen}
-        title="Cadastrar item na página do orçamento"
+        title={null}
         okText="Salvar item"
         cancelText="Cancelar"
         onOk={saveQuickItem}
         confirmLoading={salvandoItemRapido}
+        width={860}
         onCancel={() => {
           setQuickItemModalOpen(false);
           quickItemForm.resetFields();
         }}
+        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 8, fontWeight: 700 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
       >
-        <Form form={quickItemForm} layout="vertical">
-          <Form.Item label="Tipo do item" style={{ marginBottom: 12 }}>
-            <Select
-              value={quickItemType}
-              onChange={(value) => {
-                setQuickItemType(value);
-                quickItemForm.resetFields();
-              }}
-              options={itemOriginOptions.filter((option) => option.value !== "avulso")}
-            />
-          </Form.Item>
-          <Row gutter={[12, 0]}>
-            <Col xs={24} md={16}>
-              <Form.Item name="nome" label="Nome" rules={[{ required: true, message: "Informe o nome" }]}>
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item
-                name="unidade_medida"
-                label="Unidade"
-                rules={[{ required: true, message: "Selecione a unidade" }]}
+        <Space direction="vertical" size={18} style={{ width: "100%" }}>
+          <div>
+            <Title level={4} style={{ margin: 0, color: "#1E293B" }}>
+              Cadastro rápido de item
+            </Title>
+            <Text style={{ color: "#64748B" }}>
+              O item será salvo no catálogo e já incluído neste orçamento.
+            </Text>
+          </div>
+
+          <Row gutter={[12, 12]}>
+            <Col xs={24} md={12}>
+              <button
+                type="button"
+                style={quickTypeCardStyle(quickItemType === "servico", "#3B82F6")}
+                onClick={() => {
+                  setQuickItemType("servico");
+                  quickItemForm.resetFields();
+                  quickItemForm.setFieldsValue({
+                    unidade_medida: "uni",
+                    categoria: form.getFieldValue("tipo_servico") || "manutencao",
+                    tributacao: "iss",
+                    preco_padrao: 0,
+                  });
+                }}
               >
-                <Select options={quickItemType === "produto" ? productUnitOptions : serviceUnitOptions} />
-              </Form.Item>
+                <Space align="start">
+                  <ToolOutlined style={{ color: "#3B82F6", fontSize: 22, marginTop: 2 }} />
+                  <div>
+                    <Text strong style={{ color: "#1E293B" }}>Serviço</Text>
+                    <div style={{ color: "#64748B", fontSize: 12, marginTop: 4 }}>
+                      Mão de obra, diagnóstico, instalação, visita técnica ou execução.
+                    </div>
+                  </div>
+                </Space>
+              </button>
             </Col>
-            <Col xs={24}>
-              <Form.Item name="descricao" label="Descrição">
-                <TextArea rows={3} />
-              </Form.Item>
+            <Col xs={24} md={12}>
+              <button
+                type="button"
+                style={quickTypeCardStyle(quickItemType === "produto", "#F59E0B")}
+                onClick={() => {
+                  setQuickItemType("produto");
+                  quickItemForm.resetFields();
+                  quickItemForm.setFieldsValue({
+                    unidade_medida: "un",
+                    estoque_minimo: 0,
+                    preco_custo: 0,
+                    preco_venda: 0,
+                  });
+                }}
+              >
+                <Space align="start">
+                  <ShoppingOutlined style={{ color: "#F59E0B", fontSize: 22, marginTop: 2 }} />
+                  <div>
+                    <Text strong style={{ color: "#1E293B" }}>Produto / material</Text>
+                    <div style={{ color: "#64748B", fontSize: 12, marginTop: 4 }}>
+                      Peças, insumos, materiais de aplicação e componentes vendidos.
+                    </div>
+                  </div>
+                </Space>
+              </button>
             </Col>
-            {quickItemType === "produto" ? (
-              <>
-                <Col xs={24} md={8}>
-                  <Form.Item name="preco_custo" label="Preço de custo">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="preco_venda" label="Preço de venda" rules={[{ required: true, message: "Informe o preço de venda" }]}>
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="estoque_minimo" label="Estoque mínimo">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24}>
-                  <Form.Item name="localizacao" label="Localização">
-                    <Input />
-                  </Form.Item>
-                </Col>
-              </>
-            ) : (
-              <>
-                <Col xs={24} md={8}>
-                  <Form.Item name="categoria" label="Categoria" rules={[{ required: true, message: "Selecione a categoria" }]}>
-                    <Select options={serviceOptions} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="preco_padrao" label="Preço padrão" rules={[{ required: true, message: "Informe o preço" }]}>
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="tributacao" label="Tributação" rules={[{ required: true, message: "Selecione a tributação" }]}>
-                    <Select options={tributacaoOptions} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24}>
-                  <Form.Item name="codigo_lc116" label="Código LC 116">
-                    <Input />
-                  </Form.Item>
-                </Col>
-              </>
-            )}
           </Row>
-        </Form>
+
+          <Form form={quickItemForm} layout="vertical">
+            <Row gutter={[16, 16]}>
+              <Col xs={24} lg={16}>
+                <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                  <div style={quickModalSectionStyle}>
+                    <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                      Identificação
+                    </Text>
+                    <Row gutter={[12, 0]}>
+                      <Col xs={24} md={16}>
+                        <Form.Item name="nome" label="Nome do item" rules={[{ required: true, message: "Informe o nome" }]}>
+                          <Input placeholder={quickItemType === "produto" ? "Ex.: Capacitor 35+5 uF" : "Ex.: Diagnóstico técnico de split"} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={8}>
+                        <Form.Item
+                          name="unidade_medida"
+                          label="Unidade"
+                          rules={[{ required: true, message: "Selecione a unidade" }]}
+                        >
+                          <Select options={quickItemType === "produto" ? productUnitOptions : serviceUnitOptions} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24}>
+                        <Form.Item name="descricao" label="Descrição técnica / comercial">
+                          <TextArea
+                            rows={4}
+                            placeholder="Detalhe o que será entregue, aplicado ou executado. Esse texto ajuda o orçamento a ficar mais claro para o cliente."
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {quickItemType === "produto" ? (
+                    <div style={quickModalSectionStyle}>
+                      <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                        Produto, estoque e localização
+                      </Text>
+                      <Row gutter={[12, 0]}>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="preco_custo" label="Preço de custo">
+                            <InputNumber min={0} step={0.01} prefix="R$" style={{ width: "100%" }} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="preco_venda" label="Preço de venda" rules={[{ required: true, message: "Informe o preço de venda" }]}>
+                            <InputNumber min={0} step={0.01} prefix="R$" style={{ width: "100%" }} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="estoque_minimo" label="Estoque mínimo">
+                            <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="localizacao" label="Localização no estoque">
+                            <Input placeholder="Ex.: Prateleira A3, veículo técnico, almoxarifado central" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </div>
+                  ) : (
+                    <div style={quickModalSectionStyle}>
+                      <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                        Serviço e tributação
+                      </Text>
+                      <Row gutter={[12, 0]}>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="categoria" label="Categoria" rules={[{ required: true, message: "Selecione a categoria" }]}>
+                            <Select options={serviceOptions} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="preco_padrao" label="Preço padrão" rules={[{ required: true, message: "Informe o preço" }]}>
+                            <InputNumber min={0} step={0.01} prefix="R$" style={{ width: "100%" }} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <Form.Item name="tributacao" label="Tributação" rules={[{ required: true, message: "Selecione a tributação" }]}>
+                            <Select options={tributacaoOptions} />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item name="codigo_lc116" label="Código LC 116">
+                            <Input placeholder="Ex.: 14.01, 7.02, 17.01" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </div>
+                  )}
+                </Space>
+              </Col>
+
+              <Col xs={24} lg={8}>
+                <div style={{ ...quickModalSectionStyle, background: "#F8FAFC", height: "100%" }}>
+                  <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                    Prévia do item
+                  </Text>
+                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <div style={itemCardStyle}>
+                      <Text type="secondary">Tipo</Text>
+                      <div style={{ fontWeight: 900, color: quickItemType === "produto" ? "#B45309" : "#1D4ED8", marginTop: 4 }}>
+                        {quickItemType === "produto" ? "Produto / material" : "Serviço"}
+                      </div>
+                    </div>
+                    <div style={itemCardStyle}>
+                      <Text type="secondary">Preço que entra no orçamento</Text>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", marginTop: 4 }}>
+                        {moneyFormatter.format(quickPreviewPrice)}
+                      </div>
+                    </div>
+                    {quickItemType === "produto" ? (
+                      <div style={itemCardStyle}>
+                        <Text type="secondary">Margem estimada</Text>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: "#10B981", marginTop: 4 }}>
+                          {quickPreviewMargin === null ? "0%" : `${quickPreviewMargin.toFixed(1)}%`}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={itemCardStyle}>
+                        <Text type="secondary">Uso recomendado</Text>
+                        <div style={{ color: "#475569", marginTop: 4 }}>
+                          Diagnóstico, visita, manutenção, instalação ou execução técnica.
+                        </div>
+                      </div>
+                    )}
+                  </Space>
+                </div>
+              </Col>
+            </Row>
+          </Form>
+        </Space>
       </Modal>
 
       <Drawer title="Novo Cliente" placement="right" onClose={() => setDrawerClienteAberto(false)} open={drawerClienteAberto} width={520} bodyStyle={{ background: "#F8FAFC" }} headerStyle={{ background: "#FFFFFF", borderColor: "#E2E8F0" }}>

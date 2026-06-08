@@ -9,19 +9,24 @@ import {
   Empty,
   Input,
   Modal,
+  Progress,
   Row,
   Select,
   Skeleton,
   Space,
   Table,
+  Tag,
   Tooltip,
   Typography,
   message,
 } from "antd";
 import {
+  AppstoreOutlined,
+  AuditOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  DollarOutlined,
   EditOutlined,
   EyeOutlined,
   FilePdfOutlined,
@@ -30,6 +35,8 @@ import {
   RiseOutlined,
   SearchOutlined,
   ThunderboltOutlined,
+  ToolOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
@@ -72,6 +79,26 @@ const statusColorMap = {
   aprovado: { label: "Aprovado", color: "#15803D", background: "#DCFCE7" },
   recusado: { label: "Recusado", color: "#B91C1C", background: "#FEE2E2" },
   expirado: { label: "Expirado", color: "#C2410C", background: "#FFEDD5" },
+};
+
+const serviceTypeMap = {
+  hvac: "HVAC",
+  refrigeracao: "Refrigeração",
+  eletrica: "Elétrica",
+  civil: "Civil",
+  manutencao: "Manutenção",
+  instalacao: "Instalação",
+  outro: "Outro",
+};
+
+const serviceColorMap = {
+  hvac: "blue",
+  refrigeracao: "cyan",
+  eletrica: "gold",
+  civil: "volcano",
+  manutencao: "green",
+  instalacao: "purple",
+  outro: "default",
 };
 
 function normalizeList(data) {
@@ -124,6 +151,50 @@ function getClientName(record) {
 function getDescription(record) {
   const description = firstDefined(record?.descricao_servico, record?.observacoes_tecnicas, "Sem descrição");
   return String(description);
+}
+
+function getServiceType(record) {
+  const type = String(firstDefined(record?.tipo_servico, "outro")).toLowerCase();
+  return {
+    raw: type,
+    label: serviceTypeMap[type] || type,
+    color: serviceColorMap[type] || "default",
+  };
+}
+
+function getValueBreakdown(record) {
+  const servicos = Number(firstDefined(record?.valor_servicos, 0));
+  const materiais = Number(firstDefined(record?.valor_materiais, 0));
+  const totalImpostos = Number(record?.dados_impostos?.total_impostos || record?.total_com_impostos || 0) - getValue(record);
+  return {
+    servicos: Number.isFinite(servicos) ? servicos : 0,
+    materiais: Number.isFinite(materiais) ? materiais : 0,
+    impostos: Number.isFinite(totalImpostos) && totalImpostos > 0 ? totalImpostos : 0,
+  };
+}
+
+function getValidityMeta(record) {
+  const validade = record?.validade_orcamento ? dayjs(record.validade_orcamento) : null;
+  if (!validade?.isValid()) return { label: "Sem validade", color: "#64748B", background: "#F1F5F9", days: null };
+  const days = validade.endOf("day").diff(dayjs().startOf("day"), "day");
+  if (days < 0) return { label: `Vencido há ${Math.abs(days)}d`, color: "#B91C1C", background: "#FEE2E2", days };
+  if (days <= 3) return { label: `${days}d para vencer`, color: "#C2410C", background: "#FFEDD5", days };
+  if (days <= 7) return { label: `${days}d de validade`, color: "#A16207", background: "#FEF3C7", days };
+  return { label: `${days}d de validade`, color: "#15803D", background: "#DCFCE7", days };
+}
+
+function getTechnicalScore(record) {
+  let score = 0;
+  const description = getDescription(record);
+  const breakdown = getValueBreakdown(record);
+  if (description.length >= 80) score += 25;
+  if (record?.tipo_servico) score += 15;
+  if (Number(record?.valor_servicos || 0) > 0) score += 15;
+  if (Number(record?.valor_materiais || 0) > 0 || breakdown.materiais > 0) score += 15;
+  if (record?.validade_orcamento) score += 10;
+  if (record?.condicao_pagamento) score += 10;
+  if (record?.observacoes_tecnicas) score += 10;
+  return Math.min(score, 100);
 }
 
 function getStatusMeta(status) {
@@ -296,12 +367,18 @@ export default function OrcamentosPage() {
       recusados: 0,
       recusadosTotal: 0,
       conversao: 0,
+      valorTecnico: 0,
+      materiais: 0,
+      vencendo: 0,
+      scoreMedio: 0,
     };
 
     rows.forEach((record) => {
       const status = mapBudgetStatus(record);
       const criadoEm = record?.criado_em ? dayjs(record.criado_em) : null;
       const value = getValue(record);
+      const breakdown = getValueBreakdown(record);
+      const validity = getValidityMeta(record);
 
       if (["rascunho", "enviado", "expirado"].includes(status)) {
         result.pendentes += 1;
@@ -315,10 +392,15 @@ export default function OrcamentosPage() {
         result.recusados += 1;
         result.recusadosTotal += value;
       }
+      result.valorTecnico += value;
+      result.materiais += breakdown.materiais;
+      if (validity.days !== null && validity.days <= 7) result.vencendo += 1;
+      result.scoreMedio += getTechnicalScore(record);
     });
 
     const decididos = result.aprovados + result.recusados;
     result.conversao = decididos > 0 ? Math.round((result.aprovados / decididos) * 100) : 0;
+    result.scoreMedio = rows.length ? Math.round(result.scoreMedio / rows.length) : 0;
     return result;
   }, [rows]);
 
@@ -361,50 +443,114 @@ export default function OrcamentosPage() {
 
   const columns = [
     {
-      title: "Número",
+      title: "Orçamento",
       key: "numero",
-      width: 170,
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={(event) => {
-            event.stopPropagation();
-            navigate(`/orcamentos/${record.id}`);
-          }}
-          style={{ color: "#3B82F6", fontWeight: 800, padding: 0 }}
-        >
-          {getBudgetNumber(record)}
-        </Button>
-      ),
+      width: 210,
+      render: (_, record) => {
+        const type = getServiceType(record);
+        return (
+          <Space direction="vertical" size={6}>
+            <Button
+              type="link"
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/orcamentos/${record.id}`);
+              }}
+              style={{ color: "#3B82F6", fontWeight: 900, padding: 0, height: "auto" }}
+            >
+              {getBudgetNumber(record)}
+            </Button>
+            <Space size={6} wrap>
+              <Tag color={type.color} style={{ margin: 0, borderRadius: 999 }}>{type.label}</Tag>
+              <Text style={{ color: "#64748B", fontSize: 12 }}>
+                #{record.id}
+              </Text>
+            </Space>
+          </Space>
+        );
+      },
     },
     {
       title: "Cliente",
       key: "cliente",
-      render: (_, record) => <Text strong>{getClientName(record)}</Text>,
-    },
-    {
-      title: "Descrição resumida do serviço",
-      key: "descricao",
-      ellipsis: true,
+      width: 210,
       render: (_, record) => (
-        <Paragraph ellipsis={{ rows: 1 }} style={{ marginBottom: 0, maxWidth: 380 }}>
-          {getDescription(record)}
-        </Paragraph>
+        <Space direction="vertical" size={2}>
+          <Text strong style={{ color: "#0F172A" }}>{getClientName(record)}</Text>
+          <Text style={{ color: "#64748B", fontSize: 12 }}>
+            {record?.condicao_pagamento || "Condição a definir"}
+          </Text>
+        </Space>
       ),
     },
     {
-      title: "Valor total",
-      key: "valor_total",
-      align: "right",
-      width: 140,
-      render: (_, record) => <Text strong>{moneyFormatter.format(getValue(record))}</Text>,
+      title: "Escopo técnico",
+      key: "descricao",
+      width: 360,
+      render: (_, record) => (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 0, maxWidth: 360, color: "#334155" }}>
+            {getDescription(record)}
+          </Paragraph>
+          <Progress
+            percent={getTechnicalScore(record)}
+            size="small"
+            showInfo={false}
+            strokeColor={getTechnicalScore(record) >= 70 ? "#10B981" : getTechnicalScore(record) >= 45 ? "#F59E0B" : "#EF4444"}
+          />
+          <Text style={{ color: "#64748B", fontSize: 12 }}>
+            Completude técnica: {getTechnicalScore(record)}%
+          </Text>
+        </Space>
+      ),
     },
     {
-      title: "Validade",
+      title: "Composição",
+      key: "composicao",
+      width: 210,
+      render: (_, record) => {
+        const breakdown = getValueBreakdown(record);
+        return (
+          <Space direction="vertical" size={3}>
+            <Text strong style={{ color: "#0F172A" }}>{moneyFormatter.format(getValue(record))}</Text>
+            <Text style={{ color: "#64748B", fontSize: 12 }}>
+              Serviços: {moneyFormatter.format(breakdown.servicos)}
+            </Text>
+            <Text style={{ color: "#64748B", fontSize: 12 }}>
+              Materiais: {moneyFormatter.format(breakdown.materiais)}
+            </Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Validade técnica",
       dataIndex: "validade_orcamento",
       key: "validade_orcamento",
-      width: 130,
-      render: (value) => (value ? dayjs(value).format("DD/MM/YYYY") : "-"),
+      width: 160,
+      render: (_, record) => {
+        const validity = getValidityMeta(record);
+        return (
+          <Space direction="vertical" size={4}>
+            <span
+              style={{
+                background: validity.background,
+                borderRadius: 999,
+                color: validity.color,
+                display: "inline-flex",
+                fontSize: 12,
+                fontWeight: 800,
+                padding: "5px 10px",
+              }}
+            >
+              {validity.label}
+            </span>
+            <Text style={{ color: "#64748B", fontSize: 12 }}>
+              {record?.validade_orcamento ? dayjs(record.validade_orcamento).format("DD/MM/YYYY") : "Sem data"}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: "Status",
@@ -471,10 +617,9 @@ export default function OrcamentosPage() {
           `}
         </style>
 
-        {/* Light hero header */}
         <div
           style={{
-            background: "linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 60%, #EFF6FF 100%)",
+            background: "#FFFFFF",
             borderRadius: 16,
             padding: "20px 28px",
             marginBottom: 24,
@@ -487,9 +632,11 @@ export default function OrcamentosPage() {
         >
           <div>
             <Title level={2} style={{ color: "#1E293B", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-              Orçamentos
+              Central Técnica de Orçamentos
             </Title>
-            <Text style={{ color: "#64748B", fontSize: 13 }}>Pipeline de propostas comerciais</Text>
+            <Text style={{ color: "#64748B", fontSize: 13 }}>
+              Controle de escopo, composição técnica, validade e conversão de propostas.
+            </Text>
           </div>
           <Space wrap>
             <Button
@@ -506,7 +653,7 @@ export default function OrcamentosPage() {
                 border: "1px solid #CBD5E1",
               }}
             >
-              Inteligente
+              Modelo técnico
             </Button>
             <Button
               type="primary"
@@ -525,7 +672,7 @@ export default function OrcamentosPage() {
                 boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
               }}
             >
-              Novo Orçamento
+              Novo orçamento
             </Button>
           </Space>
         </div>
@@ -535,7 +682,7 @@ export default function OrcamentosPage() {
             <SummaryCard
               color="#D97706"
               icon={<ClockCircleOutlined style={{ fontSize: 22 }} />}
-              label="Pendentes"
+              label="Pendentes técnicos"
               loading={loading}
               value={summary.pendentes}
               monetaryValue={moneyFormatter.format(summary.pendentesTotal)}
@@ -546,7 +693,7 @@ export default function OrcamentosPage() {
             <SummaryCard
               color="#15803D"
               icon={<CheckCircleOutlined style={{ fontSize: 22 }} />}
-              label="Aprovados este mês"
+              label="Aprovados no mês"
               loading={loading}
               value={summary.aprovados}
               monetaryValue={moneyFormatter.format(summary.aprovadosTotal)}
@@ -556,7 +703,7 @@ export default function OrcamentosPage() {
             <SummaryCard
               color="#B91C1C"
               icon={<CloseCircleOutlined style={{ fontSize: 22 }} />}
-              label="Recusados"
+              label="Recusados / cancelados"
               loading={loading}
               value={summary.recusados}
               monetaryValue={moneyFormatter.format(summary.recusadosTotal)}
@@ -566,7 +713,7 @@ export default function OrcamentosPage() {
             <SummaryCard
               color="#3B82F6"
               icon={<RiseOutlined style={{ fontSize: 22 }} />}
-              label="Taxa de conversão"
+              label="Conversão técnica"
               loading={loading}
               value={`${summary.conversao}%`}
               percentage={summary.conversao}
@@ -574,140 +721,68 @@ export default function OrcamentosPage() {
           </Col>
         </Row>
 
-        {/* Pipeline Funnel Visualization */}
         <Card
           bordered={false}
           style={{ ...panelStyle, background: "#FFFFFF", marginBottom: 24 }}
           bodyStyle={{ padding: "24px" }}
         >
-          <h3 style={{ color: "#1E293B", fontSize: 14, fontWeight: 700, margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Pipeline Visual
-          </h3>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              alignItems: "flex-end",
-              justifyContent: "space-around",
-              minHeight: 140,
-              flexWrap: "wrap",
-            }}
-          >
-            {/* Rascunho */}
-            <div style={{ flex: "0.8 1", minWidth: 100, textAlign: "center", cursor: "pointer" }}>
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%)",
-                  borderRadius: 12,
-                  padding: "16px 12px",
-                  marginBottom: 12,
-                  minHeight: 80,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  transition: "transform 0.2s",
-                  border: "1px solid #D1D5DB",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-              >
-                <Text style={{ color: "#6B7280", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Rascunho</Text>
-                <Text style={{ color: "#1F2937", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
-                  {rows.filter((r) => mapBudgetStatus(r) === "rascunho").length}
-                </Text>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <div>
+              <Text style={{ color: "#0F172A", fontSize: 14, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Painel técnico
+              </Text>
+              <div style={{ color: "#64748B", marginTop: 4 }}>
+                Leitura rápida dos pontos que travam aprovação: validade, materiais, escopo e completude.
               </div>
             </div>
 
-            {/* Arrow */}
-            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#CBD5E1", marginBottom: 12 }}>
-              →
-            </div>
-
-            {/* Enviado */}
-            <div style={{ flex: "1.1 1", minWidth: 110, textAlign: "center", cursor: "pointer" }}>
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)",
-                  borderRadius: 12,
-                  padding: "16px 12px",
-                  marginBottom: 12,
-                  minHeight: 100,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  transition: "transform 0.2s",
-                  border: "1px solid #93C5FD",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-              >
-                <Text style={{ color: "#1E40AF", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Enviado</Text>
-                <Text style={{ color: "#1E3A8A", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
-                  {rows.filter((r) => mapBudgetStatus(r) === "enviado").length}
-                </Text>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#CBD5E1", marginBottom: 12 }}>
-              →
-            </div>
-
-            {/* Aprovado */}
-            <div style={{ flex: "1.4 1", minWidth: 130, textAlign: "center", cursor: "pointer" }}>
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%)",
-                  borderRadius: 12,
-                  padding: "16px 12px",
-                  marginBottom: 12,
-                  minHeight: 120,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  transition: "transform 0.2s",
-                  border: "1px solid #6EE7B7",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-              >
-                <Text style={{ color: "#065F46", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Aprovado</Text>
-                <Text style={{ color: "#047857", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
-                  {rows.filter((r) => mapBudgetStatus(r) === "aprovado").length}
-                </Text>
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <div style={{ display: "flex", alignItems: "center", fontSize: 20, color: "#CBD5E1", marginBottom: 12 }}>
-              →
-            </div>
-
-            {/* Recusado */}
-            <div style={{ flex: "0.7 1", minWidth: 90, textAlign: "center", cursor: "pointer" }}>
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #FECACA 0%, #FCA5A5 100%)",
-                  borderRadius: 12,
-                  padding: "16px 12px",
-                  marginBottom: 12,
-                  minHeight: 60,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  transition: "transform 0.2s",
-                  border: "1px solid #F87171",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-              >
-                <Text style={{ color: "#7F1D1D", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Recusado</Text>
-                <Text style={{ color: "#991B1B", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
-                  {rows.filter((r) => mapBudgetStatus(r) === "recusado").length}
-                </Text>
-              </div>
-            </div>
-          </div>
+            <Row gutter={[12, 12]}>
+              <Col xs={24} lg={6}>
+                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+                  <Space align="start">
+                    <WarningOutlined style={{ color: "#F59E0B", fontSize: 22, marginTop: 2 }} />
+                    <div>
+                      <Text type="secondary">Vencendo em até 7 dias</Text>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A" }}>{summary.vencendo}</div>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} lg={6}>
+                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+                  <Space align="start">
+                    <AuditOutlined style={{ color: "#10B981", fontSize: 22, marginTop: 2 }} />
+                    <div>
+                      <Text type="secondary">Completude média</Text>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A" }}>{summary.scoreMedio}%</div>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} lg={6}>
+                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+                  <Space align="start">
+                    <DollarOutlined style={{ color: "#3B82F6", fontSize: 22, marginTop: 2 }} />
+                    <div>
+                      <Text type="secondary">Carteira técnica</Text>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>{moneyFormatter.format(summary.valorTecnico)}</div>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} lg={6}>
+                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+                  <Space align="start">
+                    <AppstoreOutlined style={{ color: "#8B5CF6", fontSize: 22, marginTop: 2 }} />
+                    <div>
+                      <Text type="secondary">Materiais previstos</Text>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>{moneyFormatter.format(summary.materiais)}</div>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+          </Space>
         </Card>
 
         <Card bordered={false} style={{ ...panelStyle, marginBottom: 16 }} bodyStyle={{ padding: 16 }}>
@@ -716,7 +791,7 @@ export default function OrcamentosPage() {
               <Input
                 allowClear
                 prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-                placeholder="Busca por número ou cliente"
+                placeholder="Buscar por número, cliente ou escopo"
                 value={filters.busca}
                 onChange={(event) => setFilters((current) => ({ ...current, busca: event.target.value }))}
                 style={{ borderRadius: 8, height: 40 }}
@@ -801,7 +876,7 @@ export default function OrcamentosPage() {
                 showSizeChanger: false,
                 onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
               }}
-              scroll={{ x: 1040 }}
+                scroll={{ x: 1280 }}
             />
           </Skeleton>
         </Card>

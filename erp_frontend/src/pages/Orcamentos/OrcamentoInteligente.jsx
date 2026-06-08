@@ -11,6 +11,7 @@ import {
   Select,
   Space,
   Table,
+  Tabs,
   Tag,
   Typography,
   Upload,
@@ -18,10 +19,15 @@ import {
 } from "antd";
 import {
   ArrowLeftOutlined,
+  BuildOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
+  ExperimentOutlined,
   FileSearchOutlined,
   InboxOutlined,
+  SafetyCertificateOutlined,
   ThunderboltOutlined,
+  ToolOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -41,6 +47,30 @@ function buildFormData(values, files) {
   files.forEach((file) => {
     formData.append("fotos", file.originFileObj || file);
   });
+
+  [
+    "disciplina_tecnica",
+    "tipo_intervencao",
+    "prioridade_tecnica",
+    "local_atendimento",
+    "ativo_equipamento",
+    "equipamento_marca",
+    "equipamento_modelo",
+    "equipamento_tag",
+    "capacidade_equipamento",
+    "sintomas",
+    "diagnostico_preliminar",
+    "escopo_tecnico",
+    "materiais_previstos",
+    "medicoes",
+    "condicoes_acesso",
+    "criterios_aceite",
+    "prazo_execucao",
+    "garantia",
+  ].forEach((field) => {
+    formData.append(field, values[field] || "");
+  });
+
   return formData;
 }
 
@@ -55,6 +85,151 @@ function formatTipo(tipo) {
     outro: "Outro",
   };
   return map[tipo] || tipo || "-";
+}
+
+const disciplinaOptions = [
+  { label: "HVAC / Climatização", value: "hvac" },
+  { label: "Refrigeração comercial", value: "refrigeracao" },
+  { label: "Elétrica", value: "eletrica" },
+  { label: "Civil / Acabamento", value: "civil" },
+  { label: "Manutenção geral", value: "manutencao" },
+  { label: "Instalação", value: "instalacao" },
+  { label: "Outro", value: "outro" },
+];
+
+const tipoIntervencaoOptions = [
+  { label: "Diagnóstico", value: "diagnostico" },
+  { label: "Corretiva", value: "corretiva" },
+  { label: "Preventiva", value: "preventiva" },
+  { label: "Instalação", value: "instalacao" },
+  { label: "Substituição", value: "substituicao" },
+  { label: "Adequação", value: "adequacao" },
+  { label: "Laudo técnico", value: "laudo" },
+];
+
+const prioridadeTecnicaOptions = [
+  { label: "Programada", value: "media" },
+  { label: "Alta", value: "alta" },
+  { label: "Emergencial", value: "urgente" },
+];
+
+const technicalTemplates = [
+  {
+    key: "hvac-corretiva",
+    label: "HVAC corretiva",
+    values: {
+      disciplina_tecnica: "hvac",
+      tipo_intervencao: "corretiva",
+      prioridade_tecnica: "alta",
+      ativo_equipamento: "Sistema de climatização / split",
+      sintomas: "Baixa performance térmica, gotejamento, ruído anormal ou falha intermitente informada pelo cliente.",
+      diagnostico_preliminar: "Necessário diagnóstico em evaporadora, condensadora, dreno, alimentação elétrica e parâmetros de operação.",
+      escopo_tecnico:
+        "Inspecionar evaporadora e condensadora; verificar dreno, filtros, serpentina, ventiladores e conexões elétricas; realizar testes de tensão, corrente, temperatura de insuflamento/retorno e operação final.",
+      materiais_previstos: "Produtos de limpeza técnica, abraçadeiras, mangueira de dreno, isolante térmico, terminais elétricos e peças conforme diagnóstico.",
+      medicoes: "Tensão, corrente, temperatura de retorno, temperatura de insuflamento, diferencial térmico e condição visual das serpentinas.",
+      condicoes_acesso: "Confirmar acesso à evaporadora, condensadora, ponto elétrico e liberação do ambiente para teste operacional.",
+      criterios_aceite: "Equipamento operando sem vazamento aparente, drenagem normal, diferencial térmico validado e teste funcional aprovado.",
+      prazo_execucao: "Até 2 dias úteis após aprovação e disponibilidade de acesso.",
+      garantia: "90 dias para mão de obra executada, conforme condições de uso e escopo aprovado.",
+    },
+  },
+  {
+    key: "refrigeracao",
+    label: "Refrigeração",
+    values: {
+      disciplina_tecnica: "refrigeracao",
+      tipo_intervencao: "corretiva",
+      prioridade_tecnica: "urgente",
+      ativo_equipamento: "Câmara fria / balcão refrigerado / freezer",
+      sintomas: "Temperatura fora da faixa, formação excessiva de gelo, compressor armando/desarmando ou equipamento parado.",
+      diagnostico_preliminar: "Verificar sistema frigorífico, degelo, ventilação interna, vedação, controle de temperatura e alimentação elétrica.",
+      escopo_tecnico:
+        "Inspecionar unidade condensadora e evaporadora; testar controlador, sensores, ventiladores, degelo e compressor; medir temperatura, tensão, corrente e pressão quando aplicável.",
+      materiais_previstos: "Sensor, controlador, contator, relé, fluido refrigerante, filtro secador, isolantes e componentes conforme diagnóstico.",
+      medicoes: "Temperatura interna, setpoint, tensão, corrente, pressão de sucção/descarga quando aplicável e ciclo de degelo.",
+      condicoes_acesso: "Necessária liberação do equipamento, acesso à casa de máquinas e janela para teste sem abertura constante de portas.",
+      criterios_aceite: "Temperatura em tendência de estabilização, controlador operando, ventilação normal e ciclo de refrigeração validado.",
+      prazo_execucao: "Atendimento prioritário conforme janela operacional do cliente.",
+      garantia: "90 dias para mão de obra; peças conforme garantia do fabricante.",
+    },
+  },
+  {
+    key: "eletrica",
+    label: "Elétrica",
+    values: {
+      disciplina_tecnica: "eletrica",
+      tipo_intervencao: "adequacao",
+      prioridade_tecnica: "alta",
+      ativo_equipamento: "Quadro elétrico / circuito / ponto de alimentação",
+      sintomas: "Disjuntor desarmando, aquecimento, falta de alimentação, tomada sem tensão ou necessidade de adequação.",
+      diagnostico_preliminar: "Inspeção de carga, proteção, cabeamento, conexões, aterramento e compatibilidade do circuito.",
+      escopo_tecnico:
+        "Identificar circuito; medir tensão e corrente; avaliar proteção; reapertar conexões quando aplicável; substituir componente danificado; testar energização e registrar condição final.",
+      materiais_previstos: "Disjuntores, cabos, conectores, terminais, tomadas, eletrodutos, identificação e acessórios conforme diagnóstico.",
+      medicoes: "Tensão fase-neutro/fase-fase, corrente do circuito, continuidade, condição visual dos condutores e aquecimento aparente.",
+      condicoes_acesso: "Pode exigir desligamento parcial, acesso ao quadro e autorização do responsável local.",
+      criterios_aceite: "Circuito energizado com proteção compatível, conexões seguras, sem aquecimento aparente e teste funcional aprovado.",
+      prazo_execucao: "Conforme janela de desligamento autorizada pelo cliente.",
+      garantia: "90 dias para mão de obra executada.",
+    },
+  },
+  {
+    key: "civil",
+    label: "Civil",
+    values: {
+      disciplina_tecnica: "civil",
+      tipo_intervencao: "corretiva",
+      prioridade_tecnica: "media",
+      ativo_equipamento: "Área civil / acabamento / infraestrutura",
+      sintomas: "Infiltração, trinca, dano em acabamento, porta desalinhada, forro danificado ou adequação solicitada.",
+      diagnostico_preliminar: "Avaliar causa provável, extensão da área afetada, material existente e interferências com operação do ambiente.",
+      escopo_tecnico:
+        "Isolar área; preparar superfície; executar correção civil; aplicar acabamento compatível; limpar área; registrar antes/depois e liberar para conferência.",
+      materiais_previstos: "Massa, argamassa, tinta, gesso, silicone, parafusos, ferragens, revestimentos e insumos conforme vistoria.",
+      medicoes: "Área estimada, dimensão do trecho afetado, nível de acabamento, cor/referência e necessidade de proteção do ambiente.",
+      condicoes_acesso: "Confirmar horário permitido, isolamento da área, proteção de mobiliário e restrição de ruído/poeira.",
+      criterios_aceite: "Acabamento regular, área limpa, correção funcional validada e fotos finais anexadas.",
+      prazo_execucao: "Conforme secagem de materiais e liberação do ambiente.",
+      garantia: "90 dias para mão de obra, exceto reincidência por causa externa não tratada.",
+    },
+  },
+];
+
+const sectionTitleStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  color: "#0F172A",
+  fontSize: 15,
+  fontWeight: 800,
+  marginBottom: 12,
+};
+
+const sectionStyle = {
+  border: "1px solid #E2E8F0",
+  borderRadius: 10,
+  padding: 16,
+  background: "#FFFFFF",
+};
+
+const metricStyle = {
+  border: "1px solid #E2E8F0",
+  borderRadius: 10,
+  padding: "12px 14px",
+  background: "#F8FAFC",
+};
+
+function Section({ icon, title, children }) {
+  return (
+    <div style={sectionStyle}>
+      <div style={sectionTitleStyle}>
+        {icon}
+        {title}
+      </div>
+      {children}
+    </div>
+  );
 }
 
 export default function OrcamentoInteligente() {
@@ -126,6 +301,215 @@ export default function OrcamentoInteligente() {
     [clientes],
   );
 
+  const watchedValues = Form.useWatch([], form) || {};
+  const filledTechnicalFields = [
+    "disciplina_tecnica",
+    "tipo_intervencao",
+    "local_atendimento",
+    "ativo_equipamento",
+    "sintomas",
+    "diagnostico_preliminar",
+    "escopo_tecnico",
+    "materiais_previstos",
+    "medicoes",
+    "criterios_aceite",
+  ].filter((field) => String(watchedValues[field] || "").trim()).length;
+  const technicalCompleteness = Math.round((filledTechnicalFields / 10) * 100);
+
+  function aplicarModelo(values) {
+    form.setFieldsValue(values);
+    message.success("Modelo técnico aplicado.");
+  }
+
+  const briefingPreview = [
+    watchedValues.tipo_intervencao && tipoIntervencaoOptions.find((item) => item.value === watchedValues.tipo_intervencao)?.label,
+    watchedValues.ativo_equipamento,
+    watchedValues.local_atendimento && `em ${watchedValues.local_atendimento}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const formTabs = [
+    {
+      key: "diagnostico",
+      label: "Diagnóstico",
+      children: (
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Section icon={<FileSearchOutlined style={{ color: "#3B82F6" }} />} title="Pedido e contexto">
+            <Row gutter={12}>
+              <Col xs={24} md={12}>
+                <Form.Item name="cliente" label="Cliente" rules={[{ required: true, message: "Selecione um cliente." }]}>
+                  <Select
+                    showSearch
+                    allowClear
+                    filterOption={false}
+                    loading={clientesLoading}
+                    options={clienteOptions}
+                    placeholder="Selecione o cliente"
+                    onSearch={buscarClientes}
+                    style={{ width: "100%" }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="disciplina_tecnica" label="Disciplina">
+                  <Select options={disciplinaOptions} placeholder="Área técnica" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="tipo_intervencao" label="Intervenção">
+                  <Select options={tipoIntervencaoOptions} placeholder="Tipo" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={12}>
+              <Col xs={24} md={8}>
+                <Form.Item name="prioridade_tecnica" label="Prioridade">
+                  <Select options={prioridadeTecnicaOptions} placeholder="Programada" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={16}>
+                <Form.Item name="local_atendimento" label="Local / ambiente">
+                  <Input placeholder="Loja, sala, casa de máquinas, cobertura, área técnica" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item
+              name="descricao"
+              label="Solicitação do cliente"
+              rules={[{ required: true, message: "Informe a solicitação do cliente." }]}
+            >
+              <TextArea rows={4} placeholder="Pedido original do cliente, contexto comercial e restrições conhecidas." />
+            </Form.Item>
+          </Section>
+
+          <Section icon={<BuildOutlined style={{ color: "#10B981" }} />} title="Ativo técnico">
+            <Row gutter={12}>
+              <Col xs={24} md={10}>
+                <Form.Item name="ativo_equipamento" label="Ativo / equipamento">
+                  <Input placeholder="Split hi-wall, câmara fria, QGBT, porta, forro" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="capacidade_equipamento" label="Capacidade / carga">
+                  <Input placeholder="24.000 BTU, 5 TR, 220 V" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={4}>
+                <Form.Item name="equipamento_marca" label="Marca">
+                  <Input placeholder="Marca" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={4}>
+                <Form.Item name="equipamento_modelo" label="Modelo">
+                  <Input placeholder="Modelo" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={12}>
+              <Col xs={24} md={8}>
+                <Form.Item name="equipamento_tag" label="Tag / série">
+                  <Input placeholder="AC-03, QD-01, série" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={16}>
+                <Form.Item name="sintomas" label="Sintomas observados">
+                  <TextArea rows={3} placeholder="Falha relatada, comportamento do equipamento, recorrência e impacto operacional." />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Section>
+        </Space>
+      ),
+    },
+    {
+      key: "escopo",
+      label: "Escopo",
+      children: (
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Section icon={<ToolOutlined style={{ color: "#F59E0B" }} />} title="Diagnóstico e execução">
+            <Form.Item name="diagnostico_preliminar" label="Diagnóstico preliminar">
+              <TextArea rows={4} placeholder="Hipótese técnica, componentes suspeitos e verificações necessárias." />
+            </Form.Item>
+            <Form.Item name="escopo_tecnico" label="Escopo técnico proposto">
+              <TextArea rows={6} placeholder="Etapas objetivas da execução, testes, desmontagens, correções, recomissionamento e registro fotográfico." />
+            </Form.Item>
+          </Section>
+
+          <Section icon={<ExperimentOutlined style={{ color: "#8B5CF6" }} />} title="Materiais e medições">
+            <Form.Item name="materiais_previstos" label="Materiais, peças e insumos previstos">
+              <TextArea rows={4} placeholder="Peças, consumíveis, ferramentas especiais e itens que podem variar após diagnóstico." />
+            </Form.Item>
+            <Form.Item name="medicoes" label="Medições e parâmetros técnicos">
+              <TextArea rows={4} placeholder="Tensão, corrente, pressão, temperatura, área, dimensão, setpoint, diferencial térmico ou outros parâmetros." />
+            </Form.Item>
+          </Section>
+        </Space>
+      ),
+    },
+    {
+      key: "comercial",
+      label: "Condições",
+      children: (
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Section icon={<SafetyCertificateOutlined style={{ color: "#0EA5E9" }} />} title="Aceite e premissas">
+            <Row gutter={12}>
+              <Col xs={24} md={12}>
+                <Form.Item name="condicoes_acesso" label="Condições de acesso">
+                  <TextArea rows={4} placeholder="Escada, altura, desligamento, área isolada, horário especial, liberação de loja ou acompanhamento." />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="criterios_aceite" label="Critérios de aceite">
+                  <TextArea rows={4} placeholder="Condição técnica final que valida a entrega para cliente e operação." />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={12}>
+              <Col xs={24} md={12}>
+                <Form.Item name="prazo_execucao" label="Prazo de execução">
+                  <Input placeholder="Até 2 dias úteis, janela noturna, após chegada de peça" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item name="garantia" label="Garantia técnica">
+                  <Input placeholder="90 dias para mão de obra, peças conforme fabricante" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Section>
+
+          <Section icon={<InboxOutlined style={{ color: "#64748B" }} />} title="Evidências e origem">
+            <Form.Item name="email_texto" label="Texto do e-mail / WhatsApp">
+              <TextArea rows={4} placeholder="Mensagem original do cliente, aprovação interna, solicitação do shopping ou histórico relevante." />
+            </Form.Item>
+            <Form.Item name="observacoes_foto" label="Observações das fotos">
+              <TextArea rows={3} placeholder="O que aparece nas imagens: vazamento, oxidação, dano, acesso, etiqueta, componente afetado." />
+            </Form.Item>
+
+            <Dragger
+              multiple
+              accept="image/*"
+              fileList={files}
+              beforeUpload={() => false}
+              onChange={({ fileList }) => setFiles(fileList)}
+              style={{ borderRadius: 10, background: "#F8FAFC" }}
+            >
+              <p className="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
+              <p className="ant-upload-text">Fotos do chamado</p>
+            </Dragger>
+          </Section>
+        </Space>
+      ),
+    },
+  ];
+
   const columns = [
     {
       title: "Origem",
@@ -177,111 +561,128 @@ export default function OrcamentoInteligente() {
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} />
           <div>
             <Title level={1} style={{ margin: 0, fontSize: 24, color: "#1E293B" }}>
-              Orçamento Inteligente
+              Modelo Técnico de Orçamento
             </Title>
-            <Text style={{ color: "#6B7280" }}>Motor local integrado a clientes, serviços, estoque e financeiro</Text>
+            <Text style={{ color: "#64748B" }}>Diagnóstico, escopo, materiais, medições, aceite e condições comerciais</Text>
           </div>
         </Space>
-        <Button
-          type="primary"
-          icon={<ThunderboltOutlined />}
-          loading={criando}
-          disabled={!sugestao}
-          onClick={criarOrcamento}
-          style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700 }}
-        >
-          Criar orçamento
-        </Button>
+        <Space wrap>
+          <Button
+            icon={<FileSearchOutlined />}
+            loading={analisando}
+            onClick={analisar}
+            style={{ borderRadius: 8, fontWeight: 700 }}
+          >
+            Analisar
+          </Button>
+          <Button
+            type="primary"
+            icon={<ThunderboltOutlined />}
+            loading={criando}
+            disabled={!sugestao}
+            onClick={criarOrcamento}
+            style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700 }}
+          >
+            Criar orçamento
+          </Button>
+        </Space>
       </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} xl={10}>
-          <Card bordered={false} style={panelStyle} title="Entrada">
+      <Row gutter={[16, 16]} align="top">
+        <Col xs={24} xl={6}>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card bordered={false} style={panelStyle} title="Modelos rápidos">
+              <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                {technicalTemplates.map((template) => (
+                  <Button
+                    key={template.key}
+                    block
+                    icon={<ToolOutlined />}
+                    onClick={() => aplicarModelo(template.values)}
+                    style={{
+                      justifyContent: "flex-start",
+                      height: 42,
+                      borderRadius: 8,
+                      color: "#0F172A",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {template.label}
+                  </Button>
+                ))}
+              </Space>
+            </Card>
+
+            <Card bordered={false} style={panelStyle} title="Resumo do briefing">
+              <Space direction="vertical" size={14} style={{ width: "100%" }}>
+                <div style={metricStyle}>
+                  <Text type="secondary">Completude técnica</Text>
+                  <Progress percent={technicalCompleteness} size="small" strokeColor="#3B82F6" />
+                </div>
+                <div style={metricStyle}>
+                  <Text type="secondary">Modelo</Text>
+                  <div style={{ color: "#0F172A", fontWeight: 800, marginTop: 4 }}>
+                    {formatTipo(watchedValues.disciplina_tecnica) || "Sem disciplina"}
+                  </div>
+                </div>
+                <div style={metricStyle}>
+                  <Text type="secondary">Chamada técnica</Text>
+                  <Paragraph style={{ margin: "6px 0 0", color: "#334155" }}>
+                    {briefingPreview || "Aguardando dados do ativo e intervenção."}
+                  </Paragraph>
+                </div>
+              </Space>
+            </Card>
+          </Space>
+        </Col>
+
+        <Col xs={24} xl={12}>
+          <Card bordered={false} style={panelStyle} title="Preenchimento técnico">
             <Form form={form} layout="vertical">
-              <Form.Item name="cliente" label="Cliente" rules={[{ required: true, message: "Selecione um cliente." }]}>
-                <Select
-                  showSearch
-                  allowClear
-                  filterOption={false}
-                  loading={clientesLoading}
-                  options={clienteOptions}
-                  placeholder="Selecione o cliente"
-                  onSearch={buscarClientes}
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="descricao"
-                label="Descrição do pedido"
-                rules={[{ required: true, message: "Informe uma descrição para o motor trabalhar." }]}
-              >
-                <TextArea rows={5} placeholder="Ex.: limpeza de 2 splits, um deles com vazamento no dreno" />
-              </Form.Item>
-
-              <Form.Item name="email_texto" label="Texto do e-mail">
-                <TextArea rows={5} placeholder="Cole aqui o e-mail do cliente" />
-              </Form.Item>
-
-              <Form.Item name="observacoes_foto" label="Observações da foto">
-                <TextArea rows={3} placeholder="Ex.: condensadora oxidada, evaporadora pingando, quadro com disjuntor desarmado" />
-              </Form.Item>
-
-              <Dragger
-                multiple
-                accept="image/*"
-                fileList={files}
-                beforeUpload={() => false}
-                onChange={({ fileList }) => setFiles(fileList)}
-                style={{ borderRadius: 10 }}
-              >
-                <p className="ant-upload-drag-icon">
-                  <InboxOutlined />
-                </p>
-                <p className="ant-upload-text">Fotos do chamado</p>
-              </Dragger>
-
+              <Tabs items={formTabs} />
               <Button
                 block
                 type="primary"
                 icon={<FileSearchOutlined />}
                 loading={analisando}
                 onClick={analisar}
-                style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, marginTop: 16 }}
+                style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, height: 42, marginTop: 8 }}
               >
-                Analisar e sugerir
+                Gerar sugestão técnica
               </Button>
             </Form>
           </Card>
         </Col>
 
-        <Col xs={24} xl={14}>
-          <Card bordered={false} style={panelStyle} title="Sugestão">
+        <Col xs={24} xl={6}>
+          <Card bordered={false} style={panelStyle} title="Prévia gerada">
             {!sugestao ? (
-              <div style={{ padding: "44px 12px", textAlign: "center", color: "#6B7280" }}>
-                <ThunderboltOutlined style={{ color: "#3B82F6", fontSize: 34, marginBottom: 12 }} />
-                <Paragraph style={{ margin: 0 }}>Preencha os dados e gere uma sugestão.</Paragraph>
+              <div style={{ padding: "36px 8px", color: "#64748B" }}>
+                <ThunderboltOutlined style={{ color: "#3B82F6", fontSize: 32, marginBottom: 12 }} />
+                <Paragraph style={{ margin: 0 }}>
+                  A prévia técnica aparece após a análise.
+                </Paragraph>
               </div>
             ) : (
               <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                <Row gutter={[12, 12]}>
-                  <Col xs={24} md={8}>
-                    <Card size="small" bordered style={{ borderRadius: 10 }}>
+                <Row gutter={[8, 8]}>
+                  <Col span={12}>
+                    <div style={metricStyle}>
                       <Text type="secondary">Tipo</Text>
-                      <div style={{ fontSize: 18, fontWeight: 800 }}>{formatTipo(sugestao.tipo_servico)}</div>
-                    </Card>
+                      <div style={{ fontSize: 16, fontWeight: 800 }}>{formatTipo(sugestao.tipo_servico)}</div>
+                    </div>
                   </Col>
-                  <Col xs={24} md={8}>
-                    <Card size="small" bordered style={{ borderRadius: 10 }}>
-                      <Text type="secondary">Subtotal</Text>
-                      <div style={{ fontSize: 18, fontWeight: 800 }}>{moneyFormatter.format(Number(sugestao.subtotal || 0))}</div>
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <Card size="small" bordered style={{ borderRadius: 10 }}>
+                  <Col span={12}>
+                    <div style={metricStyle}>
                       <Text type="secondary">Confiança</Text>
-                      <Progress percent={Number(sugestao.confianca || 0)} size="small" strokeColor="#3B82F6" />
-                    </Card>
+                      <div style={{ fontSize: 16, fontWeight: 800 }}>{Number(sugestao.confianca || 0)}%</div>
+                    </div>
+                  </Col>
+                  <Col span={24}>
+                    <div style={metricStyle}>
+                      <Text type="secondary">Subtotal</Text>
+                      <div style={{ fontSize: 18, fontWeight: 900 }}>{moneyFormatter.format(Number(sugestao.subtotal || 0))}</div>
+                    </div>
                   </Col>
                 </Row>
 
@@ -289,26 +690,47 @@ export default function OrcamentoInteligente() {
                   type="info"
                   showIcon
                   icon={<CheckCircleOutlined />}
-                  message={sugestao.descricao_servico}
-                  description="O orçamento será criado como rascunho para revisão antes do envio ao cliente."
+                  message="Escopo técnico"
+                  description={<Paragraph style={{ margin: 0, whiteSpace: "pre-line" }}>{sugestao.descricao_servico}</Paragraph>}
                 />
+
+                {sugestao.briefing_tecnico && Object.keys(sugestao.briefing_tecnico).length > 0 && (
+                  <div style={sectionStyle}>
+                    <div style={sectionTitleStyle}>
+                      <ClockCircleOutlined style={{ color: "#3B82F6" }} />
+                      Briefing aplicado
+                    </div>
+                    <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                      {Object.entries(sugestao.briefing_tecnico).map(([key, value]) => (
+                        <div key={key} style={{ borderBottom: "1px solid #E2E8F0", paddingBottom: 6 }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>{key}</Text>
+                          <div style={{ color: "#0F172A", fontWeight: 700 }}>{value}</div>
+                        </div>
+                      ))}
+                    </Space>
+                  </div>
+                )}
 
                 {sugestao.avisos?.map((aviso) => (
                   <Alert key={aviso} type="warning" showIcon message={aviso} />
                 ))}
-
-                <Table
-                  columns={columns}
-                  dataSource={sugestao.itens || []}
-                  rowKey={(record, index) => `${record.origem_tipo}-${record.codigo_referencia}-${index}`}
-                  pagination={false}
-                  scroll={{ x: 760 }}
-                />
               </Space>
             )}
           </Card>
         </Col>
       </Row>
+
+      {sugestao && (
+        <Card bordered={false} style={{ ...panelStyle, marginTop: 16 }} title="Composição sugerida">
+          <Table
+            columns={columns}
+            dataSource={sugestao.itens || []}
+            rowKey={(record, index) => `${record.origem_tipo}-${record.codigo_referencia}-${index}`}
+            pagination={false}
+            scroll={{ x: 760 }}
+          />
+        </Card>
+      )}
     </div>
   );
 }

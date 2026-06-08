@@ -204,7 +204,7 @@ import RelatoriosPage from "@/pages/Financeiro/Relatorios";
 ## Estilos e Design
 
 - **Cores Principais**:
-  - Azul: #1B4F8A (primary)
+  - Azul: #3B82F6 (primary)
   - Verde: #16a34a (positive/receita)
   - Vermelho: #dc2626 (negative/despesa)
   - Laranja: #EA8C55 (warning)

@@ -271,22 +271,56 @@ class MotorOrcamentoInteligente:
         "dreno": ["dreno", "mangueira"],
     }
 
-    def analisar(self, *, descricao="", email_texto="", observacoes_foto="", arquivos=None, cliente=None):
+    TECHNICAL_LABELS = {
+        "disciplina_tecnica": "Disciplina",
+        "tipo_intervencao": "Tipo de intervenção",
+        "prioridade_tecnica": "Prioridade técnica",
+        "local_atendimento": "Local de atendimento",
+        "ativo_equipamento": "Ativo/equipamento",
+        "equipamento_marca": "Marca",
+        "equipamento_modelo": "Modelo",
+        "equipamento_tag": "Tag/série",
+        "capacidade_equipamento": "Capacidade/carga",
+        "sintomas": "Sintomas observados",
+        "diagnostico_preliminar": "Diagnóstico preliminar",
+        "escopo_tecnico": "Escopo técnico previsto",
+        "materiais_previstos": "Materiais/insumos previstos",
+        "medicoes": "Medições/referências",
+        "condicoes_acesso": "Condições de acesso",
+        "criterios_aceite": "Critérios de aceite",
+        "prazo_execucao": "Prazo de execução",
+        "garantia": "Garantia técnica",
+    }
+
+    TIPO_INTERVENCAO_LABELS = {
+        "diagnostico": "Diagnóstico técnico",
+        "corretiva": "Manutenção corretiva",
+        "preventiva": "Manutenção preventiva",
+        "instalacao": "Instalação",
+        "substituicao": "Substituição",
+        "adequacao": "Adequação técnica",
+        "laudo": "Laudo técnico",
+    }
+
+    def analisar(self, *, descricao="", email_texto="", observacoes_foto="", arquivos=None, cliente=None, dados_tecnicos=None):
         arquivos = arquivos or []
+        dados_tecnicos = self._limpar_dados_tecnicos(dados_tecnicos or {})
+        texto_tecnico = self._texto_dados_tecnicos(dados_tecnicos)
         texto_base = "\n".join(
-            parte for parte in [descricao, email_texto, observacoes_foto, self._texto_dos_arquivos(arquivos)] if parte
+            parte for parte in [descricao, texto_tecnico, email_texto, observacoes_foto, self._texto_dos_arquivos(arquivos)] if parte
         )
         texto_normalizado = self._normalizar(texto_base)
         tokens = self._tokens(texto_normalizado)
-        quantidade_base = self._inferir_quantidade(texto_normalizado)
-        tipo_servico = self._inferir_tipo_servico(texto_normalizado)
-        prioridade = self._inferir_prioridade(texto_normalizado)
+        quantidade_base = self._inferir_quantidade(texto_normalizado, dados_tecnicos)
+        tipo_servico = dados_tecnicos.get("disciplina_tecnica") or self._inferir_tipo_servico(texto_normalizado)
+        prioridade = dados_tecnicos.get("prioridade_tecnica") or self._inferir_prioridade(texto_normalizado)
         memoria = MemoriaMotorInteligente().aplicar_em_orcamento(texto_base)
         tipo_servico = memoria.get("tipo_servico") or tipo_servico
         prioridade = memoria.get("prioridade") or prioridade
 
         itens = self._montar_itens(tokens, texto_normalizado, quantidade_base, tipo_servico)
-        itens = self._aplicar_itens_memoria(itens, memoria, quantidade_base)
+        itens = self._aplicar_itens_tecnicos(itens, dados_tecnicos, texto_normalizado, quantidade_base)
+        itens = self._aplicar_itens_memoria(itens, memoria, quantidade_base, dados_tecnicos)
         if not itens:
             itens.append(self._item_avulso(
                 descricao="Diagnóstico técnico e elaboração de orçamento",
@@ -297,8 +331,8 @@ class MotorOrcamentoInteligente:
             ))
 
         subtotal = sum(Decimal(str(item["quantidade"])) * Decimal(str(item["valor_unitario"])) for item in itens)
-        confianca = self._calcular_confianca(tokens, itens, arquivos, cliente)
-        resumo = self._montar_resumo(texto_base, tipo_servico, itens)
+        confianca = self._calcular_confianca(tokens, itens, arquivos, cliente, dados_tecnicos)
+        resumo = self._montar_resumo(texto_base, tipo_servico, itens, dados_tecnicos)
 
         return {
             "entrada": {
@@ -307,6 +341,7 @@ class MotorOrcamentoInteligente:
                 "observacoes_foto": observacoes_foto,
                 "arquivos": [getattr(arquivo, "name", "arquivo") for arquivo in arquivos],
             },
+            "briefing_tecnico": self._briefing_tecnico_rotulado(dados_tecnicos),
             "cliente": getattr(cliente, "id", None),
             "tipo_servico": tipo_servico,
             "prioridade": prioridade,
@@ -323,10 +358,89 @@ class MotorOrcamentoInteligente:
             },
         }
 
-    def _aplicar_itens_memoria(self, itens, memoria, quantidade_base):
+    def _limpar_dados_tecnicos(self, dados_tecnicos):
+        return {
+            chave: str(dados_tecnicos.get(chave) or "").strip()
+            for chave in self.TECHNICAL_LABELS
+            if str(dados_tecnicos.get(chave) or "").strip()
+        }
+
+    def _briefing_tecnico_rotulado(self, dados_tecnicos):
+        briefing = {}
+        for chave, valor in dados_tecnicos.items():
+            label = self.TECHNICAL_LABELS.get(chave, chave)
+            if chave == "tipo_intervencao":
+                valor = self.TIPO_INTERVENCAO_LABELS.get(valor, valor)
+            if chave == "disciplina_tecnica":
+                valor = dict(Servico.Categoria.choices).get(valor, valor)
+            if chave == "prioridade_tecnica":
+                valor = {"media": "Programada", "alta": "Alta", "urgente": "Emergencial"}.get(valor, valor)
+            briefing[label] = valor
+        return briefing
+
+    def _texto_dados_tecnicos(self, dados_tecnicos):
+        briefing = self._briefing_tecnico_rotulado(dados_tecnicos)
+        return "\n".join(f"{label}: {valor}" for label, valor in briefing.items())
+
+    def _aplicar_itens_tecnicos(self, itens, dados_tecnicos, texto_normalizado, quantidade_base):
+        if dados_tecnicos.get("diagnostico_preliminar") and not self._item_com_descricao(itens, "diagnostico"):
+            itens.insert(0, self._item_avulso(
+                descricao="Diagnóstico técnico, testes operacionais e emissão de parecer",
+                quantidade=Decimal("1"),
+                valor_unitario=Decimal("280.00"),
+                ordem=0,
+                motivo="Incluído pelo diagnóstico preliminar informado no briefing técnico.",
+            ))
+
+        if dados_tecnicos.get("escopo_tecnico") and not self._item_com_descricao(itens, "execucao"):
+            itens.append(self._item_avulso(
+                descricao="Execução técnica conforme escopo detalhado",
+                quantidade=quantidade_base,
+                valor_unitario=self._preco_historico("Execução técnica conforme escopo detalhado", Decimal("420.00")),
+                ordem=len(itens),
+                motivo="Incluído pelo escopo técnico previsto no briefing.",
+            ))
+
+        if dados_tecnicos.get("medicoes") and not self._item_com_descricao(itens, "medicao"):
+            itens.append(self._item_avulso(
+                descricao="Medições, testes de funcionamento e comissionamento",
+                quantidade=Decimal("1"),
+                valor_unitario=Decimal("180.00"),
+                ordem=len(itens),
+                motivo="Incluído pelas medições/referências técnicas informadas.",
+            ))
+
+        if any(chave in texto_normalizado for chave in ["altura", "telhado", "andaime", "escada", "fora do horario", "difícil acesso", "dificil acesso"]):
+            itens.append(self._item_avulso(
+                descricao="Mobilização técnica e condições especiais de acesso",
+                quantidade=Decimal("1"),
+                valor_unitario=Decimal("220.00"),
+                ordem=len(itens),
+                motivo="Incluído por condição de acesso ou mobilização especial.",
+            ))
+
+        for index, item in enumerate(itens):
+            item["ordem"] = index
+        return itens
+
+    def _item_com_descricao(self, itens, termo):
+        termo = self._normalizar(termo)
+        return any(termo in self._normalizar(item.get("descricao", "")) for item in itens)
+
+    def _aplicar_itens_memoria(self, itens, memoria, quantidade_base, dados_tecnicos=None):
+        dados_tecnicos = dados_tecnicos or {}
+        disciplina = dados_tecnicos.get("disciplina_tecnica")
         existentes_servicos = {item.get("servico") for item in itens if item.get("servico")}
         existentes_produtos = {item.get("produto") for item in itens if item.get("produto")}
         for tipo, obj, conhecimento in memoria.get("itens", [])[:4]:
+            if (
+                tipo == "servico"
+                and disciplina
+                and disciplina != "outro"
+                and getattr(obj, "categoria", "")
+                and obj.categoria != disciplina
+            ):
+                continue
             if tipo == "servico" and obj.id not in existentes_servicos:
                 itens.insert(0, self._item_servico(
                     obj,
@@ -474,13 +588,19 @@ class MotorOrcamentoInteligente:
             "motivo_sugestao": motivo,
         }
 
-    def _inferir_quantidade(self, texto):
+    def _inferir_quantidade(self, texto, dados_tecnicos=None):
+        dados_tecnicos = dados_tecnicos or {}
+        texto_com_capacidade = " ".join([
+            texto,
+            dados_tecnicos.get("ativo_equipamento", ""),
+            dados_tecnicos.get("capacidade_equipamento", ""),
+        ])
         patterns = [
             r"(\d+)\s*(?:x\s*)?(?:ar(?:es)?|split(?:s)?|maquina(?:s)?|máquina(?:s)?|equipamento(?:s)?)",
             r"(?:qtd|quantidade)\s*[:\-]?\s*(\d+)",
         ]
         for pattern in patterns:
-            match = re.search(pattern, texto, re.IGNORECASE)
+            match = re.search(pattern, texto_com_capacidade, re.IGNORECASE)
             if match:
                 return Decimal(match.group(1))
         return Decimal("1")
@@ -499,7 +619,24 @@ class MotorOrcamentoInteligente:
             return "alta"
         return "media"
 
-    def _montar_resumo(self, texto_base, tipo_servico, itens):
+    def _montar_resumo(self, texto_base, tipo_servico, itens, dados_tecnicos=None):
+        dados_tecnicos = dados_tecnicos or {}
+        if dados_tecnicos:
+            partes = []
+            intervencao = self.TIPO_INTERVENCAO_LABELS.get(dados_tecnicos.get("tipo_intervencao"), "Atendimento técnico")
+            ativo = dados_tecnicos.get("ativo_equipamento") or "ativo/equipamento informado"
+            local = dados_tecnicos.get("local_atendimento")
+            partes.append(f"{intervencao} em {ativo}{f' - {local}' if local else ''}.")
+            if dados_tecnicos.get("sintomas"):
+                partes.append(f"Sintomas relatados: {dados_tecnicos['sintomas']}.")
+            if dados_tecnicos.get("diagnostico_preliminar"):
+                partes.append(f"Diagnóstico preliminar: {dados_tecnicos['diagnostico_preliminar']}.")
+            if dados_tecnicos.get("escopo_tecnico"):
+                partes.append(f"Escopo técnico previsto: {dados_tecnicos['escopo_tecnico']}.")
+            if dados_tecnicos.get("criterios_aceite"):
+                partes.append(f"Critérios de aceite: {dados_tecnicos['criterios_aceite']}.")
+            return "\n".join(partes)[:1200]
+
         primeira_linha = next((linha.strip() for linha in str(texto_base or "").splitlines() if linha.strip()), "")
         if primeira_linha:
             return primeira_linha[:500]
@@ -507,7 +644,8 @@ class MotorOrcamentoInteligente:
         tipo = dict(Servico.Categoria.choices).get(tipo_servico, "serviço")
         return f"Orçamento inteligente para {tipo}: {descricoes}"
 
-    def _calcular_confianca(self, tokens, itens, arquivos, cliente):
+    def _calcular_confianca(self, tokens, itens, arquivos, cliente, dados_tecnicos=None):
+        dados_tecnicos = dados_tecnicos or {}
         score = 20
         if tokens:
             score += min(30, len(tokens) * 2)
@@ -521,6 +659,14 @@ class MotorOrcamentoInteligente:
             historico = ItemOrcamento.objects.filter(os__cliente=cliente).aggregate(total=Count("id"))["total"] or 0
             if historico:
                 score += min(10, historico)
+        campos_tecnicos_fortes = [
+            "ativo_equipamento",
+            "sintomas",
+            "diagnostico_preliminar",
+            "escopo_tecnico",
+            "criterios_aceite",
+        ]
+        score += min(15, sum(3 for campo in campos_tecnicos_fortes if dados_tecnicos.get(campo)))
         return min(score, 95)
 
     def _avisos(self, confianca, arquivos, texto_base):

@@ -170,13 +170,50 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     def _dados_motor_orcamento(self, request):
         arquivos = request.FILES.getlist("fotos") or request.FILES.getlist("foto") or request.FILES.getlist("arquivos")
+        campos_tecnicos = [
+            "disciplina_tecnica",
+            "tipo_intervencao",
+            "prioridade_tecnica",
+            "local_atendimento",
+            "ativo_equipamento",
+            "equipamento_marca",
+            "equipamento_modelo",
+            "equipamento_tag",
+            "capacidade_equipamento",
+            "sintomas",
+            "diagnostico_preliminar",
+            "escopo_tecnico",
+            "materiais_previstos",
+            "medicoes",
+            "condicoes_acesso",
+            "criterios_aceite",
+            "prazo_execucao",
+            "garantia",
+        ]
         return {
             "descricao": request.data.get("descricao", ""),
             "email_texto": request.data.get("email_texto", ""),
             "observacoes_foto": request.data.get("observacoes_foto", ""),
             "arquivos": arquivos,
             "cliente": self._get_cliente_motor(request),
+            "dados_tecnicos": {
+                campo: request.data.get(campo, "")
+                for campo in campos_tecnicos
+                if request.data.get(campo, "")
+            },
         }
+
+    def _observacoes_tecnicas_motor(self, sugestao):
+        linhas = [
+            "Orçamento gerado pelo motor inteligente local.",
+            f"Confiança: {sugestao['confianca']}%. Revisar antes de enviar ao cliente.",
+        ]
+        briefing = sugestao.get("briefing_tecnico") or {}
+        if briefing:
+            linhas.append("")
+            linhas.append("Briefing técnico:")
+            linhas.extend(f"- {label}: {valor}" for label, valor in briefing.items())
+        return "\n".join(linhas)
 
     @action(detail=False, methods=["post"], url_path="motor-orcamento/analisar")
     def motor_orcamento_analisar(self, request):
@@ -216,10 +253,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 descricao_servico=sugestao["descricao_servico"],
                 condicao_pagamento=request.data.get("condicao_pagamento", "A combinar"),
                 validade_orcamento=timezone.localdate() + timedelta(days=15),
-                observacoes_tecnicas=(
-                    "Orçamento gerado pelo motor inteligente local. "
-                    f"Confiança: {sugestao['confianca']}%. Revisar antes de enviar ao cliente."
-                ),
+                equipamento_marca=dados["dados_tecnicos"].get("equipamento_marca", ""),
+                equipamento_modelo=dados["dados_tecnicos"].get("equipamento_modelo", ""),
+                equipamento_serie=dados["dados_tecnicos"].get("equipamento_tag", ""),
+                observacoes_tecnicas=self._observacoes_tecnicas_motor(sugestao),
                 criado_por=request.user if request.user.is_authenticated else None,
                 atualizado_por=request.user if request.user.is_authenticated else None,
             )
