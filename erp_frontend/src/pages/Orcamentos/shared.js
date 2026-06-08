@@ -2,14 +2,14 @@ import dayjs from "dayjs";
 
 export const pageStyle = {
   minHeight: "100vh",
-  background: "#F4F6F9",
+  background: "#F8FAFC",
   padding: 24,
   fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
 
 export const panelStyle = {
   background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
+  border: "1px solid #E2E8F0",
   borderRadius: 12,
   boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
 };

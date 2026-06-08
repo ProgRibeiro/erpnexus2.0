@@ -176,7 +176,7 @@ export default function OrcamentoInteligente() {
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} />
           <div>
-            <Title level={1} style={{ margin: 0, fontSize: 24, color: "#111827" }}>
+            <Title level={1} style={{ margin: 0, fontSize: 24, color: "#1E293B" }}>
               Orçamento Inteligente
             </Title>
             <Text style={{ color: "#6B7280" }}>Motor local integrado a clientes, serviços, estoque e financeiro</Text>

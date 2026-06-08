@@ -199,7 +199,7 @@ export default function OrcamentoUnificado() {
 
   if (!loading && ids.length < 2) {
     return (
-      <div style={{ minHeight: "100vh", background: "#E8EDF4", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ minHeight: "100vh", background: "#F8FAFC", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <Alert
           type="warning"
           message="Seleção insuficiente"
@@ -216,7 +216,7 @@ export default function OrcamentoUnificado() {
 
   if (!loading && error) {
     return (
-      <div style={{ minHeight: "100vh", background: "#E8EDF4", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ minHeight: "100vh", background: "#F8FAFC", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <Alert
           type="error"
           message="Erro ao carregar"
@@ -235,7 +235,7 @@ export default function OrcamentoUnificado() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#E8EDF4",
+        background: "#F8FAFC",
         padding: "24px 16px",
         fontFamily: "Inter, 'Segoe UI', system-ui, sans-serif",
       }}
@@ -256,7 +256,7 @@ export default function OrcamentoUnificado() {
         }
         .unif-item-table th.right, .unif-item-table td.right { text-align: right; }
         .unif-item-table th.center, .unif-item-table td.center { text-align: center; }
-        .unif-item-table td { padding: 7px 12px; font-size: 12px; color: #1E293B; border-bottom: 1px solid #E2E6EC; }
+        .unif-item-table td { padding: 7px 12px; font-size: 12px; color: #1E293B; border-bottom: 1px solid #E2E8F0; }
         .unif-item-table tr:nth-child(even) td { background: #F8FAFC; }
         .unif-item-table tr:nth-child(odd) td { background: #FFFFFF; }
       `}</style>

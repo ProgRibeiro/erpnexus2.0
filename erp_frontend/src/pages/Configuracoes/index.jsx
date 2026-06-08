@@ -1485,7 +1485,6 @@ export default function ConfiguracoesPage() {
                     <Upload
                       accept="image/*"
                       showUploadList={false}
-                      beforeUpload={() => false}
                       customRequest={handleUploadLogoCliente}
                     >
                       <Button
