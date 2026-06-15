@@ -49,6 +49,57 @@ const { Content, Header } = Layout;
 const { Text, Title } = Typography;
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const lojaBlue = "#3B82F6";
+const lojaGreen = "#10B981";
+const lojaInk = "#0F172A";
+const lojaBorder = "#E2E8F0";
+const lojaMuted = "#64748B";
+
+const shellStyle = {
+  minHeight: "100vh",
+  background: "linear-gradient(180deg, #F8FAFC 0%, #EEF4F8 100%)",
+};
+
+const headerStyle = {
+  height: "auto",
+  minHeight: 68,
+  background: "rgba(255,255,255,0.96)",
+  borderBottom: `1px solid ${lojaBorder}`,
+  padding: "12px 24px",
+  lineHeight: "normal",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 16,
+  flexWrap: "wrap",
+  position: "sticky",
+  top: 0,
+  zIndex: 20,
+  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.06)",
+};
+
+const pageInnerStyle = {
+  width: "100%",
+  maxWidth: 1540,
+  margin: "0 auto",
+};
+
+const panelStyle = {
+  border: `1px solid ${lojaBorder}`,
+  borderRadius: 10,
+  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  border: `1px solid ${lojaBorder}`,
+  borderRadius: 10,
+  height: "100%",
+};
+
+const compactListStyle = {
+  border: `1px solid ${lojaBorder}`,
+  borderRadius: 10,
+  background: "#FFFFFF",
+};
 
 function normalizeList(data) {
   if (Array.isArray(data)) return data;
@@ -387,21 +438,32 @@ export default function LojaPage() {
   const produtoColumns = [
     {
       title: "Produto",
+      width: 280,
       render: (_, item) => (
         <Space direction="vertical" size={0}>
           <Text strong>{getProdutoNome(item)}</Text>
-          <Text style={{ color: "#64748B", fontSize: 12 }}>{getProdutoCodigo(item)}</Text>
+          <Text style={{ color: lojaMuted, fontSize: 12 }}>{getProdutoCodigo(item)}</Text>
         </Space>
       ),
     },
-    { title: "Estoque", dataIndex: "estoque_atual", render: (value, item) => <Tag color={item.produto_dados?.em_alerta ? "red" : "blue"}>{Number(value || 0)}</Tag> },
-    { title: "Custo", render: (_, item) => currency(item.produto_dados?.preco_custo) },
-    { title: "Venda", dataIndex: "preco_vigente", render: (value) => <Text strong>{currency(value)}</Text> },
-    { title: "Margem", render: (_, item) => `${Number(item.produto_dados?.margem_percentual || 0).toFixed(2)}%` },
-    { title: "Fiscal", render: (_, item) => `${item.ncm || "NCM pendente"} / CFOP ${item.cfop_padrao || "-"}` },
-    { title: "Status", render: (_, item) => <Badge status={item.vendido_loja ? "success" : "default"} text={item.vendido_loja ? "Vendendo" : "Oculto"} /> },
+    { title: "Estoque", width: 100, dataIndex: "estoque_atual", render: (value, item) => <Tag color={item.produto_dados?.em_alerta ? "red" : "blue"}>{Number(value || 0)}</Tag> },
+    { title: "Custo", width: 112, render: (_, item) => currency(item.produto_dados?.preco_custo) },
+    { title: "Venda", width: 118, dataIndex: "preco_vigente", render: (value) => <Text strong>{currency(value)}</Text> },
+    { title: "Margem", width: 92, render: (_, item) => `${Number(item.produto_dados?.margem_percentual || 0).toFixed(2)}%` },
+    {
+      title: "Fiscal",
+      width: 170,
+      render: (_, item) => (
+        <Space direction="vertical" size={0}>
+          <Text style={{ fontSize: 12 }}>{item.ncm || "NCM pendente"}</Text>
+          <Text style={{ color: lojaMuted, fontSize: 12 }}>CFOP {item.cfop_padrao || "-"}</Text>
+        </Space>
+      ),
+    },
+    { title: "Status", width: 110, render: (_, item) => <Badge status={item.vendido_loja ? "success" : "default"} text={item.vendido_loja ? "Vendendo" : "Oculto"} /> },
     {
       title: "PDV",
+      width: 110,
       render: (_, item) => (
         <Button size="small" icon={<PlusOutlined />} onClick={() => adicionarProdutoCarrinho(item)}>
           Adicionar
@@ -427,59 +489,97 @@ export default function LojaPage() {
   ];
 
   const renderPdV = () => (
-    <Row gutter={[16, 16]}>
-      <Col xs={24} xl={16}>
+    <Row gutter={[14, 14]}>
+      <Col xs={24} xl={17}>
         <Card
-          title="PDV - venda rápida"
-          extra={<Button type="primary" icon={<PlusOutlined />} style={{ background: lojaBlue }} onClick={abrirCadastroProduto}>Produto</Button>}
+          title="Mesa de venda"
+          style={panelStyle}
+          bodyStyle={{ padding: 14 }}
+          extra={
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={carregar}>Sincronizar</Button>
+              <Button type="primary" icon={<PlusOutlined />} style={{ background: lojaBlue }} onClick={abrirCadastroProduto}>Produto</Button>
+            </Space>
+          }
         >
-          <Input
-            size="large"
-            prefix={<BarcodeOutlined />}
-            placeholder="Buscar produto, NCM ou escanear código de barras"
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-          />
+          <Row gutter={[10, 10]} align="middle">
+            <Col xs={24} lg={16}>
+              <Input
+                size="large"
+                prefix={<BarcodeOutlined />}
+                placeholder="Buscar produto, NCM ou escanear código de barras"
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+              />
+            </Col>
+            <Col xs={24} lg={8}>
+              <Button type="primary" size="large" block disabled={!caixas.length} style={{ background: lojaGreen }} onClick={abrirPdv}>
+                Abrir frente de caixa
+              </Button>
+            </Col>
+          </Row>
           <Table
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 12 }}
+            size="small"
             loading={loading}
             rowKey="id"
             dataSource={produtosFiltrados}
             columns={produtoColumns}
-            pagination={{ pageSize: 6 }}
+            scroll={{ x: 980 }}
+            pagination={{ pageSize: 8, showSizeChanger: false, showTotal: (total) => `${total} produtos` }}
           />
         </Card>
       </Col>
-      <Col xs={24} xl={8}>
-        <Card title="Venda atual">
-          <Space direction="vertical" style={{ width: "100%" }}>
-            <Alert
-              type={caixas.length ? "success" : "warning"}
-              showIcon
-              message={caixas.length ? "Caixa conectado" : "Abra um caixa para vender"}
-              description={caixas.length ? "O PDV está pronto para registrar vendas e gerar financeiro." : "Sem caixa aberto o sistema bloqueia a venda."}
+      <Col xs={24} xl={7}>
+        <Space direction="vertical" size={14} style={{ width: "100%" }}>
+          <Card title="Status do turno" style={panelStyle} bodyStyle={{ padding: 14 }}>
+            <Space direction="vertical" style={{ width: "100%" }} size={10}>
+              <Alert
+                type={caixas.length ? "success" : "warning"}
+                showIcon
+                message={caixas.length ? "Caixa pronto para venda" : "Abertura de caixa pendente"}
+                description={caixas.length ? `${caixas[0]?.nome || "Caixa"} conectado ao financeiro e estoque.` : "Abra um caixa para liberar vendas de balcão."}
+              />
+              <Row gutter={10}>
+                <Col span={12}>
+                  <div style={compactListStyle}>
+                    <div style={{ padding: 12 }}>
+                      <Text type="secondary">Caixas</Text>
+                      <div style={{ fontSize: 22, fontWeight: 800 }}>{caixas.length}</div>
+                    </div>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={compactListStyle}>
+                    <div style={{ padding: 12 }}>
+                      <Text type="secondary">Pagamentos</Text>
+                      <div style={{ fontSize: 22, fontWeight: 800 }}>{formas.length}</div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+              <Button block icon={<DollarOutlined />} onClick={abrirCaixa}>Abrir caixa</Button>
+            </Space>
+          </Card>
+
+          <Card title="Formas de pagamento" style={panelStyle} bodyStyle={{ padding: "2px 14px" }}>
+            <List
+              dataSource={formas.slice(0, 6)}
+              locale={{ emptyText: "Nenhuma forma cadastrada" }}
+              renderItem={(forma) => (
+                <List.Item>
+                  <Space direction="vertical" size={0}>
+                    <Text strong>{forma.nome}</Text>
+                    <Text style={{ color: lojaMuted, fontSize: 12 }}>
+                      Taxa {Number(forma.taxa_percentual || 0).toFixed(2)}% - D+{forma.prazo_recebimento_dias || 0}
+                    </Text>
+                  </Space>
+                  <Tag>{forma.tipo}</Tag>
+                </List.Item>
+              )}
             />
-            <Button type="primary" size="large" block disabled={!caixas.length} style={{ background: lojaBlue }} onClick={abrirPdv}>
-              Iniciar venda
-            </Button>
-          </Space>
-        </Card>
-        <Card title="Formas de pagamento" style={{ marginTop: 16 }}>
-          <List
-            dataSource={formas}
-            renderItem={(forma) => (
-              <List.Item>
-                <Space direction="vertical" size={0}>
-                  <Text>{forma.nome}</Text>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>
-                    Taxa {Number(forma.taxa_percentual || 0).toFixed(2)}% - recebe em {forma.prazo_recebimento_dias || 0} dia(s)
-                  </Text>
-                </Space>
-                <Tag>{forma.tipo}</Tag>
-              </List.Item>
-            )}
-          />
-        </Card>
+          </Card>
+        </Space>
       </Col>
     </Row>
   );
@@ -487,23 +587,28 @@ export default function LojaPage() {
   const renderProdutos = () => (
     <Card
       title="Cadastro e tabela de produtos da loja"
+      style={panelStyle}
+      bodyStyle={{ padding: 14 }}
       extra={<Button type="primary" icon={<PlusOutlined />} style={{ background: lojaBlue }} onClick={abrirCadastroProduto}>Cadastrar produto</Button>}
     >
-      <Alert
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-        message="O cadastro da loja cria o produto no estoque e já deixa ele disponível para venda no PDV."
-      />
-      <Table loading={loading} rowKey="id" dataSource={produtosFiltrados} columns={produtoColumns} />
+      <Row gutter={[10, 10]} align="middle" style={{ marginBottom: 12 }}>
+        <Col xs={24} lg={16}>
+          <Input prefix={<BarcodeOutlined />} placeholder="Filtrar por produto, código, NCM ou CFOP" value={busca} onChange={(event) => setBusca(event.target.value)} />
+        </Col>
+        <Col xs={24} lg={8}>
+          <Alert type="info" showIcon message="Cadastro integrado ao estoque, PDV e fiscal." />
+        </Col>
+      </Row>
+      <Table size="small" loading={loading} rowKey="id" dataSource={produtosFiltrados} columns={produtoColumns} scroll={{ x: 980 }} />
     </Card>
   );
 
   const renderCaixa = () => (
-    <Row gutter={[16, 16]}>
+    <Row gutter={[14, 14]}>
       <Col xs={24} lg={16}>
-        <Card title="Gestão de caixa" extra={<Button type="primary" icon={<DollarOutlined />} style={{ background: lojaBlue }} onClick={abrirCaixa}>Abrir caixa</Button>}>
+        <Card title="Gestão de caixa" style={panelStyle} bodyStyle={{ padding: 14 }} extra={<Button type="primary" icon={<DollarOutlined />} style={{ background: lojaBlue }} onClick={abrirCaixa}>Abrir caixa</Button>}>
           <Table
+            size="small"
             rowKey="id"
             dataSource={caixas}
             columns={[
@@ -516,7 +621,7 @@ export default function LojaPage() {
         </Card>
       </Col>
       <Col xs={24} lg={8}>
-        <Card title="Rotina operacional">
+        <Card title="Rotina operacional" style={panelStyle} bodyStyle={{ padding: "2px 14px" }}>
           <List
             dataSource={[
               "Abrir caixa com valor inicial conferido",
@@ -533,8 +638,9 @@ export default function LojaPage() {
   );
 
   const renderEntregas = () => (
-    <Card title="Logística e entregas">
+    <Card title="Logística e entregas" style={panelStyle} bodyStyle={{ padding: 14 }}>
       <Table
+        size="small"
         rowKey="id"
         dataSource={entregas}
         columns={[
@@ -549,15 +655,27 @@ export default function LojaPage() {
   );
 
   const renderCompras = () => (
-    <Card title="Sugestão de compras e reposição">
-      <Alert
-        type={produtosRecompra.length ? "warning" : "success"}
-        showIcon
-        style={{ marginBottom: 16 }}
-        message={produtosRecompra.length ? "Há produtos abaixo do mínimo." : "Nenhum produto abaixo do mínimo agora."}
-        description="A sugestão considera estoque mínimo e quantidade atual para ajudar no pedido de compra."
-      />
+    <Card title="Sugestão de compras e reposição" style={panelStyle} bodyStyle={{ padding: 14 }}>
+      <Row gutter={[10, 10]} align="middle" style={{ marginBottom: 12 }}>
+        <Col xs={24} lg={16}>
+          <Alert
+            type={produtosRecompra.length ? "warning" : "success"}
+            showIcon
+            message={produtosRecompra.length ? "Há produtos abaixo do mínimo." : "Nenhum produto abaixo do mínimo agora."}
+            description="A sugestão considera estoque mínimo e quantidade atual para ajudar no pedido de compra."
+          />
+        </Col>
+        <Col xs={24} lg={8}>
+          <div style={{ ...compactListStyle, padding: 12 }}>
+            <Text type="secondary">Custo estimado de recompra</Text>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>
+              {currency(produtosRecompra.reduce((sum, item) => sum + Number(item.produto_dados?.preco_custo || 0) * Number(item.sugestao_compra || 0), 0))}
+            </div>
+          </div>
+        </Col>
+      </Row>
       <Table
+        size="small"
         rowKey="id"
         dataSource={produtosRecompra}
         columns={[
@@ -572,9 +690,9 @@ export default function LojaPage() {
   );
 
   const renderRelatorios = () => (
-    <Row gutter={[16, 16]}>
+    <Row gutter={[14, 14]}>
       <Col xs={24} xl={8}>
-        <Card title="Curva ABC">
+        <Card title="Curva ABC" style={panelStyle} bodyStyle={{ padding: 14 }}>
           <Table
             size="small"
             pagination={false}
@@ -588,7 +706,7 @@ export default function LojaPage() {
         </Card>
       </Col>
       <Col xs={24} xl={8}>
-        <Card title="Produtos mais vendidos">
+        <Card title="Produtos mais vendidos" style={panelStyle} bodyStyle={{ padding: 14 }}>
           <Table
             size="small"
             pagination={false}
@@ -603,7 +721,7 @@ export default function LojaPage() {
         </Card>
       </Col>
       <Col xs={24} xl={8}>
-        <Card title="Vendas por vendedor">
+        <Card title="Vendas por vendedor" style={panelStyle} bodyStyle={{ padding: 14 }}>
           <Table
             size="small"
             pagination={false}
@@ -638,73 +756,67 @@ export default function LojaPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#F3F6FA" }}>
-      <Header
-        style={{
-          height: "auto",
-          minHeight: 76,
-          background: "#FFFFFF",
-          borderBottom: "1px solid #E2E8F0",
-          padding: "14px 28px",
-          lineHeight: "normal",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <Space size={14}>
-          <div style={{ width: 46, height: 46, borderRadius: 10, background: "#0F172A", color: "#fff", display: "grid", placeItems: "center", fontWeight: 800 }}>LJ</div>
+    <Layout style={shellStyle}>
+      <Header style={headerStyle}>
+        <Space size={12}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: lojaInk, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800 }}>LJ</div>
           <Space direction="vertical" size={0}>
-            <Text style={{ color: "#94A3B8", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>ERP Nexus Loja</Text>
-            <Title level={3} style={{ margin: 0 }}>PDV, estoque e varejo</Title>
+            <Text style={{ color: lojaMuted, fontSize: 11, textTransform: "uppercase" }}>ERP Nexus Loja</Text>
+            <Title level={3} style={{ margin: 0, color: lojaInk }}>Operação comercial</Title>
           </Space>
         </Space>
         <Space wrap>
-          <Button icon={<ReloadOutlined />} onClick={carregar}>Atualizar conexões</Button>
-          <Button icon={<LeftOutlined />} onClick={() => navigate("/dashboard")}>Voltar ao ERP Serviços</Button>
+          <Tag color={caixas.length ? "green" : "orange"}>{caixas.length ? "Caixa aberto" : "Caixa pendente"}</Tag>
+          <Button icon={<ReloadOutlined />} onClick={carregar}>Atualizar</Button>
+          <Button icon={<LeftOutlined />} onClick={() => navigate("/dashboard")}>ERP Serviços</Button>
         </Space>
       </Header>
 
-      <Content style={{ padding: 28 }}>
-        <Space direction="vertical" size={18} style={{ width: "100%" }}>
-          <Card style={{ border: "1px solid #E2E8F0" }}>
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} lg={10}>
-                <Space direction="vertical" size={2}>
-                  <Text style={{ color: "#64748B" }}>Ambiente separado, dados integrados</Text>
-                  <Title level={2} style={{ margin: 0 }}>Operação de loja</Title>
-                  <Text style={{ color: "#64748B" }}>Produtos, caixa, pagamentos, financeiro e estoque usando a mesma base do ERP.</Text>
+      <Content style={{ padding: 20 }}>
+        <Space direction="vertical" size={14} style={pageInnerStyle}>
+          <Row gutter={[14, 14]} align="stretch">
+            <Col xs={24} xl={9}>
+              <Card style={{ ...panelStyle, height: "100%" }} bodyStyle={{ padding: 18 }}>
+                <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  <Text style={{ color: lojaMuted, fontSize: 12, textTransform: "uppercase" }}>Frente de loja integrada</Text>
+                  <Title level={2} style={{ margin: 0, color: lojaInk }}>PDV, estoque e caixa em tempo real</Title>
+                  <Text style={{ color: lojaMuted }}>
+                    Controle venda de balcão, cadastro comercial, reposição, entregas e relatórios sem sair do ERP.
+                  </Text>
+                  <Space wrap style={{ marginTop: 8 }}>
+                    <Button type="primary" icon={<ShoppingCartOutlined />} style={{ background: lojaBlue }} disabled={!caixas.length} onClick={abrirPdv}>Nova venda</Button>
+                    <Button icon={<PlusOutlined />} onClick={abrirCadastroProduto}>Cadastrar produto</Button>
+                    <Button icon={<DollarOutlined />} onClick={abrirCaixa}>Abrir caixa</Button>
+                  </Space>
                 </Space>
-              </Col>
-              <Col xs={24} lg={14}>
-                <Row gutter={[12, 12]}>
-                  {conexoes.map((item) => (
-                    <Col xs={12} md={6} key={item.titulo}>
-                      <Card size="small" style={{ background: item.ok ? "#F0FDF4" : "#FFF7ED", borderColor: item.ok ? "#BBF7D0" : "#FED7AA" }}>
-                        <Space direction="vertical" size={4}>
-                          {item.ok ? <CheckCircleOutlined style={{ color: "#10B981" }} /> : <ApiOutlined style={{ color: "#F59E0B" }} />}
-                          <Text strong>{item.titulo}</Text>
-                          <Text style={{ color: "#64748B", fontSize: 12 }}>{item.texto}</Text>
-                        </Space>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Col>
-            </Row>
-          </Card>
-
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={8}><Card><Statistic title="Vendas do dia" value={Number(dashboard.vendas_dia || 0)} prefix="R$" precision={2} valueStyle={{ color: lojaBlue }} /></Card></Col>
-            <Col xs={24} md={8}><Card><Statistic title="Vendas realizadas" value={Number(dashboard.quantidade_vendas || 0)} suffix="hoje" valueStyle={{ color: "#10B981" }} /></Card></Col>
-            <Col xs={24} md={8}><Card><Statistic title="Caixas abertos" value={caixas.length} prefix={<ThunderboltOutlined />} /></Card></Col>
+              </Card>
+            </Col>
+            <Col xs={24} xl={15}>
+              <Row gutter={[10, 10]}>
+                <Col xs={12} lg={6}><Card style={metricCardStyle}><Statistic title="Vendas do dia" value={Number(dashboard.vendas_dia || 0)} prefix="R$" precision={2} valueStyle={{ color: lojaBlue, fontWeight: 800 }} /></Card></Col>
+                <Col xs={12} lg={6}><Card style={metricCardStyle}><Statistic title="Vendas realizadas" value={Number(dashboard.quantidade_vendas || 0)} suffix="hoje" valueStyle={{ color: lojaGreen, fontWeight: 800 }} /></Card></Col>
+                <Col xs={12} lg={6}><Card style={metricCardStyle}><Statistic title="Ticket médio" value={Number(dashboard.ticket_medio || 0)} prefix="R$" precision={2} valueStyle={{ color: "#7C3AED", fontWeight: 800 }} /></Card></Col>
+                <Col xs={12} lg={6}><Card style={metricCardStyle}><Statistic title="Caixas abertos" value={caixas.length} prefix={<ThunderboltOutlined />} valueStyle={{ color: "#F59E0B", fontWeight: 800 }} /></Card></Col>
+              </Row>
+              <Row gutter={[10, 10]} style={{ marginTop: 10 }}>
+                {conexoes.map((item) => (
+                  <Col xs={12} lg={6} key={item.titulo}>
+                    <div style={{ ...compactListStyle, borderColor: item.ok ? "#BBF7D0" : "#FED7AA", background: item.ok ? "#F0FDF4" : "#FFF7ED", padding: 12, minHeight: 92 }}>
+                      <Space direction="vertical" size={4}>
+                        {item.ok ? <CheckCircleOutlined style={{ color: lojaGreen }} /> : <ApiOutlined style={{ color: "#F59E0B" }} />}
+                        <Text strong>{item.titulo}</Text>
+                        <Text style={{ color: lojaMuted, fontSize: 12 }}>{item.texto}</Text>
+                      </Space>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </Col>
           </Row>
 
-          <Row gutter={[16, 16]}>
+          <Row gutter={[14, 14]}>
             <Col xs={24} lg={8}>
-              <Card title="Alertas de estoque">
+              <Card title="Alertas de estoque" style={panelStyle} bodyStyle={{ padding: "0 14px" }}>
                 <List
                   dataSource={produtosComAlerta.slice(0, 5)}
                   locale={{ emptyText: "Sem alerta de estoque" }}
@@ -712,7 +824,7 @@ export default function LojaPage() {
                     <List.Item>
                       <Space direction="vertical" size={0}>
                         <Text strong>{getProdutoNome(item)}</Text>
-                        <Text style={{ color: "#64748B", fontSize: 12 }}>Atual {Number(item.estoque_atual || 0)} - mínimo {item.produto_dados?.estoque_minimo || 0}</Text>
+                        <Text style={{ color: lojaMuted, fontSize: 12 }}>Atual {Number(item.estoque_atual || 0)} - mínimo {item.produto_dados?.estoque_minimo || 0}</Text>
                       </Space>
                       <Tag color="red">Repor</Tag>
                     </List.Item>
@@ -721,7 +833,7 @@ export default function LojaPage() {
               </Card>
             </Col>
             <Col xs={24} lg={8}>
-              <Card title="Pendências fiscais">
+              <Card title="Pendências fiscais" style={panelStyle} bodyStyle={{ padding: "0 14px" }}>
                 <List
                   dataSource={produtosFiscalPendente.slice(0, 5)}
                   locale={{ emptyText: "Fiscal dos produtos em ordem" }}
@@ -729,7 +841,7 @@ export default function LojaPage() {
                     <List.Item>
                       <Space direction="vertical" size={0}>
                         <Text strong>{getProdutoNome(item)}</Text>
-                        <Text style={{ color: "#64748B", fontSize: 12 }}>Informe NCM e CFOP antes de emitir NFC-e/NF-e.</Text>
+                        <Text style={{ color: lojaMuted, fontSize: 12 }}>NCM e CFOP necessários para emissão fiscal.</Text>
                       </Space>
                       <Tag color="orange">Fiscal</Tag>
                     </List.Item>
@@ -738,13 +850,13 @@ export default function LojaPage() {
               </Card>
             </Col>
             <Col xs={24} lg={8}>
-              <Card title="Indicadores rápidos">
+              <Card title="Indicadores rápidos" style={panelStyle} bodyStyle={{ padding: "0 14px" }}>
                 <List
                   dataSource={[
-                    { label: "Ticket médio", value: currency(dashboard.ticket_medio) },
                     { label: "Produtos cadastrados", value: produtos.length },
                     { label: "Formas de pagamento", value: formas.length },
                     { label: "Entregas abertas", value: entregas.filter((item) => !["entregue", "devolvido"].includes(item.status)).length },
+                    { label: "Reposições sugeridas", value: produtosRecompra.length },
                   ]}
                   renderItem={(item) => <List.Item><Text>{item.label}</Text><Text strong>{item.value}</Text></List.Item>}
                 />
@@ -752,15 +864,12 @@ export default function LojaPage() {
             </Col>
           </Row>
 
-          <Card>
+          <Card style={panelStyle} bodyStyle={{ padding: 10 }}>
             <Segmented
               block
               size="large"
               value={view}
-              onChange={(value) => {
-                setView(value);
-                if (value === "pdv") abrirPdv();
-              }}
+              onChange={(value) => setView(value)}
               options={menuOptions.map((item) => ({ label: <Space>{item.icon}{item.label}</Space>, value: item.value }))}
             />
           </Card>
@@ -770,7 +879,12 @@ export default function LojaPage() {
       </Content>
 
       <Modal
-        title="PDV - frente de caixa"
+        title={
+          <Space direction="vertical" size={0}>
+            <Text strong>Frente de caixa</Text>
+            <Text style={{ color: lojaMuted, fontSize: 12 }}>Venda de balcão com baixa de estoque e comprovante</Text>
+          </Space>
+        }
         open={modalPdvAberto}
         onCancel={() => setModalPdvAberto(false)}
         width="96vw"
@@ -782,6 +896,8 @@ export default function LojaPage() {
           <Col xs={24} xl={15}>
             <Card
               title="Adicionar produtos"
+              style={panelStyle}
+              bodyStyle={{ padding: 14 }}
               extra={<Button icon={<PlusOutlined />} onClick={abrirCadastroProduto}>Cadastrar produto</Button>}
             >
               <Input
@@ -797,6 +913,7 @@ export default function LojaPage() {
                 rowKey="id"
                 dataSource={produtosPdvFiltrados}
                 pagination={{ pageSize: 7 }}
+                scroll={{ x: 760 }}
                 columns={[
                   { title: "Produto", render: (_, item) => <Text strong>{getProdutoNome(item)}</Text> },
                   { title: "Código", render: (_, item) => getProdutoCodigo(item) },
@@ -817,6 +934,8 @@ export default function LojaPage() {
           <Col xs={24} xl={9}>
             <Card
               title="Carrinho da venda"
+              style={panelStyle}
+              bodyStyle={{ padding: 14 }}
               extra={<Tag color={caixas.length ? "green" : "orange"}>{caixas[0]?.nome || "Sem caixa"}</Tag>}
             >
               <Table
@@ -824,6 +943,7 @@ export default function LojaPage() {
                 rowKey={(item) => item.produto.id}
                 dataSource={carrinho}
                 pagination={false}
+                scroll={{ x: 620 }}
                 columns={[
                   { title: "Produto", render: (_, item) => getProdutoNome(item.produto) },
                   {
@@ -898,14 +1018,20 @@ export default function LojaPage() {
       </Modal>
 
       <Modal
-        title="Cadastrar produto da loja"
+        title={
+          <Space direction="vertical" size={0}>
+            <Text strong>Cadastrar produto da loja</Text>
+            <Text style={{ color: lojaMuted, fontSize: 12 }}>Produto comercial, estoque inicial, preço e fiscal</Text>
+          </Space>
+        }
         open={modalProdutoAberto}
         onCancel={() => setModalProdutoAberto(false)}
         onOk={() => form.submit()}
         confirmLoading={salvandoProduto}
-        width={860}
+        width={980}
         okText="Salvar produto"
         cancelText="Cancelar"
+        styles={{ body: { paddingTop: 8 } }}
       >
         <Form form={form} layout="vertical" onFinish={salvarProduto}>
           <Row gutter={16}>
@@ -926,7 +1052,7 @@ export default function LojaPage() {
             </Col>
           </Row>
 
-          <Divider orientation="left">Preço, margem e estoque</Divider>
+          <Divider orientation="left" style={{ margin: "8px 0 16px" }}>Preço, margem e estoque</Divider>
           <Row gutter={16}>
             <Col xs={24} md={6}><Form.Item name="preco_custo" label="Preço de compra"><InputNumber min={0} precision={2} style={{ width: "100%" }} prefix="R$" /></Form.Item></Col>
             <Col xs={24} md={6}><Form.Item name="markup_percentual" label="Markup (%)"><InputNumber min={0} precision={2} style={{ width: "100%" }} suffix="%" /></Form.Item></Col>
@@ -937,9 +1063,9 @@ export default function LojaPage() {
             <Col xs={24} md={6}><Form.Item name="estoque_minimo" label="Estoque mínimo"><InputNumber min={0} precision={2} style={{ width: "100%" }} /></Form.Item></Col>
             <Col xs={24} md={6}><Form.Item name="localizacao" label="Localização"><Input placeholder="Ex: Prateleira A1" /></Form.Item></Col>
           </Row>
-          <Alert type="success" showIcon message={`Preço sugerido automático: ${currency(valorSugerido)}`} />
+          <Alert type="success" showIcon message={`Preço sugerido automático: ${currency(valorSugerido)}`} style={{ marginBottom: 8 }} />
 
-          <Divider orientation="left">Fiscal e venda</Divider>
+          <Divider orientation="left" style={{ margin: "8px 0 16px" }}>Fiscal e venda</Divider>
           <Row gutter={16}>
             <Col xs={24} md={6}><Form.Item name="ncm" label="NCM"><Input maxLength={8} placeholder="8 dígitos" /></Form.Item></Col>
             <Col xs={24} md={6}><Form.Item name="cest" label="CEST"><Input placeholder="Opcional" /></Form.Item></Col>
