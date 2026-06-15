@@ -33,7 +33,7 @@ function getInitials(name = '') {
 }
 
 export default function MainLayout() {
-  const sidebarWidth = 260;
+  const sidebarWidth = 224;
   const mode = localStorage.getItem("erp_mode") || "prestador";
   const brand = BRAND[mode] || BRAND.prestador;
   const { user, logout } = useAuth();

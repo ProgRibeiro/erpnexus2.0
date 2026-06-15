@@ -24,16 +24,16 @@ export const theme = {
     fontWeightStrong: 600,
 
     // Bordas — compactas e profissionais
-    borderRadius: 10,
-    borderRadiusLG: 12,
-    borderRadiusSM: 6,
+    borderRadius: 8,
+    borderRadiusLG: 10,
+    borderRadiusSM: 5,
     borderRadiusXS: 4,
 
     // Espaçamentos — densidade operacional
-    padding: 16,
-    paddingLG: 22,
-    paddingSM: 10,
-    paddingXS: 6,
+    padding: 12,
+    paddingLG: 18,
+    paddingSM: 8,
+    paddingXS: 5,
 
     // Sombras mínimas
     boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)",
@@ -59,9 +59,9 @@ export const theme = {
     lineType: "solid",
 
     // Altura dos controles
-    controlHeight: 36,
-    controlHeightLG: 40,
-    controlHeightSM: 28,
+    controlHeight: 32,
+    controlHeightLG: 36,
+    controlHeightSM: 26,
 
     // Motion
     motionDurationMid: "0.15s",
@@ -74,12 +74,14 @@ export const theme = {
       primaryShadow: "none",
       defaultShadow: "none",
       fontWeight: 500,
-      borderRadius: 10,
+      borderRadius: 8,
+      controlHeight: 32,
+      controlHeightLG: 36,
     },
     // Cards
     Card: {
       headerBg: "#FFFFFF",
-      borderRadius: 10,
+      borderRadius: 8,
     },
     // Tabela
     Table: {
@@ -88,9 +90,9 @@ export const theme = {
       headerSortActiveBg: "#F4F6F9",
       rowHoverBg: "#F8FAFC",
       borderColor: "#E8EDF2",
-      fontSize: 13,
-      cellPaddingBlock: 9,
-      cellPaddingInline: 12,
+      fontSize: 12,
+      cellPaddingBlock: 7,
+      cellPaddingInline: 10,
     },
     // Menu lateral
     Menu: {
@@ -104,13 +106,13 @@ export const theme = {
     },
     // Inputs
     Input: {
-      borderRadius: 10,
+      borderRadius: 8,
       activeShadow: "0 0 0 3px rgba(59,130,246,0.15)",
       hoverBorderColor: "#3B82F6",
     },
     // Select
     Select: {
-      borderRadius: 10,
+      borderRadius: 8,
     },
     // Tags / badges
     Tag: {
@@ -146,8 +148,8 @@ export const theme = {
     },
     // Statistic
     Statistic: {
-      titleFontSize: 12,
-      contentFontSize: 26,
+      titleFontSize: 10,
+      contentFontSize: 22,
     },
   },
 };
