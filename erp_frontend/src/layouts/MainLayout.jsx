@@ -44,6 +44,12 @@ export default function MainLayout() {
     navigate('/login');
   };
 
+  const trocarModo = (novoModo) => {
+    localStorage.setItem("erp_mode", novoModo);
+    navigate(novoModo === "facilities" ? "/facilities" : "/dashboard");
+    window.location.reload();
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
       <Layout.Sider
@@ -82,6 +88,22 @@ export default function MainLayout() {
           <div className="erp-brand-status">
             <span className="erp-brand-status-dot" />
             Ambiente local
+          </div>
+          <div className="erp-mode-switch">
+            <button
+              type="button"
+              className={mode === "prestador" ? "erp-mode-option erp-mode-option-active" : "erp-mode-option"}
+              onClick={() => trocarModo("prestador")}
+            >
+              Serviços
+            </button>
+            <button
+              type="button"
+              className={mode === "facilities" ? "erp-mode-option erp-mode-option-active" : "erp-mode-option"}
+              onClick={() => trocarModo("facilities")}
+            >
+              Facilities
+            </button>
           </div>
         </div>
 

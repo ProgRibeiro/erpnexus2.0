@@ -1,8 +1,11 @@
-import { Layout, Space, Button, Dropdown, Badge, Tooltip } from 'antd';
+import { Layout, Space, Button, Dropdown, Badge, Tooltip, Input, Tag } from 'antd';
 import {
+  AppstoreOutlined,
   BellOutlined,
   LogoutOutlined,
+  SearchOutlined,
   ShopOutlined,
+  SafetyCertificateOutlined,
   UserOutlined,
   SettingOutlined,
   RightOutlined,
@@ -11,37 +14,41 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import AvatarUsuario from '../components/ui/AvatarUsuario';
 
-const ROUTE_LABELS = {
-  '/': 'Dashboard',
-  '/dashboard': 'Dashboard',
-  '/orcamentos': 'Orçamentos',
-  '/ordens': 'Ordens de Serviço',
-  '/clientes': 'Clientes',
-  '/agenda': 'Agenda',
-  '/servicos': 'Serviços',
-  '/terceiros': 'Terceirizados',
-  '/estoque': 'Estoque',
-  '/financeiro': 'Financeiro',
-  '/faturamento': 'Faturamento',
-  '/crm': 'CRM',
-  '/chamados-externos': 'Chamados Externos',
-  '/licitacoes': 'Licitações',
-  '/fiscal': 'Fiscal',
-  '/configuracoes': 'Configurações',
-  '/facilities': 'Dashboard Facilities',
-  '/facilities/ativos': 'Ativos',
-  '/facilities/pmp': 'Manutenção Preventiva',
-  '/facilities/chamados': 'Help Desk',
-  '/facilities/licitacao': 'Licitações',
-  '/facilities/contratos': 'Contratos',
-  '/facilities/obras': 'Obras / Projetos',
-  '/facilities/indicadores': 'Indicadores',
+const ROUTE_META = {
+  '/': { label: 'Dashboard', section: 'Visão geral' },
+  '/dashboard': { label: 'Dashboard', section: 'Visão geral' },
+  '/orcamentos': { label: 'Orçamentos', section: 'Comercial técnico' },
+  '/orcamentos/novo': { label: 'Novo orçamento', section: 'Comercial técnico' },
+  '/orcamentos/inteligente': { label: 'Orçamento Inteligente', section: 'Motor comercial' },
+  '/ordens': { label: 'Ordens de Serviço', section: 'Operação de campo' },
+  '/clientes': { label: 'Clientes', section: 'Relacionamento' },
+  '/agenda': { label: 'Agenda', section: 'Planejamento' },
+  '/servicos': { label: 'Serviços', section: 'Catálogo técnico' },
+  '/terceiros': { label: 'Terceirizados', section: 'Rede operacional' },
+  '/equipe': { label: 'Equipe', section: 'Operação interna' },
+  '/estoque': { label: 'Estoque', section: 'Suprimentos' },
+  '/catalogo-inteligente': { label: 'Motor de Catálogo', section: 'Inteligência' },
+  '/financeiro': { label: 'Financeiro', section: 'Gestão financeira' },
+  '/faturamento': { label: 'Faturamento', section: 'Recebíveis' },
+  '/crm': { label: 'CRM', section: 'Funil comercial' },
+  '/chamados-externos': { label: 'Chamados Externos', section: 'Facilities' },
+  '/licitacoes': { label: 'Licitações', section: 'Comercial público' },
+  '/fiscal': { label: 'Fiscal', section: 'Tributário' },
+  '/configuracoes': { label: 'Configurações', section: 'Sistema' },
+  '/facilities': { label: 'Dashboard Facilities', section: 'Facilities' },
+  '/facilities/ativos': { label: 'Ativos', section: 'Facilities' },
+  '/facilities/pmp': { label: 'Manutenção Preventiva', section: 'Facilities' },
+  '/facilities/chamados': { label: 'Help Desk', section: 'Facilities' },
+  '/facilities/licitacao': { label: 'Licitações', section: 'Facilities' },
+  '/facilities/contratos': { label: 'Contratos', section: 'Facilities' },
+  '/facilities/obras': { label: 'Obras / Projetos', section: 'Facilities' },
+  '/facilities/indicadores': { label: 'Indicadores', section: 'Facilities' },
 };
 
-function getPageLabel(pathname) {
-  if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname];
+function getPageMeta(pathname) {
+  if (ROUTE_META[pathname]) return ROUTE_META[pathname];
   const base = '/' + pathname.split('/')[1];
-  return ROUTE_LABELS[base] || 'Página';
+  return ROUTE_META[base] || { label: 'Página', section: 'ERP Nexus' };
 }
 
 export default function Header() {
@@ -50,7 +57,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const mode = localStorage.getItem("erp_mode") || "prestador";
   const sidebarName = mode === 'facilities' ? 'ERP Facilities' : 'ERP Nexus';
-  const pageLabel = getPageLabel(location.pathname);
+  const pageMeta = getPageMeta(location.pathname);
 
   const handleLogout = () => {
     logout();
@@ -111,14 +118,35 @@ export default function Header() {
   return (
     <Layout.Header className="erp-header">
       <div className="erp-topbar">
-        {/* Breadcrumb */}
-        <div className="erp-breadcrumb">
-          <span className="erp-breadcrumb-root">{sidebarName}</span>
-          <RightOutlined className="erp-breadcrumb-icon" />
-          <span className="erp-breadcrumb-page">{pageLabel}</span>
+        <div className="erp-page-identity">
+          <div className="erp-page-identity-icon">
+            <AppstoreOutlined />
+          </div>
+          <div className="erp-page-identity-copy">
+            <div className="erp-breadcrumb">
+              <span className="erp-breadcrumb-root">{sidebarName}</span>
+              <RightOutlined className="erp-breadcrumb-icon" />
+              <span className="erp-breadcrumb-page">{pageMeta.label}</span>
+            </div>
+            <span className="erp-page-section">{pageMeta.section}</span>
+          </div>
+        </div>
+
+        <div className="erp-command-center">
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder="Buscar clientes, OS, orçamento, produto..."
+            className="erp-command-input"
+          />
+          <Tag className="erp-command-tag">Local</Tag>
         </div>
 
         <Space size={8} className="erp-topbar-actions">
+          <Tag icon={<SafetyCertificateOutlined />} className="erp-health-tag">
+            Operação ativa
+          </Tag>
+
           <Button
             icon={<ShopOutlined />}
             onClick={() => window.open('/loja', '_blank', 'noopener,noreferrer')}
