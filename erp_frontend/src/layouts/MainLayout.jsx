@@ -84,16 +84,6 @@ export default function MainLayout() {
             <span className="erp-brand-status-dot" />
             Ambiente local
           </div>
-          <div className="erp-system-bridge">
-            <span className="erp-system-bridge-label">Interligado por solicitações</span>
-            <button
-              type="button"
-              className="erp-system-bridge-action"
-              onClick={() => navigate(mode === "facilities" ? "/dashboard" : "/facilities")}
-            >
-              {mode === "facilities" ? "Abrir ERP Serviços" : "Abrir Facilities"}
-            </button>
-          </div>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>

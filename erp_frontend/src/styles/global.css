@@ -124,40 +124,6 @@ body {
   font-weight: 600;
 }
 
-.erp-system-bridge {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-top: 10px;
-  padding: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 8px;
-  background: rgba(2, 6, 23, 0.30);
-}
-
-.erp-system-bridge-label {
-  color: rgba(203, 213, 225, 0.68);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.erp-system-bridge-action {
-  height: 26px;
-  border: 1px solid rgba(147, 197, 253, 0.24);
-  border-radius: 6px;
-  color: #FFFFFF;
-  background: rgba(59, 130, 246, 0.18);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.erp-system-bridge-action:hover {
-  color: #FFFFFF;
-  background: rgba(59, 130, 246, 0.28);
-}
-
 .erp-brand-status-dot {
   width: 7px;
   height: 7px;

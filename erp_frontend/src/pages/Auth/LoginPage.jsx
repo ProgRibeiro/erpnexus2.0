@@ -47,6 +47,23 @@ const MODOS = {
   },
 };
 
+function moduloUsuario(user) {
+  if (user?.is_superuser) return "ambos";
+  return user?.modulo || "erp";
+}
+
+function podeAcessarModo(user, modo) {
+  const modulo = moduloUsuario(user);
+  if (modulo === "ambos") return true;
+  if (modo === "facilities") return modulo === "facilities";
+  return modulo === "erp";
+}
+
+function destinoDaLicenca(user) {
+  const modulo = moduloUsuario(user);
+  return modulo === "facilities" ? "/facilities" : "/dashboard";
+}
+
 export default function LoginPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -66,9 +83,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!accessToken) return;
-    const savedMode = localStorage.getItem("erp_mode") || "prestador";
     const from = location.state?.from?.pathname;
-    const defaultDest = savedMode === "facilities" ? "/facilities" : "/dashboard";
+    const authState = JSON.parse(localStorage.getItem("erp_auth") || "{}")?.state || {};
+    const defaultDest = destinoDaLicenca(authState.user);
     const dest = from && from !== "/login" ? from : defaultDest;
     navigate(dest, { replace: true });
   }, [accessToken, location.state, navigate]);
@@ -79,8 +96,14 @@ export default function LoginPage() {
     setLoading(true);
     setErro("");
     try {
-      localStorage.setItem("erp_mode", modo);
       const data = await authService.login({ identifier: email, password: senha });
+      if (!podeAcessarModo(data.user, modo)) {
+        const destino = destinoDaLicenca(data.user);
+        const nomeProduto = modo === "facilities" ? "ERP Facilities" : "ERP Serviços";
+        const produtoPermitido = destino === "/facilities" ? "ERP Facilities" : "ERP Serviços";
+        setErro(`Sua licença não permite acesso ao ${nomeProduto}. Use o acesso do ${produtoPermitido}.`);
+        return;
+      }
       if (lembrar) {
         localStorage.setItem("erp_remember_email", email);
       } else {
