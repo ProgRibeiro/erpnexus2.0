@@ -1,6 +1,7 @@
 import { Menu } from "antd";
 import {
   AlertOutlined,
+  AppstoreOutlined,
   BarChartOutlined,
   BuildOutlined,
   CalendarOutlined,
