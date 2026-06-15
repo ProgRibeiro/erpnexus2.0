@@ -137,7 +137,7 @@ function buildItems(grupos, navigate) {
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const mode = localStorage.getItem("erp_mode") || "prestador";
+  const mode = location.pathname.startsWith("/facilities") ? "facilities" : "prestador";
   const grupos = mode === "facilities" ? ITENS_FACILITIES : ITENS_PRESTADOR;
   const items = buildItems(grupos, navigate);
 

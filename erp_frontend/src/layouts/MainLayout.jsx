@@ -34,7 +34,8 @@ function getInitials(name = '') {
 
 export default function MainLayout() {
   const sidebarWidth = 224;
-  const mode = localStorage.getItem("erp_mode") || "prestador";
+  const isFacilities = window.location.pathname.startsWith("/facilities");
+  const mode = isFacilities ? "facilities" : "prestador";
   const brand = BRAND[mode] || BRAND.prestador;
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -42,12 +43,6 @@ export default function MainLayout() {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const trocarModo = (novoModo) => {
-    localStorage.setItem("erp_mode", novoModo);
-    navigate(novoModo === "facilities" ? "/facilities" : "/dashboard");
-    window.location.reload();
   };
 
   return (
@@ -89,20 +84,14 @@ export default function MainLayout() {
             <span className="erp-brand-status-dot" />
             Ambiente local
           </div>
-          <div className="erp-mode-switch">
+          <div className="erp-system-bridge">
+            <span className="erp-system-bridge-label">Interligado por solicitações</span>
             <button
               type="button"
-              className={mode === "prestador" ? "erp-mode-option erp-mode-option-active" : "erp-mode-option"}
-              onClick={() => trocarModo("prestador")}
+              className="erp-system-bridge-action"
+              onClick={() => navigate(mode === "facilities" ? "/dashboard" : "/facilities")}
             >
-              Serviços
-            </button>
-            <button
-              type="button"
-              className={mode === "facilities" ? "erp-mode-option erp-mode-option-active" : "erp-mode-option"}
-              onClick={() => trocarModo("facilities")}
-            >
-              Facilities
+              {mode === "facilities" ? "Abrir ERP Serviços" : "Abrir Facilities"}
             </button>
           </div>
         </div>

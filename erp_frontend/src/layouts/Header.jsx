@@ -55,7 +55,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const mode = localStorage.getItem("erp_mode") || "prestador";
+  const mode = location.pathname.startsWith("/facilities") ? "facilities" : "prestador";
   const sidebarName = mode === 'facilities' ? 'ERP Facilities' : 'ERP Nexus';
   const pageMeta = getPageMeta(location.pathname);
 
