@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { LogoutOutlined } from '@ant-design/icons';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import FloatingWorkspaceTabs from './FloatingWorkspaceTabs';
 import { useAuth } from '../hooks/useAuth';
 
 const BRAND = {
@@ -118,6 +119,7 @@ export default function MainLayout() {
 
       <Layout style={{ marginLeft: sidebarWidth, background: '#F4F6F9' }}>
         <Header />
+        <FloatingWorkspaceTabs />
         <Layout.Content className="erp-shell-content">
           <div className="erp-shell-panel">
             <Outlet />

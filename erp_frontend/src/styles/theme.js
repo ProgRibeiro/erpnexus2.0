@@ -23,17 +23,17 @@ export const theme = {
     fontSizeXL: 20,
     fontWeightStrong: 600,
 
-    // Bordas — levemente mais arredondadas
+    // Bordas — compactas e profissionais
     borderRadius: 10,
-    borderRadiusLG: 14,
-    borderRadiusSM: 7,
+    borderRadiusLG: 12,
+    borderRadiusSM: 6,
     borderRadiusXS: 4,
 
-    // Espaçamentos — mais generosos
-    padding: 20,
-    paddingLG: 28,
-    paddingSM: 14,
-    paddingXS: 8,
+    // Espaçamentos — densidade operacional
+    padding: 16,
+    paddingLG: 22,
+    paddingSM: 10,
+    paddingXS: 6,
 
     // Sombras mínimas
     boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)",
@@ -59,9 +59,9 @@ export const theme = {
     lineType: "solid",
 
     // Altura dos controles
-    controlHeight: 38,
-    controlHeightLG: 44,
-    controlHeightSM: 30,
+    controlHeight: 36,
+    controlHeightLG: 40,
+    controlHeightSM: 28,
 
     // Motion
     motionDurationMid: "0.15s",
@@ -79,7 +79,7 @@ export const theme = {
     // Cards
     Card: {
       headerBg: "#FFFFFF",
-      borderRadius: 14,
+      borderRadius: 10,
     },
     // Tabela
     Table: {
@@ -89,7 +89,8 @@ export const theme = {
       rowHoverBg: "#F8FAFC",
       borderColor: "#E8EDF2",
       fontSize: 13,
-      cellPaddingBlock: 12,
+      cellPaddingBlock: 9,
+      cellPaddingInline: 12,
     },
     // Menu lateral
     Menu: {
