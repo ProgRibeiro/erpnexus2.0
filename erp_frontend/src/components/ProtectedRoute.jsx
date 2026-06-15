@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { getStoredAuthState } from "../store/authStore";
 
-const ROTAS_COMUNS = ["/perfil", "/tecnico-mobile", "/loja", "/orcamentos/unificado"];
+const ROTAS_COMUNS = ["/ambiente", "/perfil"];
 
 function moduloUsuario(user) {
   if (user?.is_superuser) return "ambos";
@@ -21,8 +21,7 @@ function podeAcessarProduto(user, pathname) {
 }
 
 function destinoPermitido(user) {
-  const modulo = moduloUsuario(user);
-  return modulo === "facilities" ? "/facilities" : "/dashboard";
+  return "/ambiente";
 }
 
 export default function ProtectedRoute() {

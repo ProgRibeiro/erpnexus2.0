@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import BottomNavigationBar from "./components/BottomNavigationBar";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
 import DashboardPage from "./pages/Dashboard/DashboardPage";
+import AmbientePage from "./pages/Ambiente";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";
 import AgendaPage from "./pages/Agenda";
@@ -95,6 +96,7 @@ export default function App() {
           <Route path="/orcamentos/:id/impressao" element={<ImpressaoOrcamento />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/ambiente" element={<AmbientePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/ordens" element={<OrdensPage />} />

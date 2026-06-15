@@ -60,8 +60,7 @@ function podeAcessarModo(user, modo) {
 }
 
 function destinoDaLicenca(user) {
-  const modulo = moduloUsuario(user);
-  return modulo === "facilities" ? "/facilities" : "/dashboard";
+  return "/ambiente";
 }
 
 export default function LoginPage() {
@@ -111,7 +110,7 @@ export default function LoginPage() {
       }
       setAuth(data);
       const from = location.state?.from?.pathname;
-      const defaultDest = MODOS[modo].destino;
+      const defaultDest = destinoDaLicenca(data.user);
       const dest = from && from !== "/" && from !== "/login" ? from : defaultDest;
       navigate(dest, { replace: true });
     } catch (err) {

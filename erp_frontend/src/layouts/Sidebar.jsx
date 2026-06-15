@@ -26,6 +26,7 @@ const ITENS_PRESTADOR = [
     label: 'PRINCIPAL',
     type: 'group',
     children: [
+      { key: 'ambiente', icon: <AppstoreOutlined />, label: 'Ambiente', path: '/ambiente' },
       { key: 'dashboard', icon: <DashboardOutlined />, label: 'Dashboard', path: '/dashboard' },
     ],
   },
@@ -78,6 +79,7 @@ const ITENS_FACILITIES = [
     label: 'PRINCIPAL',
     type: 'group',
     children: [
+      { key: 'ambiente', icon: <AppstoreOutlined />, label: 'Ambiente', path: '/ambiente' },
       { key: 'fac-dashboard', icon: <DashboardOutlined />, label: 'Dashboard Facilities', path: '/facilities' },
     ],
   },
@@ -143,6 +145,7 @@ export default function Sidebar() {
 
   const getSelectedKey = () => {
     const p = location.pathname;
+    if (p === '/ambiente') return 'ambiente';
     if (p === '/' || p === '/dashboard') return 'dashboard';
     if (p.startsWith('/orcamentos/inteligente')) return 'orcamento-inteligente';
     if (p.startsWith('/orcamentos')) return 'orcamentos';

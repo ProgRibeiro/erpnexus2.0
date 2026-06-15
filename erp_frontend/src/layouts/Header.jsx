@@ -16,6 +16,7 @@ import AvatarUsuario from '../components/ui/AvatarUsuario';
 
 const ROUTE_META = {
   '/': { label: 'Dashboard', section: 'Visão geral' },
+  '/ambiente': { label: 'Ambiente', section: 'Módulos da licença' },
   '/dashboard': { label: 'Dashboard', section: 'Visão geral' },
   '/orcamentos': { label: 'Orçamentos', section: 'Comercial técnico' },
   '/orcamentos/novo': { label: 'Novo orçamento', section: 'Comercial técnico' },

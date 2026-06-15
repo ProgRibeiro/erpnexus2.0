@@ -7,6 +7,7 @@ const MAX_TABS = 10;
 
 const ROUTE_LABELS = {
   "/": "Dashboard",
+  "/ambiente": "Ambiente",
   "/dashboard": "Dashboard",
   "/orcamentos": "Orçamentos",
   "/orcamentos/novo": "Novo orçamento",
