@@ -56,8 +56,9 @@ function getIcon(iconKey) {
 }
 
 function isActive(pathname, item) {
-  const target = item.path.replace(/\/$/, "");
+  const target = item.path === "/" ? "/" : item.path.replace(/\/$/, "");
   if (item.match === "exact") return pathname === target;
+  if (target === "/") return pathname === "/";
   return pathname === target || pathname.startsWith(`${target}/`);
 }
 
@@ -69,7 +70,7 @@ function getSelectedKey(pathname, sections) {
       }
     }
   }
-  return "dashboard";
+  return null;
 }
 
 export default function Sidebar() {
@@ -98,7 +99,9 @@ export default function Sidebar() {
   return (
     <Menu
       mode="inline"
-      selectedKeys={[getSelectedKey(location.pathname, sections)]}
+      selectedKeys={[getSelectedKey(location.pathname, sections)].filter(
+        Boolean
+      )}
       items={items}
       className="erp-sidebar-menu"
       style={{ borderRight: "none" }}
