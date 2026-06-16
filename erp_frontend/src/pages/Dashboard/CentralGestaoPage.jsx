@@ -25,6 +25,7 @@ import {
   BuildOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
   DollarOutlined,
   FileDoneOutlined,
   FileProtectOutlined,
