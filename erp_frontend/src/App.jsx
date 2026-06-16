@@ -1,8 +1,13 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
 
 import AppShell from "./components/AppShell";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BottomNavigationBar from "./components/BottomNavigationBar";
+import CommandPalette from "./components/CommandPalette/CommandPalette";
+import { registerKeyboardShortcut } from "./services/keyboardService";
+import { COMMANDS } from "./services/commandPaletteService";
+import integrationsService, { notificationService } from "./services/integrationsService";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
 import DashboardPage from "./pages/Dashboard/CentralGestaoPage";
 import AmbientePage from "./pages/Ambiente";
@@ -75,6 +80,26 @@ import MasterLogsPage from "./pages/MasterAdmin/MasterLogsPage";
 
 export default function App() {
   useBootstrapAuth();
+
+  // Inicializar atalhos de teclado e integrações
+  useEffect(() => {
+    // Registrar atalhos de teclado para cada comando
+    COMMANDS.forEach(cmd => {
+      if (cmd.shortcut) {
+        registerKeyboardShortcut(cmd.id, cmd.action);
+      }
+    });
+
+    // Pedir permissão para notificações
+    notificationService.requestPermission();
+
+    // Iniciar heartbeat do sistema (verifica saúde a cada 30s)
+    const heartbeatInterval = integrationsService.health.startHeartbeat(30000);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+    };
+  }, []);
 
   return (
     <>
@@ -158,6 +183,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <CommandPalette />
       <BottomNavigationBar />
     </>
   );

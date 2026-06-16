@@ -1,0 +1,65 @@
+.shortcuts-modal .ant-tabs {
+  font-size: 14px;
+}
+
+.shortcuts-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.shortcut-item:hover {
+  background: #EFF6FF;
+  border-color: #3B82F6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.shortcut-label {
+  flex: 1;
+}
+
+.shortcut-title {
+  font-weight: 500;
+  color: #1F2937;
+}
+
+.shortcut-keys {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F3F4F6 100%);
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  font-family: 'Monaco', 'Courier New', monospace;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.key-separator {
+  color: #9CA3AF;
+  font-weight: 600;
+}

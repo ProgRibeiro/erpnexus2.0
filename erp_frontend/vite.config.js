@@ -1,10 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig(({ command }) => {
   const isMobile = process.env.MOBILE === "true";
   return {
     plugins: [react()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
     base: isMobile ? "./" : command === "build" ? "/static/" : "/",
     server: {
       port: 5173,
