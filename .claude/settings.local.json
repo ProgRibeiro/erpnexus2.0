@@ -75,10 +75,39 @@
       "Bash(Select-Object Name, Status)",
       "Bash(findstr :5173)",
       "mcp__plugin_playwright_playwright__browser_click",
-      "mcp__plugin_playwright_playwright__browser_press_key"
+      "mcp__plugin_playwright_playwright__browser_press_key",
+      "Bash(xcrun simctl *)",
+      "Bash(emulator -list-avds)",
+      "Bash(adb devices *)",
+      "Read(//Applications/**)",
+      "Bash(xcode-select -p)",
+      "Bash(brew install *)",
+      "Bash(/usr/libexec/java_home -V)",
+      "Read(//Library/Java/JavaVirtualMachines/**)",
+      "Bash(brew list *)",
+      "Bash(brew info *)",
+      "Bash(grep -nE \"ANDROID_HOME|ANDROID_SDK|JAVA_HOME|Android/sdk\" ~/.zshrc 2>&1 || echo \"no existing android/java config\")",
+      "Read(//Users/lucasribeiro/**)",
+      "Bash(cat >> *)",
+      "Bash(export JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\")",
+      "Bash('/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/java' -version)",
+      "Bash(open -a \"Android Studio\")",
+      "Bash(cat /opt/homebrew/bin/avdmanager | head -20)",
+      "Read(//opt/homebrew/share/android-commandlinetools/cmdline-tools/latest/bin/**)",
+      "Read(//opt/homebrew/share/android-commandlinetools/**)",
+      "Read(//opt/homebrew/share/android-commandlinetools/cmdline-tools/**)",
+      "Bash(mkdir -p __TRACKED_VAR__/Library/Android/sdk/cmdline-tools)",
+      "Bash(ln -sf /opt/homebrew/share/android-commandlinetools/cmdline-tools/latest __TRACKED_VAR__/Library/Android/sdk/cmdline-tools/latest)",
+      "Bash(rm __TRACKED_VAR__/Library/Android/sdk/cmdline-tools/latest)",
+      "Bash(ln -sf __TRACKED_VAR__/Library/Android/sdk/cmdline-tools/19.0 __TRACKED_VAR__/Library/Android/sdk/cmdline-tools/latest)",
+      "Bash(lsof -nP -iTCP:8000 -sTCP:LISTEN)",
+      "Bash(sleep 2; tail -15 /tmp/scrcpy.log 2>&1; echo \"---\"; pgrep -lf scrcpy 2>&1)",
+      "Read(//private/tmp/**)",
+      "Bash(lsof -nP -iTCP:5173 -sTCP:LISTEN)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\lucas\\Documents\\ERP NOVO EM PRODUÇÃO"
+      "c:\\Users\\lucas\\Documents\\ERP NOVO EM PRODUÇÃO",
+      "/Users/lucasribeiro"
     ]
   }
 }

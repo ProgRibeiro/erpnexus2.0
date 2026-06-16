@@ -4,14 +4,16 @@ import AppShell from "./components/AppShell";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BottomNavigationBar from "./components/BottomNavigationBar";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
-import DashboardPage from "./pages/Dashboard/DashboardPage";
+import DashboardPage from "./pages/Dashboard/CentralGestaoPage";
 import AmbientePage from "./pages/Ambiente";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";
 import AgendaPage from "./pages/Agenda";
 import MinhasOSHojePage from "./pages/Agenda/MinhasOSHoje";
 import ConfiguracoesPage from "./pages/Configuracoes";
+import CadastrosPage from "./pages/Cadastros";
 import ContasBancariasPage from "./pages/Financeiro/ContasBancarias";
+import FinanceiroHubPage from "./pages/Financeiro/Hub";
 import FinanceiroDashboard from "./pages/Financeiro/Dashboard";
 import LancamentosPage from "./pages/Financeiro/Lancamentos";
 import NovoLancamentoPage from "./pages/Financeiro/NovoLancamento";
@@ -97,6 +99,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/ambiente" element={<AmbientePage />} />
+            <Route path="/cadastros" element={<CadastrosPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clientes" element={<ClientesPage />} />
             <Route path="/ordens" element={<OrdensPage />} />
@@ -113,7 +116,8 @@ export default function App() {
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/agenda/hoje" element={<MinhasOSHojePage />} />
             <Route path="/crm" element={<CRMPage />} />
-            <Route path="/financeiro" element={<FinanceiroDashboard />} />
+            <Route path="/financeiro" element={<FinanceiroHubPage />} />
+            <Route path="/financeiro/analitico" element={<FinanceiroDashboard />} />
             <Route path="/financeiro/lancamentos" element={<LancamentosPage />} />
             <Route path="/financeiro/lancamentos/novo" element={<NovoLancamentoPage />} />
             <Route path="/financeiro/lancamentos/:id" element={<NovoLancamentoPage />} />

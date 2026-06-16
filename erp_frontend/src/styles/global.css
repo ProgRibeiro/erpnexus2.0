@@ -365,6 +365,11 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 18px rgba(15, 23, 42, 0.04);
 }
 
+.erp-command-auto {
+  flex: 1;
+  min-width: 0;
+}
+
 .erp-command-input {
   flex: 1;
 }
@@ -382,6 +387,26 @@ body {
   background: #EFF6FF !important;
   font-size: 10px !important;
   font-weight: 800 !important;
+}
+
+.erp-shortcut-button {
+  height: 30px !important;
+  padding-inline: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px;
+  color: #0F172A !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.erp-shortcut-button:hover {
+  color: #2563EB !important;
+  border-color: #BFDBFE !important;
+  background: #F8FAFC !important;
 }
 
 .erp-health-tag {
@@ -416,6 +441,11 @@ body {
   justify-content: center !important;
   border-radius: 8px !important;
   color: #64748B !important;
+}
+
+.erp-command-dropdown {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .erp-icon-button:hover {

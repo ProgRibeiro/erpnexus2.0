@@ -1,5 +1,5 @@
 import { Layout, Avatar, Tooltip, Button } from 'antd';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LogoutOutlined } from '@ant-design/icons';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -11,7 +11,7 @@ const BRAND = {
     letter: "N",
     gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
     titulo: "ERP Nexus",
-    subtitulo: "Prestador de serviços",
+    subtitulo: "Central de gestão empresarial",
     shadow: "0 4px 12px rgba(59,130,246,0.35)",
   },
   facilities: {
@@ -34,7 +34,8 @@ function getInitials(name = '') {
 
 export default function MainLayout() {
   const sidebarWidth = 224;
-  const isFacilities = window.location.pathname.startsWith("/facilities");
+  const location = useLocation();
+  const isFacilities = location.pathname.startsWith("/facilities");
   const mode = isFacilities ? "facilities" : "prestador";
   const brand = BRAND[mode] || BRAND.prestador;
   const { user, logout } = useAuth();

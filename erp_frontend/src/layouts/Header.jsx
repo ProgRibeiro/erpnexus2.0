@@ -1,7 +1,9 @@
-import { Layout, Space, Button, Dropdown, Badge, Tooltip, Input, Tag } from 'antd';
+import { useMemo, useState } from 'react';
+import { Layout, Space, Button, Dropdown, Badge, Tooltip, Input, Tag, AutoComplete } from 'antd';
 import {
   AppstoreOutlined,
   BellOutlined,
+  FileTextOutlined,
   LogoutOutlined,
   SearchOutlined,
   ShopOutlined,
@@ -13,10 +15,12 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import AvatarUsuario from '../components/ui/AvatarUsuario';
+import { ERP_HUB_MODULES } from "../config/erpExperience";
 
 const ROUTE_META = {
   '/': { label: 'Dashboard', section: 'Visão geral' },
   '/ambiente': { label: 'Ambiente', section: 'Módulos da licença' },
+  '/cadastros': { label: 'Cadastros', section: 'Registros base' },
   '/dashboard': { label: 'Dashboard', section: 'Visão geral' },
   '/orcamentos': { label: 'Orçamentos', section: 'Comercial técnico' },
   '/orcamentos/novo': { label: 'Novo orçamento', section: 'Comercial técnico' },
@@ -30,6 +34,7 @@ const ROUTE_META = {
   '/estoque': { label: 'Estoque', section: 'Suprimentos' },
   '/catalogo-inteligente': { label: 'Motor de Catálogo', section: 'Inteligência' },
   '/financeiro': { label: 'Financeiro', section: 'Gestão financeira' },
+  '/financeiro/analitico': { label: 'Painel analítico', section: 'Gestão financeira' },
   '/faturamento': { label: 'Faturamento', section: 'Recebíveis' },
   '/crm': { label: 'CRM', section: 'Funil comercial' },
   '/chamados-externos': { label: 'Chamados Externos', section: 'Facilities' },
@@ -52,13 +57,68 @@ function getPageMeta(pathname) {
   return ROUTE_META[base] || { label: 'Página', section: 'ERP Nexus' };
 }
 
+function buildSearchIndex() {
+  const baseItems = ERP_HUB_MODULES.map((item) => ({
+    label: item.label,
+    path: item.path,
+    section: item.title,
+    keywords: `${item.label} ${item.title} ${item.description}`,
+  }));
+
+  return [
+    ...baseItems,
+    { label: 'Central', path: '/', section: 'Visão geral', keywords: 'central dashboard início' },
+    { label: 'Novo orçamento', path: '/orcamentos/novo', section: 'Comercial técnico', keywords: 'novo orçamento proposta' },
+    { label: 'Nova OS', path: '/ordens/novo', section: 'Operação de campo', keywords: 'nova os ordem serviço' },
+    { label: 'Lançamentos financeiros', path: '/financeiro/lancamentos', section: 'Gestão financeira', keywords: 'lançamentos financeiro contas' },
+    { label: 'Cadastro de clientes', path: '/clientes', section: 'Relacionamento', keywords: 'clientes cadastro contato' },
+    { label: 'Estoque', path: '/estoque', section: 'Suprimentos', keywords: 'estoque produtos movimentação' },
+  ];
+}
+
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [searchValue, setSearchValue] = useState("");
   const mode = location.pathname.startsWith("/facilities") ? "facilities" : "prestador";
   const sidebarName = mode === 'facilities' ? 'ERP Facilities' : 'ERP Nexus';
   const pageMeta = getPageMeta(location.pathname);
+  const searchIndex = useMemo(() => buildSearchIndex(), []);
+  const searchOptions = useMemo(() => {
+    const term = searchValue.trim().toLowerCase();
+    const filtered = term
+      ? searchIndex.filter((item) => `${item.label} ${item.section} ${item.keywords}`.toLowerCase().includes(term))
+      : searchIndex;
+
+    return filtered.slice(0, 8).map((item) => ({
+      value: item.path,
+      label: (
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+          <span style={{ fontWeight: 600 }}>{item.label}</span>
+          <span style={{ color: "#94A3B8", fontSize: 12 }}>{item.section}</span>
+        </div>
+      ),
+    }));
+  }, [searchIndex, searchValue]);
+
+  const handleSearchSelect = (path) => {
+    setSearchValue("");
+    navigate(path);
+  };
+
+  const handleSearchEnter = () => {
+    const exact = searchIndex.find((item) => item.label.toLowerCase() === searchValue.trim().toLowerCase());
+    if (exact) {
+      handleSearchSelect(exact.path);
+      return;
+    }
+
+    const firstMatch = searchIndex.find((item) =>
+      `${item.label} ${item.section} ${item.keywords}`.toLowerCase().includes(searchValue.trim().toLowerCase())
+    );
+    if (firstMatch) handleSearchSelect(firstMatch.path);
+  };
 
   const handleLogout = () => {
     logout();
@@ -134,19 +194,38 @@ export default function Header() {
         </div>
 
         <div className="erp-command-center">
-          <Input
-            allowClear
-            prefix={<SearchOutlined />}
-            placeholder="Buscar clientes, OS, orçamento, produto..."
-            className="erp-command-input"
-          />
-          <Tag className="erp-command-tag">Local</Tag>
+          <AutoComplete
+            value={searchValue}
+            onSearch={setSearchValue}
+            onSelect={handleSearchSelect}
+            options={searchOptions}
+            popupClassName="erp-command-dropdown"
+            className="erp-command-auto"
+          >
+            <Input
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder="Buscar clientes, OS, orçamento, produto..."
+              className="erp-command-input"
+              onPressEnter={handleSearchEnter}
+            />
+          </AutoComplete>
+          <Tag className="erp-command-tag">{searchOptions.length} resultados</Tag>
         </div>
 
         <Space size={8} className="erp-topbar-actions">
           <Tag icon={<SafetyCertificateOutlined />} className="erp-health-tag">
             Operação ativa
           </Tag>
+
+          <Button
+            type="text"
+            icon={<FileTextOutlined />}
+            onClick={() => navigate('/orcamentos')}
+            className="erp-shortcut-button"
+          >
+            Orçamentos
+          </Button>
 
           <Button
             icon={<ShopOutlined />}
