@@ -9,7 +9,7 @@ import {
   MailOutlined,
   LockOutlined,
 } from "@ant-design/icons";
-import { useAuthStore } from "../../store/authStore";
+import { getStoredAuthState, useAuthStore } from "../../store/authStore";
 import authService from "../../services/authService";
 
 const MODOS = {
@@ -70,7 +70,7 @@ export default function LoginPage() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [modo, setModo] = useState(null);
 
-  const { setAuth, accessToken } = useAuthStore();
+  const { setAuth, accessToken, user, clearAuth } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,12 +82,17 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!accessToken) return;
+    const storedUser = getStoredAuthState().user;
+    const currentUser = user || storedUser;
+    if (!currentUser) {
+      clearAuth();
+      return;
+    }
     const from = location.state?.from?.pathname;
-    const authState = JSON.parse(localStorage.getItem("erp_auth") || "{}")?.state || {};
-    const defaultDest = destinoDaLicenca(authState.user);
+    const defaultDest = destinoDaLicenca(currentUser);
     const dest = from && from !== "/login" ? from : defaultDest;
     navigate(dest, { replace: true });
-  }, [accessToken, location.state, navigate]);
+  }, [accessToken, clearAuth, location.state, navigate, user]);
 
   const onFinish = async ({ email, senha, lembrar }) => {
     // Modo é obrigatório — usuário deve ter escolhido o sistema primeiro
