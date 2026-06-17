@@ -1,4 +1,4 @@
-import { Button, Tooltip } from "antd";
+import { Button, Dropdown } from "antd";
 import { CloseOutlined, PushpinOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -108,34 +108,39 @@ export default function FloatingWorkspaceTabs() {
 
   if (!orderedTabs.length) return null;
 
+  const menuItems = orderedTabs.map((tab) => ({
+    key: tab.path,
+    label: (
+      <span className="erp-workspace-menu-item">
+        <span>{tab.label}</span>
+        <Button
+          type="text"
+          size="small"
+          icon={<CloseOutlined />}
+          className="erp-workspace-menu-close"
+          onClick={(event) => closeTab(event, tab.path)}
+        />
+      </span>
+    ),
+    onClick: () => navigate(tab.path),
+  }));
+
   return (
     <div className="erp-floating-tabs" aria-label="Abas abertas">
-      <div className="erp-floating-tabs-pin">
-        <PushpinOutlined />
-      </div>
-      <div className="erp-floating-tabs-scroll">
-        {orderedTabs.map((tab) => {
-          const active = tab.path === pathname;
-          return (
-            <Tooltip key={tab.path} title={tab.path}>
-              <button
-                type="button"
-                className={active ? "erp-work-tab erp-work-tab-active" : "erp-work-tab"}
-                onClick={() => navigate(tab.path)}
-              >
-                <span className="erp-work-tab-label">{tab.label}</span>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CloseOutlined />}
-                  className="erp-work-tab-close"
-                  onClick={(event) => closeTab(event, tab.path)}
-                />
-              </button>
-            </Tooltip>
-          );
-        })}
-      </div>
+      <Dropdown
+        menu={{ items: menuItems }}
+        placement="bottomRight"
+        trigger={["click"]}
+        overlayClassName="erp-workspace-menu"
+      >
+        <Button
+          type="text"
+          icon={<PushpinOutlined />}
+          className="erp-floating-tabs-trigger"
+        >
+          {orderedTabs.length}
+        </Button>
+      </Dropdown>
     </div>
   );
 }
