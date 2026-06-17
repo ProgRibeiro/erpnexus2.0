@@ -1,4 +1,4 @@
-import { Button, Card, Col, Row, Space, Tag, Typography } from "antd";
+import { Button, Space, Tag, Typography } from "antd";
 import {
   AppstoreOutlined,
   BarChartOutlined,
@@ -97,7 +97,7 @@ export default function AmbientePage() {
               <Title level={1}>
                 Olá, {user?.first_name || user?.nome?.split(" ")?.[0] || "usuário"}
               </Title>
-              <Text>{ambiente.subtitle}</Text>
+              <Text>{ambiente.title}</Text>
             </div>
           </Space>
           <Space wrap className="erp-ambiente-actions">
@@ -112,58 +112,25 @@ export default function AmbientePage() {
             </Button>
           </Space>
         </div>
-
-        <div className="erp-ambiente-hero-panel">
-          <span>Ambiente ativo</span>
-          <strong>{ambiente.title}</strong>
-          <small>Use os blocos abaixo para entrar nos módulos do sistema.</small>
-        </div>
       </section>
 
-      <div className="erp-ambiente-section-title">
-        <div>
-          <Title level={3}>Escolha uma área</Title>
-          <Text>Entrada rápida para as rotinas principais do seu ambiente.</Text>
-        </div>
-        <Tag color="blue">{ambiente.modules.length} módulos</Tag>
-      </div>
-
-      <Row gutter={[10, 10]} className="erp-ambiente-grid">
+      <div className="erp-ambiente-grid">
         {ambiente.modules.map((modulo) => (
-          <Col xs={24} sm={12} lg={8} xl={6} xxl={6} key={modulo.title}>
-            <button
-              type="button"
-              className="erp-module-tile"
-              aria-label={`Abrir ${modulo.title}`}
-              style={{ "--module-color": modulo.color }}
-              onClick={() => abrirModulo(modulo)}
-            >
-              <span className="erp-module-icon">{modulo.icon}</span>
-              <span className="erp-module-copy">
-                <strong>{modulo.title}</strong>
-                <small>{modulo.subtitle}</small>
-              </span>
-            </button>
-          </Col>
+          <button
+            type="button"
+            className="erp-module-tile"
+            aria-label={`Abrir ${modulo.title}`}
+            style={{ "--module-color": modulo.color }}
+            onClick={() => abrirModulo(modulo)}
+            key={modulo.title}
+          >
+            <span className="erp-module-icon">{modulo.icon}</span>
+            <span className="erp-module-copy">
+              <strong>{modulo.title}</strong>
+            </span>
+          </button>
         ))}
-      </Row>
-
-      <Row gutter={[10, 10]} className="erp-ambiente-info-grid">
-        <Col xs={24} lg={12}>
-          <Card title="Fluxo de integração" className="erp-ambiente-info">
-            <Text>
-              Ambientes separados por licença. A comunicação entre contratante e prestador acontece por solicitações, chamados, cotações e aprovações.
-            </Text>
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card title="Acesso" className="erp-ambiente-info">
-            <Text>
-              Cada usuário acessa apenas o produto liberado na licença. O menu e as rotas respeitam essa separação automaticamente.
-            </Text>
-          </Card>
-        </Col>
-      </Row>
+      </div>
     </div>
   );
 }
