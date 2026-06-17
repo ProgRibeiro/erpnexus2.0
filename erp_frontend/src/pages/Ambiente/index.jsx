@@ -1,6 +1,4 @@
-import { Button, Space, Tag, Typography } from "antd";
 import {
-  AppstoreOutlined,
   BarChartOutlined,
   BuildOutlined,
   CalendarOutlined,
@@ -18,8 +16,6 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
-
-const { Text, Title } = Typography;
 
 const erpModules = [
   { title: "CRM", subtitle: "Funil comercial", path: "/crm", color: "#2563EB", icon: <TeamOutlined /> },
@@ -84,36 +80,6 @@ export default function AmbientePage() {
 
   return (
     <div className="erp-ambiente-page">
-      <section className="erp-ambiente-header">
-        <div className="erp-ambiente-hero-copy">
-          <Space size={12} align="start">
-            <div className="erp-ambiente-mark" style={{ background: ambiente.accent }}>
-              <AppstoreOutlined />
-            </div>
-            <div>
-              <Tag className="erp-ambiente-license" color={ambiente.accent}>
-                {ambiente.tag}
-              </Tag>
-              <Title level={1}>
-                Olá, {user?.first_name || user?.nome?.split(" ")?.[0] || "usuário"}
-              </Title>
-              <Text>{ambiente.title}</Text>
-            </div>
-          </Space>
-          <Space wrap className="erp-ambiente-actions">
-            <Button type="primary" onClick={() => navigate("/dashboard")}>
-              Abrir dashboard
-            </Button>
-            <Button onClick={() => navigate("/orcamentos")}>
-              Orçamentos
-            </Button>
-            <Button onClick={() => navigate("/cadastros")}>
-              Cadastros
-            </Button>
-          </Space>
-        </div>
-      </section>
-
       <div className="erp-ambiente-grid">
         {ambiente.modules.map((modulo) => (
           <button
