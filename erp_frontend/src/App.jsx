@@ -9,7 +9,7 @@ import { registerKeyboardShortcut } from "./services/keyboardService";
 import { COMMANDS } from "./services/commandPaletteService";
 import integrationsService, { notificationService } from "./services/integrationsService";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
-import DashboardPage from "./pages/Dashboard/CentralGestaoPage";
+import DashboardPage from "./pages/Financeiro/Dashboard";
 import AmbientePage from "./pages/Ambiente";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";
@@ -122,7 +122,7 @@ export default function App() {
           <Route path="/orcamentos/unificado" element={<OrcamentoUnificado />} />
           <Route path="/orcamentos/:id/impressao" element={<ImpressaoOrcamento />} />
           <Route element={<AppShell />}>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/" element={<AmbientePage />} />
             <Route path="/ambiente" element={<AmbientePage />} />
             <Route path="/cadastros" element={<CadastrosPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />

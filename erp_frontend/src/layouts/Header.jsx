@@ -18,10 +18,10 @@ import AvatarUsuario from '../components/ui/AvatarUsuario';
 import { ERP_HUB_MODULES } from "../config/erpExperience";
 
 const ROUTE_META = {
-  '/': { label: 'Dashboard', section: 'Visão geral' },
+  '/': { label: 'Início', section: 'Ambiente' },
   '/ambiente': { label: 'Ambiente', section: 'Módulos da licença' },
   '/cadastros': { label: 'Cadastros', section: 'Registros base' },
-  '/dashboard': { label: 'Dashboard', section: 'Visão geral' },
+  '/dashboard': { label: 'Dashboard', section: 'Indicadores e KPIs' },
   '/orcamentos': { label: 'Orçamentos', section: 'Comercial técnico' },
   '/orcamentos/novo': { label: 'Novo orçamento', section: 'Comercial técnico' },
   '/orcamentos/inteligente': { label: 'Orçamento Inteligente', section: 'Motor comercial' },
@@ -67,7 +67,8 @@ function buildSearchIndex() {
 
   return [
     ...baseItems,
-    { label: 'Central', path: '/', section: 'Visão geral', keywords: 'central dashboard início' },
+    { label: 'Início', path: '/', section: 'Ambiente', keywords: 'inicio ambiente central módulos licenças' },
+    { label: 'Dashboard', path: '/dashboard', section: 'Indicadores e KPIs', keywords: 'dashboard indicadores kpis financeiro gráficos' },
     { label: 'Novo orçamento', path: '/orcamentos/novo', section: 'Comercial técnico', keywords: 'novo orçamento proposta' },
     { label: 'Nova OS', path: '/ordens/novo', section: 'Operação de campo', keywords: 'nova os ordem serviço' },
     { label: 'Lançamentos financeiros', path: '/financeiro/lancamentos', section: 'Gestão financeira', keywords: 'lançamentos financeiro contas' },

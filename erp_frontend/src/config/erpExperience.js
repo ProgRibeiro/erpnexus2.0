@@ -8,7 +8,14 @@ export const ERP_SIDEBAR_SECTIONS = [
         label: "Início",
         path: "/",
         match: "exact",
-        iconKey: "DashboardOutlined",
+        iconKey: "AppstoreOutlined",
+      },
+      {
+        key: "indicadores",
+        label: "Dashboard",
+        path: "/dashboard",
+        match: "exact",
+        iconKey: "BarChartOutlined",
       },
       {
         key: "ambiente",
