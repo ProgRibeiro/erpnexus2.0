@@ -1,4 +1,4 @@
-import { Card, Col, Row, Space, Tag, Typography } from "antd";
+import { Button, Card, Col, Row, Space, Tag, Typography } from "antd";
 import {
   AppstoreOutlined,
   BarChartOutlined,
@@ -85,19 +85,48 @@ export default function AmbientePage() {
   return (
     <div className="erp-ambiente-page">
       <section className="erp-ambiente-header">
-        <Space size={12} align="start">
-          <div className="erp-ambiente-mark" style={{ background: ambiente.accent }}>
-            <AppstoreOutlined />
-          </div>
-          <div>
-            <Tag color={ambiente.accent}>{ambiente.tag}</Tag>
-            <Title level={2} style={{ margin: "8px 0 4px" }}>
-              Olá, {user?.first_name || user?.nome?.split(" ")?.[0] || "usuário"}
-            </Title>
-            <Text>{ambiente.subtitle}</Text>
-          </div>
-        </Space>
+        <div className="erp-ambiente-hero-copy">
+          <Space size={12} align="start">
+            <div className="erp-ambiente-mark" style={{ background: ambiente.accent }}>
+              <AppstoreOutlined />
+            </div>
+            <div>
+              <Tag className="erp-ambiente-license" color={ambiente.accent}>
+                {ambiente.tag}
+              </Tag>
+              <Title level={1}>
+                Olá, {user?.first_name || user?.nome?.split(" ")?.[0] || "usuário"}
+              </Title>
+              <Text>{ambiente.subtitle}</Text>
+            </div>
+          </Space>
+          <Space wrap className="erp-ambiente-actions">
+            <Button type="primary" onClick={() => navigate("/dashboard")}>
+              Abrir dashboard
+            </Button>
+            <Button onClick={() => navigate("/orcamentos")}>
+              Orçamentos
+            </Button>
+            <Button onClick={() => navigate("/cadastros")}>
+              Cadastros
+            </Button>
+          </Space>
+        </div>
+
+        <div className="erp-ambiente-hero-panel">
+          <span>Ambiente ativo</span>
+          <strong>{ambiente.title}</strong>
+          <small>Use os blocos abaixo para entrar nos módulos do sistema.</small>
+        </div>
       </section>
+
+      <div className="erp-ambiente-section-title">
+        <div>
+          <Title level={3}>Escolha uma área</Title>
+          <Text>Entrada rápida para as rotinas principais do seu ambiente.</Text>
+        </div>
+        <Tag color="blue">{ambiente.modules.length} módulos</Tag>
+      </div>
 
       <Row gutter={[10, 10]} className="erp-ambiente-grid">
         {ambiente.modules.map((modulo) => (
@@ -105,6 +134,7 @@ export default function AmbientePage() {
             <button
               type="button"
               className="erp-module-tile"
+              aria-label={`Abrir ${modulo.title}`}
               style={{ "--module-color": modulo.color }}
               onClick={() => abrirModulo(modulo)}
             >
@@ -118,7 +148,7 @@ export default function AmbientePage() {
         ))}
       </Row>
 
-      <Row gutter={[10, 10]} style={{ marginTop: 10 }}>
+      <Row gutter={[10, 10]} className="erp-ambiente-info-grid">
         <Col xs={24} lg={12}>
           <Card title="Fluxo de integração" className="erp-ambiente-info">
             <Text>
