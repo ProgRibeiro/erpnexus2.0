@@ -3,6 +3,8 @@ import { Layout, Space, Button, Dropdown, Badge, Tooltip, Input, Tag, AutoComple
 import {
   AppstoreOutlined,
   BellOutlined,
+  BarChartOutlined,
+  DownOutlined,
   FileTextOutlined,
   LogoutOutlined,
   SearchOutlined,
@@ -77,6 +79,42 @@ function buildSearchIndex() {
   ];
 }
 
+function buildQuickAccessItems(navigate) {
+  return [
+    {
+      key: "inicio",
+      icon: <AppstoreOutlined />,
+      label: "Início / Ambiente",
+      onClick: () => navigate("/"),
+    },
+    {
+      key: "dashboard",
+      icon: <BarChartOutlined />,
+      label: "Dashboard",
+      onClick: () => navigate("/dashboard"),
+    },
+    { type: "divider" },
+    ...ERP_HUB_MODULES.map((module) => ({
+      key: module.key,
+      label: module.label,
+      onClick: () => navigate(module.path),
+    })),
+    { type: "divider" },
+    {
+      key: "novo-orcamento",
+      icon: <FileTextOutlined />,
+      label: "Novo orçamento",
+      onClick: () => navigate("/orcamentos/novo"),
+    },
+    {
+      key: "configuracoes",
+      icon: <SettingOutlined />,
+      label: "Configurações",
+      onClick: () => navigate("/configuracoes"),
+    },
+  ];
+}
+
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,6 +124,10 @@ export default function Header() {
   const sidebarName = mode === 'facilities' ? 'ERP Facilities' : 'ERP Nexus';
   const pageMeta = getPageMeta(location.pathname);
   const searchIndex = useMemo(() => buildSearchIndex(), []);
+  const quickAccessItems = useMemo(
+    () => buildQuickAccessItems(navigate),
+    [navigate]
+  );
   const searchOptions = useMemo(() => {
     const term = searchValue.trim().toLowerCase();
     const filtered = term
@@ -219,14 +261,19 @@ export default function Header() {
             Operação ativa
           </Tag>
 
-          <Button
-            type="text"
-            icon={<FileTextOutlined />}
-            onClick={() => navigate('/orcamentos')}
-            className="erp-shortcut-button"
+          <Dropdown
+            menu={{ items: quickAccessItems }}
+            placement="bottomRight"
+            trigger={['click']}
           >
-            Orçamentos
-          </Button>
+            <Button
+              type="primary"
+              icon={<AppstoreOutlined />}
+              className="erp-shortcut-button"
+            >
+              Acesso rápido <DownOutlined />
+            </Button>
+          </Dropdown>
 
           <Button
             icon={<ShopOutlined />}

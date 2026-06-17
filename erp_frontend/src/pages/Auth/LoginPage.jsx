@@ -60,7 +60,7 @@ function podeAcessarModo(user, modo) {
 }
 
 function destinoDaLicenca(user) {
-  return "/ambiente";
+  return "/";
 }
 
 export default function LoginPage() {
