@@ -32,7 +32,7 @@ def _format_brl_trailing(value):
     while inteiro:
         grupos.insert(0, inteiro[-3:])
         inteiro = inteiro[:-3]
-    return f"{'.'.join(grupos)},{decimal}R$"
+    return f"R$ {'.'.join(grupos)},{decimal}"
 
 
 def _gerar_relatorio_pdf_reportlab(os_obj, context):
@@ -52,9 +52,9 @@ def _gerar_relatorio_pdf_reportlab(os_obj, context):
         bottomMargin=14 * mm,
     )
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="HeaderTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=18, textColor=colors.HexColor("#1B4F8A"), spaceAfter=6))
+    styles.add(ParagraphStyle(name="HeaderTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=18, textColor=colors.HexColor("#3B82F6"), spaceAfter=6))
     styles.add(ParagraphStyle(name="Muted", parent=styles["BodyText"], fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#5A6070"), leading=12))
-    styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading4"], fontName="Helvetica-Bold", fontSize=10, textColor=colors.white, backColor=colors.HexColor("#1B4F8A"), spaceBefore=12, spaceAfter=6, leftIndent=0, borderPadding=6))
+    styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading4"], fontName="Helvetica-Bold", fontSize=10, textColor=colors.white, backColor=colors.HexColor("#3B82F6"), spaceBefore=12, spaceAfter=6, leftIndent=0, borderPadding=6))
 
     story = []
     empresa = context["empresa"]
@@ -149,6 +149,7 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
     styles.add(ParagraphStyle(name="HeaderMuted", parent=styles["BodyText"], fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#CBD5E1"), leading=11))
     styles.add(ParagraphStyle(name="SmallLabel", parent=styles["BodyText"], fontName="Helvetica-Bold", fontSize=8, textColor=colors.HexColor("#64748B"), leading=10))
     styles.add(ParagraphStyle(name="SmallValue", parent=styles["BodyText"], fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#0F172A"), leading=10))
+    styles.add(ParagraphStyle(name="MoneyValue", parent=styles["BodyText"], fontName="Helvetica-Bold", fontSize=7.6, textColor=colors.HexColor("#0F172A"), leading=9, alignment=2))
 
     def p(value):
         return escape(str(value or "-")).replace("\n", "<br/>")
@@ -245,10 +246,10 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
             Paragraph(p(item["origem_tipo"]), styles["SmallValue"]),
             Paragraph(p(item["quantidade"]), styles["SmallValue"]),
             Paragraph(p(item["unidade_referencia"]), styles["SmallValue"]),
-            Paragraph(p(item["valor_unitario_fmt"]), styles["SmallValue"]),
-            Paragraph(p(item["valor_total_fmt"]), styles["SmallValue"]),
+            Paragraph(p(item["valor_unitario_fmt"]), styles["MoneyValue"]),
+            Paragraph(p(item["valor_total_fmt"]), styles["MoneyValue"]),
         ])
-    items_table = Table(item_rows, colWidths=[68 * mm, 22 * mm, 15 * mm, 18 * mm, 28 * mm, 28 * mm])
+    items_table = Table(item_rows, colWidths=[58 * mm, 20 * mm, 13 * mm, 15 * mm, 34 * mm, 39 * mm], repeatRows=1)
     items_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F5F8FC")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#6B7C91")),
@@ -271,7 +272,7 @@ def _gerar_orcamento_pdf_reportlab(os_obj, context):
         ["Impostos estimados", context["total_impostos_fmt"]],
         ["Total com impostos", context["total_geral_fmt"]],
     ]
-    totals_table = Table(total_rows, colWidths=[90 * mm, 40 * mm], hAlign="RIGHT")
+    totals_table = Table(total_rows, colWidths=[86 * mm, 46 * mm], hAlign="RIGHT")
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDE5EF")),
         ("FONTNAME", (0, 0), (-1, -2), "Helvetica"),

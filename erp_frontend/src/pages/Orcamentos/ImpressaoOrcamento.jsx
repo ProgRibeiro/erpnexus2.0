@@ -146,24 +146,24 @@ export default function ImpressaoOrcamento() {
         "top: 0",
         "left: -9999px",
         "width: 1123px",
-        "height: 794px",
+        "min-height: 794px",
         "background: #FFFFFF",
         "z-index: -1000",
-        "overflow: hidden",
+        "overflow: visible",
         "font-family: Inter, 'Segoe UI', system-ui, sans-serif",
       ].join("; ");
 
       const clone = element.cloneNode(true);
-      clone.classList.add("print-compact", "print-single-page", "print-scale-100");
+      clone.classList.add("print-compact", "print-export", "print-scale-100");
       clone.style.cssText = [
         "width: 1123px",
         "max-width: 1123px",
-        "height: 794px",
-        "max-height: 794px",
+        "min-height: 794px",
+        "height: auto",
         "margin: 0",
         "border-radius: 0",
         "box-shadow: none",
-        "overflow: hidden",
+        "overflow: visible",
         "background: #FFFFFF",
         "position: relative",
       ].join("; ");
@@ -179,6 +179,7 @@ export default function ImpressaoOrcamento() {
         allowTaint: true,
         backgroundColor: "#FFFFFF",
         windowWidth: 1123,
+        windowHeight: Math.max(794, clone.scrollHeight),
         scrollX: 0,
         scrollY: 0,
         logging: false,
@@ -190,23 +191,38 @@ export default function ImpressaoOrcamento() {
       const pdf = new jsPDF("l", "mm", "a4");
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 4;
+      const availableW = pageW - margin * 2;
+      const availableH = pageH - margin * 2;
+      const imgWidthMm = availableW;
+      const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
-      const imgWidthMm = pageW;
-      const imgHeightMm = (canvas.height * pageW) / canvas.width;
-      const fitScale = Math.min(1, pageH / imgHeightMm, pageW / imgWidthMm);
-      const outputWidthMm = imgWidthMm * fitScale;
-      const outputHeightMm = imgHeightMm * fitScale;
-      const offsetX = (pageW - outputWidthMm) / 2;
-      const offsetY = (pageH - outputHeightMm) / 2;
+      if (imgHeightMm <= availableH) {
+        pdf.addImage(
+          imgData,
+          "JPEG",
+          margin,
+          (pageH - imgHeightMm) / 2,
+          imgWidthMm,
+          imgHeightMm,
+        );
 
-      pdf.addImage(
-        canvas.toDataURL("image/jpeg", 0.95),
-        "JPEG",
-        offsetX,
-        offsetY,
-        outputWidthMm,
-        outputHeightMm,
-      );
+        return pdf;
+      }
+
+      const pages = Math.ceil(imgHeightMm / availableH);
+      for (let page = 0; page < pages; page += 1) {
+        if (page > 0) pdf.addPage();
+        pdf.addImage(
+          imgData,
+          "JPEG",
+          margin,
+          margin - page * availableH,
+          imgWidthMm,
+          imgHeightMm,
+        );
+      }
 
       return pdf;
     } catch (error) {
@@ -221,7 +237,7 @@ export default function ImpressaoOrcamento() {
       pdf.autoPrint();
       const blobUrl = pdf.output("bloburl");
       window.open(blobUrl, "_blank");
-      message.success("PDF de impressão gerado em uma única página.");
+      message.success("PDF de impressão gerado sem cortes.");
     } catch (error) {
       console.error("Erro ao imprimir:", error);
       message.error("Não foi possível preparar a impressão.");
@@ -251,24 +267,23 @@ export default function ImpressaoOrcamento() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         @media print {
-          @page { size: 297mm 210mm; margin: 0mm !important; }
+          @page { size: 297mm 210mm; margin: 6mm !important; }
           * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body, #root { width: 297mm !important; height: 210mm !important; min-height: 210mm !important; max-height: 210mm !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+          html, body, #root { width: auto !important; min-height: 100% !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; background: white !important; }
           .ant-layout-sider, [class*="sidebar"], [class*="Sidebar"], nav, header, .print-toolbar, .ant-layout-header, aside { display: none !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
-          body > div:first-child { height: 210mm !important; min-height: 210mm !important; max-height: 210mm !important; padding: 0 !important; overflow: hidden !important; }
+          body > div:first-child { min-height: 100% !important; padding: 0 !important; overflow: visible !important; }
           .doc-sheet {
-            width: 297mm !important;
-            max-width: 297mm !important;
-            height: 210mm !important;
+            width: 285mm !important;
+            max-width: 285mm !important;
+            height: auto !important;
             min-height: 210mm !important;
-            max-height: 210mm !important;
             margin: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             border: none !important;
-            overflow: hidden !important;
+            overflow: visible !important;
             position: relative !important;
           }
           .doc-sheet::after {
@@ -282,18 +297,18 @@ export default function ImpressaoOrcamento() {
             break-after: avoid !important;
           }
           .print-scale-100.doc-sheet {
-            width: 297mm !important;
-            max-width: 297mm !important;
+            width: 285mm !important;
+            max-width: 285mm !important;
             zoom: 1 !important;
           }
           .print-scale-88.doc-sheet {
-            width: 337.5mm !important;
-            max-width: 337.5mm !important;
+            width: 323.8mm !important;
+            max-width: 323.8mm !important;
             zoom: 0.88 !important;
           }
           .print-scale-72.doc-sheet {
-            width: 412.5mm !important;
-            max-width: 412.5mm !important;
+            width: 395.8mm !important;
+            max-width: 395.8mm !important;
             zoom: 0.72 !important;
           }
           .proposal-header,
@@ -329,25 +344,31 @@ export default function ImpressaoOrcamento() {
           .proposal-items-table { margin-top: 0 !important; }
           .proposal-items-table th { padding-top: 6px !important; padding-bottom: 6px !important; font-size: 8.5px !important; }
           .item-row td { padding-top: 6px !important; padding-bottom: 6px !important; font-size: 10px !important; }
+          .proposal-items-table th:nth-child(4),
+          .proposal-items-table th:nth-child(5),
+          .proposal-items-table td:nth-child(4),
+          .proposal-items-table td:nth-child(5),
+          .proposal-total-line span:last-child,
+          .proposal-total-final-value {
+            white-space: nowrap !important;
+          }
           .proposal-item-index { width: 18px !important; height: 18px !important; font-size: 8px !important; }
           .proposal-item-main { font-size: 10px !important; line-height: 1.15 !important; }
           .proposal-totals {
-            position: absolute !important;
-            right: 20px !important;
-            bottom: 34px !important;
+            position: static !important;
             width: 78mm !important;
             padding: 0 !important;
             z-index: 2 !important;
+            margin-left: auto !important;
+            margin-right: 20px !important;
+            margin-bottom: 12px !important;
           }
           .proposal-totals > div { min-width: 0 !important; width: 100% !important; max-width: 100% !important; box-shadow: none !important; }
           .proposal-total-line { padding-top: 4px !important; padding-bottom: 4px !important; }
           .proposal-total-final { padding-top: 8px !important; padding-bottom: 8px !important; }
           .proposal-total-final-value { font-size: 17px !important; }
           .proposal-footer {
-            position: absolute !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
+            position: static !important;
             padding: 7px 22px !important;
             z-index: 3 !important;
           }
@@ -409,6 +430,14 @@ export default function ImpressaoOrcamento() {
           width: 100%;
           overflow-x: auto;
           border-radius: 8px;
+        }
+        .proposal-items-table th:nth-child(4),
+        .proposal-items-table th:nth-child(5),
+        .proposal-items-table td:nth-child(4),
+        .proposal-items-table td:nth-child(5),
+        .proposal-total-line span:last-child,
+        .proposal-total-final-value {
+          white-space: nowrap;
         }
         .item-row:nth-child(even) td { background: #F8FAFC; }
         .item-row:hover td { background: #F1F5F9 !important; transition: background 0.15s; }
@@ -484,28 +513,26 @@ export default function ImpressaoOrcamento() {
         }
         @media print {
           .proposal-document {
-            overflow: hidden !important;
+            overflow: visible !important;
           }
           .proposal-items-section {
-            padding-bottom: 128px !important;
+            padding-bottom: 16px !important;
           }
           .proposal-totals {
-            position: absolute !important;
-            right: 20px !important;
-            bottom: 34px !important;
+            position: static !important;
             width: 78mm !important;
             padding: 0 !important;
             background: transparent !important;
+            margin-left: auto !important;
+            margin-right: 20px !important;
+            margin-bottom: 12px !important;
           }
           .proposal-totals > div {
             width: 100% !important;
-            margin-left: 0 !important;
+            margin-left: auto !important;
           }
           .proposal-footer {
-            position: absolute !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
+            position: static !important;
           }
           .proposal-table-wrap {
             overflow: visible !important;
