@@ -39,7 +39,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
-import FiscalIntelligenceAlert from "./components/FiscalIntelligenceAlert";
 import {
   buildBudgetNumber,
   buildItemsPayload,
@@ -253,6 +252,15 @@ export default function NovoOrcamento() {
   );
 
   const totals = useMemo(() => calcItemsTotals(items), [items]);
+  const itemCounters = useMemo(
+    () => ({
+      total: items.length,
+      servicos: items.filter((item) => item.origem_tipo === "servico").length,
+      produtos: items.filter((item) => item.origem_tipo === "produto").length,
+      avulsos: items.filter((item) => item.origem_tipo === "avulso").length,
+    }),
+    [items]
+  );
   const totalTerceiros = useMemo(
     () => items.reduce((sum, item) => sum + Number(item.custo_terceiro || 0), 0),
     [items]
@@ -846,7 +854,7 @@ export default function NovoOrcamento() {
               <div style={headerMetricStyle}>
                 <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Total</Text>
                 <div style={{ color: "#1E293B", fontSize: 18, fontWeight: 900 }}>
-                  {moneyFormatter.format(Number(impostos?.total_geral || totals.subtotal || 0))}
+                  {moneyFormatter.format(totals.subtotal)}
                 </div>
               </div>
               <div style={headerMetricStyle}>
@@ -1008,12 +1016,12 @@ export default function NovoOrcamento() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 18 }}>
             <div style={itemSectionHeaderStyle}>
               <div>
-                <Title level={4} style={{ margin: 0, color: "#1E293B" }}>Itens do orçamento</Title>
+                <Title level={4} style={{ margin: 0, color: "#1E293B" }}>Construtor de itens</Title>
                 <Text style={{ color: "#64748B" }}>
-                  Monte a composição comercial com serviços, produtos, custos internos e itens avulsos.
+                  Inclua serviços, produtos, custos internos e itens avulsos em uma composição única.
                 </Text>
               </div>
               <Space wrap>
@@ -1032,68 +1040,72 @@ export default function NovoOrcamento() {
               </Space>
             </div>
 
-            <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-              <Col xs={24} lg={6}>
-                <div style={{...itemCardStyle, borderLeft: "4px solid #10B981"}}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Subtotal serviços</Text>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#10B981", marginTop: 8 }}>
-                    {moneyFormatter.format(totals.valorServicos)}
-                  </div>
+            <Row gutter={[12, 12]} style={{ marginBottom: 14 }}>
+              <Col xs={12} lg={6}>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #3B82F6", padding: 14 }}>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>Itens</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#1E293B", marginTop: 4 }}>{itemCounters.total}</div>
                 </div>
               </Col>
-              <Col xs={24} lg={6}>
-                <div style={{...itemCardStyle, borderLeft: "4px solid #F59E0B"}}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Subtotal produtos</Text>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#F59E0B", marginTop: 8 }}>
-                    {moneyFormatter.format(totals.valorMateriais)}
-                  </div>
+              <Col xs={12} lg={6}>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #10B981", padding: 14 }}>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>Serviços</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#10B981", marginTop: 4 }}>{moneyFormatter.format(totals.valorServicos)}</div>
                 </div>
               </Col>
-              <Col xs={24} lg={6}>
-                <div style={{...itemCardStyle, borderLeft: "4px solid #D97706"}}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Custo terceiros</Text>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#D97706", marginTop: 8 }}>
-                    {moneyFormatter.format(totalTerceiros)}
-                  </div>
+              <Col xs={12} lg={6}>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #F59E0B", padding: 14 }}>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>Produtos</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#F59E0B", marginTop: 4 }}>{moneyFormatter.format(totals.valorMateriais)}</div>
                 </div>
               </Col>
-              <Col xs={24} lg={6}>
-                <div style={{...itemCardStyle, borderLeft: "4px solid #3B82F6"}}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Total com impostos</Text>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#3B82F6", marginTop: 8 }}>
-                    {moneyFormatter.format(Number(impostos?.total_geral || totals.subtotal || 0))}
-                  </div>
+              <Col xs={12} lg={6}>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #64748B", padding: 14 }}>
+                  <Text style={{ color: "#64748B", fontSize: 12 }}>Custos internos</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#475569", marginTop: 4 }}>{moneyFormatter.format(totalTerceiros)}</div>
                 </div>
               </Col>
             </Row>
 
-            <Table columns={itemColumns} dataSource={items} rowKey="key" pagination={false} />
-
-            <Divider />
-
-            <Alert
-              type="info"
-              showIcon
-              style={{ borderRadius: 12 }}
-              message="Descrição dos impostos pagos"
-              description={
-                calculandoImpostos ? (
-                  "Calculando composição tributária..."
-                ) : impostos ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <span>Regime: <strong>{String(impostos.regime || "-").replaceAll("_", " ")}</strong></span>
-                    <span>
-                      ISS {moneyFormatter.format(impostos.iss || 0)} | PIS {moneyFormatter.format(impostos.pis || 0)} | COFINS {moneyFormatter.format(impostos.cofins || 0)} | IRPJ {moneyFormatter.format(impostos.irpj || 0)} | CSLL {moneyFormatter.format(impostos.csll || 0)}
-                    </span>
-                    <span>Total estimado de impostos pagos: <strong>{moneyFormatter.format(impostos.total_impostos || 0)}</strong></span>
-                    {impostos.observacao ? <span>{impostos.observacao}</span> : null}
-                  </div>
-                ) : (
-                  "Não foi possível calcular os impostos agora."
-                )
-              }
-            />
-            <FiscalIntelligenceAlert impostos={impostos} />
+            <Row gutter={[14, 14]} align="top">
+              <Col xs={24} xl={18}>
+                <Table
+                  columns={itemColumns}
+                  dataSource={items}
+                  rowKey="key"
+                  pagination={false}
+                  scroll={{ x: 1160 }}
+                  size="middle"
+                />
+              </Col>
+              <Col xs={24} xl={6}>
+                <div style={{ ...compactPanelStyle, background: "#F8FAFC" }}>
+                  <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Fechamento</Text>
+                  <Divider style={{ margin: "12px 0" }} />
+                  <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Serviços</Text>
+                      <Text strong>{moneyFormatter.format(totals.valorServicos)}</Text>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Produtos</Text>
+                      <Text strong>{moneyFormatter.format(totals.valorMateriais)}</Text>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Itens avulsos</Text>
+                      <Text strong>{itemCounters.avulsos}</Text>
+                    </div>
+                    <Divider style={{ margin: "6px 0" }} />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                      <Text strong>Total do orçamento</Text>
+                      <Text strong style={{ color: "#3B82F6", fontSize: 22 }}>
+                        {moneyFormatter.format(totals.subtotal)}
+                      </Text>
+                    </div>
+                  </Space>
+                </div>
+              </Col>
+            </Row>
           </Card>
 
           <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 16 }}>

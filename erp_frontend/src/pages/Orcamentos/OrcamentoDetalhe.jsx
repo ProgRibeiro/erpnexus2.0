@@ -38,7 +38,6 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
-import FiscalIntelligenceAlert from "./components/FiscalIntelligenceAlert";
 import {
   buildItemsPayload,
   btnPrimaryStyle,
@@ -121,6 +120,15 @@ export default function OrcamentoDetalhe() {
   const budgetStatusMeta = formatBudgetStatus(budgetStatus);
 
   const totals = useMemo(() => calcItemsTotals(items), [items]);
+  const itemCounters = useMemo(
+    () => ({
+      total: items.length,
+      servicos: items.filter((item) => item.origem_tipo === "servico").length,
+      produtos: items.filter((item) => item.origem_tipo === "produto").length,
+      avulsos: items.filter((item) => item.origem_tipo === "avulso").length,
+    }),
+    [items]
+  );
 
   useEffect(() => {
     let active = true;
@@ -856,7 +864,7 @@ export default function OrcamentoDetalhe() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 18 }}>
             <Space
               style={{
                 justifyContent: "space-between",
@@ -865,9 +873,14 @@ export default function OrcamentoDetalhe() {
               }}
               wrap
             >
-              <Title level={4} style={{ margin: 0 }}>
-                Itens do orçamento
-              </Title>
+              <div>
+                <Title level={4} style={{ margin: 0 }}>
+                  Construtor de itens
+                </Title>
+                <Text type="secondary">
+                  Edite serviços, produtos e itens avulsos da composição comercial.
+                </Text>
+              </div>
               {editMode ? (
                 <Space wrap>
                   <Button
@@ -882,171 +895,87 @@ export default function OrcamentoDetalhe() {
                 </Space>
               ) : null}
             </Space>
-            <Table
-              columns={itemColumns}
-              dataSource={items}
-              pagination={false}
-              rowKey="key"
-            />
-            <Divider />
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 12,
-                marginBottom: 14,
-              }}
-            >
-              <div>
-                <Text type="secondary">Subtotal serviços</Text>
-                <div style={{ fontWeight: 800 }}>
-                  {moneyFormatter.format(totals.valorServicos)}
-                </div>
-              </div>
-              <div>
-                <Text type="secondary">Subtotal produtos</Text>
-                <div style={{ fontWeight: 800 }}>
-                  {moneyFormatter.format(totals.valorMateriais)}
-                </div>
-              </div>
-              <div>
-                <Text type="secondary">Impostos</Text>
-                <div style={{ fontWeight: 800 }}>
-                  {moneyFormatter.format(Number(impostos?.total_impostos || 0))}
-                </div>
-              </div>
-            </div>
-
-            {/* Desconto */}
-            <div
-              style={{
-                background: "#FFFBEB",
-                border: "1px solid #FDE68A",
-                borderRadius: 12,
-                padding: "12px 16px",
-                marginBottom: 14,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <Text style={{ fontWeight: 700, color: "#92400E", minWidth: 80 }}>
-                Desconto
-              </Text>
-              <Select
-                value={tipoDesconto}
-                onChange={(v) => {
-                  setTipoDesconto(v);
-                  setValorDesconto(0);
-                }}
-                options={[
-                  { label: "R$ fixo", value: "valor" },
-                  { label: "% percentual", value: "percentual" },
-                ]}
-                style={{ width: 140 }}
-                disabled={!editMode}
-              />
-              <InputNumber
-                min={0}
-                max={tipoDesconto === "percentual" ? 100 : undefined}
-                step={tipoDesconto === "percentual" ? 1 : 10}
-                value={valorDesconto}
-                onChange={(v) => setValorDesconto(Number(v || 0))}
-                addonBefore={tipoDesconto === "valor" ? "R$" : null}
-                addonAfter={tipoDesconto === "percentual" ? "%" : null}
-                decimalSeparator=","
-                precision={tipoDesconto === "percentual" ? 2 : 2}
-                style={{ width: 200 }}
-                disabled={!editMode}
-              />
-              <Text style={{ color: "#92400E" }}>
-                {(() => {
-                  const descontoEmReais =
-                    tipoDesconto === "percentual"
-                      ? (totals.subtotal * valorDesconto) / 100
-                      : valorDesconto;
-                  return descontoEmReais > 0
-                    ? `= − ${moneyFormatter.format(descontoEmReais)}`
-                    : "sem desconto";
-                })()}
-              </Text>
-            </div>
-            <Alert
-              type="info"
-              showIcon
-              style={{ borderRadius: 12 }}
-              message="Descrição dos impostos pagos"
-              description={
+            <Row gutter={[14, 14]} align="top">
+              <Col xs={24} xl={18}>
+                <Table
+                  columns={itemColumns}
+                  dataSource={items}
+                  pagination={false}
+                  rowKey="key"
+                  scroll={{ x: 900 }}
+                  size="middle"
+                />
+              </Col>
+              <Col xs={24} xl={6}>
                 <div
-                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                  style={{
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 12,
+                    padding: 16,
+                    background: "#F8FAFC",
+                  }}
                 >
-                  <span>
-                    ISS {moneyFormatter.format(impostos?.iss || 0)} | PIS{" "}
-                    {moneyFormatter.format(impostos?.pis || 0)} | COFINS{" "}
-                    {moneyFormatter.format(impostos?.cofins || 0)} | IRPJ{" "}
-                    {moneyFormatter.format(impostos?.irpj || 0)} | CSLL{" "}
-                    {moneyFormatter.format(impostos?.csll || 0)}
-                  </span>
-                  <span>
-                    Total estimado:{" "}
-                    <strong>
-                      {moneyFormatter.format(
-                        Number(impostos?.total_impostos || 0),
-                      )}
-                    </strong>
-                  </span>
-                  {impostos?.observacao ? (
-                    <span>{impostos.observacao}</span>
-                  ) : null}
-                </div>
-              }
-            />
-            <FiscalIntelligenceAlert impostos={impostos} />
-            <div
-              style={{
-                alignItems: "center",
-                background: "#EFF6FF",
-                border: "1px solid #BFDBFE",
-                borderRadius: 12,
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: 12,
-                padding: 16,
-              }}
-            >
-              <div>
-                <Text style={{ color: "#1E40AF", fontSize: 16, fontWeight: 700 }}>
-                  Total com impostos
-                </Text>
-                {(() => {
-                  const descontoEmReais =
-                    tipoDesconto === "percentual"
-                      ? (totals.subtotal * valorDesconto) / 100
-                      : valorDesconto;
-                  return descontoEmReais > 0 ? (
-                    <div style={{ fontSize: 13, color: "#92400E" }}>
-                      Desconto aplicado: −{moneyFormatter.format(descontoEmReais)}
+                  <Text strong style={{ color: "#1E293B", fontSize: 16 }}>
+                    Fechamento
+                  </Text>
+                  <Divider style={{ margin: "12px 0" }} />
+                  <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Itens</Text>
+                      <Text strong>{itemCounters.total}</Text>
                     </div>
-                  ) : null;
-                })()}
-              </div>
-              <Text style={{ color: "#3B82F6", fontSize: 28, fontWeight: 800 }}>
-                {(() => {
-                  const base = Number(
-                    impostos?.total_geral ||
-                      order?.total_com_impostos ||
-                      totals.subtotal ||
-                      0,
-                  );
-                  const descontoEmReais =
-                    tipoDesconto === "percentual"
-                      ? (totals.subtotal * valorDesconto) / 100
-                      : valorDesconto;
-                  return moneyFormatter.format(Math.max(0, base - descontoEmReais));
-                })()}
-              </Text>
-            </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Serviços</Text>
+                      <Text strong>{moneyFormatter.format(totals.valorServicos)}</Text>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Produtos</Text>
+                      <Text strong>{moneyFormatter.format(totals.valorMateriais)}</Text>
+                    </div>
+                    <Divider style={{ margin: "6px 0" }} />
+                    <Text strong>Desconto</Text>
+                    <Select
+                      value={tipoDesconto}
+                      onChange={(v) => {
+                        setTipoDesconto(v);
+                        setValorDesconto(0);
+                      }}
+                      options={[
+                        { label: "R$ fixo", value: "valor" },
+                        { label: "% percentual", value: "percentual" },
+                      ]}
+                      disabled={!editMode}
+                    />
+                    <InputNumber
+                      min={0}
+                      max={tipoDesconto === "percentual" ? 100 : undefined}
+                      step={tipoDesconto === "percentual" ? 1 : 10}
+                      value={valorDesconto}
+                      onChange={(v) => setValorDesconto(Number(v || 0))}
+                      addonBefore={tipoDesconto === "valor" ? "R$" : null}
+                      addonAfter={tipoDesconto === "percentual" ? "%" : null}
+                      decimalSeparator=","
+                      precision={2}
+                      style={{ width: "100%" }}
+                      disabled={!editMode}
+                    />
+                    <Divider style={{ margin: "6px 0" }} />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                      <Text strong>Total</Text>
+                      <Text strong style={{ color: "#3B82F6", fontSize: 22 }}>
+                        {(() => {
+                          const descontoEmReais =
+                            tipoDesconto === "percentual"
+                              ? (totals.subtotal * valorDesconto) / 100
+                              : valorDesconto;
+                          return moneyFormatter.format(Math.max(0, totals.subtotal - descontoEmReais));
+                        })()}
+                      </Text>
+                    </div>
+                  </Space>
+                </div>
+              </Col>
+            </Row>
           </Card>
 
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
