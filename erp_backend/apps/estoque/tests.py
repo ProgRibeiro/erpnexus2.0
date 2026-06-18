@@ -1,8 +1,11 @@
+from io import BytesIO
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from rest_framework import status
+from openpyxl import Workbook
 
 from .models import CategoriaProduto, Produto, MovimentacaoEstoque, AlertaEstoque, Servico
 from .services import MotorCatalogoInteligente
@@ -149,6 +152,58 @@ class MotorCatalogoInteligenteTestCase(TestCase):
         self.assertEqual(resultado["itens"][1]["tipo"], "produto")
         self.assertEqual(resultado["itens"][1]["preco_custo"], "38.00")
         self.assertGreater(Decimal(resultado["itens"][1]["preco_venda"]), Decimal("38.00"))
+
+    def test_analisar_planilha_catalogo_governo_com_preco_referencia(self):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Catálogo"
+        ws.append([
+            "Código",
+            "Categoria",
+            "Subcategoria",
+            "Item",
+            "Especificação Técnica",
+            "Unidade",
+            "Preço Ref. (R$)",
+            "Marca Referência",
+            "Observações",
+        ])
+        ws.append([
+            "IL-001",
+            "Iluminação LED",
+            "Lâmpadas LED Bulbo",
+            "Lâmpada LED Bulbo 9W",
+            "9W, 6500K, E27, 806lm, bivolt",
+            "UN",
+            9.90,
+            "Avant/Taschibra",
+            "",
+        ])
+        resumo = wb.create_sheet("Resumo por Categoria")
+        resumo.append(["Categoria", "Total"])
+        resumo.append(["Iluminação LED", 1])
+        buffer = BytesIO()
+        wb.save(buffer)
+        arquivo = SimpleUploadedFile(
+            "catalogo_materiais_eletricos.xlsx",
+            buffer.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        resultado = self.motor.analisar(arquivo=arquivo)
+
+        self.assertEqual(resultado["resumo"]["total_linhas"], 1)
+        self.assertEqual(resultado["resumo"]["produtos"], 1)
+        self.assertEqual(resultado["resumo"]["servicos"], 0)
+        item = resultado["itens"][0]
+        self.assertEqual(item["codigo"], "IL-001")
+        self.assertEqual(item["nome"], "Lâmpada LED Bulbo 9W")
+        self.assertEqual(item["categoria"], "Iluminação LED")
+        self.assertEqual(item["unidade_medida"], "un")
+        self.assertEqual(item["preco_custo"], "9.90")
+        self.assertEqual(item["preco_venda"], "9.90")
+        self.assertIn("9W, 6500K", item["descricao"])
+        self.assertIn("Marca referência: Avant/Taschibra", item["descricao"])
 
     def test_criar_itens_em_lote_cria_produto_servico_e_categoria(self):
         itens = self.motor.analisar(

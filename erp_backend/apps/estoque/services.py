@@ -4,7 +4,9 @@ import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
 from django.db.models import Count
+from django.db.utils import OperationalError, ProgrammingError
 from openpyxl import load_workbook
 
 from apps.configuracoes.models import get_empresa_configurada
@@ -35,7 +37,12 @@ class MemoriaMotorInteligente:
             .order_by("-atualizado_em")[:400]
         )
         ranqueados = []
-        for item in qs:
+        try:
+            conhecimentos = list(qs)
+        except (OperationalError, ProgrammingError):
+            return []
+
+        for item in conhecimentos:
             texto_item = " ".join([
                 item.titulo,
                 item.entrada,
@@ -410,24 +417,27 @@ class MemoriaMotorInteligente:
 
 class MotorCatalogoInteligente:
     COLUNAS_ALIASES = {
-        "tipo": {"tipo", "classe", "origem"},
-        "nome": {"nome", "item", "descricao", "descrição", "produto", "servico", "serviço"},
-        "descricao": {"detalhe", "detalhes", "observacao", "observação", "descricao_completa"},
-        "categoria": {"categoria", "grupo", "familia", "família", "tipo_servico"},
-        "unidade": {"unidade", "un", "und", "medida", "unidade_medida"},
-        "custo": {"custo", "preco_custo", "preço_custo", "compra", "preco_compra", "preço_compra"},
-        "venda": {"venda", "preco_venda", "preço_venda", "preco", "preço", "valor", "valor_venda"},
+        "tipo": {"tipo", "classe", "origem", "natureza", "tipo item", "tipo do item"},
+        "nome": {"nome", "item", "produto", "material", "servico", "serviço", "nome item", "nome do item"},
+        "descricao": {"descricao", "descrição", "detalhe", "detalhes", "descricao_completa", "especificacao", "especificação", "especificacoes", "especificações", "especificacao tecnica", "especificação técnica", "caracteristicas", "características"},
+        "observacoes": {"observacao", "observação", "observacoes", "observações", "obs", "comentario", "comentário"},
+        "categoria": {"categoria", "grupo", "familia", "família", "tipo_servico", "linha"},
+        "subcategoria": {"subcategoria", "sub categoria", "subgrupo", "sub grupo", "classe material", "classe"},
+        "unidade": {"unidade", "un", "und", "medida", "unidade_medida", "unidade de medida", "u.m.", "um"},
+        "custo": {"custo", "preco_custo", "preço_custo", "compra", "preco_compra", "preço_compra", "valor custo", "valor compra"},
+        "venda": {"venda", "preco_venda", "preço_venda", "preco", "preço", "valor", "valor_venda", "preco ref", "preço ref", "preco referencia", "preço referência", "preco de referencia", "preço de referência", "preco ref r", "preço ref r"},
         "markup": {"markup", "margem", "margem_percentual"},
         "estoque_minimo": {"estoque_minimo", "estoque mínimo", "minimo", "mínimo"},
         "localizacao": {"localizacao", "localização", "prateleira", "local"},
         "tributacao": {"tributacao", "tributação", "imposto", "tributo"},
         "codigo_lc116": {"codigo_lc116", "código_lc116", "lc116", "codigo_servico"},
+        "marca": {"marca", "fabricante", "marca referencia", "marca referência", "marca_ref"},
     }
 
     PRODUTO_KEYWORDS = {
         "capacitor", "rele", "relé", "filtro", "gas", "gás", "cabo", "fio", "disjuntor",
         "tubo", "mangueira", "parafuso", "sensor", "placa", "controle", "compressor",
-        "motor", "contator", "bobina", "valvula", "válvula",
+        "motor", "contator", "bobina", "valvula", "válvula", "carregador", "wallbox",
     }
     SERVICO_KEYWORDS = {
         "limpeza", "higienizacao", "higienização", "instalacao", "instalação", "manutencao",
@@ -446,6 +456,7 @@ class MotorCatalogoInteligente:
 
     UNIDADES_PRODUTO = {choice[0] for choice in Produto.UnidadeMedida.choices}
     UNIDADES_SERVICO = {choice[0] for choice in Servico.UnidadeMedida.choices}
+    SHEET_SKIP_KEYWORDS = {"resumo", "summary", "dashboard", "totais", "total", "grafico", "gráfico"}
 
     def analisar(self, texto="", arquivo=None, markup_padrao=None, despesas_padrao=None):
         linhas = self._extrair_linhas(texto=texto, arquivo=arquivo)
@@ -468,6 +479,12 @@ class MotorCatalogoInteligente:
             "servicos": sum(1 for item in itens if item["tipo"] == "servico"),
             "valor_total_venda": str(sum((Decimal(item["preco_venda"]) for item in itens), Decimal("0.00")).quantize(Decimal("0.01"))),
             "fiscal": fiscal,
+            "modelos_suportados": [
+                "Nome/Descrição/Categoria/Unidade/Custo/Venda",
+                "Código/Categoria/Subcategoria/Item/Especificação Técnica/Unidade/Preço Ref./Marca",
+                "CSV com ; , tab ou |",
+                "Texto livre com partes separadas por ; ou |",
+            ],
         }
         return {"itens": itens, "resumo": resumo, "avisos": avisos}
 
@@ -477,12 +494,13 @@ class MotorCatalogoInteligente:
 
         for indice, item in enumerate(itens, start=1):
             try:
-                if item.get("tipo") == "servico":
-                    obj, created = self._criar_servico(item)
-                    resultado["servicos_criados" if created else "servicos_atualizados"] += 1
-                else:
-                    obj, created = self._criar_produto(item)
-                    resultado["produtos_criados" if created else "produtos_atualizados"] += 1
+                with transaction.atomic():
+                    if item.get("tipo") == "servico":
+                        obj, created = self._criar_servico(item)
+                        resultado["servicos_criados" if created else "servicos_atualizados"] += 1
+                    else:
+                        obj, created = self._criar_produto(item)
+                        resultado["produtos_criados" if created else "produtos_atualizados"] += 1
                 criados.append({"tipo": item.get("tipo"), "id": obj.id, "nome": obj.nome, "created": created})
             except Exception as exc:
                 resultado["erros"].append(f"Linha {indice}: {exc}")
@@ -536,16 +554,32 @@ class MotorCatalogoInteligente:
         return obj, created
 
     def _normalizar_linha(self, linha, indice, fiscal, markup_padrao, despesas_padrao):
-        nome = self._limpar(linha.get("nome") or linha.get("descricao") or "")
-        descricao = self._limpar(linha.get("descricao") or "")
-        texto = self._normalizar(" ".join([nome, descricao, str(linha.get("categoria") or ""), str(linha.get("tipo") or "")]))
+        nome = self._limpar(linha.get("nome") or linha.get("descricao") or linha.get("subcategoria") or "")
+        descricao_partes = [
+            linha.get("descricao"),
+            linha.get("subcategoria"),
+            linha.get("marca") and f"Marca referência: {linha.get('marca')}",
+            linha.get("observacoes"),
+        ]
+        descricao = self._limpar(" | ".join(str(parte).strip() for parte in descricao_partes if str(parte or "").strip()))
+        texto = self._normalizar(" ".join([
+            nome,
+            descricao,
+            str(linha.get("categoria") or ""),
+            str(linha.get("subcategoria") or ""),
+            str(linha.get("tipo") or ""),
+            str(linha.get("codigo") or ""),
+        ]))
         memoria = MemoriaMotorInteligente().buscar(
             texto,
             escopo=MotorInteligenciaConhecimento.Escopo.CATALOGO,
             limite=3,
             incrementar=True,
         )
-        tipo = self._inferir_tipo(linha.get("tipo"), texto)
+        tipo_informado = linha.get("tipo")
+        tipo = self._inferir_tipo(tipo_informado, texto)
+        if not self._normalizar(tipo_informado) and (linha.get("marca") or linha.get("subcategoria")) and linha.get("venda"):
+            tipo = "produto"
         tipo = (memoria[0].get("payload") or {}).get("tipo") or tipo if memoria else tipo
         if memoria and memoria[0].get("servico_id"):
             tipo = "servico"
@@ -556,6 +590,8 @@ class MotorCatalogoInteligente:
         unidade = self._inferir_unidade(linha.get("unidade"), tipo)
         custo = self._decimal(linha.get("custo"), Decimal("0.00"))
         venda_informada = self._decimal(linha.get("venda"), None)
+        if custo == 0 and venda_informada is not None:
+            custo = venda_informada
         markup = self._decimal(linha.get("markup"), markup_padrao)
         despesas = despesas_padrao if tipo == "produto" else Decimal("0.00")
         aliquota = self._aliquota_item(tipo, fiscal, linha.get("tributacao"))
@@ -602,17 +638,53 @@ class MotorCatalogoInteligente:
     def _linhas_xlsx(self, arquivo):
         if hasattr(arquivo, "seek"):
             arquivo.seek(0)
-        wb = load_workbook(io.BytesIO(arquivo.read()), data_only=True)
-        ws = wb.active
-        rows = list(ws.iter_rows(values_only=True))
-        if not rows:
-            return []
-        headers = [self._map_header(value, index) for index, value in enumerate(rows[0])]
-        return [
-            {headers[index]: value for index, value in enumerate(row) if index < len(headers)}
-            for row in rows[1:]
-            if any(value not in (None, "") for value in row)
-        ]
+        wb = load_workbook(io.BytesIO(arquivo.read()), data_only=True, read_only=True)
+        linhas = []
+        for ws in wb.worksheets:
+            nome_aba = self._normalizar(ws.title)
+            if any(keyword in nome_aba for keyword in self.SHEET_SKIP_KEYWORDS):
+                continue
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows:
+                continue
+            header_index = self._detectar_linha_cabecalho(rows)
+            if header_index is None:
+                continue
+            headers = [self._map_header(value, index) for index, value in enumerate(rows[header_index])]
+            for row in rows[header_index + 1:]:
+                if not any(value not in (None, "") for value in row):
+                    continue
+                item = {
+                    headers[index]: value
+                    for index, value in enumerate(row)
+                    if index < len(headers) and headers[index] and not headers[index].startswith("coluna_")
+                }
+                if self._linha_tem_conteudo_catalogo(item):
+                    item["_aba"] = ws.title
+                    linhas.append(item)
+        return linhas
+
+    def _detectar_linha_cabecalho(self, rows):
+        melhor = (0, None)
+        for index, row in enumerate(rows[:20]):
+            headers = [self._map_header(value, col_index) for col_index, value in enumerate(row)]
+            score = self._score_headers(headers)
+            if score > melhor[0]:
+                melhor = (score, index)
+        return melhor[1] if melhor[0] >= 2 else 0
+
+    def _score_headers(self, headers):
+        reconhecidos = set(headers)
+        score = 0
+        for campo in {"nome", "descricao", "categoria", "subcategoria", "unidade", "custo", "venda", "codigo", "marca"}:
+            if campo in reconhecidos:
+                score += 1
+        if "nome" in reconhecidos and ("venda" in reconhecidos or "custo" in reconhecidos):
+            score += 2
+        return score
+
+    def _linha_tem_conteudo_catalogo(self, item):
+        return bool(self._limpar(item.get("nome") or item.get("descricao") or item.get("codigo")))
 
     def _linhas_csv_ou_texto(self, texto):
         amostra = str(texto or "").strip()
@@ -645,8 +717,8 @@ class MotorCatalogoInteligente:
             for index, celula in enumerate(celulas)
             if celula
         }
-        campos_base = {"nome", "descricao", "tipo", "categoria", "unidade", "custo", "venda"}
-        return "nome" in campos_reconhecidos and len(campos_reconhecidos.intersection(campos_base)) >= 2
+        campos_base = {"nome", "descricao", "tipo", "categoria", "subcategoria", "unidade", "custo", "venda", "codigo"}
+        return len(campos_reconhecidos.intersection(campos_base)) >= 2
 
     def _partes_para_linha(self, partes):
         linha = {"nome": partes[0]}
@@ -664,26 +736,39 @@ class MotorCatalogoInteligente:
 
     def _map_header(self, value, index):
         texto = self._normalizar(value)
+        texto = re.sub(r"\([^)]*\)", "", texto).strip()
+        texto = re.sub(r"[^a-z0-9]+", " ", texto).strip()
         for destino, aliases in self.COLUNAS_ALIASES.items():
-            if texto in {self._normalizar(alias) for alias in aliases}:
+            aliases_normalizados = {
+                re.sub(r"[^a-z0-9]+", " ", self._normalizar(alias)).strip()
+                for alias in aliases
+            }
+            if texto in aliases_normalizados:
                 return destino
-        if texto in {"codigo", "código", "sku"}:
+        if texto in {"codigo", "sku", "cod", "cod item", "referencia", "referência"}:
             return "codigo"
         return f"coluna_{index + 1}" if not texto else texto
 
     def _dados_fiscais(self):
-        empresa = get_empresa_configurada()
-        produto = sum(Decimal(str(v or 0)) for v in [
-            empresa.aliquota_pis_padrao,
-            empresa.aliquota_cofins_padrao,
-            empresa.aliquota_irpj_padrao,
-            empresa.aliquota_csll_padrao,
-        ])
-        return {
-            "regime_tributario": empresa.regime_tributario or "simples_nacional",
-            "aliquota_servico": str(Decimal(str(empresa.aliquota_issqn_padrao or 0)).quantize(Decimal("0.01"))),
-            "aliquota_produto": str(produto.quantize(Decimal("0.01"))),
-        }
+        try:
+            empresa = get_empresa_configurada()
+            produto = sum(Decimal(str(v or 0)) for v in [
+                empresa.aliquota_pis_padrao,
+                empresa.aliquota_cofins_padrao,
+                empresa.aliquota_irpj_padrao,
+                empresa.aliquota_csll_padrao,
+            ])
+            return {
+                "regime_tributario": empresa.regime_tributario or "simples_nacional",
+                "aliquota_servico": str(Decimal(str(empresa.aliquota_issqn_padrao or 0)).quantize(Decimal("0.01"))),
+                "aliquota_produto": str(produto.quantize(Decimal("0.01"))),
+            }
+        except (OperationalError, ProgrammingError):
+            return {
+                "regime_tributario": "nao_configurado",
+                "aliquota_servico": "0.00",
+                "aliquota_produto": "0.00",
+            }
 
     def _aliquota_item(self, tipo, fiscal, tributacao):
         if tipo == "servico":
@@ -723,12 +808,41 @@ class MotorCatalogoInteligente:
     def _categoria_produto_por_texto(self, texto):
         if any(chave in texto for chave in ["ar", "split", "capacitor", "rele", "relé", "gas", "gás"]):
             return "Ar condicionado / HVAC"
-        if any(chave in texto for chave in ["cabo", "fio", "disjuntor", "tomada"]):
+        if any(chave in texto for chave in ["cabo", "fio", "disjuntor", "tomada", "lampada", "lâmpada", "led", "eletroduto", "interruptor", "quadro", "dr", "dps"]):
             return "Elétrica"
         return "Geral"
 
     def _inferir_unidade(self, informado, tipo):
         unidade = self._normalizar(informado)
+        unidade = unidade.replace(".", "")
+        mapa = {
+            "un": "un",
+            "und": "un",
+            "unid": "un",
+            "unidade": "un",
+            "pc": "un",
+            "peca": "un",
+            "peça": "un",
+            "metro": "m",
+            "metros": "m",
+            "m": "m",
+            "m2": "m2",
+            "m²": "m2",
+            "metro quadrado": "m2",
+            "kg": "kg",
+            "quilograma": "kg",
+            "l": "litro",
+            "lt": "litro",
+            "litro": "litro",
+            "par": "par",
+            "caixa": "caixa",
+            "cx": "caixa",
+            "hora": "hora",
+            "hr": "hora",
+            "dia": "dia",
+            "lote": "lote",
+        }
+        unidade = mapa.get(unidade, unidade)
         validas = self.UNIDADES_SERVICO if tipo == "servico" else self.UNIDADES_PRODUTO
         if unidade in validas:
             return unidade
