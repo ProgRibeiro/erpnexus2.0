@@ -194,6 +194,7 @@ class ReferenciaPrecoPublicoSerializer(serializers.ModelSerializer):
     fonte_label = serializers.CharField(source="get_fonte_display", read_only=True)
     tipo_item_label = serializers.CharField(source="get_tipo_item_display", read_only=True)
     disciplina_label = serializers.CharField(source="get_disciplina_display", read_only=True)
+    componente_custo_label = serializers.CharField(source="get_componente_custo_display", read_only=True)
 
     class Meta:
         model = ReferenciaPrecoPublico
@@ -203,6 +204,8 @@ class ReferenciaPrecoPublicoSerializer(serializers.ModelSerializer):
             "descricao",
             "tipo_item",
             "tipo_item_label",
+            "componente_custo",
+            "componente_custo_label",
             "disciplina",
             "disciplina_label",
             "unidade_medida",
@@ -212,6 +215,8 @@ class ReferenciaPrecoPublicoSerializer(serializers.ModelSerializer):
             "fonte",
             "fonte_label",
             "codigo_fonte",
+            "link_fonte",
+            "base_legal",
             "uf",
             "data_referencia",
             "termos",

@@ -228,7 +228,7 @@ class ServicoViewSet(viewsets.ModelViewSet):
 class ReferenciaPrecoPublicoViewSet(viewsets.ModelViewSet):
     serializer_class = ReferenciaPrecoPublicoSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ["ativo", "tipo_item", "disciplina", "fonte", "uf"]
+    filterset_fields = ["ativo", "tipo_item", "componente_custo", "disciplina", "fonte", "uf"]
     search_fields = ["codigo", "descricao", "codigo_fonte", "observacoes"]
     ordering_fields = ["descricao", "valor_mediano", "data_referencia", "confianca"]
     ordering = ["disciplina", "descricao"]
@@ -250,8 +250,10 @@ class ReferenciaPrecoPublicoViewSet(viewsets.ModelViewSet):
                 "total": referencias.count(),
                 "por_fonte": por_fonte,
                 "metodologia": [
-                    "Usa mediana como base, não o menor preço isolado.",
-                    "Aplica margem por tipo de item, fator de complexidade e fator regional.",
+                    "Organiza a composição no padrão conceitual de Planilha de Custos e Formação de Preços.",
+                    "Separa materiais, insumos, mão de obra, encargos, benefícios/despesas indiretas, tributos e deslocamento.",
+                    "Usa mediana como base de referência, não o menor preço isolado.",
+                    "Aplica margem/BDI operacional por tipo de item, fator de complexidade e fator regional.",
                     "Mostra fonte e confiança para revisão humana antes de enviar ao cliente.",
                 ],
             }

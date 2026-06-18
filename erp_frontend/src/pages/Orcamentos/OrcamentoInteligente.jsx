@@ -532,6 +532,7 @@ export default function OrcamentoInteligente() {
           {record.fonte_preco_label && (
             <Space size={6} wrap style={{ marginTop: 8 }}>
               <Tag color="geekblue">{record.fonte_preco_label}</Tag>
+              {record.componente_custo_label ? <Tag color="purple">{record.componente_custo_label}</Tag> : null}
               {record.codigo_fonte_preco ? <Tag>{record.codigo_fonte_preco}</Tag> : null}
               {record.confianca_preco ? <Tag color="green">Preço {record.confianca_preco}%</Tag> : null}
             </Space>
@@ -738,8 +739,13 @@ export default function OrcamentoInteligente() {
                         <div key={`${ref.codigo}-${ref.valor_sugerido}`} style={{ borderBottom: "1px solid #E2E8F0", paddingBottom: 8 }}>
                           <Text strong style={{ color: "#0F172A" }}>{ref.descricao}</Text>
                           <div style={{ color: "#64748B", fontSize: 12, marginTop: 3 }}>
-                            {ref.fonte} · base {moneyFormatter.format(Number(ref.base || 0))} · margem {ref.margem}% · fator {ref.fator}
+                            {ref.fonte} · {ref.componente_custo || "Composição"} · base {moneyFormatter.format(Number(ref.base || 0))} · margem {ref.margem}% · fator {ref.fator}
                           </div>
+                          {ref.base_legal ? (
+                            <div style={{ color: "#94A3B8", fontSize: 11, marginTop: 3 }}>
+                              {ref.base_legal}
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </Space>
@@ -750,7 +756,7 @@ export default function OrcamentoInteligente() {
                   <Alert
                     type="success"
                     showIcon
-                    message="Metodologia de cálculo"
+                    message="Planilha de Custos e Formação de Preços"
                     description={
                       <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
                         {sugestao.metodologia_calculo.slice(0, 3).map((item) => (

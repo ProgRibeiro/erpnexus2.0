@@ -295,15 +295,34 @@ class ReferenciaPrecoPublico(models.Model):
         COMPOSICAO = "composicao", "Composição"
 
     class Fonte(models.TextChoices):
+        PLANILHA_CUSTOS = "planilha_custos", "Planilha de Custos e Formação de Preços"
         COMPRAS_GOV = "compras_gov", "Compras.gov / Pesquisa de Preços"
         CATMAT_CATSER = "catmat_catser", "CATMAT/CATSER"
+        PNCP = "pncp", "Portal Nacional de Contratações Públicas"
+        PORTAL_TRANSPARENCIA = "portal_transparencia", "Portal da Transparência"
         SINAPI = "sinapi", "SINAPI"
         HISTORICO_ERP = "historico_erp", "Histórico ERP"
         MANUAL_TECNICO = "manual_tecnico", "Base técnica manual"
 
+    class ComponenteCusto(models.TextChoices):
+        MATERIAL = "material", "Material"
+        INSUMO = "insumo", "Insumo"
+        MAO_OBRA = "mao_obra", "Mão de obra"
+        ENCARGOS = "encargos", "Encargos sociais/trabalhistas"
+        BENEFICIOS_DESPESAS = "beneficios_despesas", "Benefícios e despesas indiretas"
+        TRIBUTOS = "tributos", "Tributos"
+        EQUIPAMENTO = "equipamento", "Equipamento/ferramenta"
+        DESLOCAMENTO = "deslocamento", "Deslocamento/logística"
+        COMPOSICAO = "composicao", "Composição técnica"
+
     codigo = models.CharField(max_length=50, unique=True)
     descricao = models.CharField(max_length=255)
     tipo_item = models.CharField(max_length=30, choices=TipoItem.choices)
+    componente_custo = models.CharField(
+        max_length=30,
+        choices=ComponenteCusto.choices,
+        default=ComponenteCusto.COMPOSICAO,
+    )
     disciplina = models.CharField(
         max_length=50,
         choices=Servico.Categoria.choices,
@@ -315,6 +334,8 @@ class ReferenciaPrecoPublico(models.Model):
     valor_maximo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     fonte = models.CharField(max_length=30, choices=Fonte.choices)
     codigo_fonte = models.CharField(max_length=80, blank=True)
+    link_fonte = models.URLField(blank=True)
+    base_legal = models.CharField(max_length=255, blank=True)
     uf = models.CharField(max_length=2, blank=True)
     data_referencia = models.DateField(null=True, blank=True)
     termos = models.JSONField(default=list, blank=True)
@@ -330,6 +351,7 @@ class ReferenciaPrecoPublico(models.Model):
         verbose_name_plural = "Referências públicas de preço"
         indexes = [
             models.Index(fields=["ativo", "disciplina", "tipo_item"]),
+            models.Index(fields=["componente_custo", "ativo"]),
             models.Index(fields=["fonte", "codigo_fonte"]),
             models.Index(fields=["-data_referencia"]),
         ]

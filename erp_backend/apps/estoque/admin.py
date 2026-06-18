@@ -67,9 +67,9 @@ class ServicoAdmin(admin.ModelAdmin):
 
 
 class ReferenciaPrecoPublicoAdmin(admin.ModelAdmin):
-    list_display = ["codigo", "descricao", "disciplina", "tipo_item", "valor_mediano", "fonte", "confianca", "ativo"]
-    list_filter = ["ativo", "disciplina", "tipo_item", "fonte", "uf"]
-    search_fields = ["codigo", "descricao", "codigo_fonte", "observacoes"]
+    list_display = ["codigo", "descricao", "disciplina", "tipo_item", "componente_custo", "valor_mediano", "fonte", "confianca", "ativo"]
+    list_filter = ["ativo", "disciplina", "tipo_item", "componente_custo", "fonte", "uf"]
+    search_fields = ["codigo", "descricao", "codigo_fonte", "base_legal", "observacoes"]
     readonly_fields = ["criado_em", "atualizado_em"]
 
 

@@ -692,6 +692,10 @@ class MotorOrcamentoInteligente:
             "fonte_preco": referencia.fonte,
             "fonte_preco_label": referencia.get_fonte_display(),
             "codigo_fonte_preco": referencia.codigo_fonte,
+            "link_fonte_preco": referencia.link_fonte,
+            "base_legal_preco": referencia.base_legal,
+            "componente_custo": referencia.componente_custo,
+            "componente_custo_label": referencia.get_componente_custo_display(),
             "preco_base_referencia": str(referencia.valor_mediano),
             "preco_minimo_referencia": str(referencia.valor_minimo),
             "preco_maximo_referencia": str(referencia.valor_maximo),
@@ -716,6 +720,9 @@ class MotorOrcamentoInteligente:
                 "descricao": item.get("descricao"),
                 "fonte": item.get("fonte_preco_label"),
                 "codigo_fonte": item.get("codigo_fonte_preco"),
+                "link_fonte": item.get("link_fonte_preco"),
+                "base_legal": item.get("base_legal_preco"),
+                "componente_custo": item.get("componente_custo_label"),
                 "base": item.get("preco_base_referencia"),
                 "margem": item.get("margem_aplicada_percentual"),
                 "fator": item.get("fator_complexidade"),
@@ -727,11 +734,12 @@ class MotorOrcamentoInteligente:
 
     def _metodologia_calculo(self):
         return [
-            "Busca referências por termos técnicos, disciplina e aderência textual.",
-            "Usa a mediana da referência como base para evitar distorção por menor preço isolado.",
-            "Aplica margem padrão por tipo de item: produto 22%, insumo 25%, serviço 35%, mão de obra 45% e composição 30%.",
+            "Estrutura os itens no conceito de Planilha de Custos e Formação de Preços.",
+            "Classifica cada referência como material, insumo, mão de obra, encargos, BDI/despesas, tributos, equipamento, deslocamento ou composição.",
+            "Usa mediana da referência como base para evitar distorção por menor preço isolado.",
+            "Aplica margem/BDI operacional por tipo de item: produto 22%, insumo 25%, serviço 35%, mão de obra 45% e composição 30%.",
             "Ajusta complexidade por urgência, acesso difícil, horário especial e risco operacional.",
-            "Mantém o resultado revisável: quantidade, valor e escopo devem ser conferidos antes do envio ao cliente.",
+            "Mantém o resultado revisável: fonte, quantidade, valor e escopo devem ser conferidos antes do envio ao cliente ou participação em edital.",
         ]
 
     def _servico_padrao(self, texto_normalizado, tipo_servico):
