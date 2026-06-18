@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Sum
@@ -282,6 +284,73 @@ class Servico(models.Model):
 
     def __str__(self):
         return f"{self.codigo} - {self.nome}"
+
+
+class ReferenciaPrecoPublico(models.Model):
+    class TipoItem(models.TextChoices):
+        PRODUTO = "produto", "Produto"
+        SERVICO = "servico", "Serviço"
+        INSUMO = "insumo", "Insumo"
+        MAO_OBRA = "mao_obra", "Mão de obra"
+        COMPOSICAO = "composicao", "Composição"
+
+    class Fonte(models.TextChoices):
+        COMPRAS_GOV = "compras_gov", "Compras.gov / Pesquisa de Preços"
+        CATMAT_CATSER = "catmat_catser", "CATMAT/CATSER"
+        SINAPI = "sinapi", "SINAPI"
+        HISTORICO_ERP = "historico_erp", "Histórico ERP"
+        MANUAL_TECNICO = "manual_tecnico", "Base técnica manual"
+
+    codigo = models.CharField(max_length=50, unique=True)
+    descricao = models.CharField(max_length=255)
+    tipo_item = models.CharField(max_length=30, choices=TipoItem.choices)
+    disciplina = models.CharField(
+        max_length=50,
+        choices=Servico.Categoria.choices,
+        default=Servico.Categoria.MANUTENCAO,
+    )
+    unidade_medida = models.CharField(max_length=20, default="un")
+    valor_minimo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_mediano = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_maximo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    fonte = models.CharField(max_length=30, choices=Fonte.choices)
+    codigo_fonte = models.CharField(max_length=80, blank=True)
+    uf = models.CharField(max_length=2, blank=True)
+    data_referencia = models.DateField(null=True, blank=True)
+    termos = models.JSONField(default=list, blank=True)
+    observacoes = models.TextField(blank=True)
+    confianca = models.PositiveIntegerField(default=75)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["disciplina", "descricao"]
+        verbose_name = "Referência pública de preço"
+        verbose_name_plural = "Referências públicas de preço"
+        indexes = [
+            models.Index(fields=["ativo", "disciplina", "tipo_item"]),
+            models.Index(fields=["fonte", "codigo_fonte"]),
+            models.Index(fields=["-data_referencia"]),
+        ]
+
+    def __str__(self):
+        return f"{self.codigo} - {self.descricao}"
+
+    def calcular_valor_sugerido(
+        self,
+        *,
+        margem_percentual=0,
+        fator_complexidade=1,
+        fator_regional=1,
+        deslocamento=0,
+    ):
+        base = Decimal(str(self.valor_mediano or 0))
+        margem = Decimal(str(margem_percentual or 0)) / Decimal("100")
+        complexidade = Decimal(str(fator_complexidade or 1))
+        regional = Decimal(str(fator_regional or 1))
+        deslocamento_decimal = Decimal(str(deslocamento or 0))
+        return ((base + (base * margem)) * complexidade * regional + deslocamento_decimal).quantize(Decimal("0.01"))
 
 
 class MotorInteligenciaConhecimento(models.Model):

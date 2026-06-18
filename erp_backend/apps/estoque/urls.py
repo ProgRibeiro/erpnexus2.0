@@ -10,6 +10,7 @@ from .views import (
     AlertaEstoqueViewSet,
     MotorCatalogoViewSet,
     MotorInteligenciaViewSet,
+    ReferenciaPrecoPublicoViewSet,
     relatorio_estoque,
     relatorio_produtos,
     dashboard_estoque,
@@ -24,6 +25,7 @@ router.register("servicos", ServicoViewSet, basename="estoque-servicos")
 router.register("excel-import", ImportExcelViewSet, basename="excel-import")
 router.register("motor-catalogo", MotorCatalogoViewSet, basename="motor-catalogo")
 router.register("motor-inteligencia", MotorInteligenciaViewSet, basename="motor-inteligencia")
+router.register("referencias-preco", ReferenciaPrecoPublicoViewSet, basename="referencias-preco")
 
 urlpatterns = [
     path("relatorio/", relatorio_estoque, name="estoque-relatorio"),

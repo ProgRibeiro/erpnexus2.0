@@ -6,12 +6,13 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.http import FileResponse
 from django.db.models import Sum, Q
 
-from .models import CategoriaProduto, MotorInteligenciaConhecimento, MovimentacaoEstoque, Produto, Servico, AlertaEstoque
+from .models import CategoriaProduto, MotorInteligenciaConhecimento, MovimentacaoEstoque, Produto, ReferenciaPrecoPublico, Servico, AlertaEstoque
 from .serializers import (
     CategoriaProdutoSerializer,
     MovimentacaoEstoqueSerializer,
     ProdutoDetalheSerializer,
     ProdutoSerializer,
+    ReferenciaPrecoPublicoSerializer,
     ServicoSerializer,
     AlertaEstoqueSerializer,
     MotorInteligenciaConhecimentoSerializer,
@@ -222,6 +223,39 @@ class ServicoViewSet(viewsets.ModelViewSet):
     ordering_fields = ["nome", "preco_padrao", "categoria", "criado_em"]
     ordering = ["categoria", "nome"]
     permission_classes = [IsAuthenticated]
+
+
+class ReferenciaPrecoPublicoViewSet(viewsets.ModelViewSet):
+    serializer_class = ReferenciaPrecoPublicoSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["ativo", "tipo_item", "disciplina", "fonte", "uf"]
+    search_fields = ["codigo", "descricao", "codigo_fonte", "observacoes"]
+    ordering_fields = ["descricao", "valor_mediano", "data_referencia", "confianca"]
+    ordering = ["disciplina", "descricao"]
+
+    def get_queryset(self):
+        return ReferenciaPrecoPublico.objects.all()
+
+    @action(detail=False, methods=["get"], url_path="resumo")
+    def resumo(self, request):
+        referencias = self.get_queryset().filter(ativo=True)
+        por_fonte = {}
+        for fonte, label in ReferenciaPrecoPublico.Fonte.choices:
+            por_fonte[fonte] = {
+                "label": label,
+                "total": referencias.filter(fonte=fonte).count(),
+            }
+        return Response(
+            {
+                "total": referencias.count(),
+                "por_fonte": por_fonte,
+                "metodologia": [
+                    "Usa mediana como base, não o menor preço isolado.",
+                    "Aplica margem por tipo de item, fator de complexidade e fator regional.",
+                    "Mostra fonte e confiança para revisão humana antes de enviar ao cliente.",
+                ],
+            }
+        )
 
 
 class MotorCatalogoViewSet(viewsets.ViewSet):

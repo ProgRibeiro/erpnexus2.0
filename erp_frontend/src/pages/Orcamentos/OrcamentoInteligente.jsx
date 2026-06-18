@@ -529,6 +529,18 @@ export default function OrcamentoInteligente() {
           {record.motivo_sugestao && (
             <div style={{ color: "#6B7280", fontSize: 12, marginTop: 2 }}>{record.motivo_sugestao}</div>
           )}
+          {record.fonte_preco_label && (
+            <Space size={6} wrap style={{ marginTop: 8 }}>
+              <Tag color="geekblue">{record.fonte_preco_label}</Tag>
+              {record.codigo_fonte_preco ? <Tag>{record.codigo_fonte_preco}</Tag> : null}
+              {record.confianca_preco ? <Tag color="green">Preço {record.confianca_preco}%</Tag> : null}
+            </Space>
+          )}
+          {record.memoria_calculo && (
+            <div style={{ color: "#475569", fontSize: 12, marginTop: 6 }}>
+              {record.memoria_calculo}
+            </div>
+          )}
         </div>
       ),
     },
@@ -714,6 +726,40 @@ export default function OrcamentoInteligente() {
                 {sugestao.avisos?.map((aviso) => (
                   <Alert key={aviso} type="warning" showIcon message={aviso} />
                 ))}
+
+                {sugestao.referencias_preco?.length > 0 && (
+                  <div style={sectionStyle}>
+                    <div style={sectionTitleStyle}>
+                      <SafetyCertificateOutlined style={{ color: "#10B981" }} />
+                      Base de preços
+                    </div>
+                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                      {sugestao.referencias_preco.slice(0, 4).map((ref) => (
+                        <div key={`${ref.codigo}-${ref.valor_sugerido}`} style={{ borderBottom: "1px solid #E2E8F0", paddingBottom: 8 }}>
+                          <Text strong style={{ color: "#0F172A" }}>{ref.descricao}</Text>
+                          <div style={{ color: "#64748B", fontSize: 12, marginTop: 3 }}>
+                            {ref.fonte} · base {moneyFormatter.format(Number(ref.base || 0))} · margem {ref.margem}% · fator {ref.fator}
+                          </div>
+                        </div>
+                      ))}
+                    </Space>
+                  </div>
+                )}
+
+                {sugestao.metodologia_calculo?.length > 0 && (
+                  <Alert
+                    type="success"
+                    showIcon
+                    message="Metodologia de cálculo"
+                    description={
+                      <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                        {sugestao.metodologia_calculo.slice(0, 3).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    }
+                  />
+                )}
               </Space>
             )}
           </Card>

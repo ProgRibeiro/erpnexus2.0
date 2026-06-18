@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CategoriaProduto, MovimentacaoEstoque, Produto, AlertaEstoque, Servico
+from .models import CategoriaProduto, MovimentacaoEstoque, Produto, AlertaEstoque, ReferenciaPrecoPublico, Servico
 
 
 class ProdutoAdmin(admin.ModelAdmin):
@@ -66,8 +66,16 @@ class ServicoAdmin(admin.ModelAdmin):
     readonly_fields = ["codigo", "criado_em"]
 
 
+class ReferenciaPrecoPublicoAdmin(admin.ModelAdmin):
+    list_display = ["codigo", "descricao", "disciplina", "tipo_item", "valor_mediano", "fonte", "confianca", "ativo"]
+    list_filter = ["ativo", "disciplina", "tipo_item", "fonte", "uf"]
+    search_fields = ["codigo", "descricao", "codigo_fonte", "observacoes"]
+    readonly_fields = ["criado_em", "atualizado_em"]
+
+
 admin.site.register(CategoriaProduto, CategoriaProdutoAdmin)
 admin.site.register(Produto, ProdutoAdmin)
 admin.site.register(MovimentacaoEstoque, MovimentacaoEstoqueAdmin)
 admin.site.register(AlertaEstoque, AlertaEstoqueAdmin)
 admin.site.register(Servico, ServicoAdmin)
+admin.site.register(ReferenciaPrecoPublico, ReferenciaPrecoPublicoAdmin)

@@ -6,6 +6,7 @@ from .models import (
     MotorInteligenciaConhecimento,
     MovimentacaoEstoque,
     Produto,
+    ReferenciaPrecoPublico,
     Servico,
 )
 
@@ -187,3 +188,37 @@ class MotorInteligenciaConhecimentoSerializer(serializers.ModelSerializer):
             "atualizado_em",
         ]
         read_only_fields = ["id", "vezes_usado", "criado_por", "criado_por_nome", "criado_em", "atualizado_em"]
+
+
+class ReferenciaPrecoPublicoSerializer(serializers.ModelSerializer):
+    fonte_label = serializers.CharField(source="get_fonte_display", read_only=True)
+    tipo_item_label = serializers.CharField(source="get_tipo_item_display", read_only=True)
+    disciplina_label = serializers.CharField(source="get_disciplina_display", read_only=True)
+
+    class Meta:
+        model = ReferenciaPrecoPublico
+        fields = [
+            "id",
+            "codigo",
+            "descricao",
+            "tipo_item",
+            "tipo_item_label",
+            "disciplina",
+            "disciplina_label",
+            "unidade_medida",
+            "valor_minimo",
+            "valor_mediano",
+            "valor_maximo",
+            "fonte",
+            "fonte_label",
+            "codigo_fonte",
+            "uf",
+            "data_referencia",
+            "termos",
+            "observacoes",
+            "confianca",
+            "ativo",
+            "criado_em",
+            "atualizado_em",
+        ]
+        read_only_fields = ["id", "criado_em", "atualizado_em"]

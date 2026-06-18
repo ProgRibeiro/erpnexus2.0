@@ -2,13 +2,15 @@ import io
 import re
 import unicodedata
 from collections import Counter
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.db.models import Count
+from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from pypdf import PdfReader
 
-from apps.estoque.models import Produto, Servico
+from apps.estoque.models import Produto, ReferenciaPrecoPublico, Servico
 from apps.estoque.services import MemoriaMotorInteligente
 from .models import ItemOrcamento
 from .models import AprendizadoPedidoCompra
@@ -314,13 +316,25 @@ class MotorOrcamentoInteligente:
         quantidade_base = self._inferir_quantidade(texto_normalizado, dados_tecnicos)
         tipo_servico = dados_tecnicos.get("disciplina_tecnica") or self._inferir_tipo_servico(texto_normalizado)
         prioridade = dados_tecnicos.get("prioridade_tecnica") or self._inferir_prioridade(texto_normalizado)
-        memoria = MemoriaMotorInteligente().aplicar_em_orcamento(texto_base)
+        try:
+            memoria = MemoriaMotorInteligente().aplicar_em_orcamento(texto_base)
+        except (OperationalError, ProgrammingError):
+            memoria = {"conhecimentos": [], "itens": []}
         tipo_servico = memoria.get("tipo_servico") or tipo_servico
         prioridade = memoria.get("prioridade") or prioridade
 
         itens = self._montar_itens(tokens, texto_normalizado, quantidade_base, tipo_servico)
         itens = self._aplicar_itens_tecnicos(itens, dados_tecnicos, texto_normalizado, quantidade_base)
         itens = self._aplicar_itens_memoria(itens, memoria, quantidade_base, dados_tecnicos)
+        referencias_preco = self._referencias_preco(tokens, texto_normalizado, tipo_servico)
+        itens = self._aplicar_referencias_preco(
+            itens,
+            referencias_preco,
+            texto_normalizado,
+            quantidade_base,
+            prioridade,
+            dados_tecnicos,
+        )
         if not itens:
             itens.append(self._item_avulso(
                 descricao="Diagnóstico técnico e elaboração de orçamento",
@@ -351,6 +365,8 @@ class MotorOrcamentoInteligente:
             "confianca": confianca,
             "avisos": self._avisos(confianca, arquivos, texto_base),
             "memoria_aplicada": memoria.get("conhecimentos", []),
+            "referencias_preco": self._resumo_referencias_preco(itens),
+            "metodologia_calculo": self._metodologia_calculo(),
             "integracoes": {
                 "produtos": "Itens vinculados ao estoque quando há produto correspondente.",
                 "servicos": "Itens vinculados ao cadastro de serviços quando há serviço correspondente.",
@@ -488,7 +504,11 @@ class MotorOrcamentoInteligente:
 
         melhor = None
         melhor_score = 0
-        for servico in candidatos[:300]:
+        try:
+            candidatos_lista = list(candidatos[:300])
+        except (OperationalError, ProgrammingError):
+            return None
+        for servico in candidatos_lista:
             texto = self._normalizar(" ".join([servico.nome, servico.descricao, servico.categoria]))
             score = len(tokens.intersection(self._tokens(texto)))
             if score > melhor_score:
@@ -506,7 +526,12 @@ class MotorOrcamentoInteligente:
             return []
 
         produtos = []
-        for produto in Produto.objects.select_related("categoria").filter(ativo=True)[:500]:
+        try:
+            produtos_base = list(Produto.objects.select_related("categoria").filter(ativo=True)[:500])
+        except (OperationalError, ProgrammingError):
+            return []
+
+        for produto in produtos_base:
             texto = self._normalizar(" ".join([produto.nome, produto.descricao, produto.categoria.nome if produto.categoria else ""]))
             score = len(tokens.intersection(self._tokens(texto)))
             if any(termo in texto for termo in termos_produto):
@@ -515,6 +540,199 @@ class MotorOrcamentoInteligente:
                 produtos.append((score, produto))
         produtos.sort(key=lambda item: item[0], reverse=True)
         return [produto for _, produto in produtos]
+
+    def _referencias_preco(self, tokens, texto_normalizado, tipo_servico):
+        disciplinas = {tipo_servico, Servico.Categoria.MANUTENCAO, Servico.Categoria.INSTALACAO}
+        referencias = ReferenciaPrecoPublico.objects.filter(ativo=True)
+        if tipo_servico and tipo_servico != "outro":
+            referencias = referencias.filter(disciplina__in=disciplinas)
+
+        pontuadas = []
+        try:
+            referencias_lista = list(referencias[:500])
+        except (OperationalError, ProgrammingError):
+            return []
+
+        for referencia in referencias_lista:
+            termos_referencia = set()
+            for termo in referencia.termos or []:
+                termos_referencia.update(self._tokens(termo))
+            texto_referencia = self._normalizar(" ".join([
+                referencia.descricao,
+                referencia.codigo,
+                referencia.codigo_fonte,
+                " ".join(referencia.termos or []),
+            ]))
+            tokens_referencia = termos_referencia.union(self._tokens(texto_referencia))
+            score = len(tokens.intersection(tokens_referencia))
+            if any(self._normalizar(termo) in texto_normalizado for termo in referencia.termos or []):
+                score += 4
+            if referencia.disciplina == tipo_servico:
+                score += 2
+            if score > 0:
+                pontuadas.append((score, referencia))
+        pontuadas.sort(key=lambda item: (item[0], item[1].confianca, item[1].data_referencia or date.min), reverse=True)
+        return pontuadas
+
+    def _aplicar_referencias_preco(self, itens, referencias_preco, texto_normalizado, quantidade_base, prioridade, dados_tecnicos):
+        servico_referenciado = False
+        for score, referencia in referencias_preco[:5]:
+            if self._item_com_referencia(itens, referencia):
+                continue
+
+            valor_unitario = self._valor_referencia_sugerido(referencia, prioridade, dados_tecnicos)
+            motivo = self._motivo_referencia(referencia, score, prioridade, dados_tecnicos)
+            quantidade = self._quantidade_referencia(referencia, quantidade_base, texto_normalizado)
+
+            if referencia.tipo_item in {
+                ReferenciaPrecoPublico.TipoItem.SERVICO,
+                ReferenciaPrecoPublico.TipoItem.MAO_OBRA,
+                ReferenciaPrecoPublico.TipoItem.COMPOSICAO,
+            }:
+                alvo = self._item_avulso_sem_fonte(itens)
+                if alvo and not servico_referenciado:
+                    alvo.update({
+                        "valor_unitario": str(valor_unitario),
+                        "codigo_referencia": referencia.codigo,
+                        "unidade_referencia": referencia.unidade_medida or alvo.get("unidade_referencia") or "un",
+                        "motivo_sugestao": motivo,
+                    })
+                    self._anexar_memoria_calculo(alvo, referencia, valor_unitario, prioridade, dados_tecnicos, score)
+                    servico_referenciado = True
+                    continue
+
+            itens.append(self._item_referencia(referencia, quantidade, valor_unitario, len(itens), motivo, score, prioridade, dados_tecnicos))
+
+        for index, item in enumerate(itens):
+            item["ordem"] = index
+        return itens
+
+    def _item_avulso_sem_fonte(self, itens):
+        for item in itens:
+            if item.get("origem_tipo") == ItemOrcamento.OrigemTipo.AVULSO and not item.get("fonte_preco"):
+                return item
+        return None
+
+    def _item_com_referencia(self, itens, referencia):
+        return any(item.get("codigo_referencia") == referencia.codigo for item in itens)
+
+    def _quantidade_referencia(self, referencia, quantidade_base, texto_normalizado):
+        if referencia.unidade_medida in {"m", "m2", "kg", "hora"}:
+            match = re.search(r"(\d+(?:[,.]\d+)?)\s*" + re.escape(referencia.unidade_medida), texto_normalizado)
+            if match:
+                return Decimal(match.group(1).replace(",", "."))
+        if referencia.tipo_item in {
+            ReferenciaPrecoPublico.TipoItem.SERVICO,
+            ReferenciaPrecoPublico.TipoItem.MAO_OBRA,
+            ReferenciaPrecoPublico.TipoItem.COMPOSICAO,
+        }:
+            return quantidade_base
+        return Decimal("1")
+
+    def _valor_referencia_sugerido(self, referencia, prioridade, dados_tecnicos):
+        margem = self._margem_referencia(referencia)
+        fator_complexidade = self._fator_complexidade(prioridade, dados_tecnicos)
+        return referencia.calcular_valor_sugerido(
+            margem_percentual=margem,
+            fator_complexidade=fator_complexidade,
+            fator_regional=Decimal("1.00"),
+        )
+
+    def _margem_referencia(self, referencia):
+        margens = {
+            ReferenciaPrecoPublico.TipoItem.PRODUTO: Decimal("22"),
+            ReferenciaPrecoPublico.TipoItem.INSUMO: Decimal("25"),
+            ReferenciaPrecoPublico.TipoItem.SERVICO: Decimal("35"),
+            ReferenciaPrecoPublico.TipoItem.MAO_OBRA: Decimal("45"),
+            ReferenciaPrecoPublico.TipoItem.COMPOSICAO: Decimal("30"),
+        }
+        return margens.get(referencia.tipo_item, Decimal("30"))
+
+    def _fator_complexidade(self, prioridade, dados_tecnicos):
+        fator = Decimal("1.00")
+        if prioridade == "urgente":
+            fator += Decimal("0.20")
+        elif prioridade == "alta":
+            fator += Decimal("0.10")
+
+        texto = self._normalizar(" ".join(str(valor) for valor in (dados_tecnicos or {}).values()))
+        if any(chave in texto for chave in ["altura", "telhado", "andaime", "escada", "dificil acesso", "difícil acesso"]):
+            fator += Decimal("0.12")
+        if any(chave in texto for chave in ["fora do horario", "noturno", "shopping fechado", "madrugada"]):
+            fator += Decimal("0.15")
+        if any(chave in texto for chave in ["parado", "sem funcionar", "temperatura fora", "risco operacional"]):
+            fator += Decimal("0.08")
+        return fator
+
+    def _motivo_referencia(self, referencia, score, prioridade, dados_tecnicos):
+        margem = self._margem_referencia(referencia)
+        fator = self._fator_complexidade(prioridade, dados_tecnicos)
+        return (
+            f"Referência {referencia.get_fonte_display()} ({referencia.codigo_fonte or referencia.codigo}); "
+            f"mediana R$ {referencia.valor_mediano}; margem {margem}%; fator técnico {fator}; aderência {score}."
+        )
+
+    def _item_referencia(self, referencia, quantidade, valor_unitario, ordem, motivo, score, prioridade, dados_tecnicos):
+        item = self._item_avulso(
+            descricao=referencia.descricao,
+            quantidade=quantidade,
+            valor_unitario=valor_unitario,
+            ordem=ordem,
+            motivo=motivo,
+        )
+        item["codigo_referencia"] = referencia.codigo
+        item["unidade_referencia"] = referencia.unidade_medida or "un"
+        self._anexar_memoria_calculo(item, referencia, valor_unitario, prioridade, dados_tecnicos, score)
+        return item
+
+    def _anexar_memoria_calculo(self, item, referencia, valor_unitario, prioridade, dados_tecnicos, score):
+        margem = self._margem_referencia(referencia)
+        fator = self._fator_complexidade(prioridade, dados_tecnicos)
+        item.update({
+            "fonte_preco": referencia.fonte,
+            "fonte_preco_label": referencia.get_fonte_display(),
+            "codigo_fonte_preco": referencia.codigo_fonte,
+            "preco_base_referencia": str(referencia.valor_mediano),
+            "preco_minimo_referencia": str(referencia.valor_minimo),
+            "preco_maximo_referencia": str(referencia.valor_maximo),
+            "margem_aplicada_percentual": str(margem),
+            "fator_complexidade": str(fator),
+            "confianca_preco": referencia.confianca,
+            "score_referencia": score,
+            "data_referencia": referencia.data_referencia.isoformat() if referencia.data_referencia else None,
+            "memoria_calculo": (
+                f"Valor sugerido = mediana pública/técnica {referencia.valor_mediano} "
+                f"+ margem {margem}% x fator técnico {fator} = {valor_unitario}."
+            ),
+        })
+
+    def _resumo_referencias_preco(self, itens):
+        referencias = []
+        for item in itens:
+            if not item.get("fonte_preco"):
+                continue
+            referencias.append({
+                "codigo": item.get("codigo_referencia"),
+                "descricao": item.get("descricao"),
+                "fonte": item.get("fonte_preco_label"),
+                "codigo_fonte": item.get("codigo_fonte_preco"),
+                "base": item.get("preco_base_referencia"),
+                "margem": item.get("margem_aplicada_percentual"),
+                "fator": item.get("fator_complexidade"),
+                "valor_sugerido": item.get("valor_unitario"),
+                "confianca": item.get("confianca_preco"),
+                "data_referencia": item.get("data_referencia"),
+            })
+        return referencias
+
+    def _metodologia_calculo(self):
+        return [
+            "Busca referências por termos técnicos, disciplina e aderência textual.",
+            "Usa a mediana da referência como base para evitar distorção por menor preço isolado.",
+            "Aplica margem padrão por tipo de item: produto 22%, insumo 25%, serviço 35%, mão de obra 45% e composição 30%.",
+            "Ajusta complexidade por urgência, acesso difícil, horário especial e risco operacional.",
+            "Mantém o resultado revisável: quantidade, valor e escopo devem ser conferidos antes do envio ao cliente.",
+        ]
 
     def _servico_padrao(self, texto_normalizado, tipo_servico):
         for padrao in self.DEFAULT_SERVICES:
@@ -530,12 +748,15 @@ class MotorOrcamentoInteligente:
         termos = self._tokens(self._normalizar(descricao))
         if not termos:
             return fallback
-        historicos = (
-            ItemOrcamento.objects
-            .filter(origem_tipo__in=[ItemOrcamento.OrigemTipo.SERVICO, ItemOrcamento.OrigemTipo.AVULSO])
-            .exclude(valor_unitario=0)
-            .order_by("-id")[:200]
-        )
+        try:
+            historicos = list(
+                ItemOrcamento.objects
+                .filter(origem_tipo__in=[ItemOrcamento.OrigemTipo.SERVICO, ItemOrcamento.OrigemTipo.AVULSO])
+                .exclude(valor_unitario=0)
+                .order_by("-id")[:200]
+            )
+        except (OperationalError, ProgrammingError):
+            return fallback
         valores = [
             item.valor_unitario
             for item in historicos
@@ -653,6 +874,8 @@ class MotorOrcamentoInteligente:
             score += 20
         if any(item["origem_tipo"] == ItemOrcamento.OrigemTipo.PRODUTO and item.get("produto") for item in itens):
             score += 15
+        if any(item.get("fonte_preco") for item in itens):
+            score += 12
         if arquivos:
             score += 5
         if cliente:
