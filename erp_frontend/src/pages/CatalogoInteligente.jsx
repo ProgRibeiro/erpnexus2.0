@@ -9,6 +9,7 @@ import {
   Input,
   InputNumber,
   List,
+  Progress,
   Row,
   Space,
   Table,
@@ -53,6 +54,13 @@ const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+function formatDuration(ms) {
+  const total = Math.max(0, Math.floor((ms || 0) / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return minutes ? `${minutes}min ${String(seconds).padStart(2, "0")}s` : `${seconds}s`;
+}
+
 function buildFormData(values, files) {
   const formData = new FormData();
   formData.append("texto", values.texto || "");
@@ -76,6 +84,16 @@ export default function CatalogoInteligentePage() {
   const [carregandoMemoria, setCarregandoMemoria] = useState(false);
   const [aprendendoOS, setAprendendoOS] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [processoCatalogo, setProcessoCatalogo] = useState({
+    ativo: false,
+    tipo: "",
+    etapa: "",
+    progresso: 0,
+    inicio: null,
+    duracao: 0,
+    detalhe: "",
+    erro: "",
+  });
 
   const itens = resultado?.itens || [];
   const resumo = resultado?.resumo || {};
@@ -91,6 +109,51 @@ export default function CatalogoInteligentePage() {
   useEffect(() => {
     carregarMemoria();
   }, []);
+
+  useEffect(() => {
+    if (!processoCatalogo.ativo || !processoCatalogo.inicio) return undefined;
+    const timer = window.setInterval(() => {
+      setProcessoCatalogo((current) => ({
+        ...current,
+        duracao: Date.now() - current.inicio,
+      }));
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [processoCatalogo.ativo, processoCatalogo.inicio]);
+
+  function iniciarProcessoCatalogo(tipo, etapa, detalhe) {
+    setProcessoCatalogo({
+      ativo: true,
+      tipo,
+      etapa,
+      progresso: 12,
+      inicio: Date.now(),
+      duracao: 0,
+      detalhe,
+      erro: "",
+    });
+  }
+
+  function atualizarProcessoCatalogo(etapa, progresso, detalhe = "") {
+    setProcessoCatalogo((current) => ({
+      ...current,
+      etapa,
+      progresso,
+      detalhe: detalhe || current.detalhe,
+    }));
+  }
+
+  function finalizarProcessoCatalogo(etapa, detalhe, erro = "") {
+    setProcessoCatalogo((current) => ({
+      ...current,
+      ativo: false,
+      etapa,
+      progresso: erro ? 100 : 100,
+      duracao: current.inicio ? Date.now() - current.inicio : current.duracao,
+      detalhe,
+      erro,
+    }));
+  }
 
   function normalizarLista(data) {
     if (Array.isArray(data)) return data;
@@ -145,14 +208,28 @@ export default function CatalogoInteligentePage() {
     }
 
     setAnalisando(true);
+    setResultado(null);
+    iniciarProcessoCatalogo(
+      "Análise",
+      "Preparando arquivo",
+      files[0]?.name ? `Arquivo selecionado: ${files[0].name}` : "Analisando texto informado.",
+    );
     try {
+      atualizarProcessoCatalogo("Enviando para o motor", 35);
       const response = await api.post("/estoque/motor-catalogo/analisar/", buildFormData(values, files), {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      atualizarProcessoCatalogo("Montando prévia", 82);
       setResultado(response.data);
+      finalizarProcessoCatalogo(
+        "Prévia concluída",
+        `${response.data?.resumo?.total_linhas || 0} linha(s) lida(s), ${response.data?.resumo?.produtos || 0} produto(s), ${response.data?.resumo?.servicos || 0} serviço(s).`,
+      );
       message.success("Catálogo analisado.");
     } catch (error) {
-      message.error(error?.response?.data?.detail || "Não foi possível analisar a lista.");
+      const detalhe = error?.response?.data?.detail || "Não foi possível analisar a lista.";
+      finalizarProcessoCatalogo("Falha na análise", detalhe, detalhe);
+      message.error(detalhe);
     } finally {
       setAnalisando(false);
     }
@@ -164,15 +241,25 @@ export default function CatalogoInteligentePage() {
       return;
     }
     setCriando(true);
+    iniciarProcessoCatalogo("Importação", "Preparando gravação", `${itens.length} item(ns) serão criados ou atualizados.`);
     try {
+      atualizarProcessoCatalogo("Gravando produtos e serviços", 45);
       const response = await api.post("/estoque/motor-catalogo/criar/", { itens });
       const data = response.data;
+      const total = data.produtos_criados + data.produtos_atualizados + data.servicos_criados + data.servicos_atualizados;
       message.success(
         `Criado/atualizado: ${data.produtos_criados + data.produtos_atualizados} produto(s) e ${data.servicos_criados + data.servicos_atualizados} serviço(s).`,
       );
       setResultado((current) => ({ ...current, criacao: data }));
+      finalizarProcessoCatalogo(
+        data.erros?.length ? "Importação concluída com avisos" : "Importação concluída",
+        `${total} registro(s) gravado(s). ${data.erros?.length || 0} falha(s).`,
+        data.erros?.length ? "Algumas linhas não foram importadas. Veja os avisos abaixo." : "",
+      );
     } catch (error) {
-      message.error(error?.response?.data?.detail || "Não foi possível criar os itens.");
+      const detalhe = error?.response?.data?.detail || "Não foi possível criar os itens.";
+      finalizarProcessoCatalogo("Falha na importação", detalhe, detalhe);
+      message.error(detalhe);
     } finally {
       setCriando(false);
     }
@@ -302,17 +389,56 @@ export default function CatalogoInteligentePage() {
                   accept=".xlsx,.xls,.xlsm,.csv,.txt,.tsv"
                   fileList={files}
                   beforeUpload={() => false}
-                  onChange={({ fileList }) => setFiles(fileList)}
+                  onChange={({ fileList }) => {
+                    setFiles(fileList);
+                    if (fileList[0]) {
+                      setProcessoCatalogo((current) => ({
+                        ...current,
+                        detalhe: `Arquivo pronto: ${fileList[0].name}`,
+                        erro: "",
+                      }));
+                    }
+                  }}
                 >
                   <p className="ant-upload-drag-icon"><InboxOutlined /></p>
                   <p className="ant-upload-text">Planilha, CSV ou TXT</p>
                 </Dragger>
+
+                {(processoCatalogo.ativo || processoCatalogo.etapa) && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: 14,
+                      border: "1px solid #D7E3F8",
+                      borderRadius: 10,
+                      background: processoCatalogo.erro ? "#FFF7F7" : "#F8FBFF",
+                    }}
+                  >
+                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                        <Text strong>{processoCatalogo.tipo || "Importação"}</Text>
+                        <Tag color={processoCatalogo.ativo ? "processing" : processoCatalogo.erro ? "red" : "green"}>
+                          {processoCatalogo.ativo ? "em andamento" : processoCatalogo.erro ? "atenção" : "concluído"}
+                        </Tag>
+                      </Space>
+                      <Progress
+                        percent={processoCatalogo.progresso}
+                        status={processoCatalogo.erro ? "exception" : processoCatalogo.ativo ? "active" : "success"}
+                      />
+                      <Text>{processoCatalogo.etapa}</Text>
+                      <Text type="secondary">{processoCatalogo.detalhe}</Text>
+                      <Text type="secondary">Tempo: {formatDuration(processoCatalogo.duracao)}</Text>
+                      {processoCatalogo.erro && <Text type="danger">{processoCatalogo.erro}</Text>}
+                    </Space>
+                  </div>
+                )}
 
                 <Button
                   block
                   type="primary"
                   icon={<FileSearchOutlined />}
                   loading={analisando}
+                  disabled={criando}
                   onClick={analisar}
                   style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, marginTop: 16 }}
                 >
@@ -465,7 +591,7 @@ export default function CatalogoInteligentePage() {
                   type="primary"
                   icon={<CloudUploadOutlined />}
                   loading={criando}
-                  disabled={!itens.length}
+                  disabled={!itens.length || analisando}
                   onClick={criarItens}
                   style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700 }}
                 >
@@ -489,12 +615,13 @@ export default function CatalogoInteligentePage() {
                   {resultado?.avisos?.map((aviso) => <Alert key={aviso} type="warning" showIcon message={aviso} />)}
                   {resultado?.criacao && (
                     <Alert
-                      type="success"
+                      type={resultado.criacao.erros?.length ? "warning" : "success"}
                       showIcon
                       message="Itens gravados"
                       description={`${resultado.criacao.produtos_criados} produtos criados, ${resultado.criacao.produtos_atualizados} atualizados, ${resultado.criacao.servicos_criados} serviços criados e ${resultado.criacao.servicos_atualizados} atualizados.`}
                     />
                   )}
+                  {(resultado?.criacao?.erros || []).map((erro) => <Alert key={erro} type="error" showIcon message={erro} />)}
                   <Table columns={columns} dataSource={itens} rowKey={(item) => `${item.tipo}-${item.linha}-${item.nome}`} scroll={{ x: 980 }} pagination={{ pageSize: 10 }} />
                 </Space>
               )}
