@@ -80,22 +80,33 @@ export default function AmbientePage() {
 
   return (
     <div className="erp-ambiente-page">
-      <div className="erp-ambiente-grid">
-        {ambiente.modules.map((modulo) => (
-          <button
-            type="button"
-            className="erp-module-tile"
-            aria-label={`Abrir ${modulo.title}`}
-            style={{ "--module-color": modulo.color }}
-            onClick={() => abrirModulo(modulo)}
-            key={modulo.title}
-          >
-            <span className="erp-module-icon">{modulo.icon}</span>
-            <span className="erp-module-copy">
-              <strong>{modulo.title}</strong>
-            </span>
-          </button>
-        ))}
+      <div className="erp-ambiente-stage" style={{ "--ambiente-accent": ambiente.accent }}>
+        <div className="erp-ambiente-heading">
+          <span className="erp-ambiente-kicker">{ambiente.tag}</span>
+          <strong>Central de módulos</strong>
+          <small>{ambiente.title}</small>
+        </div>
+
+        <div className="erp-ambiente-grid">
+          {ambiente.modules.map((modulo, index) => (
+            <button
+              type="button"
+              className="erp-module-tile"
+              aria-label={`Abrir ${modulo.title}`}
+              style={{ "--module-color": modulo.color, "--tile-index": index }}
+              onClick={() => abrirModulo(modulo)}
+              key={modulo.title}
+            >
+              <span className="erp-module-glow" />
+              <span className="erp-module-icon">{modulo.icon}</span>
+              <span className="erp-module-copy">
+                <strong>{modulo.title}</strong>
+                <small>{modulo.subtitle}</small>
+              </span>
+              <span className="erp-module-action">Abrir</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
