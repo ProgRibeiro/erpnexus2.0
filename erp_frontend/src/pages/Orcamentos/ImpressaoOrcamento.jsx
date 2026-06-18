@@ -13,7 +13,29 @@ import { formatMoneyTrailing, normalizeList } from "./shared";
 
 function getLogoUrl(empresa) {
   if (!empresa?.logo) return "";
-  return String(empresa.logo);
+  return resolveMediaUrl(empresa.logo);
+}
+
+function getBackendOrigin() {
+  const envBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envBaseUrl?.startsWith("http")) {
+    return envBaseUrl.replace(/\/api\/v1\/?$/, "");
+  }
+
+  const { hostname, protocol, port } = window.location;
+  if (["localhost", "127.0.0.1"].includes(hostname) && port !== "8000") {
+    return `${protocol}//127.0.0.1:8000`;
+  }
+
+  return window.location.origin;
+}
+
+function resolveMediaUrl(url) {
+  if (!url) return "";
+  const value = String(url);
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:")) return value;
+  if (value.startsWith("/")) return `${getBackendOrigin()}${value}`;
+  return `${getBackendOrigin()}/${value}`;
 }
 
 
@@ -25,6 +47,7 @@ export default function ImpressaoOrcamento() {
   const [empresa, setEmpresa] = useState(null);
   const [impostosCalculados, setImpostosCalculados] = useState(null);
   const [logosClientes, setLogosClientes] = useState([]);
+  const [logoFalhou, setLogoFalhou] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -122,6 +145,10 @@ export default function ImpressaoOrcamento() {
   const aliquotaExibir = impostoTotal > 0 ? `${aliquotaPercentual}%` : "—";
 
   const empresaInitials = (empresa?.razao_social || empresa?.nome || "E").slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    setLogoFalhou(false);
+  }, [logoUrl]);
 
   const statusStamp = {
     orcamento_enviado: { label: "ENVIADO", color: "#FFFFFF", bg: "#2563EB", borderColor: "#1E40AF" },
@@ -327,7 +354,7 @@ export default function ImpressaoOrcamento() {
           .proposal-items-table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
           .proposal-header { min-height: 40mm !important; }
           .proposal-header-content { padding: 12px 22px 10px !important; }
-          .proposal-logo-box { width: 38px !important; height: 38px !important; border-radius: 8px !important; }
+          .proposal-logo-box, .brand-mark { width: 38px !important; height: 38px !important; border-radius: 9px !important; box-shadow: none !important; }
           .proposal-company-name { font-size: 15px !important; }
           .proposal-number-box { font-size: 18px !important; padding: 3px 10px !important; }
           .proposal-number-panel { padding: 6px 10px !important; min-width: 170px !important; }
@@ -377,7 +404,8 @@ export default function ImpressaoOrcamento() {
         .print-compact.proposal-document .proposal-header { min-height: 120px !important; }
         .print-compact.proposal-document .proposal-header-content { padding: 16px 26px 14px !important; }
         .print-compact.proposal-document .proposal-kicker { margin-bottom: 8px !important; }
-        .print-compact.proposal-document .proposal-logo-box { width: 46px !important; height: 46px !important; border-radius: 10px !important; }
+        .print-compact.proposal-document .proposal-logo-box,
+        .print-compact.proposal-document .brand-mark { width: 48px !important; height: 48px !important; border-radius: 12px !important; }
         .print-compact.proposal-document .proposal-company-name { font-size: 17px !important; }
         .print-compact.proposal-document .proposal-number-box { font-size: 22px !important; padding: 4px 14px !important; }
         .print-compact.proposal-document .proposal-number-panel { padding: 8px 12px !important; min-width: 180px !important; }
@@ -405,6 +433,62 @@ export default function ImpressaoOrcamento() {
         .proposal-document {
           position: relative;
           overflow: visible !important;
+        }
+        .proposal-document::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background:
+            linear-gradient(90deg, rgba(59, 130, 246, 0.075), transparent 36%),
+            radial-gradient(circle at 92% 12%, rgba(16, 185, 129, 0.10), transparent 24%);
+          border-radius: inherit;
+          z-index: 0;
+        }
+        .proposal-document > * {
+          position: relative;
+          z-index: 1;
+        }
+        .brand-mark {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #FFFFFF;
+          font-size: 21px;
+          font-weight: 900;
+          box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        .brand-mark img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          padding: 7px;
+          background: #FFFFFF;
+        }
+        .proposal-chip {
+          display: inline-flex;
+          align-items: center;
+          border: 1px solid #DBEAFE;
+          background: #EFF6FF;
+          color: #2563EB;
+          border-radius: 999px;
+          padding: 5px 10px;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .proposal-stat-card {
+          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid #DCE6F4;
+          border-radius: 14px;
+          box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
         }
         .proposal-items-section {
           padding-bottom: 18px !important;
@@ -553,52 +637,52 @@ export default function ImpressaoOrcamento() {
       <div className={`doc-sheet proposal-document ${printSizeClass}`} style={{ width: "100%", maxWidth: 1100, margin: "0 auto", background: "#FFFFFF", borderRadius: 12, boxShadow: "0 10px 32px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)", border: "1px solid #E2E8F0", position: "relative" }}>
         <Skeleton active loading={loading} paragraph={{ rows: 18 }} style={{ padding: 32 }}>
 
-          <div className="proposal-header" style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr", minHeight: 130, background: "#FFFFFF", borderBottom: "2px solid #E2E8F0", alignItems: "center" }}>
-            <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <div className="proposal-kicker" style={{ color: "#64748B", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 10, textTransform: "uppercase" }}>
-                Proposta Comercial
+          <div className="proposal-header" style={{ display: "grid", gridTemplateColumns: "1.25fr 0.75fr", minHeight: 150, background: "linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 48%, #EFF6FF 100%)", borderBottom: "1px solid #D7E3F4", alignItems: "center" }}>
+            <div style={{ padding: "28px 34px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div className="proposal-kicker" style={{ marginBottom: 12 }}>
+                <span className="proposal-chip">Proposta Comercial</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div className="proposal-logo-box" style={{ width: 48, height: 48, borderRadius: 10, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: "1px solid #E2E8F0" }}>
-                  {logoUrl
-                    ? <img src={logoUrl} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-                    : <span style={{ fontSize: 18, fontWeight: 900, color: "#3B82F6" }}>{empresaInitials}</span>
+                <div className="brand-mark">
+                  {logoUrl && !logoFalhou
+                    ? <img src={logoUrl} crossOrigin="anonymous" alt="Logo" onError={() => setLogoFalhou(true)} />
+                    : <span>{empresaInitials}</span>
                   }
                 </div>
                 <div>
-                  <div className="proposal-company-name" style={{ color: "#1E293B", fontSize: 17, fontWeight: 800, lineHeight: 1.1 }}>
+                  <div className="proposal-company-name" style={{ color: "#0F172A", fontSize: 22, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.01em" }}>
                     {empresa?.razao_social || empresa?.nome || "Sua Empresa"}
                   </div>
-                  <div style={{ color: "#64748B", fontSize: 10.5, marginTop: 3, fontWeight: 500 }}>
-                    {[empresa?.email, empresa?.telefone && `(${empresa.telefone})`].filter(Boolean).join(" • ") || "contato"}
+                  <div style={{ color: "#64748B", fontSize: 11, marginTop: 6, fontWeight: 600 }}>
+                    {[empresa?.cnpj && `CNPJ ${empresa.cnpj}`, empresa?.telefone, empresa?.email].filter(Boolean).join("  •  ") || "contato"}
                   </div>
                 </div>
               </div>
             </div>
-            <div className="proposal-header-actions" style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: 10, justifyContent: "center", textAlign: "center" }}>
-              <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px", border: "1px solid #E2E8F0" }}>
+            <div className="proposal-header-actions" style={{ padding: "24px 34px 24px 8px", display: "grid", gridTemplateColumns: "1fr", gap: 10, justifyContent: "center", textAlign: "center" }}>
+              <div className="proposal-stat-card" style={{ padding: "13px 16px" }}>
                 <div style={{ color: "#64748B", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>Número</div>
-                <div style={{ color: "#3B82F6", fontSize: 20, fontWeight: 900, letterSpacing: -0.3 }}>{orcamento?.numero || `ORC-${id}`}</div>
+                <div style={{ color: "#2563EB", fontSize: 22, fontWeight: 900, letterSpacing: 0 }}>{orcamento?.numero || `ORC-${id}`}</div>
               </div>
-              <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "10px 14px", border: "1px solid #E2E8F0" }}>
+              <div className="proposal-stat-card" style={{ padding: "12px 16px" }}>
                 <div style={{ color: "#64748B", fontSize: 8.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Valor Total</div>
-                <div style={{ color: "#1E293B", fontSize: 16, fontWeight: 900 }}>{formatMoneyTrailing(totalProposta)}</div>
-                <span className="proposal-status-badge" style={{ background: statusStamp.bg, color: statusStamp.color, borderRadius: 6, padding: "4px 10px", fontSize: 8, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", display: "inline-block", marginTop: 6, border: "none" }}>
+                <div style={{ color: "#0F172A", fontSize: 20, fontWeight: 900 }}>{formatMoneyTrailing(totalProposta)}</div>
+                <span className="proposal-status-badge" style={{ background: statusStamp.bg, color: statusStamp.color, borderRadius: 999, padding: "5px 12px", fontSize: 8, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", display: "inline-block", marginTop: 7, border: `1px solid ${statusStamp.borderColor}` }}>
                   {statusStamp.label}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 12, padding: "14px 24px", background: "#FFFFFF", borderBottom: "1px solid #E2E8F0" }}>
-            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12, transition: "all 0.2s" }}>
+          <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 12, padding: "16px 26px", background: "#FFFFFF", borderBottom: "1px solid #E2E8F0" }}>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, transition: "all 0.2s", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
               <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Cliente</div>
               <div style={{ color: "#1E293B", fontSize: 12.5, fontWeight: 700 }}>{orcamento?.cliente_nome || "-"}</div>
               <div style={{ color: "#64748B", fontSize: 10, marginTop: 5 }}>
                 {[orcamento?.cliente_cnpj_cpf, orcamento?.cliente_email, orcamento?.cliente_telefone].filter(Boolean).join("  •  ") || "—"}
               </div>
             </div>
-            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12 }}>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
               <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Condições</div>
               <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: "5px 8px", fontSize: 10 }}>
                 <span style={{ color: "#64748B", fontWeight: 600 }}>Pagamento</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{orcamento?.condicao_pagamento || "-"}</span>
@@ -606,7 +690,7 @@ export default function ImpressaoOrcamento() {
                 <span style={{ color: "#64748B", fontWeight: 600 }}>Regime</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{regimeExibir}</span>
               </div>
             </div>
-            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12 }}>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
               <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Resumo</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "5px 10px", fontSize: 10 }}>
                 <span style={{ color: "#64748B", fontWeight: 600 }}>Subtotal</span><span style={{ color: "#1E293B", fontWeight: 700 }}>{formatMoneyTrailing(subtotalItens)}</span>
@@ -711,7 +795,7 @@ export default function ImpressaoOrcamento() {
               </div>
               <div className="proposal-total-final" style={{ padding: "13px 16px", background: "#F0F9FF", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ color: "#64748B", fontWeight: 700, fontSize: 11 }}>Total da Proposta</span>
-                <span className="proposal-total-final-value" style={{ color: "#3B82F6", fontWeight: 900, fontSize: 22, letterSpacing: -0.3 }}>{formatMoneyTrailing(totalProposta)}</span>
+                <span className="proposal-total-final-value" style={{ color: "#3B82F6", fontWeight: 900, fontSize: 22, letterSpacing: 0 }}>{formatMoneyTrailing(totalProposta)}</span>
               </div>
             </div>
           </div>
@@ -731,7 +815,15 @@ export default function ImpressaoOrcamento() {
                     padding: "5px 12px", background: "#F8FAFC",
                     border: "1px solid #E2E8F0", borderRadius: 6
                   }}>
-                    <img src={item.logo_url || item.logo} alt={item.nome} style={{ maxHeight: 24, maxWidth: 70, objectFit: "contain" }} />
+                    <img
+                      src={resolveMediaUrl(item.logo_url || item.logo)}
+                      crossOrigin="anonymous"
+                      alt={item.nome}
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                      style={{ maxHeight: 24, maxWidth: 70, objectFit: "contain" }}
+                    />
                   </div>
                 ))}
               </div>
