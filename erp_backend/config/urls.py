@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import FileResponse, Http404
 from django.urls import include, path, re_path
+from django.views.static import serve
 from django.views.generic import TemplateView
 from pathlib import Path
 from rest_framework.permissions import AllowAny
@@ -73,6 +74,7 @@ urlpatterns = [
     path("api/v1/", include(tenant_api_patterns)),
     path("api/public/", include(public_api_patterns)),
     path("sw.js", service_worker_view, name="service-worker"),
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}, name="media"),
     re_path(r"^(?!api/|admin/|static/|media/).*$", TemplateView.as_view(template_name="index.html"), name="frontend"),
 ]
 
