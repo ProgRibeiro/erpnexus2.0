@@ -13,6 +13,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Radio,
   Row,
   Select,
   Space,
@@ -165,11 +166,23 @@ function formatApiError(error, fallback = "Erro ao salvar.") {
   return field ? `${field}: ${msg}` : fallback;
 }
 
-function createPayload(values, items, selectedClient, budgetStatus, impostos) {
+function createPayload(values, items, selectedClient, budgetStatus, impostos, clientMode) {
   const totals = calcItemsTotals(items);
+  const clienteAvulso =
+    clientMode === "avulso"
+      ? {
+          nome: values.cliente_avulso_nome,
+          documento: values.cliente_avulso_documento || "",
+          telefone: values.cliente_avulso_telefone || "",
+          email: values.cliente_avulso_email || "",
+          observacoes: values.cliente_avulso_observacoes || "",
+          origem: "consulta_avulsa",
+        }
+      : undefined;
 
   return {
-    cliente: values.cliente,
+    cliente: clientMode === "avulso" ? undefined : values.cliente,
+    cliente_avulso: clienteAvulso,
     contato_responsavel: values.contato_responsavel || null,
     status: budgetStatus,
     tipo_servico: values.tipo_servico,
@@ -190,7 +203,7 @@ function createPayload(values, items, selectedClient, budgetStatus, impostos) {
     dados_impostos: impostos || {},
     total_com_impostos: Number(impostos?.total_geral || totals.subtotal || 0),
     itens: buildItemsPayload(items),
-    cliente_nome: selectedClient?.nome,
+    cliente_nome: clientMode === "avulso" ? values.cliente_avulso_nome : selectedClient?.nome,
   };
 }
 
@@ -217,6 +230,7 @@ export default function NovoOrcamento() {
   const [selectedCatalogItem, setSelectedCatalogItem] = useState(null);
   const [quickItemModalOpen, setQuickItemModalOpen] = useState(false);
   const [quickItemType, setQuickItemType] = useState("servico");
+  const [clientMode, setClientMode] = useState("cadastrado");
 
   const [drawerClienteAberto, setDrawerClienteAberto] = useState(false);
   const [cnpj, setCnpj] = useState("");
@@ -596,7 +610,7 @@ export default function NovoOrcamento() {
         return null;
       }
 
-      const payload = createPayload(values, items, selectedClient, targetStatus, impostos);
+      const payload = createPayload(values, items, selectedClient, targetStatus, impostos, clientMode);
       setSaving(targetStatus);
 
       let response;
@@ -902,51 +916,115 @@ export default function NovoOrcamento() {
                 <div style={compactPanelStyle}>
                   <div style={compactPanelHeaderStyle}>
                     <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Cliente</Text>
-                    <Button size="small" icon={<PlusOutlined />} onClick={() => setDrawerClienteAberto(true)} style={{ borderRadius: 8 }}>
-                      Novo
-                    </Button>
+                    {clientMode === "cadastrado" ? (
+                      <Button size="small" icon={<PlusOutlined />} onClick={() => setDrawerClienteAberto(true)} style={{ borderRadius: 8 }}>
+                        Novo
+                      </Button>
+                    ) : null}
                   </div>
-                  <Form.Item label="Cliente" name="cliente" rules={[{ required: true, message: "Selecione o cliente" }]} style={{ marginBottom: 10 }}>
-                    <Select
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="Selecione o cliente"
-                      options={clients.map((cliente) => ({
-                        label: `${cliente.nome_fantasia || cliente.nome}${cliente.cnpj_cpf ? ` - ${cliente.cnpj_cpf}` : ""}`,
-                        value: cliente.id,
-                      }))}
-                    />
-                  </Form.Item>
-                  <Row gutter={[8, 8]}>
-                    <Col xs={24} md={8}>
-                      <div style={miniInfoStyle}>
-                        <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>CNPJ</Text>
-                        <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.cnpj_cpf || "-"}</div>
-                      </div>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <div style={miniInfoStyle}>
-                        <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Telefone</Text>
-                        <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.telefone || "-"}</div>
-                      </div>
-                    </Col>
-                    <Col xs={24} md={8}>
-                      <div style={miniInfoStyle}>
-                        <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Email</Text>
-                        <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis" }}>{selectedClient?.email || "-"}</div>
-                      </div>
-                    </Col>
-                  </Row>
-                  <Form.Item label="Contato responsável" name="contato_responsavel" style={{ marginTop: 10, marginBottom: 0 }}>
-                    <Select
-                      allowClear
-                      placeholder="Selecione o contato"
-                      options={(selectedClient?.contatos || []).map((contato) => ({
-                        label: `${contato.nome}${contato.email ? ` - ${contato.email}` : ""}`,
-                        value: contato.id,
-                      }))}
-                    />
-                  </Form.Item>
+                  <Radio.Group
+                    value={clientMode}
+                    onChange={(event) => {
+                      const mode = event.target.value;
+                      setClientMode(mode);
+                      form.setFieldsValue({
+                        cliente: mode === "avulso" ? undefined : form.getFieldValue("cliente"),
+                        contato_responsavel: undefined,
+                      });
+                    }}
+                    optionType="button"
+                    buttonStyle="solid"
+                    style={{ marginBottom: 12 }}
+                    options={[
+                      { label: "Cadastrado", value: "cadastrado" },
+                      { label: "Avulso / consulta", value: "avulso" },
+                    ]}
+                  />
+
+                  {clientMode === "cadastrado" ? (
+                    <>
+                      <Form.Item label="Cliente" name="cliente" rules={[{ required: true, message: "Selecione o cliente" }]} style={{ marginBottom: 10 }}>
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder="Selecione o cliente"
+                          options={clients.map((cliente) => ({
+                            label: `${cliente.nome_fantasia || cliente.nome}${cliente.cnpj_cpf ? ` - ${cliente.cnpj_cpf}` : ""}`,
+                            value: cliente.id,
+                          }))}
+                        />
+                      </Form.Item>
+                      <Row gutter={[8, 8]}>
+                        <Col xs={24} md={8}>
+                          <div style={miniInfoStyle}>
+                            <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>CNPJ</Text>
+                            <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.cnpj_cpf || "-"}</div>
+                          </div>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <div style={miniInfoStyle}>
+                            <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Telefone</Text>
+                            <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.telefone || "-"}</div>
+                          </div>
+                        </Col>
+                        <Col xs={24} md={8}>
+                          <div style={miniInfoStyle}>
+                            <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Email</Text>
+                            <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis" }}>{selectedClient?.email || "-"}</div>
+                          </div>
+                        </Col>
+                      </Row>
+                      <Form.Item label="Contato responsável" name="contato_responsavel" style={{ marginTop: 10, marginBottom: 0 }}>
+                        <Select
+                          allowClear
+                          placeholder="Selecione o contato"
+                          options={(selectedClient?.contatos || []).map((contato) => ({
+                            label: `${contato.nome}${contato.email ? ` - ${contato.email}` : ""}`,
+                            value: contato.id,
+                          }))}
+                        />
+                      </Form.Item>
+                    </>
+                  ) : (
+                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                      <Alert
+                        type="info"
+                        showIcon
+                        message="Cliente avulso"
+                        description="Use para pessoa física, consulta rápida ou proposta sem cadastro prévio. O sistema cria um prospect automaticamente ao salvar."
+                      />
+                      <Form.Item
+                        label="Nome do cliente"
+                        name="cliente_avulso_nome"
+                        rules={[{ required: true, message: "Informe o nome do cliente avulso." }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input placeholder="Ex.: João Silva" />
+                      </Form.Item>
+                      <Row gutter={[8, 8]}>
+                        <Col xs={24} md={12}>
+                          <Form.Item label="CPF/CNPJ" name="cliente_avulso_documento" style={{ marginBottom: 0 }}>
+                            <Input placeholder="Opcional" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <Form.Item label="Telefone/WhatsApp" name="cliente_avulso_telefone" style={{ marginBottom: 0 }}>
+                            <Input placeholder="(00) 00000-0000" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item label="Email" name="cliente_avulso_email" style={{ marginBottom: 0 }}>
+                            <Input placeholder="cliente@email.com" />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24}>
+                          <Form.Item label="Observação interna" name="cliente_avulso_observacoes" style={{ marginBottom: 0 }}>
+                            <TextArea rows={2} placeholder="Ex.: cliente pediu apenas consulta de preço pelo WhatsApp." />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </Space>
+                  )}
                 </div>
               </Col>
 

@@ -3,6 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.configuracoes.models import get_empresa_configurada
+from apps.clientes.models import Cliente
 from apps.fiscal.models import ConfiguracaoFiscal
 from apps.fiscal.services import MotorFiscalEspecialista
 
@@ -103,7 +104,13 @@ class AssinaturaClienteOSSerializer(serializers.ModelSerializer):
 
 
 class OrdemServicoSerializer(serializers.ModelSerializer):
+    cliente = serializers.PrimaryKeyRelatedField(
+        queryset=Cliente.objects.all(),
+        required=False,
+        allow_null=True,
+    )
     cliente_nome = serializers.CharField(source="cliente.nome", read_only=True)
+    cliente_avulso = serializers.JSONField(write_only=True, required=False)
     tecnico_nome = serializers.CharField(source="tecnico_responsavel.username", read_only=True)
     contato_nome = serializers.CharField(source="contato_responsavel.nome", read_only=True)
     endereco_servico_texto = serializers.StringRelatedField(source="endereco_servico", read_only=True)
@@ -126,12 +133,21 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             "atualizado_em",
         ]
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if self.instance is None and not attrs.get("cliente") and not attrs.get("cliente_avulso"):
+            raise serializers.ValidationError({"cliente": "Selecione um cliente ou informe um cliente avulso."})
+        return attrs
+
     def create(self, validated_data):
         itens_data = validated_data.pop("itens", [])
+        cliente_avulso = validated_data.pop("cliente_avulso", None)
         request = self.context.get("request")
         usuario = validated_data.pop("criado_por", None)
         usuario = usuario or (request.user if request and request.user.is_authenticated else None)
         atualizado_por = validated_data.pop("atualizado_por", None) or usuario
+        if cliente_avulso and not validated_data.get("cliente"):
+            validated_data["cliente"] = self._criar_cliente_avulso(cliente_avulso)
         validated_data = self._normalizar_dados_pedido_compra(validated_data)
         ordem = OrdemServico.objects.create(
             criado_por=usuario,
@@ -140,6 +156,33 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         )
         self._salvar_itens(ordem, itens_data)
         return ordem
+
+    def _criar_cliente_avulso(self, dados):
+        nome = str((dados or {}).get("nome") or "").strip()
+        if not nome:
+            raise serializers.ValidationError({"cliente_avulso": "Informe o nome do cliente avulso."})
+
+        documento = "".join(filter(str.isdigit, str((dados or {}).get("documento") or "")))
+        telefone = str((dados or {}).get("telefone") or "").strip()
+        email = str((dados or {}).get("email") or "").strip()
+        observacoes = str((dados or {}).get("observacoes") or "").strip()
+        origem = str((dados or {}).get("origem") or "consulta_avulsa").strip()
+        tipo_pessoa = Cliente.TipoPessoa.JURIDICA if len(documento) == 14 else Cliente.TipoPessoa.FISICA
+
+        return Cliente.objects.create(
+            tipo_pessoa=tipo_pessoa,
+            nome=nome,
+            nome_fantasia=nome if tipo_pessoa == Cliente.TipoPessoa.JURIDICA else "",
+            razao_social=nome if tipo_pessoa == Cliente.TipoPessoa.JURIDICA else "",
+            cnpj_cpf=documento,
+            email=email,
+            telefone=telefone,
+            whatsapp=telefone,
+            origem=origem,
+            status=Cliente.Status.PROSPECT,
+            observacoes="Cliente criado automaticamente a partir de orçamento avulso."
+            + (f"\n{observacoes}" if observacoes else ""),
+        )
 
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", None)
