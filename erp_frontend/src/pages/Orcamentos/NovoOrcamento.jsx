@@ -212,8 +212,10 @@ export default function NovoOrcamento() {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [quickItemForm] = Form.useForm();
+  const [emailForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [clients, setClients] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -231,6 +233,8 @@ export default function NovoOrcamento() {
   const [quickItemModalOpen, setQuickItemModalOpen] = useState(false);
   const [quickItemType, setQuickItemType] = useState("servico");
   const [clientMode, setClientMode] = useState("cadastrado");
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailBudgetId, setEmailBudgetId] = useState(null);
 
   const [drawerClienteAberto, setDrawerClienteAberto] = useState(false);
   const [cnpj, setCnpj] = useState("");
@@ -257,12 +261,17 @@ export default function NovoOrcamento() {
 
   const isAdmin = ["admin", "gestor"].includes(String(user?.role || "").toLowerCase());
   const selectedClientId = Form.useWatch("cliente", form);
+  const selectedContactId = Form.useWatch("contato_responsavel", form);
   const temPedidoCompra = Form.useWatch("tem_pedido_compra", form);
   const quickItemValues = Form.useWatch([], quickItemForm) || {};
 
   const selectedClient = useMemo(
     () => clients.find((cliente) => String(cliente.id) === String(selectedClientId)),
     [clients, selectedClientId]
+  );
+  const selectedContact = useMemo(
+    () => (selectedClient?.contatos || []).find((contato) => String(contato.id) === String(selectedContactId)),
+    [selectedClient, selectedContactId]
   );
 
   const totals = useMemo(() => calcItemsTotals(items), [items]);
@@ -664,6 +673,53 @@ export default function NovoOrcamento() {
     }
   };
 
+  const handleSendBudgetEmail = async () => {
+    let record = draftId ? { id: draftId } : null;
+    if (!record) record = await saveBudget("rascunho");
+    if (!record?.id) return;
+
+    const values = form.getFieldsValue();
+    const clienteNome =
+      clientMode === "avulso"
+        ? values.cliente_avulso_nome
+        : selectedClient?.nome;
+    const destinatario =
+      clientMode === "avulso"
+        ? values.cliente_avulso_email
+        : selectedContact?.email || selectedClient?.email || "";
+
+    setEmailBudgetId(record.id);
+    emailForm.setFieldsValue({
+      destinatario_email: destinatario || "",
+      assunto: `Proposta comercial ${budgetNumber}`,
+      mensagem:
+        `Olá, ${clienteNome || ""}.\n\n` +
+        `Segue em anexo a proposta comercial ${budgetNumber}.\n\n` +
+        "Qualquer dúvida, fico à disposição.\n\n" +
+        "Atenciosamente.",
+    });
+    setEmailModalOpen(true);
+  };
+
+  const confirmSendBudgetEmail = async () => {
+    if (!emailBudgetId) return;
+
+    try {
+      const values = await emailForm.validateFields();
+      setEmailSending(true);
+      const response = await api.post(`/ordens/${emailBudgetId}/enviar-orcamento-email/`, values);
+      setEmailModalOpen(false);
+      setDraftId(emailBudgetId);
+      message.success(response.data?.detail || "Proposta enviada por email.");
+      navigate(`/orcamentos/${emailBudgetId}`);
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(formatApiError(error, "Não foi possível enviar o email."));
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   const handleOpenPrintPage = async () => {
     let currentId = draftId;
     if (!currentId) {
@@ -892,8 +948,8 @@ export default function NovoOrcamento() {
               <Button
                 type="primary"
                 icon={<SendOutlined />}
-                onClick={() => saveBudget("orcamento_enviado")}
-                loading={saving === "orcamento_enviado"}
+                onClick={handleSendBudgetEmail}
+                loading={saving === "rascunho" || emailSending}
                 style={{ borderRadius: 8, background: "#3B82F6", borderColor: "#3B82F6" }}
               >
                 Enviar
@@ -1200,8 +1256,8 @@ export default function NovoOrcamento() {
               <Button
                 type="primary"
                 icon={<SendOutlined />}
-                onClick={() => saveBudget("orcamento_enviado")}
-                loading={saving === "orcamento_enviado"}
+                onClick={handleSendBudgetEmail}
+                loading={saving === "rascunho" || emailSending}
                 style={{ borderRadius: 8, background: "#3B82F6", borderColor: "#3B82F6" }}
               >
                 Enviar para cliente
@@ -1569,6 +1625,53 @@ export default function NovoOrcamento() {
           </div>
         </Space>
       </Drawer>
+
+      <Modal
+        open={emailModalOpen}
+        title="Enviar proposta por email"
+        okText="Enviar com PDF"
+        cancelText="Cancelar"
+        confirmLoading={emailSending}
+        onOk={confirmSendBudgetEmail}
+        onCancel={() => setEmailModalOpen(false)}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16, borderRadius: 10 }}
+          message="O sistema vai gerar o PDF atualizado e anexar automaticamente."
+        />
+        <Form form={emailForm} layout="vertical">
+          <Form.Item
+            label="Email do cliente"
+            name="destinatario_email"
+            rules={[
+              { required: true, message: "Informe o email de destino." },
+              { type: "email", message: "Informe um email válido." },
+            ]}
+          >
+            <Input placeholder="cliente@email.com" />
+          </Form.Item>
+          <Form.Item label="Cópia" name="cc">
+            <Input placeholder="email1@empresa.com, email2@empresa.com" />
+          </Form.Item>
+          <Form.Item
+            label="Assunto"
+            name="assunto"
+            rules={[{ required: true, message: "Informe o assunto." }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Mensagem"
+            name="mensagem"
+            rules={[{ required: true, message: "Informe a mensagem." }]}
+          >
+            <TextArea rows={7} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         open={Boolean(approvePayload)}

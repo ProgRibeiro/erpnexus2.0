@@ -2,8 +2,11 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from collections import defaultdict
 from decimal import Decimal
+from smtplib import SMTPException
 
+from django.conf import settings
 from django.core.files.base import ContentFile
+from django.core.mail import BadHeaderError, EmailMessage
 from django.db import transaction
 from django.http import FileResponse
 from django.utils import timezone
@@ -17,6 +20,7 @@ from rest_framework.views import APIView
 
 from apps.auditoria.models import LogAuditoria
 from apps.clientes.models import Cliente
+from apps.configuracoes.models import get_empresa_configurada
 from .models import AnexoChatOS, ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, ItemOrcamento, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .services import MotorOrcamentoInteligente, PedidoCompraInteligente
@@ -751,6 +755,113 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         return Response(
             {"detail": "Erro ao gerar PDF de orçamento"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    @action(detail=True, methods=["post"], url_path="enviar-orcamento-email")
+    def enviar_orcamento_email(self, request, pk=None):
+        ordem = self.get_object()
+        email_backend = getattr(settings, "EMAIL_BACKEND", "")
+        usando_smtp = email_backend.endswith(".smtp.EmailBackend")
+
+        if usando_smtp and not getattr(settings, "EMAIL_HOST", ""):
+            return Response(
+                {
+                    "detail": (
+                        "SMTP não configurado. Informe EMAIL_HOST, EMAIL_HOST_USER, "
+                        "EMAIL_HOST_PASSWORD e DEFAULT_FROM_EMAIL no .env para enviar emails reais."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        destinatario = (
+            request.data.get("destinatario_email")
+            or getattr(ordem.contato_responsavel, "email", "")
+            or getattr(ordem.cliente, "email", "")
+        )
+        if not destinatario:
+            return Response(
+                {"detail": "Informe um email de destino ou cadastre o email do cliente."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        empresa = get_empresa_configurada()
+        numero = ordem.numero or f"orcamento-{ordem.pk}"
+        remetente = getattr(settings, "DEFAULT_FROM_EMAIL", "") or getattr(settings, "EMAIL_HOST_USER", "")
+        if not remetente:
+            return Response(
+                {"detail": "Remetente não configurado. Defina DEFAULT_FROM_EMAIL no .env."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pdf_bytes = gerar_orcamento_pdf(ordem.pk)
+        if not pdf_bytes:
+            return Response(
+                {"detail": "Não foi possível gerar o PDF para anexar ao email."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        filename = f"orcamento_{numero}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        ordem.pdf_orcamento.save(filename, ContentFile(pdf_bytes), save=True)
+
+        assunto = request.data.get("assunto") or f"Proposta comercial {numero} - {empresa.nome}"
+        mensagem = request.data.get("mensagem") or (
+            f"Olá, {ordem.cliente.nome}.\n\n"
+            f"Segue em anexo a proposta comercial {numero}.\n\n"
+            "Qualquer dúvida, fico à disposição.\n\n"
+            f"Atenciosamente,\n{empresa.nome}"
+        )
+        cc_raw = request.data.get("cc") or []
+        cc = cc_raw if isinstance(cc_raw, list) else [item.strip() for item in str(cc_raw).split(",") if item.strip()]
+        reply_to = [empresa.email] if empresa.email else None
+
+        email = EmailMessage(
+            subject=assunto,
+            body=mensagem,
+            from_email=remetente,
+            to=[destinatario],
+            cc=cc,
+            reply_to=reply_to,
+        )
+        email.attach(f"Proposta_{numero}.pdf", pdf_bytes, "application/pdf")
+
+        try:
+            enviados = email.send(fail_silently=False)
+        except (BadHeaderError, SMTPException, OSError, ValueError) as exc:
+            return Response(
+                {"detail": f"Erro ao enviar email: {str(exc)}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if not enviados:
+            return Response(
+                {"detail": "O provedor não confirmou o envio do email."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        status_anterior = ordem.status
+        if ordem.status == OrdemServico.Status.RASCUNHO:
+            ordem.status = OrdemServico.Status.ORCAMENTO_ENVIADO
+            ordem.atualizado_por = request.user
+            ordem.save(update_fields=["status", "atualizado_por", "atualizado_em", "pdf_orcamento"])
+            LogStatusOS.objects.create(
+                os=ordem,
+                status_anterior=status_anterior,
+                status_novo=ordem.status,
+                alterado_por=request.user,
+                observacao=f"Proposta enviada por email para {destinatario}.",
+            )
+        else:
+            ordem.atualizado_por = request.user
+            ordem.save(update_fields=["atualizado_por", "atualizado_em", "pdf_orcamento"])
+
+        return Response(
+            {
+                "detail": "Proposta enviada por email com sucesso.",
+                "destinatario_email": destinatario,
+                "status": ordem.status,
+                "pdf_orcamento": ordem.pdf_orcamento.url if ordem.pdf_orcamento else "",
+            }
         )
 
     @action(detail=True, methods=["post"], url_path="salvar-relatorio-pdf")

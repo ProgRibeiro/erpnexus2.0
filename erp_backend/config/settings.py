@@ -309,11 +309,15 @@ BASE_URL = env("BASE_URL", default="http://localhost:5173")
 
 # Configurações de Email SMTP
 # Exemplo com Gmail: https://support.google.com/mail/answer/185833
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_PORT = 587
-# EMAIL_HOST_USER = "seu-email@gmail.com"
-# EMAIL_HOST_PASSWORD = "sua-senha-app"
-# EMAIL_USE_TLS = True
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = env("EMAIL_USE_SSL", default=False)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER or "admin@example.com")
+SERVER_EMAIL = env("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 
 # Configurações de WhatsApp (escolha um provedor)
 # WHATSAPP_PROVEDOR = "callmebot"  # ou "zapi"
@@ -387,4 +391,3 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(day_of_month=1, hour=7, minute=30),
     },
 }
-

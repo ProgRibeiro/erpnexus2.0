@@ -88,8 +88,10 @@ export default function OrcamentoDetalhe() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
+  const [emailForm] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const [order, setOrder] = useState(null);
   const [clients, setClients] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -101,6 +103,7 @@ export default function OrcamentoDetalhe() {
     searchParams.get("modo") === "edicao",
   );
   const [refusalModalOpen, setRefusalModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [approvalModal, setApprovalModal] = useState({
     open: false,
     tecnico_responsavel: null,
@@ -118,6 +121,11 @@ export default function OrcamentoDetalhe() {
   );
   const budgetStatus = getBudgetStatus(order);
   const budgetStatusMeta = formatBudgetStatus(budgetStatus);
+
+  const getApiErrorMessage = (error, fallback) =>
+    error?.response?.data?.detail ||
+    error?.response?.data?.message ||
+    fallback;
 
   const totals = useMemo(() => calcItemsTotals(items), [items]);
   const itemCounters = useMemo(
@@ -252,6 +260,14 @@ export default function OrcamentoDetalhe() {
       ),
     [clients, form],
   );
+  const selectedContact = useMemo(
+    () =>
+      (selectedClient?.contatos || []).find(
+        (contato) =>
+          String(contato.id) === String(form.getFieldValue("contato_responsavel")),
+      ),
+    [selectedClient, form],
+  );
 
   const setItemField = (key, field, value) => {
     setItems((current) =>
@@ -346,14 +362,36 @@ export default function OrcamentoDetalhe() {
   };
 
   const sendBudget = async () => {
+    const destinatario = selectedContact?.email || selectedClient?.email || "";
+    emailForm.setFieldsValue({
+      destinatario_email: destinatario,
+      assunto: `Proposta comercial ${order?.numero || ""}`,
+      mensagem:
+        `Olá, ${selectedClient?.nome || order?.cliente_nome || ""}.\n\n` +
+        `Segue em anexo a proposta comercial ${order?.numero || ""}.\n\n` +
+        "Qualquer dúvida, fico à disposição.\n\n" +
+        "Atenciosamente.",
+    });
+    setEmailModalOpen(true);
+  };
+
+  const confirmSendBudgetEmail = async () => {
     try {
-      await api.post(`/ordens/${id}/mudar-status/`, {
-        status: "orcamento_enviado",
-      });
-      setOrder((current) => ({ ...current, status: "orcamento_enviado" }));
-      message.success("Orçamento enviado para o cliente.");
-    } catch {
-      message.error("Não foi possível enviar o orçamento.");
+      const values = await emailForm.validateFields();
+      setEmailSending(true);
+      const response = await api.post(`/ordens/${id}/enviar-orcamento-email/`, values);
+      setOrder((current) => ({
+        ...current,
+        status: response.data?.status || "orcamento_enviado",
+        pdf_orcamento: response.data?.pdf_orcamento || current?.pdf_orcamento,
+      }));
+      setEmailModalOpen(false);
+      message.success(response.data?.detail || "Proposta enviada por email.");
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(getApiErrorMessage(error, "Não foi possível enviar o email."));
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -1061,6 +1099,53 @@ export default function OrcamentoDetalhe() {
           onChange={(event) => setRefusalReason(event.target.value)}
           placeholder="Explique o motivo da recusa"
         />
+      </Modal>
+
+      <Modal
+        open={emailModalOpen}
+        title="Enviar proposta por email"
+        okText="Enviar com PDF"
+        cancelText="Cancelar"
+        confirmLoading={emailSending}
+        onOk={confirmSendBudgetEmail}
+        onCancel={() => setEmailModalOpen(false)}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="O sistema vai gerar o PDF atualizado e anexar automaticamente."
+        />
+        <Form form={emailForm} layout="vertical">
+          <Form.Item
+            label="Email do cliente"
+            name="destinatario_email"
+            rules={[
+              { required: true, message: "Informe o email de destino." },
+              { type: "email", message: "Informe um email válido." },
+            ]}
+          >
+            <Input placeholder="cliente@email.com" />
+          </Form.Item>
+          <Form.Item label="Cópia" name="cc">
+            <Input placeholder="email1@empresa.com, email2@empresa.com" />
+          </Form.Item>
+          <Form.Item
+            label="Assunto"
+            name="assunto"
+            rules={[{ required: true, message: "Informe o assunto." }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Mensagem"
+            name="mensagem"
+            rules={[{ required: true, message: "Informe a mensagem." }]}
+          >
+            <TextArea rows={7} />
+          </Form.Item>
+        </Form>
       </Modal>
 
       <Modal
