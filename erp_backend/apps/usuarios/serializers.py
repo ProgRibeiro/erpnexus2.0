@@ -1,12 +1,8 @@
-import logging
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Usuario
-
-logger = logging.getLogger(__name__)
-
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=False)
@@ -16,27 +12,20 @@ class LoginSerializer(serializers.Serializer):
     senha = serializers.CharField(write_only=True, required=False, allow_blank=False)
 
     def validate(self, attrs):
-        logger.warning(f"[SERIALIZER] validate called with: {list(attrs.keys())}")
         identifier = attrs.get("email") or attrs.get("username") or attrs.get("identifier")
         password = attrs.get("password") or attrs.get("senha")
-        logger.warning(f"[SERIALIZER] identifier={identifier}")
 
         if not identifier:
-            logger.warning(f"[SERIALIZER] No identifier provided")
             raise serializers.ValidationError("Informe email ou username.")
         if not password:
-            logger.warning("[SERIALIZER] No password provided")
             raise serializers.ValidationError("Informe a senha.")
 
-        logger.warning(f"[SERIALIZER] Calling authenticate with identifier={identifier}")
         user = authenticate(
             username=identifier,
             password=password,
         )
-        logger.warning(f"[SERIALIZER] authenticate returned: {user}")
 
         if not user:
-            logger.warning(f"[SERIALIZER] Authentication failed")
             raise serializers.ValidationError("Credenciais inválidas.")
         attrs["user"] = user
         return attrs

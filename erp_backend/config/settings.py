@@ -43,6 +43,7 @@ SHARED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
+    'apps.usuarios',  # requerido no public por admin e FKs dos módulos SaaS
     'apps.saas',  # planos, diretório, licitações — ficam no public schema
     'apps.master_admin',  # painel master do proprietário do SaaS
 ]
@@ -78,6 +79,7 @@ MIDDLEWARE = [
     'django_tenants.middleware.main.TenantMainMiddleware',  # DEVE SER O PRIMEIRO
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -137,6 +139,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "frontend_dist"]
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+WHITENOISE_USE_FINDERS = DEBUG
+WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
 
 MEDIA_URL = env("MEDIA_URL", default="/media/")
 MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")

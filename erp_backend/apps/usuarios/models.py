@@ -70,7 +70,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150, blank=True)
-    cpf = models.CharField(max_length=14, unique=True, blank=True)
+    cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
     rg = models.CharField(max_length=20, blank=True)
     data_nascimento = models.DateField(null=True, blank=True)
 
@@ -99,7 +99,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     )
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ATIVO)
-    matricula = models.CharField(max_length=30, unique=True, blank=True)
+    matricula = models.CharField(max_length=30, unique=True, blank=True, null=True)
     data_admissao = models.DateField(null=True, blank=True)
     data_desligamento = models.DateField(null=True, blank=True)
     salario = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -135,6 +135,11 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.nome_completo or self.email
+
+    def save(self, *args, **kwargs):
+        self.cpf = self.cpf or None
+        self.matricula = self.matricula or None
+        super().save(*args, **kwargs)
 
     @property
     def nome_completo(self):

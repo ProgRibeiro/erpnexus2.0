@@ -6,7 +6,7 @@ import {
 import { ArrowLeftOutlined, EditOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import QRCode from "qrcode.react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;

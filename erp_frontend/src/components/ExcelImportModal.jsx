@@ -5,6 +5,7 @@ import api from "../services/api";
 
 const { Dragger } = Upload;
 const { Text } = Typography;
+const FORMATOS_ACEITOS = ".xlsx,.xlsm,.csv,.txt,.tsv";
 
 function formatDuration(ms) {
   const total = Math.max(0, Math.floor((ms || 0) / 1000));
@@ -120,9 +121,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
 
     try {
       setProcesso((current) => ({ ...current, etapa: "Enviando para o ERP", progresso: 34 }));
-      const response = await api.post(endpoints[tipoImport], formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.post(endpoints[tipoImport], formData);
       setProcesso((current) => ({ ...current, etapa: "Conferindo resultado", progresso: 82 }));
 
       setResultado(response.data);
@@ -159,6 +158,14 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
     setImportando(false);
     setProcesso({ etapa: "", progresso: 0, inicio: null, duracao: 0, detalhe: "", erro: "" });
     onClose();
+  };
+
+  const handleTabChange = (tipo) => {
+    setTipoImport(tipo);
+    setArquivo(null);
+    setArquivoNome("");
+    setResultado(null);
+    setProcesso({ etapa: "", progresso: 0, inicio: null, duracao: 0, detalhe: "", erro: "" });
   };
 
   const painelProcesso = (processo.etapa || arquivoNome) && (
@@ -199,7 +206,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
             </Button>
           </div>
           <Dragger
-            accept=".xlsx,.xls,.xlsm,.csv,.txt,.tsv"
+            accept={FORMATOS_ACEITOS}
             maxCount={1}
             beforeUpload={() => false}
             onChange={selecionarArquivo}
@@ -225,7 +232,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
             </Button>
           </div>
           <Dragger
-            accept=".xlsx,.xls,.xlsm,.csv,.txt,.tsv"
+            accept={FORMATOS_ACEITOS}
             maxCount={1}
             beforeUpload={() => false}
             onChange={selecionarArquivo}
@@ -251,7 +258,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
             </Button>
           </div>
           <Dragger
-            accept=".xlsx,.xls,.xlsm,.csv,.txt,.tsv"
+            accept={FORMATOS_ACEITOS}
             maxCount={1}
             beforeUpload={() => false}
             onChange={selecionarArquivo}
@@ -282,7 +289,6 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
           loading={importando}
           disabled={!arquivo}
           onClick={handleImport}
-          style={{ background: "#3B82F6", borderColor: "#3B82F6" }}
         >
           Importar
         </Button>,
@@ -327,7 +333,7 @@ export default function ExcelImportModal({ open, onClose, onSuccess }) {
         ) : (
           <Tabs
             activeKey={tipoImport}
-            onChange={setTipoImport}
+            onChange={handleTabChange}
             items={tabs}
             tabBarExtraContent={
               <div style={{ display: "flex", gap: 8 }}>

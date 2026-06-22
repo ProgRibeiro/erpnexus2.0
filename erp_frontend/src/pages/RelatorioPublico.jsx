@@ -14,7 +14,7 @@ import {
   Spin,
   Typography,
 } from "antd";
-import QRCode from "qrcode.react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 import {
   ArrowDownOutlined,
   CheckCircleOutlined,

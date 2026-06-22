@@ -22,8 +22,6 @@ import {
   DownloadOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
-import * as XLSX from "xlsx";
-
 import financeiroService from "../../services/financeiro";
 
 const { Text, Title } = Typography;
@@ -168,10 +166,21 @@ function RelatorioOSPorPeriodo({ data, loading }) {
         "Valor Médio": item.valor_medio,
       }));
 
-      const ws = XLSX.utils.json_to_sheet(dataToExport);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Relatório OS");
-      XLSX.writeFile(wb, `relatorio_os_${new Date().toISOString().split("T")[0]}.xlsx`);
+      const headers = ["Status", "Quantidade", "Valor Total", "Valor Médio"];
+      const escapar = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+      const linhas = dataToExport.map((item) =>
+        headers.map((header) => escapar(item[header])).join(";")
+      );
+      const csv = `\uFEFF${headers.join(";")}\r\n${linhas.join("\r\n")}`;
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `relatorio_os_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
       message.success("Arquivo exportado com sucesso");
     } catch (error) {
       message.error("Erro ao exportar arquivo");
@@ -183,7 +192,7 @@ function RelatorioOSPorPeriodo({ data, loading }) {
       bordered={false}
       style={cardStyle}
       extra={
-        <Tooltip title="Exportar para Excel">
+        <Tooltip title="Exportar planilha compatível com Excel (CSV)">
           <Button
             icon={<FileExcelOutlined />}
             onClick={handleExportExcel}

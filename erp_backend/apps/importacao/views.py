@@ -1,9 +1,14 @@
+import csv
 import io
+import re
+import unicodedata
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 import openpyxl
 from openpyxl.styles import Font
+from django.db import transaction
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -34,7 +39,77 @@ def _bold_header(ws, headers):
 
 
 def _normalizar_header(value):
-    return str(value or "").strip().lower().replace(" ", "_")
+    texto = unicodedata.normalize("NFKD", str(value or ""))
+    texto = "".join(char for char in texto if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", "_", texto.strip().lower()).strip("_")
+
+
+def _texto(value):
+    if value in (None, ""):
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
+
+
+def _decimal(value, default="0"):
+    if value in (None, ""):
+        return Decimal(default)
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+
+    texto = _texto(value).replace("R$", "").replace("%", "").replace(" ", "")
+    if "," in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+    try:
+        return Decimal(texto)
+    except InvalidOperation as exc:
+        raise ValueError(f'valor numérico inválido: "{value}"') from exc
+
+
+def _linhas_arquivo(arquivo, obrigatorias=()):
+    extensao = Path(arquivo.name or "").suffix.lower()
+    if extensao in {".xlsx", ".xlsm"}:
+        workbook = openpyxl.load_workbook(arquivo, read_only=True, data_only=True)
+        worksheet = workbook.active
+        rows = worksheet.iter_rows(values_only=True)
+    elif extensao in {".csv", ".txt", ".tsv"}:
+        conteudo = arquivo.read()
+        if not conteudo:
+            raise ValueError("O arquivo está vazio.")
+        try:
+            texto = conteudo.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            texto = conteudo.decode("cp1252")
+        amostra = texto[:8192]
+        delimitador_padrao = "\t" if extensao == ".tsv" else ";"
+        try:
+            dialect = csv.Sniffer().sniff(amostra, delimiters=";,\t|")
+            rows = csv.reader(io.StringIO(texto), dialect)
+        except csv.Error:
+            rows = csv.reader(io.StringIO(texto), delimiter=delimitador_padrao)
+    else:
+        raise ValueError("Formato não suportado. Envie um arquivo XLSX, XLSM, CSV, TSV ou TXT.")
+
+    iterator = iter(rows)
+    try:
+        headers = [_normalizar_header(value) for value in next(iterator)]
+    except StopIteration as exc:
+        raise ValueError("O arquivo está vazio.") from exc
+    if not any(headers):
+        raise ValueError("A primeira linha deve conter os nomes das colunas.")
+    if len(headers) != len(set(filter(None, headers))):
+        raise ValueError("A planilha possui nomes de colunas repetidos.")
+    faltantes = [coluna for coluna in obrigatorias if coluna not in headers]
+    if faltantes:
+        raise ValueError(f"Coluna obrigatória ausente: {', '.join(faltantes)}.")
+
+    for row_num, row in enumerate(iterator, start=2):
+        if not any(value not in (None, "") for value in row):
+            continue
+        yield row_num, dict(zip(headers, row))
 
 
 def _bool(value, default=True):
@@ -88,38 +163,46 @@ def importar_clientes(request):
         return Response({"erro": "Arquivo não enviado."}, status=400)
 
     criados = 0
+    atualizados = 0
     ignorados = 0
     erros = []
 
     try:
-        wb = openpyxl.load_workbook(arquivo, read_only=True)
-        ws = wb.active
-        headers = [_normalizar_header(cell.value) for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-
-        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        linhas = _linhas_arquivo(arquivo, ["nome"])
+        for row_num, data in linhas:
             try:
-                data = dict(zip(headers, row))
-                nome = str(data.get("nome") or "").strip()
+                nome = _texto(data.get("nome"))
                 if not nome:
                     ignorados += 1
                     continue
-                cnpj_cpf = str(data.get("cnpj_cpf") or "").strip()
-                if cnpj_cpf and Cliente.objects.filter(cnpj_cpf=cnpj_cpf).exists():
-                    ignorados += 1
-                    continue
-                Cliente.objects.create(
-                    nome=nome,
-                    cnpj_cpf=cnpj_cpf,
-                    email=str(data.get("email") or "").strip(),
-                    telefone=str(data.get("telefone") or "").strip(),
-                )
-                criados += 1
+                cnpj_cpf = _texto(data.get("cnpj_cpf") or data.get("cpf_cnpj"))
+                status_cliente = _texto(data.get("status")).lower() or Cliente.Status.ATIVO
+                if status_cliente not in Cliente.Status.values:
+                    raise ValueError(f'status inválido: "{status_cliente}"')
+                defaults = {
+                    "nome": nome,
+                    "email": _texto(data.get("email")),
+                    "telefone": _texto(data.get("telefone")),
+                    "segmento": _texto(data.get("segmento")),
+                    "status": status_cliente,
+                }
+                with transaction.atomic():
+                    if cnpj_cpf:
+                        _, created = Cliente.objects.update_or_create(
+                            cnpj_cpf=cnpj_cpf,
+                            defaults=defaults,
+                        )
+                        criados += int(created)
+                        atualizados += int(not created)
+                    else:
+                        Cliente.objects.create(cnpj_cpf="", **defaults)
+                        criados += 1
             except Exception as e:
                 erros.append(f"Linha {row_num}: {e}")
     except Exception as e:
         return Response({"erro": f"Erro ao processar arquivo: {e}"}, status=400)
 
-    return _resultado(criados=criados, ignorados=ignorados, erros=erros)
+    return _resultado(criados=criados, atualizados=atualizados, ignorados=ignorados, erros=erros)
 
 
 @api_view(["GET"])
@@ -156,35 +239,37 @@ def importar_produtos(request):
     erros = []
 
     try:
-        wb = openpyxl.load_workbook(arquivo, read_only=True)
-        ws = wb.active
-        headers = [_normalizar_header(cell.value) for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-
-        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        linhas = _linhas_arquivo(arquivo, ["nome"])
+        for row_num, data in linhas:
             try:
-                data = dict(zip(headers, row))
-                nome = str(data.get("nome") or "").strip()
-                codigo = str(data.get("codigo") or "").strip() or None
+                nome = _texto(data.get("nome"))
+                codigo = _texto(data.get("codigo")) or None
                 if not nome:
                     continue
+                unidade = _texto(data.get("unidade_medida")).lower() or Produto.UnidadeMedida.UN
+                if unidade not in Produto.UnidadeMedida.values:
+                    raise ValueError(f'unidade_medida inválida: "{unidade}"')
+                preco_venda_informado = data.get("preco_venda") not in (None, "")
                 defaults = {
                     "nome": nome,
-                    "descricao": str(data.get("descricao") or "").strip(),
-                    "unidade_medida": str(data.get("unidade_medida") or "un").strip() or "un",
-                    "preco_custo": Decimal(str(data.get("preco_custo") or 0)),
-                    "preco_venda": Decimal(str(data.get("preco_venda") or 0)),
-                    "estoque_minimo": Decimal(str(data.get("estoque_minimo") or 0)),
+                    "descricao": _texto(data.get("descricao")),
+                    "unidade_medida": unidade,
+                    "preco_custo": _decimal(data.get("preco_custo")),
+                    "preco_venda": _decimal(data.get("preco_venda")),
+                    "preco_manual": preco_venda_informado,
+                    "estoque_minimo": _decimal(data.get("estoque_minimo")),
                     "ativo": _bool(data.get("ativo"), True),
                 }
-                if codigo:
-                    _, created = Produto.objects.update_or_create(codigo=codigo, defaults=defaults)
-                    if created:
-                        criados += 1
+                with transaction.atomic():
+                    if codigo:
+                        _, created = Produto.objects.update_or_create(codigo=codigo, defaults=defaults)
+                        if created:
+                            criados += 1
+                        else:
+                            atualizados += 1
                     else:
-                        atualizados += 1
-                else:
-                    Produto.objects.create(**defaults)
-                    criados += 1
+                        Produto.objects.create(**defaults)
+                        criados += 1
             except Exception as e:
                 erros.append(f"Linha {row_num}: {e}")
     except Exception as e:
@@ -228,34 +313,40 @@ def importar_servicos(request):
     erros = []
 
     try:
-        wb = openpyxl.load_workbook(arquivo, read_only=True)
-        ws = wb.active
-        headers = [_normalizar_header(cell.value) for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-
-        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        linhas = _linhas_arquivo(arquivo, ["nome"])
+        for row_num, data in linhas:
             try:
-                data = dict(zip(headers, row))
-                nome = str(data.get("nome") or "").strip()
-                codigo = str(data.get("codigo") or "").strip() or None
+                nome = _texto(data.get("nome"))
+                codigo = _texto(data.get("codigo")) or None
                 if not nome:
                     continue
+                categoria = _texto(data.get("categoria")).lower() or Servico.Categoria.HVAC
+                unidade = _texto(data.get("unidade_medida")).lower() or Servico.UnidadeMedida.UNI
+                tributacao = _texto(data.get("tributacao")).lower() or Servico.Tributacao.ISS
+                if categoria not in Servico.Categoria.values:
+                    raise ValueError(f'categoria inválida: "{categoria}"')
+                if unidade not in Servico.UnidadeMedida.values:
+                    raise ValueError(f'unidade_medida inválida: "{unidade}"')
+                if tributacao not in Servico.Tributacao.values:
+                    raise ValueError(f'tributação inválida: "{tributacao}"')
                 defaults = {
                     "nome": nome,
-                    "descricao": str(data.get("descricao") or "").strip(),
-                    "categoria": str(data.get("categoria") or Servico.Categoria.HVAC).strip() or Servico.Categoria.HVAC,
-                    "unidade_medida": str(data.get("unidade_medida") or Servico.UnidadeMedida.UNI).strip() or Servico.UnidadeMedida.UNI,
-                    "preco_padrao": Decimal(str(data.get("preco_padrao") or data.get("preco") or 0)),
-                    "tributacao": str(data.get("tributacao") or Servico.Tributacao.ISS).strip() or Servico.Tributacao.ISS,
-                    "codigo_lc116": str(data.get("codigo_lc116") or "").strip(),
+                    "descricao": _texto(data.get("descricao")),
+                    "categoria": categoria,
+                    "unidade_medida": unidade,
+                    "preco_padrao": _decimal(data.get("preco_padrao") or data.get("preco")),
+                    "tributacao": tributacao,
+                    "codigo_lc116": _texto(data.get("codigo_lc116")),
                     "ativo": _bool(data.get("ativo"), True),
                 }
-                if codigo:
-                    _, created = Servico.objects.update_or_create(codigo=codigo, defaults=defaults)
-                    criados += 1 if created else 0
-                    atualizados += 0 if created else 1
-                else:
-                    Servico.objects.create(**defaults)
-                    criados += 1
+                with transaction.atomic():
+                    if codigo:
+                        _, created = Servico.objects.update_or_create(codigo=codigo, defaults=defaults)
+                        criados += int(created)
+                        atualizados += int(not created)
+                    else:
+                        Servico.objects.create(**defaults)
+                        criados += 1
             except Exception as e:
                 erros.append(f"Linha {row_num}: {e}")
     except Exception as e:
