@@ -1,14 +1,46 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Checkbox, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, Space, Steps, Switch, Table, Tag, Typography, message } from "antd";
-import { CheckCircleOutlined, FilePdfOutlined, SaveOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, EditOutlined, FilePdfOutlined, SaveOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router-dom";
 
 import api from "../../services/api";
-import { money, normalizeList, pageStyle, periodicidadeOptions } from "./shared";
+import { money, normalizeList, periodicidadeOptions } from "./shared";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const primaryButtonStyle = {
+  height: 40,
+  borderRadius: 10,
+  fontWeight: 600,
+  paddingInline: 20,
+};
 
 export default function EditarContrato() {
   const { id } = useParams();
@@ -405,23 +437,51 @@ export default function EditarContrato() {
   ];
 
   if (!contrato) {
-    return <div style={pageStyle}>{loading ? "Carregando..." : "Contrato não encontrado"}</div>;
+    return (
+      <div style={pageStyle}>
+        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 32, textAlign: "center" }}>
+          <Text type="secondary">{loading ? "Carregando..." : "Contrato não encontrado"}</Text>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div style={pageStyle}>
-      <Space align="center" style={{ justifyContent: "space-between", width: "100%", marginBottom: 20 }}>
-        <div>
-          <Title level={3} style={{ margin: 0 }}>Editar Contrato de Preventiva</Title>
-          <Text type="secondary">Rascunho - Edite os dados e salve as alterações</Text>
-          {autoSaveStatus === "salvando" && <Text type="warning" style={{ display: "block", marginTop: 8 }}>⏳ Salvando alterações...</Text>}
-          {autoSaveStatus === "salvo" && <Text type="success" style={{ display: "block", marginTop: 8 }}>✓ Alterações salvas automaticamente</Text>}
-          {autoSaveStatus === "erro" && <Text type="danger" style={{ display: "block", marginTop: 8 }}>✗ Erro ao salvar</Text>}
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.azul}14`,
+                color: colors.azul,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <EditOutlined />
+            </div>
+            <div>
+              <Title level={1} style={{ fontSize: 22, fontWeight: 800, margin: 0, color: colors.texto }}>
+                Editar Contrato de Preventiva
+              </Title>
+              <Text style={{ color: colors.textoSecundario }}>Rascunho - Edite os dados e salve as alterações</Text>
+              {autoSaveStatus === "salvando" && <Text style={{ display: "block", marginTop: 8, color: colors.laranja }}>Salvando alterações...</Text>}
+              {autoSaveStatus === "salvo" && <Text style={{ display: "block", marginTop: 8, color: colors.verde }}>Alterações salvas automaticamente</Text>}
+              {autoSaveStatus === "erro" && <Text style={{ display: "block", marginTop: 8, color: colors.vermelho }}>Erro ao salvar</Text>}
+            </div>
+          </Space>
+          <Button onClick={() => navigate(`/contratos/${id}`)} style={{ borderRadius: 10, height: 40 }}>Voltar</Button>
         </div>
-        <Button onClick={() => navigate(`/contratos/${id}`)}>Voltar</Button>
-      </Space>
+      </Card>
 
-      <Card>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
         <Steps current={step} items={[
           { title: "Dados básicos" },
           { title: "Escopos" },
@@ -431,7 +491,7 @@ export default function EditarContrato() {
         ]} />
       </Card>
 
-      <Card style={{ marginTop: 16 }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
         <Form
           form={form}
           layout="vertical"
@@ -440,7 +500,7 @@ export default function EditarContrato() {
         >
           {step === 0 && (
             <>
-              <Row gutter={16}>
+              <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}><Form.Item name="cliente" label="Cliente" rules={[{ required: true }]}><Select showSearch optionFilterProp="children">{clientes.map((c) => <Select.Option key={c.id} value={c.id}>{c.nome}</Select.Option>)}</Select></Form.Item></Col>
                 <Col xs={24} md={12}><Form.Item name="titulo" label="Título" rules={[{ required: true }]}><Input placeholder="Contrato de Manutenção Preventiva 2026" /></Form.Item></Col>
                 <Col xs={24}><Form.Item name="objeto_contrato" label="Objeto do contrato" rules={[{ required: true }]}><TextArea rows={4} placeholder="Descreva o que será feito em todas as unidades..." /></Form.Item></Col>
@@ -453,13 +513,13 @@ export default function EditarContrato() {
           )}
 
           {step === 1 && (
-            <Row gutter={[12, 12]}>
+            <Row gutter={[16, 16]}>
               <Col xs={24} lg={15}>
                 {erroEscopos && (
                   <Alert
                     type="warning"
                     showIcon
-                    style={{ marginBottom: 12 }}
+                    style={{ marginBottom: 12, borderRadius: 10 }}
                     message={erroEscopos}
                     description="No ambiente local com Vite, use o backend em http://demo.localhost:8000 para acessar os dados do tenant."
                   />
@@ -469,11 +529,22 @@ export default function EditarContrato() {
                     const selected = escoposSelecionados.some((item) => item.id === escopo.id);
                     return (
                       <Col xs={24} md={12} key={escopo.id}>
-                        <Card hoverable onClick={() => toggleEscopo(escopo)} style={{ borderColor: selected ? escopo.cor : "#E2E8F0", background: selected ? `${escopo.cor}12` : "#fff" }}>
+                        <Card
+                          hoverable
+                          onClick={() => toggleEscopo(escopo)}
+                          bordered={false}
+                          style={{
+                            borderRadius: 14,
+                            border: `1.5px solid ${selected ? escopo.cor : colors.borda}`,
+                            background: selected ? `${escopo.cor}12` : "#fff",
+                            boxShadow: selected ? `0 10px 24px ${escopo.cor}22` : "0 8px 20px rgba(15,23,42,0.04)",
+                          }}
+                          bodyStyle={{ padding: 16 }}
+                        >
                           <Space direction="vertical" size={4}>
-                            <Tag color={escopo.cor}>{escopo.codigo}</Tag>
-                            <Text strong>{escopo.nome}</Text>
-                            <Text type="secondary">{escopo.norma_tecnica}</Text>
+                            <Tag color={escopo.cor} style={{ borderRadius: 999, fontWeight: 700 }}>{escopo.codigo}</Tag>
+                            <Text strong style={{ color: colors.texto }}>{escopo.nome}</Text>
+                            <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{escopo.norma_tecnica}</Text>
                           </Space>
                         </Card>
                       </Col>
@@ -483,8 +554,11 @@ export default function EditarContrato() {
               </Col>
               <Col xs={24} lg={9}>
                 <Card
+                  bordered={false}
+                  style={{ borderRadius: 14, border: `1px solid ${colors.borda}`, background: colors.fundoSuave }}
+                  bodyStyle={{ padding: 16 }}
                   title="Escopo unificado"
-                  extra={escopoGerado ? <Button size="small" onClick={aplicarEscopoGerado}>Aplicar</Button> : null}
+                  extra={escopoGerado ? <Button size="small" onClick={aplicarEscopoGerado} style={{ borderRadius: 8 }}>Aplicar</Button> : null}
                 >
                   {!escoposSelecionados.length && <Text type="secondary">Selecione uma ou mais áreas para gerar o escopo.</Text>}
                   {escopoGerado && (
@@ -498,25 +572,32 @@ export default function EditarContrato() {
           )}
 
           {step === 2 && (
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <Button type="primary" onClick={adicionarUnidade}>+ Adicionar unidade</Button>
+            <Space direction="vertical" style={{ width: "100%" }} size={12}>
+              <Button type="primary" onClick={adicionarUnidade} style={primaryButtonStyle}>+ Adicionar unidade</Button>
               <Table
                 rowKey="key"
                 columns={unidadeColumns}
                 dataSource={unidades}
                 pagination={false}
                 size="small"
+                scroll={{ x: 900 }}
               />
             </Space>
           )}
 
           {step === 3 && (
-            <Space direction="vertical" style={{ width: "100%" }}>
+            <Space direction="vertical" style={{ width: "100%" }} size={12}>
               {!escoposSelecionados.length ? (
-                <Alert type="info" showIcon message="Selecione escopos no passo anterior para configurar checklists." />
+                <Alert type="info" showIcon style={{ borderRadius: 10 }} message="Selecione escopos no passo anterior para configurar checklists." />
               ) : (
                 escoposSelecionados.map((escopo) => (
-                  <Card key={escopo.id} title={`Checklist - ${escopo.nome}`} size="small">
+                  <Card
+                    key={escopo.id}
+                    title={`Checklist - ${escopo.nome}`}
+                    size="small"
+                    bordered={false}
+                    style={{ borderRadius: 12, border: `1px solid ${colors.borda}` }}
+                  >
                     {checklists[escopo.id]?.length === 0 && <Text type="secondary">Nenhum item de checklist para este escopo.</Text>}
                     {(checklists[escopo.id] || []).map((item) => (
                       <Checkbox
@@ -545,11 +626,26 @@ export default function EditarContrato() {
 
           {step === 4 && (
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <Alert type="success" showIcon message="Resumo pronto para atualização ou ativação do contrato." />
-              <Row gutter={16}>
-                <Col xs={24} md={8}><Card><Text type="secondary">Escopos</Text><Title level={4}>{escoposSelecionados.length}</Title></Card></Col>
-                <Col xs={24} md={8}><Card><Text type="secondary">Unidades</Text><Title level={4}>{unidades.length}</Title></Card></Col>
-                <Col xs={24} md={8}><Card><Text type="secondary">Valor mensal</Text><Title level={4} style={{ color: "#10B981" }}>{money.format(totalMensal)}</Title></Card></Col>
+              <Alert type="success" showIcon style={{ borderRadius: 10 }} message="Resumo pronto para atualização ou ativação do contrato." />
+              <Row gutter={[16, 16]}>
+                <Col xs={24} md={8}>
+                  <Card bordered={false} style={{ borderRadius: 14, border: `1px solid ${colors.borda}` }}>
+                    <Text style={{ color: colors.textoFraco, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Escopos</Text>
+                    <Title level={3} style={{ margin: "6px 0 0", color: colors.texto }}>{escoposSelecionados.length}</Title>
+                  </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Card bordered={false} style={{ borderRadius: 14, border: `1px solid ${colors.borda}` }}>
+                    <Text style={{ color: colors.textoFraco, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Unidades</Text>
+                    <Title level={3} style={{ margin: "6px 0 0", color: colors.texto }}>{unidades.length}</Title>
+                  </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Card bordered={false} style={{ borderRadius: 14, border: `1px solid ${colors.borda}` }}>
+                    <Text style={{ color: colors.textoFraco, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Valor mensal</Text>
+                    <Title level={3} style={{ margin: "6px 0 0", color: colors.verde }}>{money.format(totalMensal)}</Title>
+                  </Card>
+                </Col>
               </Row>
               <Form.Item name="observacoes" label="Observações finais"><TextArea rows={3} /></Form.Item>
             </Space>
@@ -557,13 +653,19 @@ export default function EditarContrato() {
         </Form>
 
         <Divider />
-        <Space style={{ justifyContent: "space-between", width: "100%" }}>
-          <Button disabled={step === 0} onClick={() => setStep((s) => s - 1)}>Voltar</Button>
-          <Space>
-            {step < 4 ? <Button type="primary" onClick={avancar}>Avançar</Button> : (
+        <Space style={{ justifyContent: "space-between", width: "100%" }} wrap>
+          <Button disabled={step === 0} onClick={() => setStep((s) => s - 1)} style={{ borderRadius: 10, height: 40 }}>Voltar</Button>
+          <Space wrap>
+            {step < 4 ? (
+              <Button type="primary" onClick={avancar} style={primaryButtonStyle}>Avançar</Button>
+            ) : (
               <>
-                <Button icon={<SaveOutlined />} loading={loading} onClick={() => salvar(false, false)}>Atualizar rascunho</Button>
-                <Button type="primary" loading={loading} onClick={() => salvar(true, true)}>Ativar Contrato</Button>
+                <Button icon={<SaveOutlined />} loading={loading} onClick={() => salvar(false, false)} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
+                  Atualizar rascunho
+                </Button>
+                <Button type="primary" loading={loading} onClick={() => salvar(true, true)} style={{ ...primaryButtonStyle, background: colors.verde, borderColor: colors.verde }}>
+                  Ativar Contrato
+                </Button>
               </>
             )}
           </Space>
