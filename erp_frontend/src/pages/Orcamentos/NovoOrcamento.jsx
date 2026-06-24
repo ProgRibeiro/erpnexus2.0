@@ -74,16 +74,17 @@ const stickyHeaderStyle = {
   zIndex: 12,
   background: "#FFFFFF",
   marginBottom: 14,
-  borderBottom: "1px solid #E2E8F0",
+  borderBottom: "1px solid #E2E6EC",
   boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)",
 };
 
 const itemCardStyle = {
-  border: "1px solid #E2E8F0",
-  borderRadius: 12,
-  padding: 16,
+  border: "1px solid #E2E6EC",
+  borderRadius: 16,
+  padding: 18,
   background: "#FFFFFF",
-  color: "#1E293B",
+  color: "#10233C",
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
 };
 
 const itemSectionHeaderStyle = {
@@ -97,36 +98,37 @@ const itemSectionHeaderStyle = {
 const itemActionButtonStyle = {
   borderRadius: 10,
   height: 40,
-  fontWeight: 700,
-  borderColor: "#CBD5E1",
-  color: "#1E293B",
+  fontWeight: 600,
+  borderColor: "#E2E6EC",
+  color: "#10233C",
   background: "#FFFFFF",
 };
 
 const quickTypeCardStyle = (active, color) => ({
   width: "100%",
   minHeight: 86,
-  border: `1px solid ${active ? color : "#E2E8F0"}`,
-  borderRadius: 12,
+  border: `1px solid ${active ? color : "#E2E6EC"}`,
+  borderRadius: 14,
   padding: 14,
-  background: active ? "#F8FAFC" : "#FFFFFF",
-  boxShadow: active ? "0 8px 20px rgba(15, 23, 42, 0.08)" : "none",
+  background: active ? "#F8FAFD" : "#FFFFFF",
+  boxShadow: active ? "0 10px 24px rgba(15, 23, 42, 0.08)" : "none",
   textAlign: "left",
   cursor: "pointer",
+  transition: "all 0.15s ease",
 });
 
 const quickModalSectionStyle = {
-  border: "1px solid #E2E8F0",
-  borderRadius: 12,
+  border: "1px solid #E2E6EC",
+  borderRadius: 14,
   padding: 16,
   background: "#FFFFFF",
 };
 
 const compactPanelStyle = {
-  border: "1px solid #E2E8F0",
-  borderRadius: 12,
+  border: "1px solid #E2E6EC",
+  borderRadius: 14,
   background: "#FFFFFF",
-  padding: 14,
+  padding: 16,
   height: "100%",
 };
 
@@ -139,8 +141,8 @@ const compactPanelHeaderStyle = {
 };
 
 const miniInfoStyle = {
-  background: "#F8FAFC",
-  border: "1px solid #E2E8F0",
+  background: "#F8FAFD",
+  border: "1px solid #E2E6EC",
   borderRadius: 10,
   padding: "9px 10px",
   minHeight: 58,
@@ -148,7 +150,7 @@ const miniInfoStyle = {
 
 const headerMetricStyle = {
   background: "#FFFFFF",
-  border: "1px solid #E2E8F0",
+  border: "1px solid #E2E6EC",
   borderRadius: 12,
   padding: "10px 14px",
   minWidth: 150,
@@ -909,7 +911,10 @@ export default function NovoOrcamento() {
         <div style={{ padding: "14px 32px", maxWidth: 1480, margin: "0 auto" }}>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
             <div>
-              <Title level={1} style={{ fontSize: 24, fontWeight: 900, margin: 0, color: "#1E293B" }}>
+              <Text style={{ color: "#8A97AA", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Novo orçamento
+              </Text>
+              <Title level={1} style={{ fontSize: 24, fontWeight: 800, margin: "4px 0 0", color: "#10233C" }}>
                 Orçamento técnico
               </Title>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
@@ -922,27 +927,27 @@ export default function NovoOrcamento() {
 
             <Space size={10} wrap>
               <div style={headerMetricStyle}>
-                <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Total</Text>
-                <div style={{ color: "#1E293B", fontSize: 18, fontWeight: 900 }}>
+                <Text style={{ color: "#8A97AA", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Total</Text>
+                <div style={{ color: "#10233C", fontSize: 18, fontWeight: 900 }}>
                   {moneyFormatter.format(totals.subtotal)}
                 </div>
               </div>
               <div style={headerMetricStyle}>
-                <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Serviços</Text>
-                <div style={{ color: "#10B981", fontSize: 18, fontWeight: 900 }}>
+                <Text style={{ color: "#8A97AA", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Serviços</Text>
+                <div style={{ color: "#1A7A4A", fontSize: 18, fontWeight: 900 }}>
                   {moneyFormatter.format(totals.valorServicos)}
                 </div>
               </div>
             </Space>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "flex-end" }}>
-              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
+              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 10, height: 40, fontWeight: 600, background: "#F8FAFD", color: "#10233C", borderColor: "#E2E6EC" }}>
                 Salvar
               </Button>
-              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
+              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 10, height: 40, fontWeight: 600, background: "#F8FAFD", color: "#10233C", borderColor: "#E2E6EC" }}>
                 Visualizar
               </Button>
-              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
+              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 10, height: 40, fontWeight: 600, background: "#F8FAFD", color: "#10233C", borderColor: "#E2E6EC" }}>
                 PDF
               </Button>
               <Button
@@ -950,12 +955,12 @@ export default function NovoOrcamento() {
                 icon={<SendOutlined />}
                 onClick={handleSendBudgetEmail}
                 loading={saving === "rascunho" || emailSending}
-                style={{ borderRadius: 8, background: "#3B82F6", borderColor: "#3B82F6" }}
+                style={{ borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20, background: "#3B82F6", borderColor: "#3B82F6" }}
               >
                 Enviar
               </Button>
               {isAdmin ? (
-                <Button type="primary" icon={<CheckCircleOutlined />} onClick={startApproval} style={{ borderRadius: 8, background: "#10B981", borderColor: "#10B981" }}>
+                <Button type="primary" icon={<CheckCircleOutlined />} onClick={startApproval} style={{ borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20, background: "#1A7A4A", borderColor: "#1A7A4A" }}>
                   Aprovar
                 </Button>
               ) : null}
@@ -965,13 +970,13 @@ export default function NovoOrcamento() {
       </div>
 
       <Form form={form} layout="vertical">
-        <Space direction="vertical" size={14} style={{ width: "100%", maxWidth: 1480, margin: "0 auto", paddingInline: 16 }}>
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 14 }}>
-            <Row gutter={[12, 12]} align="stretch">
+        <Space direction="vertical" size={20} style={{ width: "100%", maxWidth: 1480, margin: "0 auto", paddingInline: 16 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
+            <Row gutter={[16, 16]} align="stretch">
               <Col xs={24} xl={8}>
                 <div style={compactPanelStyle}>
                   <div style={compactPanelHeaderStyle}>
-                    <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Cliente</Text>
+                    <Text strong style={{ color: "#10233C", fontSize: 16 }}>Cliente</Text>
                     {clientMode === "cadastrado" ? (
                       <Button size="small" icon={<PlusOutlined />} onClick={() => setDrawerClienteAberto(true)} style={{ borderRadius: 8 }}>
                         Novo
@@ -1013,20 +1018,20 @@ export default function NovoOrcamento() {
                       <Row gutter={[8, 8]}>
                         <Col xs={24} md={8}>
                           <div style={miniInfoStyle}>
-                            <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>CNPJ</Text>
-                            <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.cnpj_cpf || "-"}</div>
+                            <Text style={{ color: "#5A6070", fontSize: 11, fontWeight: 800 }}>CNPJ</Text>
+                            <div style={{ color: "#10233C", fontWeight: 700, marginTop: 3 }}>{selectedClient?.cnpj_cpf || "-"}</div>
                           </div>
                         </Col>
                         <Col xs={24} md={8}>
                           <div style={miniInfoStyle}>
-                            <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Telefone</Text>
-                            <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3 }}>{selectedClient?.telefone || "-"}</div>
+                            <Text style={{ color: "#5A6070", fontSize: 11, fontWeight: 800 }}>Telefone</Text>
+                            <div style={{ color: "#10233C", fontWeight: 700, marginTop: 3 }}>{selectedClient?.telefone || "-"}</div>
                           </div>
                         </Col>
                         <Col xs={24} md={8}>
                           <div style={miniInfoStyle}>
-                            <Text style={{ color: "#64748B", fontSize: 11, fontWeight: 800 }}>Email</Text>
-                            <div style={{ color: "#1E293B", fontWeight: 700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis" }}>{selectedClient?.email || "-"}</div>
+                            <Text style={{ color: "#5A6070", fontSize: 11, fontWeight: 800 }}>Email</Text>
+                            <div style={{ color: "#10233C", fontWeight: 700, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis" }}>{selectedClient?.email || "-"}</div>
                           </div>
                         </Col>
                       </Row>
@@ -1087,7 +1092,7 @@ export default function NovoOrcamento() {
               <Col xs={24} xl={10}>
                 <div style={compactPanelStyle}>
                   <div style={compactPanelHeaderStyle}>
-                    <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Escopo técnico</Text>
+                    <Text strong style={{ color: "#10233C", fontSize: 16 }}>Escopo técnico</Text>
                     <Tag color="blue" style={{ margin: 0, borderRadius: 999 }}>Proposta</Tag>
                   </div>
                   <Row gutter={[10, 8]}>
@@ -1123,7 +1128,7 @@ export default function NovoOrcamento() {
               <Col xs={24} xl={6}>
                 <div style={compactPanelStyle}>
                   <div style={compactPanelHeaderStyle}>
-                    <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Pedido de compra</Text>
+                    <Text strong style={{ color: "#10233C", fontSize: 16 }}>Pedido de compra</Text>
                     <Form.Item name="tem_pedido_compra" valuePropName="checked" style={{ margin: 0 }}>
                       <Checkbox>Possui PC</Checkbox>
                     </Form.Item>
@@ -1150,11 +1155,11 @@ export default function NovoOrcamento() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 18 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
             <div style={itemSectionHeaderStyle}>
               <div>
-                <Title level={4} style={{ margin: 0, color: "#1E293B" }}>Construtor de itens</Title>
-                <Text style={{ color: "#64748B" }}>
+                <Title level={4} style={{ margin: 0, color: "#10233C" }}>Construtor de itens</Title>
+                <Text style={{ color: "#5A6070" }}>
                   Inclua serviços, produtos, custos internos e itens avulsos em uma composição única.
                 </Text>
               </div>
@@ -1168,40 +1173,40 @@ export default function NovoOrcamento() {
                 <Button icon={<ShoppingOutlined />} onClick={() => openQuickItemModal("produto")} style={itemActionButtonStyle}>
                   Novo produto
                 </Button>
-                <Button icon={<PlusOutlined />} onClick={addManualItem} style={{ ...itemActionButtonStyle, background: "#F8FAFC" }}>
+                <Button icon={<PlusOutlined />} onClick={addManualItem} style={{ ...itemActionButtonStyle, background: "#F8FAFD" }}>
                   Avulso
                 </Button>
               </Space>
             </div>
 
-            <Row gutter={[12, 12]} style={{ marginBottom: 14 }}>
+            <Row gutter={[14, 14]} style={{ marginBottom: 18 }}>
               <Col xs={12} lg={6}>
                 <div style={{ ...itemCardStyle, borderLeft: "4px solid #3B82F6", padding: 14 }}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Itens</Text>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#1E293B", marginTop: 4 }}>{itemCounters.total}</div>
+                  <Text style={{ color: "#5A6070", fontSize: 12 }}>Itens</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#10233C", marginTop: 4 }}>{itemCounters.total}</div>
                 </div>
               </Col>
               <Col xs={12} lg={6}>
-                <div style={{ ...itemCardStyle, borderLeft: "4px solid #10B981", padding: 14 }}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Serviços</Text>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#10B981", marginTop: 4 }}>{moneyFormatter.format(totals.valorServicos)}</div>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #1A7A4A", padding: 14 }}>
+                  <Text style={{ color: "#5A6070", fontSize: 12 }}>Serviços</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#1A7A4A", marginTop: 4 }}>{moneyFormatter.format(totals.valorServicos)}</div>
                 </div>
               </Col>
               <Col xs={12} lg={6}>
-                <div style={{ ...itemCardStyle, borderLeft: "4px solid #F59E0B", padding: 14 }}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Produtos</Text>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#F59E0B", marginTop: 4 }}>{moneyFormatter.format(totals.valorMateriais)}</div>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #B45309", padding: 14 }}>
+                  <Text style={{ color: "#5A6070", fontSize: 12 }}>Produtos</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#B45309", marginTop: 4 }}>{moneyFormatter.format(totals.valorMateriais)}</div>
                 </div>
               </Col>
               <Col xs={12} lg={6}>
-                <div style={{ ...itemCardStyle, borderLeft: "4px solid #64748B", padding: 14 }}>
-                  <Text style={{ color: "#64748B", fontSize: 12 }}>Custos internos</Text>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#475569", marginTop: 4 }}>{moneyFormatter.format(totalTerceiros)}</div>
+                <div style={{ ...itemCardStyle, borderLeft: "4px solid #5A6070", padding: 14 }}>
+                  <Text style={{ color: "#5A6070", fontSize: 12 }}>Custos internos</Text>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#5A6070", marginTop: 4 }}>{moneyFormatter.format(totalTerceiros)}</div>
                 </div>
               </Col>
             </Row>
 
-            <Row gutter={[14, 14]} align="top">
+            <Row gutter={[16, 16]} align="top">
               <Col xs={24} xl={18}>
                 <Table
                   columns={itemColumns}
@@ -1213,25 +1218,25 @@ export default function NovoOrcamento() {
                 />
               </Col>
               <Col xs={24} xl={6}>
-                <div style={{ ...compactPanelStyle, background: "#F8FAFC" }}>
-                  <Text strong style={{ color: "#1E293B", fontSize: 16 }}>Fechamento</Text>
-                  <Divider style={{ margin: "12px 0" }} />
+                <div style={{ ...compactPanelStyle, background: "#F8FAFD" }}>
+                  <Text strong style={{ color: "#10233C", fontSize: 16 }}>Fechamento</Text>
+                  <Divider style={{ margin: "12px 0", borderColor: "#E2E6EC" }} />
                   <Space direction="vertical" size={10} style={{ width: "100%" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <Text type="secondary">Serviços</Text>
-                      <Text strong>{moneyFormatter.format(totals.valorServicos)}</Text>
+                      <Text style={{ color: "#5A6070" }}>Serviços</Text>
+                      <Text strong style={{ color: "#10233C" }}>{moneyFormatter.format(totals.valorServicos)}</Text>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <Text type="secondary">Produtos</Text>
-                      <Text strong>{moneyFormatter.format(totals.valorMateriais)}</Text>
+                      <Text style={{ color: "#5A6070" }}>Produtos</Text>
+                      <Text strong style={{ color: "#10233C" }}>{moneyFormatter.format(totals.valorMateriais)}</Text>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <Text type="secondary">Itens avulsos</Text>
-                      <Text strong>{itemCounters.avulsos}</Text>
+                      <Text style={{ color: "#5A6070" }}>Itens avulsos</Text>
+                      <Text strong style={{ color: "#10233C" }}>{itemCounters.avulsos}</Text>
                     </div>
-                    <Divider style={{ margin: "6px 0" }} />
+                    <Divider style={{ margin: "6px 0", borderColor: "#E2E6EC" }} />
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                      <Text strong>Total do orçamento</Text>
+                      <Text strong style={{ color: "#10233C" }}>Total do orçamento</Text>
                       <Text strong style={{ color: "#3B82F6", fontSize: 22 }}>
                         {moneyFormatter.format(totals.subtotal)}
                       </Text>
@@ -1242,15 +1247,15 @@ export default function NovoOrcamento() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={{ ...panelStyle, background: "#FFFFFF", borderColor: "#E2E8F0" }} bodyStyle={{ padding: 16 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
             <Space wrap>
-              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
+              <Button icon={<SaveOutlined />} onClick={() => saveBudget("rascunho")} loading={saving === "rascunho"} style={{ borderRadius: 10, height: 40, fontWeight: 600, background: "#F8FAFD", color: "#10233C", borderColor: "#E2E6EC" }}>
                 Salvar rascunho
               </Button>
-              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
+              <Button icon={<EyeOutlined />} onClick={handleOpenPrintPage} style={{ borderRadius: 10, height: 40, fontWeight: 600, background: "#F8FAFD", color: "#10233C", borderColor: "#E2E6EC" }}>
                 Visualizar impressão
               </Button>
-              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 8, background: "#F1F5F9", color: "#1E293B", borderColor: "#CBD5E1" }}>
+              <Button icon={<FilePdfOutlined />} onClick={handleGeneratePdf} style={{ borderRadius: 10, height: 40, fontWeight: 600, background: "#F8FAFD", color: "#10233C", borderColor: "#E2E6EC" }}>
                 Gerar PDF
               </Button>
               <Button
@@ -1258,12 +1263,12 @@ export default function NovoOrcamento() {
                 icon={<SendOutlined />}
                 onClick={handleSendBudgetEmail}
                 loading={saving === "rascunho" || emailSending}
-                style={{ borderRadius: 8, background: "#3B82F6", borderColor: "#3B82F6" }}
+                style={{ borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20, background: "#3B82F6", borderColor: "#3B82F6" }}
               >
                 Enviar para cliente
               </Button>
               {isAdmin ? (
-                <Button type="primary" icon={<CheckCircleOutlined />} onClick={startApproval} style={{ borderRadius: 8, background: "#10B981", borderColor: "#10B981" }}>
+                <Button type="primary" icon={<CheckCircleOutlined />} onClick={startApproval} style={{ borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20, background: "#1A7A4A", borderColor: "#1A7A4A" }}>
                   Aprovar e gerar OS
                 </Button>
               ) : null}
@@ -1316,10 +1321,10 @@ export default function NovoOrcamento() {
       >
         <Space direction="vertical" size={18} style={{ width: "100%" }}>
           <div>
-            <Title level={4} style={{ margin: 0, color: "#1E293B" }}>
+            <Title level={4} style={{ margin: 0, color: "#10233C" }}>
               Cadastro rápido de item
             </Title>
-            <Text style={{ color: "#64748B" }}>
+            <Text style={{ color: "#5A6070" }}>
               O item será salvo no catálogo e já incluído neste orçamento.
             </Text>
           </div>
@@ -1343,8 +1348,8 @@ export default function NovoOrcamento() {
                 <Space align="start">
                   <ToolOutlined style={{ color: "#3B82F6", fontSize: 22, marginTop: 2 }} />
                   <div>
-                    <Text strong style={{ color: "#1E293B" }}>Serviço</Text>
-                    <div style={{ color: "#64748B", fontSize: 12, marginTop: 4 }}>
+                    <Text strong style={{ color: "#10233C" }}>Serviço</Text>
+                    <div style={{ color: "#5A6070", fontSize: 12, marginTop: 4 }}>
                       Mão de obra, diagnóstico, instalação, visita técnica ou execução.
                     </div>
                   </div>
@@ -1369,8 +1374,8 @@ export default function NovoOrcamento() {
                 <Space align="start">
                   <ShoppingOutlined style={{ color: "#F59E0B", fontSize: 22, marginTop: 2 }} />
                   <div>
-                    <Text strong style={{ color: "#1E293B" }}>Produto / material</Text>
-                    <div style={{ color: "#64748B", fontSize: 12, marginTop: 4 }}>
+                    <Text strong style={{ color: "#10233C" }}>Produto / material</Text>
+                    <div style={{ color: "#5A6070", fontSize: 12, marginTop: 4 }}>
                       Peças, insumos, materiais de aplicação e componentes vendidos.
                     </div>
                   </div>
@@ -1384,7 +1389,7 @@ export default function NovoOrcamento() {
               <Col xs={24} lg={16}>
                 <Space direction="vertical" size={16} style={{ width: "100%" }}>
                   <div style={quickModalSectionStyle}>
-                    <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                    <Text strong style={{ display: "block", color: "#10233C", marginBottom: 12 }}>
                       Identificação
                     </Text>
                     <Row gutter={[12, 0]}>
@@ -1415,7 +1420,7 @@ export default function NovoOrcamento() {
 
                   {quickItemType === "produto" ? (
                     <div style={quickModalSectionStyle}>
-                      <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                      <Text strong style={{ display: "block", color: "#10233C", marginBottom: 12 }}>
                         Produto, estoque e localização
                       </Text>
                       <Row gutter={[12, 0]}>
@@ -1443,7 +1448,7 @@ export default function NovoOrcamento() {
                     </div>
                   ) : (
                     <div style={quickModalSectionStyle}>
-                      <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                      <Text strong style={{ display: "block", color: "#10233C", marginBottom: 12 }}>
                         Serviço e tributação
                       </Text>
                       <Row gutter={[12, 0]}>
@@ -1475,7 +1480,7 @@ export default function NovoOrcamento() {
 
               <Col xs={24} lg={8}>
                 <div style={{ ...quickModalSectionStyle, background: "#F8FAFC", height: "100%" }}>
-                  <Text strong style={{ display: "block", color: "#1E293B", marginBottom: 12 }}>
+                  <Text strong style={{ display: "block", color: "#10233C", marginBottom: 12 }}>
                     Prévia do item
                   </Text>
                   <Space direction="vertical" size={12} style={{ width: "100%" }}>
@@ -1514,10 +1519,10 @@ export default function NovoOrcamento() {
         </Space>
       </Modal>
 
-      <Drawer title="Novo Cliente" placement="right" onClose={() => setDrawerClienteAberto(false)} open={drawerClienteAberto} width={520} bodyStyle={{ background: "#F8FAFC" }} headerStyle={{ background: "#FFFFFF", borderColor: "#E2E8F0" }}>
+      <Drawer title="Novo Cliente" placement="right" onClose={() => setDrawerClienteAberto(false)} open={drawerClienteAberto} width={520} bodyStyle={{ background: "#F8FAFD" }} headerStyle={{ background: "#FFFFFF", borderColor: "#E2E6EC" }}>
         <Space direction="vertical" size={20} style={{ width: "100%" }}>
-          <Card style={{ background: "#EBF2FB", border: "1px solid #BFDBFE", borderRadius: 8 }} bodyStyle={{ padding: 16 }}>
-            <Text strong style={{ display: "block", marginBottom: 12 }}>CNPJ da empresa</Text>
+          <Card style={{ background: "#EFF6FF", border: "1px solid #DBEAFE", borderRadius: 14 }} bodyStyle={{ padding: 16 }}>
+            <Text strong style={{ display: "block", marginBottom: 12, color: "#10233C" }}>CNPJ da empresa</Text>
             <Row gutter={12} style={{ marginBottom: 12 }}>
               <Col flex={1}>
                 <Input placeholder="XX.XXX.XXX/XXXX-XX" value={cnpj} onChange={(e) => setCnpj(maskCNPJ(e.target.value))} maxLength={18} />
@@ -1617,8 +1622,8 @@ export default function NovoOrcamento() {
             </Row>
           </Form>
 
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid #e8e8e8", paddingTop: 16 }}>
-            <Button onClick={() => setDrawerClienteAberto(false)}>Cancelar</Button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid #E2E6EC", paddingTop: 16 }}>
+            <Button onClick={() => setDrawerClienteAberto(false)} style={{ borderRadius: 10, height: 40 }}>Cancelar</Button>
             <Button type="primary" onClick={salvarCliente} loading={salvandoCliente} style={btnPrimaryStyle}>
               Salvar cliente
             </Button>

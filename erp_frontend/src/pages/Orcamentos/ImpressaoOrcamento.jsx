@@ -283,14 +283,7 @@ export default function ImpressaoOrcamento() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#F8FAFC",
-        padding: "28px 16px",
-        fontFamily: "Inter, 'Segoe UI', system-ui, sans-serif",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         @media print {
@@ -625,11 +618,28 @@ export default function ImpressaoOrcamento() {
       `}</style>
 
       {/* ── TOOLBAR ── */}
-      <div className="print-toolbar" style={{ maxWidth: 1100, margin: "0 auto 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} style={{ borderRadius: 8 }}>Voltar</Button>
+      <div
+        className="print-toolbar"
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 10,
+          background: "#FFFFFF",
+          border: "1px solid #E2E6EC",
+          borderRadius: 16,
+          boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+          padding: "14px 20px",
+        }}
+      >
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>Voltar</Button>
         <Space>
-          <Button icon={<PrinterOutlined />} onClick={handlePrint} style={{ borderRadius: 8 }}>Imprimir</Button>
-          <Button type="primary" icon={<FilePdfOutlined />} onClick={handlePdf} style={{ background: "#2563EB", borderRadius: 8 }}>Salvar PDF</Button>
+          <Button icon={<PrinterOutlined />} onClick={handlePrint} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>Imprimir</Button>
+          <Button type="primary" icon={<FilePdfOutlined />} onClick={handlePdf} style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20 }}>Salvar PDF</Button>
         </Space>
       </div>
 

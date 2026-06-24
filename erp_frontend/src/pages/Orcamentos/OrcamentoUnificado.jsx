@@ -199,15 +199,15 @@ export default function OrcamentoUnificado() {
 
   if (!loading && ids.length < 2) {
     return (
-      <div style={{ minHeight: "100vh", background: "#F8FAFC", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 24 }}>
         <Alert
           type="warning"
           message="Seleção insuficiente"
           description="Selecione ao menos 2 orçamentos para utilizar a funcionalidade de unificação."
           showIcon
-          style={{ maxWidth: 480, marginBottom: 16 }}
+          style={{ maxWidth: 480, marginBottom: 16, borderRadius: 14, border: "1px solid #E2E6EC", boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)" }}
         />
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
           Voltar para Orçamentos
         </Button>
       </div>
@@ -216,15 +216,15 @@ export default function OrcamentoUnificado() {
 
   if (!loading && error) {
     return (
-      <div style={{ minHeight: "100vh", background: "#F8FAFC", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 24 }}>
         <Alert
           type="error"
           message="Erro ao carregar"
           description={error}
           showIcon
-          style={{ maxWidth: 480, marginBottom: 16 }}
+          style={{ maxWidth: 480, marginBottom: 16, borderRadius: 14, border: "1px solid #E2E6EC", boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)" }}
         />
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
           Voltar para Orçamentos
         </Button>
       </div>
@@ -232,14 +232,7 @@ export default function OrcamentoUnificado() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#F8FAFC",
-        padding: "24px 16px",
-        fontFamily: "Inter, 'Segoe UI', system-ui, sans-serif",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <style>{`
         @media print {
           @page { size: 297mm 210mm; margin: 0mm !important; }
@@ -266,26 +259,32 @@ export default function OrcamentoUnificado() {
         className="print-toolbar"
         style={{
           maxWidth: 1160,
-          margin: "0 auto 16px",
+          margin: "0 auto",
+          width: "100%",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
           gap: 10,
+          background: "#FFFFFF",
+          border: "1px solid #E2E6EC",
+          borderRadius: 16,
+          boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+          padding: "14px 20px",
         }}
       >
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
           Voltar
         </Button>
         <Space>
-          <Button icon={<PrinterOutlined />} onClick={handlePrint}>
+          <Button icon={<PrinterOutlined />} onClick={handlePrint} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
             Imprimir
           </Button>
           <Button
             type="primary"
             icon={<FilePdfOutlined />}
             onClick={handlePdf}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6" }}
+            style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20 }}
           >
             Salvar PDF
           </Button>
@@ -293,16 +292,17 @@ export default function OrcamentoUnificado() {
       </div>
 
       {/* ── CAMPO DE OBSERVAÇÕES (editável antes de imprimir) ── */}
-      <div className="print-obs-area" style={{ maxWidth: 1160, margin: "0 auto 16px" }}>
+      <div className="print-obs-area" style={{ maxWidth: 1160, margin: "0 auto", width: "100%" }}>
         <div
           style={{
-            background: "#fff",
-            borderRadius: 10,
-            padding: 16,
+            background: "#FFFFFF",
+            borderRadius: 16,
+            padding: 20,
             border: "1px solid #E2E6EC",
+            boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
           }}
         >
-          <Text strong style={{ display: "block", marginBottom: 6, color: "#1E293B" }}>
+          <Text strong style={{ display: "block", marginBottom: 8, color: "#10233C", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Observações unificadas (opcional — aparecerá no documento)
           </Text>
           <TextArea
@@ -310,7 +310,7 @@ export default function OrcamentoUnificado() {
             placeholder="Adicione condições gerais, validade, observações para o cliente..."
             value={observacoes}
             onChange={(e) => setObservacoes(e.target.value)}
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: 10 }}
           />
         </div>
       </div>
@@ -321,6 +321,7 @@ export default function OrcamentoUnificado() {
         style={{
           maxWidth: 1160,
           margin: "0 auto",
+          width: "100%",
           background: "#FFFFFF",
           borderRadius: 12,
           boxShadow: "0 8px 40px rgba(15,23,42,0.13)",

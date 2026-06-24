@@ -1,26 +1,26 @@
 import dayjs from "dayjs";
 
 export const pageStyle = {
-  minHeight: "100vh",
-  background: "#F8FAFC",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 export const panelStyle = {
   background: "#FFFFFF",
-  border: "1px solid #E2E8F0",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  border: "1px solid #E2E6EC",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
 };
 
 export const btnPrimaryStyle = {
   background: "#3B82F6",
   borderColor: "#3B82F6",
   color: "#ffffff",
-  fontWeight: 500,
-  height: "38px",
-  borderRadius: "8px",
+  fontWeight: 600,
+  height: 40,
+  borderRadius: 10,
+  paddingInline: 20,
 };
 
 export const serviceOptions = [

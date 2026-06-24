@@ -200,24 +200,26 @@ const sectionTitleStyle = {
   display: "flex",
   alignItems: "center",
   gap: 8,
-  color: "#0F172A",
-  fontSize: 15,
+  color: "#10233C",
+  fontSize: 13,
   fontWeight: 800,
-  marginBottom: 12,
+  letterSpacing: "0.02em",
+  marginBottom: 14,
 };
 
 const sectionStyle = {
-  border: "1px solid #E2E8F0",
-  borderRadius: 10,
-  padding: 16,
+  border: "1px solid #E2E6EC",
+  borderRadius: 14,
+  padding: 18,
   background: "#FFFFFF",
+  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)",
 };
 
 const metricStyle = {
-  border: "1px solid #E2E8F0",
-  borderRadius: 10,
-  padding: "12px 14px",
-  background: "#F8FAFC",
+  border: "1px solid #E2E6EC",
+  borderRadius: 12,
+  padding: "14px 16px",
+  background: "#F8FAFD",
 };
 
 function Section({ icon, title, children }) {
@@ -569,55 +571,70 @@ export default function OrcamentoInteligente() {
 
   return (
     <div style={pageStyle}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20 }}>
-        <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} />
-          <div>
-            <Title level={1} style={{ margin: 0, fontSize: 24, color: "#1E293B" }}>
-              Modelo Técnico de Orçamento
-            </Title>
-            <Text style={{ color: "#64748B" }}>Diagnóstico, escopo, materiais, medições, aceite e condições comerciais</Text>
-          </div>
-        </Space>
-        <Space wrap>
-          <Button
-            icon={<FileSearchOutlined />}
-            loading={analisando}
-            onClick={analisar}
-            style={{ borderRadius: 8, fontWeight: 700 }}
-          >
-            Analisar
-          </Button>
-          <Button
-            type="primary"
-            icon={<ThunderboltOutlined />}
-            loading={criando}
-            disabled={!sugestao}
-            onClick={criarOrcamento}
-            style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700 }}
-          >
-            Criar orçamento
-          </Button>
-        </Space>
-      </div>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate("/orcamentos")}
+              style={{ borderRadius: 10, height: 40, width: 40 }}
+            />
+            <div>
+              <Text style={{ color: "#8A97AA", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Motor de orçamento inteligente
+              </Text>
+              <Title level={1} style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 800, color: "#10233C" }}>
+                Modelo Técnico de Orçamento
+              </Title>
+              <Text style={{ color: "#5A6070" }}>Diagnóstico, escopo, materiais, medições, aceite e condições comerciais</Text>
+            </div>
+          </Space>
+          <Space wrap>
+            <Button
+              icon={<FileSearchOutlined />}
+              loading={analisando}
+              onClick={analisar}
+              style={{ borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 18 }}
+            >
+              Analisar
+            </Button>
+            <Button
+              type="primary"
+              icon={<ThunderboltOutlined />}
+              loading={criando}
+              disabled={!sugestao}
+              onClick={criarOrcamento}
+              style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 10, height: 40, fontWeight: 600, paddingInline: 20 }}
+            >
+              Criar orçamento
+            </Button>
+          </Space>
+        </div>
+      </Card>
 
-      <Row gutter={[16, 16]} align="top">
+      <Row gutter={[20, 20]} align="top">
         <Col xs={24} xl={6}>
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Card bordered={false} style={panelStyle} title="Modelos rápidos">
+          <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            <Card
+              bordered={false}
+              style={panelStyle}
+              bodyStyle={{ padding: 18 }}
+              title={<span style={{ fontWeight: 700, color: "#10233C" }}>Modelos rápidos</span>}
+            >
               <Space direction="vertical" size={8} style={{ width: "100%" }}>
                 {technicalTemplates.map((template) => (
                   <Button
                     key={template.key}
                     block
-                    icon={<ToolOutlined />}
+                    icon={<ToolOutlined style={{ color: "#3B82F6" }} />}
                     onClick={() => aplicarModelo(template.values)}
                     style={{
                       justifyContent: "flex-start",
                       height: 42,
-                      borderRadius: 8,
-                      color: "#0F172A",
-                      fontWeight: 700,
+                      borderRadius: 10,
+                      color: "#10233C",
+                      fontWeight: 600,
+                      border: "1px solid #E2E6EC",
                     }}
                   >
                     {template.label}
@@ -626,20 +643,25 @@ export default function OrcamentoInteligente() {
               </Space>
             </Card>
 
-            <Card bordered={false} style={panelStyle} title="Resumo do briefing">
+            <Card
+              bordered={false}
+              style={panelStyle}
+              bodyStyle={{ padding: 18 }}
+              title={<span style={{ fontWeight: 700, color: "#10233C" }}>Resumo do briefing</span>}
+            >
               <Space direction="vertical" size={14} style={{ width: "100%" }}>
                 <div style={metricStyle}>
-                  <Text type="secondary">Completude técnica</Text>
+                  <Text style={{ color: "#5A6070", fontSize: 12, fontWeight: 600 }}>Completude técnica</Text>
                   <Progress percent={technicalCompleteness} size="small" strokeColor="#3B82F6" />
                 </div>
                 <div style={metricStyle}>
-                  <Text type="secondary">Modelo</Text>
-                  <div style={{ color: "#0F172A", fontWeight: 800, marginTop: 4 }}>
+                  <Text style={{ color: "#5A6070", fontSize: 12, fontWeight: 600 }}>Modelo</Text>
+                  <div style={{ color: "#10233C", fontWeight: 800, marginTop: 4 }}>
                     {formatTipo(watchedValues.disciplina_tecnica) || "Sem disciplina"}
                   </div>
                 </div>
                 <div style={metricStyle}>
-                  <Text type="secondary">Chamada técnica</Text>
+                  <Text style={{ color: "#5A6070", fontSize: 12, fontWeight: 600 }}>Chamada técnica</Text>
                   <Paragraph style={{ margin: "6px 0 0", color: "#334155" }}>
                     {briefingPreview || "Aguardando dados do ativo e intervenção."}
                   </Paragraph>
@@ -650,7 +672,12 @@ export default function OrcamentoInteligente() {
         </Col>
 
         <Col xs={24} xl={12}>
-          <Card bordered={false} style={panelStyle} title="Preenchimento técnico">
+          <Card
+            bordered={false}
+            style={panelStyle}
+            bodyStyle={{ padding: 20 }}
+            title={<span style={{ fontWeight: 700, color: "#10233C" }}>Preenchimento técnico</span>}
+          >
             <Form form={form} layout="vertical">
               <Tabs items={formTabs} />
               <Button
@@ -659,7 +686,7 @@ export default function OrcamentoInteligente() {
                 icon={<FileSearchOutlined />}
                 loading={analisando}
                 onClick={analisar}
-                style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, height: 42, marginTop: 8 }}
+                style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 10, fontWeight: 600, height: 42, marginTop: 8 }}
               >
                 Gerar sugestão técnica
               </Button>
@@ -668,33 +695,38 @@ export default function OrcamentoInteligente() {
         </Col>
 
         <Col xs={24} xl={6}>
-          <Card bordered={false} style={panelStyle} title="Prévia gerada">
+          <Card
+            bordered={false}
+            style={panelStyle}
+            bodyStyle={{ padding: 18 }}
+            title={<span style={{ fontWeight: 700, color: "#10233C" }}>Prévia gerada</span>}
+          >
             {!sugestao ? (
-              <div style={{ padding: "36px 8px", color: "#64748B" }}>
-                <ThunderboltOutlined style={{ color: "#3B82F6", fontSize: 32, marginBottom: 12 }} />
+              <div style={{ padding: "36px 8px", color: "#5A6070", textAlign: "center" }}>
+                <ThunderboltOutlined style={{ color: "#3B82F6", fontSize: 32, marginBottom: 12, display: "block" }} />
                 <Paragraph style={{ margin: 0 }}>
                   A prévia técnica aparece após a análise.
                 </Paragraph>
               </div>
             ) : (
               <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                <Row gutter={[8, 8]}>
+                <Row gutter={[10, 10]}>
                   <Col span={12}>
                     <div style={metricStyle}>
-                      <Text type="secondary">Tipo</Text>
-                      <div style={{ fontSize: 16, fontWeight: 800 }}>{formatTipo(sugestao.tipo_servico)}</div>
+                      <Text style={{ color: "#5A6070", fontSize: 12, fontWeight: 600 }}>Tipo</Text>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "#10233C", marginTop: 4 }}>{formatTipo(sugestao.tipo_servico)}</div>
                     </div>
                   </Col>
                   <Col span={12}>
                     <div style={metricStyle}>
-                      <Text type="secondary">Confiança</Text>
-                      <div style={{ fontSize: 16, fontWeight: 800 }}>{Number(sugestao.confianca || 0)}%</div>
+                      <Text style={{ color: "#5A6070", fontSize: 12, fontWeight: 600 }}>Confiança</Text>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "#10233C", marginTop: 4 }}>{Number(sugestao.confianca || 0)}%</div>
                     </div>
                   </Col>
                   <Col span={24}>
                     <div style={metricStyle}>
-                      <Text type="secondary">Subtotal</Text>
-                      <div style={{ fontSize: 18, fontWeight: 900 }}>{moneyFormatter.format(Number(sugestao.subtotal || 0))}</div>
+                      <Text style={{ color: "#5A6070", fontSize: 12, fontWeight: 600 }}>Subtotal</Text>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: "#3B82F6", marginTop: 4 }}>{moneyFormatter.format(Number(sugestao.subtotal || 0))}</div>
                     </div>
                   </Col>
                 </Row>
@@ -705,6 +737,7 @@ export default function OrcamentoInteligente() {
                   icon={<CheckCircleOutlined />}
                   message="Escopo técnico"
                   description={<Paragraph style={{ margin: 0, whiteSpace: "pre-line" }}>{sugestao.descricao_servico}</Paragraph>}
+                  style={{ borderRadius: 12 }}
                 />
 
                 {sugestao.briefing_tecnico && Object.keys(sugestao.briefing_tecnico).length > 0 && (
@@ -715,9 +748,9 @@ export default function OrcamentoInteligente() {
                     </div>
                     <Space direction="vertical" size={6} style={{ width: "100%" }}>
                       {Object.entries(sugestao.briefing_tecnico).map(([key, value]) => (
-                        <div key={key} style={{ borderBottom: "1px solid #E2E8F0", paddingBottom: 6 }}>
-                          <Text type="secondary" style={{ fontSize: 12 }}>{key}</Text>
-                          <div style={{ color: "#0F172A", fontWeight: 700 }}>{value}</div>
+                        <div key={key} style={{ borderBottom: "1px solid #E2E6EC", paddingBottom: 6 }}>
+                          <Text style={{ color: "#8A97AA", fontSize: 12, fontWeight: 600 }}>{key}</Text>
+                          <div style={{ color: "#10233C", fontWeight: 700 }}>{value}</div>
                         </div>
                       ))}
                     </Space>
@@ -725,7 +758,7 @@ export default function OrcamentoInteligente() {
                 )}
 
                 {sugestao.avisos?.map((aviso) => (
-                  <Alert key={aviso} type="warning" showIcon message={aviso} />
+                  <Alert key={aviso} type="warning" showIcon message={aviso} style={{ borderRadius: 12 }} />
                 ))}
 
                 {sugestao.referencias_preco?.length > 0 && (
@@ -736,13 +769,13 @@ export default function OrcamentoInteligente() {
                     </div>
                     <Space direction="vertical" size={8} style={{ width: "100%" }}>
                       {sugestao.referencias_preco.slice(0, 4).map((ref) => (
-                        <div key={`${ref.codigo}-${ref.valor_sugerido}`} style={{ borderBottom: "1px solid #E2E8F0", paddingBottom: 8 }}>
-                          <Text strong style={{ color: "#0F172A" }}>{ref.descricao}</Text>
-                          <div style={{ color: "#64748B", fontSize: 12, marginTop: 3 }}>
+                        <div key={`${ref.codigo}-${ref.valor_sugerido}`} style={{ borderBottom: "1px solid #E2E6EC", paddingBottom: 8 }}>
+                          <Text strong style={{ color: "#10233C" }}>{ref.descricao}</Text>
+                          <div style={{ color: "#5A6070", fontSize: 12, marginTop: 3 }}>
                             {ref.fonte} · {ref.componente_custo || "Composição"} · base {moneyFormatter.format(Number(ref.base || 0))} · margem {ref.margem}% · fator {ref.fator}
                           </div>
                           {ref.base_legal ? (
-                            <div style={{ color: "#94A3B8", fontSize: 11, marginTop: 3 }}>
+                            <div style={{ color: "#8A97AA", fontSize: 11, marginTop: 3 }}>
                               {ref.base_legal}
                             </div>
                           ) : null}
@@ -764,6 +797,7 @@ export default function OrcamentoInteligente() {
                         ))}
                       </ul>
                     }
+                    style={{ borderRadius: 12 }}
                   />
                 )}
               </Space>
@@ -773,7 +807,12 @@ export default function OrcamentoInteligente() {
       </Row>
 
       {sugestao && (
-        <Card bordered={false} style={{ ...panelStyle, marginTop: 16 }} title="Composição sugerida">
+        <Card
+          bordered={false}
+          style={panelStyle}
+          bodyStyle={{ padding: 20 }}
+          title={<span style={{ fontWeight: 700, color: "#10233C" }}>Composição sugerida</span>}
+        >
           <Table
             columns={columns}
             dataSource={sugestao.itens || []}
