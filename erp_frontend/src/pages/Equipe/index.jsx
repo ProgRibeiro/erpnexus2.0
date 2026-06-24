@@ -64,6 +64,36 @@ const TIPO_CONTRATACAO = [
 
 const AVATAR_COLORS = ["#3B82F6","#8B5CF6","#EC4899","#F59E0B","#10B981","#EF4444","#6366F1"];
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const sectionCardStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...sectionCardStyle,
+  minHeight: 124,
+};
+
 function getInitials(first, last) {
   return `${first?.[0] || ""}${last?.[0] || ""}`.toUpperCase() || "?";
 }
@@ -223,11 +253,11 @@ export default function EquipePage() {
           >
             {getInitials(u.first_name, u.last_name)}
           </Avatar>
-          <div>
-            <Text strong style={{ display: "block", lineHeight: 1.3 }}>
+          <div style={{ minWidth: 0 }}>
+            <Text strong style={{ display: "block", lineHeight: 1.3, color: colors.texto }}>
               {u.first_name} {u.last_name}
             </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{u.email}</Text>
+            <Text style={{ fontSize: 12, color: colors.textoFraco }}>{u.email}</Text>
           </div>
         </Space>
       ),
@@ -235,6 +265,7 @@ export default function EquipePage() {
     {
       title: "Perfil",
       dataIndex: "role",
+      width: 150,
       render: (r) => {
         const c = ROLE_CONFIG[r] || { label: r, color: "default" };
         return <Tag color={c.color}>{c.label}</Tag>;
@@ -243,11 +274,12 @@ export default function EquipePage() {
     {
       title: "Cargo",
       dataIndex: "cargo",
-      render: (v) => v || <Text type="secondary">—</Text>,
+      render: (v) => v || <Text style={{ color: colors.textoFraco }}>—</Text>,
     },
     {
       title: "Contratação",
       dataIndex: "tipo_contratacao",
+      width: 140,
       render: (v) => {
         const t = TIPO_CONTRATACAO.find((x) => x.value === v);
         return t ? t.label : (v || "—");
@@ -256,10 +288,12 @@ export default function EquipePage() {
     {
       title: "Telefone",
       dataIndex: "telefone",
-      render: (v) => v || <Text type="secondary">—</Text>,
+      width: 150,
+      render: (v) => v || <Text style={{ color: colors.textoFraco }}>—</Text>,
     },
     {
       title: "Status",
+      width: 130,
       render: (_, u) => {
         const s = STATUS_CONFIG[u.status] || { label: u.status, badgeStatus: "default" };
         return <Badge status={s.badgeStatus} text={s.label} />;
@@ -269,13 +303,14 @@ export default function EquipePage() {
       title: "",
       key: "acoes",
       align: "right",
+      width: 120,
       render: (_, u) => (
-        <Space>
+        <Space size={4}>
           <Tooltip title="Editar dados">
-            <Button size="small" icon={<EditOutlined />} onClick={() => abrirEditar(u)} />
+            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => abrirEditar(u)} style={{ color: colors.azul }} />
           </Tooltip>
           <Tooltip title="Resetar senha">
-            <Button size="small" icon={<KeyOutlined />} onClick={() => setModalSenha(u)} />
+            <Button type="text" size="small" icon={<KeyOutlined />} onClick={() => setModalSenha(u)} style={{ color: colors.laranja }} />
           </Tooltip>
           {u.is_active && (
             <Popconfirm
@@ -287,7 +322,7 @@ export default function EquipePage() {
               onConfirm={() => handleDesativar(u.id)}
             >
               <Tooltip title="Desativar acesso">
-                <Button size="small" danger icon={<LockOutlined />} />
+                <Button type="text" size="small" danger icon={<LockOutlined />} />
               </Tooltip>
             </Popconfirm>
           )}
@@ -297,22 +332,41 @@ export default function EquipePage() {
   ];
 
   return (
-    <div style={{ padding: 24, background: "#F4F6F9", minHeight: "100vh" }}>
+    <div style={pageStyle}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
         <Space size={12}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "#3B82F618", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <TeamOutlined style={{ fontSize: 22, color: "#3B82F6" }} />
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.azul}14`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <TeamOutlined style={{ fontSize: 22, color: colors.azul }} />
           </div>
           <div>
-            <Title level={3} style={{ margin: 0 }}>Equipe & Técnicos</Title>
-            <Text type="secondary">Cadastro e gestão de colaboradores</Text>
+            <Title level={3} style={{ margin: 0, color: colors.texto }}>Equipe & Técnicos</Title>
+            <Text style={{ color: colors.textoSecundario }}>Cadastro e gestão de colaboradores</Text>
           </div>
         </Space>
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 8 }}
+          style={{ height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
           onClick={() => { setModalNovo(true); formNovo.resetFields(); }}
         >
           Novo Colaborador
@@ -320,51 +374,77 @@ export default function EquipePage() {
       </div>
 
       {/* Métricas */}
-      <Row gutter={16} style={{ marginBottom: 20 }}>
+      <Row gutter={[20, 20]}>
         {[
-          { label: "Total na equipe", value: total,    color: "#3B82F6", bg: "#EFF6FF", icon: <TeamOutlined /> },
-          { label: "Ativos",          value: ativos,   color: "#10B981", bg: "#ECFDF5", icon: <CheckCircleOutlined /> },
-          { label: "Técnicos",        value: tecnicos, color: "#8B5CF6", bg: "#F5F3FF", icon: <UserOutlined /> },
+          { label: "Total na equipe", value: total,    color: colors.azul,  icon: <TeamOutlined /> },
+          { label: "Ativos",          value: ativos,   color: colors.verde, icon: <CheckCircleOutlined /> },
+          { label: "Técnicos",        value: tecnicos, color: colors.roxo,  icon: <UserOutlined /> },
         ].map((m) => (
-          <Col xs={8} key={m.label}>
-            <Card style={{ borderRadius: 12, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-              <Space>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: m.bg, display: "flex", alignItems: "center", justifyContent: "center", color: m.color, fontSize: 20 }}>
+          <Col xs={24} sm={8} key={m.label}>
+            <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: colors.textoFraco,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 12,
+                    }}
+                  >
+                    {m.label}
+                  </div>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: colors.texto, lineHeight: 1 }}>
+                    {m.value}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    flexShrink: 0,
+                    borderRadius: 12,
+                    background: `${m.color}14`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: m.color,
+                    fontSize: 20,
+                  }}
+                >
                   {m.icon}
                 </div>
-                <div>
-                  <div style={{ fontSize: 26, fontWeight: 700, color: "#0F172A", lineHeight: 1 }}>{m.value}</div>
-                  <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{m.label}</div>
-                </div>
-              </Space>
+              </div>
             </Card>
           </Col>
         ))}
       </Row>
 
       {/* Filtros */}
-      <Card style={{ marginBottom: 16, borderRadius: 12, border: "none", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-        <Row gutter={12} align="middle">
-          <Col flex="1">
+      <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 16 }}>
+        <Row gutter={[12, 12]} align="middle">
+          <Col xs={24} md={10} lg={12}>
             <Input
               placeholder="Buscar por nome ou e-mail..."
-              prefix={<UserOutlined style={{ color: "#94A3B8" }} />}
+              prefix={<UserOutlined style={{ color: colors.textoFraco }} />}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               allowClear
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, height: 40 }}
             />
           </Col>
-          <Col>
-            <Select value={filtroRole} onChange={setFiltroRole} style={{ width: 170 }}>
+          <Col xs={12} md={7} lg={6}>
+            <Select value={filtroRole} onChange={setFiltroRole} style={{ width: "100%" }}>
               <Option value="todos">Todos os perfis</Option>
               {Object.entries(ROLE_CONFIG).map(([k, v]) => (
                 <Option key={k} value={k}>{v.label}</Option>
               ))}
             </Select>
           </Col>
-          <Col>
-            <Select value={filtroStatus} onChange={setFiltroStatus} style={{ width: 155 }}>
+          <Col xs={12} md={7} lg={6}>
+            <Select value={filtroStatus} onChange={setFiltroStatus} style={{ width: "100%" }}>
               <Option value="todos">Todos os status</Option>
               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                 <Option key={k} value={k}>{v.label}</Option>
@@ -375,7 +455,7 @@ export default function EquipePage() {
       </Card>
 
       {/* Tabela */}
-      <Card style={{ borderRadius: 12, border: "none", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+      <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 0 }}>
         <Table
           dataSource={filtrados}
           columns={columns}
@@ -383,6 +463,7 @@ export default function EquipePage() {
           loading={loading}
           pagination={{ pageSize: 15, showTotal: (t) => `${t} colaboradores` }}
           locale={{ emptyText: "Nenhum colaborador encontrado" }}
+          scroll={{ x: 980 }}
         />
       </Card>
 
@@ -460,8 +541,8 @@ export default function EquipePage() {
 
           <Divider style={{ margin: "8px 0 16px" }} />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button onClick={() => setModalNovo(false)}>Cancelar</Button>
-            <Button type="primary" htmlType="submit" loading={saving} style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>
+            <Button onClick={() => setModalNovo(false)} style={{ borderRadius: 8 }}>Cancelar</Button>
+            <Button type="primary" htmlType="submit" loading={saving} style={{ borderRadius: 8, fontWeight: 600 }}>
               Criar Colaborador
             </Button>
           </div>
@@ -538,8 +619,8 @@ export default function EquipePage() {
 
           <Divider style={{ margin: "8px 0 16px" }} />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button onClick={() => setModalEditar(null)}>Cancelar</Button>
-            <Button type="primary" htmlType="submit" loading={saving} style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>
+            <Button onClick={() => setModalEditar(null)} style={{ borderRadius: 8 }}>Cancelar</Button>
+            <Button type="primary" htmlType="submit" loading={saving} style={{ borderRadius: 8, fontWeight: 600 }}>
               Salvar alterações
             </Button>
           </div>
@@ -562,11 +643,11 @@ export default function EquipePage() {
           </Text>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={() => setModalSenha(null)}>Cancelar</Button>
+          <Button onClick={() => setModalSenha(null)} style={{ borderRadius: 8 }}>Cancelar</Button>
           <Button
             loading={saving}
             icon={<KeyOutlined />}
-            style={{ background: "#F59E0B", borderColor: "#F59E0B", color: "#fff" }}
+            style={{ background: colors.laranja, borderColor: colors.laranja, color: "#fff", borderRadius: 8, fontWeight: 600 }}
             onClick={handleResetarSenha}
           >
             Gerar nova senha

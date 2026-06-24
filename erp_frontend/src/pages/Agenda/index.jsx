@@ -52,18 +52,46 @@ dayjs.locale("pt-br");
 
 const { Text, Title } = Typography;
 
-const primaryBlue = "#3B82F6";
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const sectionCardStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...sectionCardStyle,
+  minHeight: 110,
+};
 
 const statusMap = {
-  rascunho: { color: "default", label: "Rascunho" },
-  aberta: { color: "blue", label: "Aberta" },
-  orcamento_enviado: { color: "cyan", label: "Orçamento enviado" },
-  aprovada: { color: "green", label: "Aprovada" },
-  agendada: { color: "geekblue", label: "Agendada" },
-  em_execucao: { color: "orange", label: "Em execução" },
-  concluida: { color: "green", label: "Concluída" },
-  faturada: { color: "green", label: "Faturada" },
-  cancelada: { color: "red", label: "Cancelada" },
+  rascunho: { color: colors.textoSecundario, background: "#F3F4F6", label: "Rascunho" },
+  aberta: { color: colors.azul, background: "#DBEAFE", label: "Aberta" },
+  orcamento_enviado: { color: "#0E7490", background: "#CFFAFE", label: "Orçamento enviado" },
+  aprovada: { color: colors.verde, background: "#DCFCE7", label: "Aprovada" },
+  agendada: { color: colors.roxo, background: "#EDE9FE", label: "Agendada" },
+  em_execucao: { color: colors.laranja, background: "#FEF3C7", label: "Em execução" },
+  concluida: { color: colors.verde, background: "#DCFCE7", label: "Concluída" },
+  faturada: { color: colors.verde, background: "#DCFCE7", label: "Faturada" },
+  cancelada: { color: colors.vermelho, background: "#FEE2E2", label: "Cancelada" },
 };
 
 const tiposServico = [
@@ -107,7 +135,29 @@ function horaCurta(value) {
 }
 
 function getStatus(os) {
-  return statusMap[os?.status] || { color: "default", label: os?.status || "Sem status" };
+  return statusMap[os?.status] || { color: colors.textoSecundario, background: "#F3F4F6", label: os?.status || "Sem status" };
+}
+
+function StatusBadge({ status }) {
+  const meta = getStatus({ status });
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "3px 10px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 700,
+        color: meta.color,
+        background: meta.background,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {meta.label}
+    </span>
+  );
 }
 
 export default function AgendaPage() {
@@ -235,39 +285,47 @@ export default function AgendaPage() {
   };
 
   const OsCard = ({ os, compact = false }) => {
-    const status = getStatus(os);
     return (
       <Card
         size="small"
         hoverable
+        bordered={false}
         style={{
-          border: "1px solid #E2E8F0",
-          borderLeft: `4px solid ${os.status === "em_execucao" ? "#F59E0B" : primaryBlue}`,
-          borderRadius: 8,
+          border: `1px solid ${colors.borda}`,
+          borderLeft: `4px solid ${os.status === "em_execucao" ? colors.laranja : colors.azul}`,
+          borderRadius: 12,
           marginBottom: 10,
+          boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)",
         }}
-        bodyStyle={{ padding: compact ? 10 : 14 }}
+        bodyStyle={{ padding: compact ? 12 : 16 }}
         onClick={() => abrirEdicao(os)}
       >
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
           <Space style={{ justifyContent: "space-between", width: "100%" }} align="start">
             <Space direction="vertical" size={0}>
-              <Text strong>{os.numero}</Text>
-              <Text style={{ color: "#64748B", fontSize: 12 }}>{osCliente(os)}</Text>
+              <Text strong style={{ color: colors.texto }}>{os.numero}</Text>
+              <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{osCliente(os)}</Text>
             </Space>
-            <Tag color={status.color}>{status.label}</Tag>
+            <StatusBadge status={os.status} />
           </Space>
           <Space wrap size={8}>
-            <Tag icon={<ClockCircleOutlined />} color="blue">{horaCurta(os.hora_inicio)} {os.hora_conclusao ? `- ${horaCurta(os.hora_conclusao)}` : ""}</Tag>
-            <Tag>{os.tipo_servico || "Serviço"}</Tag>
+            <Tag
+              icon={<ClockCircleOutlined />}
+              style={{ color: colors.azul, background: "#EFF6FF", border: "none", borderRadius: 999, fontWeight: 600 }}
+            >
+              {horaCurta(os.hora_inicio)} {os.hora_conclusao ? `- ${horaCurta(os.hora_conclusao)}` : ""}
+            </Tag>
+            <Tag style={{ color: colors.textoSecundario, background: colors.fundoSuave, border: `1px solid ${colors.borda}`, borderRadius: 999 }}>
+              {os.tipo_servico || "Serviço"}
+            </Tag>
           </Space>
           {!compact && (
             <Space direction="vertical" size={4} style={{ width: "100%" }}>
-              <Text style={{ color: "#475569", fontSize: 12 }} ellipsis>
+              <Text style={{ color: colors.textoSecundario, fontSize: 12 }} ellipsis>
                 <EnvironmentOutlined /> {osEndereco(os)}
               </Text>
               {os.descricao_servico && (
-                <Text style={{ color: "#64748B", fontSize: 12 }} ellipsis>{os.descricao_servico}</Text>
+                <Text style={{ color: colors.textoFraco, fontSize: 12 }} ellipsis>{os.descricao_servico}</Text>
               )}
             </Space>
           )}
@@ -279,6 +337,7 @@ export default function AgendaPage() {
                 event.stopPropagation();
                 navigate(`/ordens/${os.id}`);
               }}
+              style={{ borderRadius: 8, color: colors.azul }}
             >
               OS
             </Button>
@@ -288,6 +347,7 @@ export default function AgendaPage() {
               href={`https://www.google.com/maps/search/${encodeURIComponent(osEndereco(os))}`}
               target="_blank"
               onClick={(event) => event.stopPropagation()}
+              style={{ borderRadius: 8 }}
             >
               Rota
             </Button>
@@ -308,17 +368,18 @@ export default function AgendaPage() {
           return (
             <Col xs={24} md={12} xl={8} xxl={6} key={tecnico.id}>
               <Card
+                bordered={false}
+                style={{ ...sectionCardStyle, minHeight: 430 }}
                 title={
                   <Space>
-                    <Avatar style={{ background: primaryBlue }} icon={<UserOutlined />} />
+                    <Avatar style={{ background: colors.azul }} icon={<UserOutlined />} />
                     <Space direction="vertical" size={0}>
-                      <Text strong>{tecnicoNome(tecnico)}</Text>
-                      <Text style={{ color: "#64748B", fontSize: 12 }}>{ordensTecnico.length} atendimento(s) hoje</Text>
+                      <Text strong style={{ color: colors.texto }}>{tecnicoNome(tecnico)}</Text>
+                      <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{ordensTecnico.length} atendimento(s) hoje</Text>
                     </Space>
                   </Space>
                 }
-                extra={<Progress type="circle" percent={progresso} size={42} strokeColor="#10B981" />}
-                style={{ minHeight: 430 }}
+                extra={<Progress type="circle" percent={progresso} size={42} strokeColor={colors.verde} />}
               >
                 {ordensTecnico.length ? (
                   ordensTecnico.map((os) => <OsCard key={os.id} os={os} compact />)
@@ -336,30 +397,33 @@ export default function AgendaPage() {
   const renderHoje = () => (
     <Row gutter={[16, 16]}>
       <Col xs={24} xl={16}>
-        <Card title="Linha do tempo de hoje">
+        <Card bordered={false} style={sectionCardStyle} title="Linha do tempo de hoje">
           {ordensHoje.length ? (
             ordensHoje
               .slice()
               .sort((a, b) => String(a.hora_inicio || "99:99").localeCompare(String(b.hora_inicio || "99:99")))
               .map((os) => <OsCard key={os.id} os={os} />)
           ) : (
-            <Empty description="Nenhuma OS agendada para hoje" />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma OS agendada para hoje" style={{ padding: "34px 0 26px" }} />
           )}
         </Card>
       </Col>
       <Col xs={24} xl={8}>
-        <Card title="Operação do dia">
+        <Card bordered={false} style={sectionCardStyle} title="Operação do dia">
           <List
             dataSource={[
-              { icon: <CalendarOutlined />, label: "Serviços planejados", value: totalHoje },
-              { icon: <FieldTimeOutlined />, label: "Em execução", value: emExecucao },
-              { icon: <CheckCircleOutlined />, label: "Concluídos", value: concluidas },
-              { icon: <WarningOutlined />, label: "Sem técnico", value: semTecnico },
+              { icon: <CalendarOutlined />, label: "Serviços planejados", value: totalHoje, color: colors.azul },
+              { icon: <FieldTimeOutlined />, label: "Em execução", value: emExecucao, color: colors.laranja },
+              { icon: <CheckCircleOutlined />, label: "Concluídos", value: concluidas, color: colors.verde },
+              { icon: <WarningOutlined />, label: "Sem técnico", value: semTecnico, color: colors.vermelho },
             ]}
             renderItem={(item) => (
               <List.Item>
-                <Space>{item.icon}<Text>{item.label}</Text></Space>
-                <Text strong>{item.value}</Text>
+                <Space>
+                  <span style={{ color: item.color, fontSize: 16 }}>{item.icon}</span>
+                  <Text style={{ color: colors.textoSecundario }}>{item.label}</Text>
+                </Space>
+                <Text strong style={{ color: colors.texto, fontSize: 16 }}>{item.value}</Text>
               </List.Item>
             )}
           />
@@ -371,7 +435,7 @@ export default function AgendaPage() {
   const renderSemanal = () => {
     const dias = Array.from({ length: 7 }, (_, index) => (periodo?.[0] || dayjs().startOf("week")).startOf("week").add(index, "day"));
     return (
-      <Card title="Planejamento semanal por dia">
+      <Card bordered={false} style={sectionCardStyle} title="Planejamento semanal por dia">
         <div style={{ overflowX: "auto" }}>
           <Row gutter={12} style={{ minWidth: 980 }}>
             {dias.map((dia) => {
@@ -380,13 +444,14 @@ export default function AgendaPage() {
                 <Col flex="1" key={dia.format("YYYY-MM-DD")}>
                   <Card
                     size="small"
+                    bordered={false}
+                    style={{ ...sectionCardStyle, minHeight: 420 }}
                     title={
                       <Space direction="vertical" size={0}>
-                        <Text strong>{dia.format("ddd")}</Text>
-                        <Text style={{ color: "#64748B", fontSize: 12 }}>{dia.format("DD/MM")}</Text>
+                        <Text strong style={{ color: colors.texto }}>{dia.format("ddd")}</Text>
+                        <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{dia.format("DD/MM")}</Text>
                       </Space>
                     }
-                    style={{ minHeight: 420 }}
                   >
                     {ordensDia.length ? ordensDia.map((os) => <OsCard key={os.id} os={os} compact />) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Livre" />}
                   </Card>
@@ -405,7 +470,7 @@ export default function AgendaPage() {
       return acc;
     }, {});
     return (
-      <Card title="Mapa mensal da operação">
+      <Card bordered={false} style={sectionCardStyle} title="Mapa mensal da operação">
         <Calendar
           fullscreen
           cellRender={(value) => {
@@ -415,10 +480,20 @@ export default function AgendaPage() {
             const total = (item.tecnicos || []).reduce((sum, tecnico) => sum + Number(tecnico.total_os || 0), 0);
             return (
               <Space direction="vertical" size={2} style={{ width: "100%" }}>
-                <Badge count={total} style={{ backgroundColor: primaryBlue }} />
+                <Badge count={total} style={{ backgroundColor: colors.azul }} />
                 {(item.tecnicos || []).slice(0, 3).map((tec) => (
                   <Tooltip title={tecnicoNome(tec)} key={tec.id}>
-                    <Tag style={{ maxWidth: "100%" }}>{tecnicoNome(tec).split(" ")[0]}: {tec.total_os}</Tag>
+                    <Tag
+                      style={{
+                        maxWidth: "100%",
+                        color: colors.textoSecundario,
+                        background: colors.fundoSuave,
+                        border: `1px solid ${colors.borda}`,
+                        borderRadius: 6,
+                      }}
+                    >
+                      {tecnicoNome(tec).split(" ")[0]}: {tec.total_os}
+                    </Tag>
                   </Tooltip>
                 ))}
               </Space>
@@ -430,33 +505,48 @@ export default function AgendaPage() {
   };
 
   return (
-    <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100%" }}>
-      <Space direction="vertical" size={18} style={{ width: "100%" }}>
-        <Card style={{ border: "1px solid #E2E8F0" }}>
-          <Row gutter={[20, 20]} align="middle" justify="space-between">
-            <Col xs={24} lg={12}>
-              <Space direction="vertical" size={4}>
-                <Text style={{ color: "#64748B", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  Agenda e despacho de campo
-                </Text>
-                <Title level={2} style={{ margin: 0 }}>Planeje e acompanhe sua equipe em tempo real</Title>
-                <Text style={{ color: "#64748B" }}>
-                  Visão inspirada em operação de campo: técnicos, rotas, OS do dia, produtividade e reagendamento rápido.
-                </Text>
-              </Space>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Row gutter={[12, 12]}>
-                <Col xs={12} md={6}><Card size="small"><Statistic title="Hoje" value={totalHoje} prefix={<CalendarOutlined />} /></Card></Col>
-                <Col xs={12} md={6}><Card size="small"><Statistic title="Execução" value={emExecucao} prefix={<RocketOutlined />} valueStyle={{ color: "#F59E0B" }} /></Card></Col>
-                <Col xs={12} md={6}><Card size="small"><Statistic title="Equipe" value={tecnicos.length} prefix={<TeamOutlined />} valueStyle={{ color: primaryBlue }} /></Card></Col>
-                <Col xs={12} md={6}><Card size="small"><Statistic title="Produtividade" value={produtividade} suffix="%" valueStyle={{ color: "#10B981" }} /></Card></Col>
+    <div style={pageStyle}>
+      <Card bordered={false} style={sectionCardStyle}>
+        <Row gutter={[20, 20]} align="middle" justify="space-between">
+          <Col xs={24} lg={12}>
+            <Space direction="vertical" size={4}>
+              <Text style={{ color: colors.textoFraco, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontSize: 12 }}>
+                Agenda e despacho de campo
+              </Text>
+              <Title level={2} style={{ margin: 0, color: colors.texto }}>Planeje e acompanhe sua equipe em tempo real</Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Visão inspirada em operação de campo: técnicos, rotas, OS do dia, produtividade e reagendamento rápido.
+              </Text>
+            </Space>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Row gutter={[12, 12]}>
+              <Col xs={12} md={6}>
+                <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 16 }}>
+                  <Statistic title="Hoje" value={totalHoje} prefix={<CalendarOutlined />} valueStyle={{ color: colors.texto, fontWeight: 700 }} />
+                </Card>
+              </Col>
+              <Col xs={12} md={6}>
+                <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 16 }}>
+                  <Statistic title="Execução" value={emExecucao} prefix={<RocketOutlined />} valueStyle={{ color: colors.laranja, fontWeight: 700 }} />
+                </Card>
+              </Col>
+              <Col xs={12} md={6}>
+                <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 16 }}>
+                  <Statistic title="Equipe" value={tecnicos.length} prefix={<TeamOutlined />} valueStyle={{ color: colors.azul, fontWeight: 700 }} />
+                </Card>
+              </Col>
+              <Col xs={12} md={6}>
+                <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 16 }}>
+                  <Statistic title="Produtividade" value={produtividade} suffix="%" valueStyle={{ color: colors.verde, fontWeight: 700 }} />
+                </Card>
+              </Col>
               </Row>
             </Col>
           </Row>
         </Card>
 
-        <Card>
+        <Card bordered={false} style={sectionCardStyle}>
           <Row gutter={[12, 12]} align="middle">
             <Col xs={24} lg={8}>
               <Segmented block size="large" value={visao} onChange={setVisao} options={visoes} />
@@ -503,25 +593,50 @@ export default function AgendaPage() {
           {visao === "mensal" && renderMensal()}
         </Spin>
 
-        <Card title="Tabela operacional" extra={<Text style={{ color: "#64748B" }}>{ordensDaVisao.length} OS na visão atual</Text>}>
+        <Card
+          bordered={false}
+          style={sectionCardStyle}
+          title="Tabela operacional"
+          extra={<Text style={{ color: colors.textoSecundario }}>{ordensDaVisao.length} OS na visão atual</Text>}
+          bodyStyle={{ padding: 0 }}
+        >
           <Table
             rowKey="id"
             dataSource={ordensDaVisao}
+            scroll={{ x: 900 }}
             columns={[
-              { title: "OS", dataIndex: "numero", render: (value, os) => <Button type="link" onClick={() => navigate(`/ordens/${os.id}`)}>{value}</Button> },
-              { title: "Cliente", render: (_, os) => osCliente(os) },
+              {
+                title: "OS",
+                dataIndex: "numero",
+                width: 110,
+                render: (value, os) => (
+                  <Button type="link" onClick={() => navigate(`/ordens/${os.id}`)} style={{ color: colors.azul, fontWeight: 700, padding: 0 }}>
+                    {value}
+                  </Button>
+                ),
+              },
+              { title: "Cliente", render: (_, os) => <Text style={{ color: colors.texto }}>{osCliente(os)}</Text> },
               { title: "Técnico", render: (_, os) => os.tecnico_nome || os.tecnico_agenda_nome || "Sem técnico" },
-              { title: "Data", dataIndex: "data_agendada", render: (value) => value ? dayjs(value).format("DD/MM/YYYY") : "-" },
-              { title: "Hora", dataIndex: "hora_inicio", render: horaCurta },
-              { title: "Status", render: (_, os) => <Tag color={getStatus(os).color}>{getStatus(os).label}</Tag> },
-              { title: "Ações", render: (_, os) => <Button size="small" onClick={() => abrirEdicao(os)}>Reagendar</Button> },
+              { title: "Data", dataIndex: "data_agendada", width: 120, render: (value) => value ? dayjs(value).format("DD/MM/YYYY") : "-" },
+              { title: "Hora", dataIndex: "hora_inicio", width: 90, render: horaCurta },
+              { title: "Status", width: 150, render: (_, os) => <StatusBadge status={os.status} /> },
+              {
+                title: "Ações",
+                width: 130,
+                render: (_, os) => (
+                  <Button size="small" onClick={() => abrirEdicao(os)} style={{ borderRadius: 8 }}>
+                    Reagendar
+                  </Button>
+                ),
+              },
             ]}
           />
         </Card>
-      </Space>
 
       <Modal
         title="Reagendar atendimento"
+        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
         open={modalEditarVisivel}
         onCancel={() => setModalEditarVisivel(false)}
         onOk={() => form.submit()}
