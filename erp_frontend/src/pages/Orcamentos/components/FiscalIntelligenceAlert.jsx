@@ -2,11 +2,23 @@ import { Alert, Space, Tag, Typography } from "antd";
 
 const { Text } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+};
+
 function renderItem(item) {
   if (!item) return null;
   return (
     <span key={`${item.campo}-${item.titulo}`}>
-      <Text strong>{item.titulo}</Text>
+      <Text strong style={{ color: colors.texto }}>
+        {item.titulo}
+      </Text>
       {item.detalhe ? <Text type="secondary"> {item.detalhe}</Text> : null}
     </span>
   );
@@ -26,19 +38,37 @@ export default function FiscalIntelligenceAlert({ impostos }) {
     <Alert
       type={type}
       showIcon
-      style={{ borderRadius: 12, marginTop: 12 }}
+      style={{
+        borderRadius: 14,
+        marginTop: 12,
+        border: `1px solid ${colors.borda}`,
+        boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)",
+      }}
       message={
-        <Space wrap>
-          <span>Motor fiscal especialista</span>
-          <Tag color={motor.confianca >= 80 ? "green" : motor.confianca >= 60 ? "gold" : "red"}>
+        <Space wrap size={8}>
+          <Text strong style={{ color: colors.texto }}>
+            Motor fiscal especialista
+          </Text>
+          <Tag
+            color={motor.confianca >= 80 ? "green" : motor.confianca >= 60 ? "gold" : "red"}
+            style={{ borderRadius: 999, paddingInline: 10, fontWeight: 600 }}
+          >
             Confiança {motor.confianca}%
           </Tag>
-          {motor.tipo_nota_sugerido ? <Tag color="blue">Nota {String(motor.tipo_nota_sugerido).toUpperCase()}</Tag> : null}
-          {motor.codigo_servico_sugerido ? <Tag>LC 116 {motor.codigo_servico_sugerido}</Tag> : null}
+          {motor.tipo_nota_sugerido ? (
+            <Tag color="blue" style={{ borderRadius: 999, paddingInline: 10 }}>
+              Nota {String(motor.tipo_nota_sugerido).toUpperCase()}
+            </Tag>
+          ) : null}
+          {motor.codigo_servico_sugerido ? (
+            <Tag style={{ borderRadius: 999, paddingInline: 10 }}>
+              LC 116 {motor.codigo_servico_sugerido}
+            </Tag>
+          ) : null}
         </Space>
       }
       description={
-        <Space direction="vertical" size={6}>
+        <Space direction="vertical" size={6} style={{ marginTop: 4 }}>
           {automacoes.map(renderItem)}
           {riscos.map(renderItem)}
           {alertas.map(renderItem)}

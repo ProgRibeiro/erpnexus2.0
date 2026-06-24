@@ -40,7 +40,6 @@ import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
 import {
   buildItemsPayload,
-  btnPrimaryStyle,
   calcItemsTotals,
   createEmptyItem,
   formatBudgetStatus,
@@ -50,8 +49,6 @@ import {
   mapServicoToItem,
   moneyFormatter,
   normalizeList,
-  pageStyle,
-  panelStyle,
   paymentOptions,
   priorityOptions,
   productUnitOptions,
@@ -61,6 +58,38 @@ import {
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const detalhePageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const detalhePanelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const detalheBtnPrimaryStyle = {
+  height: 40,
+  paddingInline: 20,
+  fontWeight: 600,
+  borderRadius: 10,
+};
 
 function getBudgetStatus(order) {
   const rawStatus = String(order?.status || "").toLowerCase();
@@ -554,10 +583,10 @@ export default function OrcamentoDetalhe() {
           </Space>
         ) : (
           <div>
-            <div style={{ fontWeight: 700, color: "#10233C" }}>
+            <div style={{ fontWeight: 700, color: colors.texto }}>
               {item.descricao}
             </div>
-            <div style={{ color: "#6B7280", fontSize: 12 }}>
+            <div style={{ color: colors.textoFraco, fontSize: 12 }}>
               {item.codigo_referencia || "-"} | {item.unidade_referencia || "-"}
             </div>
           </div>
@@ -672,21 +701,21 @@ export default function OrcamentoDetalhe() {
   const actionButtons = {
     rascunho: (
       <Space wrap>
-        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)}>
+        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)} style={{ borderRadius: 10, height: 40 }}>
           Editar
         </Button>
         <Button
           type="primary"
           icon={<SendOutlined />}
           onClick={sendBudget}
-          style={btnPrimaryStyle}
+          style={detalheBtnPrimaryStyle}
         >
           Enviar
         </Button>
-        <Button icon={<EyeOutlined />} onClick={openPrintPage}>
+        <Button icon={<EyeOutlined />} onClick={openPrintPage} style={{ borderRadius: 10, height: 40 }}>
           Imprimir
         </Button>
-        <Button danger icon={<DeleteOutlined />} onClick={deleteBudget}>
+        <Button danger icon={<DeleteOutlined />} onClick={deleteBudget} style={{ borderRadius: 10, height: 40 }}>
           Excluir
         </Button>
       </Space>
@@ -703,7 +732,7 @@ export default function OrcamentoDetalhe() {
               data_agendada: dayjs().add(1, "day"),
             })
           }
-          style={{ background: "#15803D", borderColor: "#15803D" }}
+          style={{ background: colors.verde, borderColor: colors.verde, height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
         >
           Aprovar
         </Button>
@@ -711,13 +740,14 @@ export default function OrcamentoDetalhe() {
           danger
           icon={<StopOutlined />}
           onClick={() => setRefusalModalOpen(true)}
+          style={{ borderRadius: 10, height: 40 }}
         >
           Recusar
         </Button>
-        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)}>
+        <Button icon={<EditOutlined />} onClick={() => setEditMode(true)} style={{ borderRadius: 10, height: 40 }}>
           Editar
         </Button>
-        <Button icon={<EyeOutlined />} onClick={openPrintPage}>
+        <Button icon={<EyeOutlined />} onClick={openPrintPage} style={{ borderRadius: 10, height: 40 }}>
           Imprimir
         </Button>
       </Space>
@@ -728,28 +758,28 @@ export default function OrcamentoDetalhe() {
           type="primary"
           icon={<EyeOutlined />}
           onClick={() => navigate(`/ordens/${order?.id}`)}
-          style={{ background: "#15803D", borderColor: "#15803D" }}
+          style={{ background: colors.verde, borderColor: colors.verde, height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
         >
           Ver OS gerada
         </Button>
-        <Button icon={<EyeOutlined />} onClick={openPrintPage}>
+        <Button icon={<EyeOutlined />} onClick={openPrintPage} style={{ borderRadius: 10, height: 40 }}>
           Imprimir
         </Button>
-        <Button icon={<FilePdfOutlined />} onClick={generatePdf}>
+        <Button icon={<FilePdfOutlined />} onClick={generatePdf} style={{ borderRadius: 10, height: 40 }}>
           Gerar PDF
         </Button>
       </Space>
     ),
     recusado: (
       <Space wrap>
-        <Button icon={<ReloadOutlined />} onClick={reopenBudget}>
+        <Button icon={<ReloadOutlined />} onClick={reopenBudget} style={{ borderRadius: 10, height: 40 }}>
           Reabrir orçamento
         </Button>
       </Space>
     ),
     expirado: (
       <Space wrap>
-        <Button icon={<ReloadOutlined />} onClick={reopenBudget}>
+        <Button icon={<ReloadOutlined />} onClick={reopenBudget} style={{ borderRadius: 10, height: 40 }}>
           Reativar orçamento
         </Button>
       </Space>
@@ -757,11 +787,11 @@ export default function OrcamentoDetalhe() {
   };
 
   return (
-    <div style={pageStyle}>
+    <div style={detalhePageStyle}>
       <Card
         bordered={false}
-        style={{ ...panelStyle, marginBottom: 16 }}
-        bodyStyle={{ padding: 16 }}
+        style={{ ...detalhePanelStyle, marginBottom: 16 }}
+        bodyStyle={{ padding: 20 }}
       >
         <div
           style={{
@@ -772,10 +802,10 @@ export default function OrcamentoDetalhe() {
             gap: 12,
           }}
         >
-          <Space direction="vertical" size={2}>
+          <Space direction="vertical" size={4}>
             <Title
               level={1}
-              style={{ fontSize: 24, fontWeight: 800, margin: 0 }}
+              style={{ fontSize: 26, fontWeight: 800, margin: 0, color: colors.texto }}
             >
               {order?.numero ||
                 `ORC-${dayjs().year()}-${String(id).padStart(4, "0")}`}
@@ -783,7 +813,7 @@ export default function OrcamentoDetalhe() {
             <Space size={10} wrap>
               <Tag
                 color={budgetStatusMeta.color}
-                style={{ borderRadius: 999, paddingInline: 10 }}
+                style={{ borderRadius: 999, paddingInline: 10, fontWeight: 600 }}
               >
                 {budgetStatusMeta.label}
               </Tag>
@@ -801,14 +831,23 @@ export default function OrcamentoDetalhe() {
           showIcon
           message="Modo edição ativo"
           description="Você pode ajustar cliente, escopo, itens do catálogo e valores antes de salvar novamente."
-          style={{ ...panelStyle, marginBottom: 16 }}
+          style={{ ...detalhePanelStyle, marginBottom: 16 }}
         />
       ) : null}
 
       <Form form={form} layout="vertical">
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
+          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+            <Title
+              level={5}
+              style={{
+                marginTop: 0,
+                marginBottom: 16,
+                color: colors.textoFraco,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
               Cliente
             </Title>
             <Row gutter={[16, 16]}>
@@ -851,8 +890,17 @@ export default function OrcamentoDetalhe() {
             </Descriptions>
           </Card>
 
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
+          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+            <Title
+              level={5}
+              style={{
+                marginTop: 0,
+                marginBottom: 16,
+                color: colors.textoFraco,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
               Serviço
             </Title>
             <Row gutter={[16, 16]}>
@@ -902,7 +950,7 @@ export default function OrcamentoDetalhe() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 18 }}>
+          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 18 }}>
             <Space
               style={{
                 justifyContent: "space-between",
@@ -912,7 +960,15 @@ export default function OrcamentoDetalhe() {
               wrap
             >
               <div>
-                <Title level={4} style={{ margin: 0 }}>
+                <Title
+                  level={5}
+                  style={{
+                    margin: 0,
+                    color: colors.textoFraco,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                  }}
+                >
                   Construtor de itens
                 </Title>
                 <Text type="secondary">
@@ -947,13 +1003,13 @@ export default function OrcamentoDetalhe() {
               <Col xs={24} xl={6}>
                 <div
                   style={{
-                    border: "1px solid #E2E8F0",
+                    border: `1px solid ${colors.borda}`,
                     borderRadius: 12,
                     padding: 16,
-                    background: "#F8FAFC",
+                    background: colors.fundoSuave,
                   }}
                 >
-                  <Text strong style={{ color: "#1E293B", fontSize: 16 }}>
+                  <Text strong style={{ color: colors.texto, fontSize: 16 }}>
                     Fechamento
                   </Text>
                   <Divider style={{ margin: "12px 0" }} />
@@ -1000,7 +1056,7 @@ export default function OrcamentoDetalhe() {
                     <Divider style={{ margin: "6px 0" }} />
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                       <Text strong>Total</Text>
-                      <Text strong style={{ color: "#3B82F6", fontSize: 22 }}>
+                      <Text strong style={{ color: colors.azul, fontSize: 22 }}>
                         {(() => {
                           const descontoEmReais =
                             tipoDesconto === "percentual"
@@ -1016,8 +1072,17 @@ export default function OrcamentoDetalhe() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
+          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+            <Title
+              level={5}
+              style={{
+                marginTop: 0,
+                marginBottom: 16,
+                color: colors.textoFraco,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
               Timeline de status
             </Title>
             <Timeline items={timelineItems} />
@@ -1028,7 +1093,7 @@ export default function OrcamentoDetalhe() {
       {editMode ? (
         <Card
           bordered={false}
-          style={{ ...panelStyle, marginTop: 16 }}
+          style={{ ...detalhePanelStyle, marginTop: 16 }}
           bodyStyle={{ padding: 16 }}
         >
           <Space wrap>
@@ -1037,11 +1102,11 @@ export default function OrcamentoDetalhe() {
               icon={<SaveOutlined />}
               onClick={saveEdition}
               loading={saving}
-              style={btnPrimaryStyle}
+              style={detalheBtnPrimaryStyle}
             >
               Salvar alterações
             </Button>
-            <Button onClick={() => setEditMode(false)}>Cancelar edição</Button>
+            <Button onClick={() => setEditMode(false)} style={{ borderRadius: 10, height: 40 }}>Cancelar edição</Button>
           </Space>
         </Card>
       ) : null}

@@ -46,18 +46,38 @@ import api from "../../services/api";
 const { RangePicker } = DatePicker;
 const { Text, Title, Paragraph } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#F8FAFC",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 const panelStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 124,
+};
+
+const filterStyle = {
+  ...panelStyle,
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -74,11 +94,11 @@ const statusOptions = [
 ];
 
 const statusColorMap = {
-  rascunho: { label: "Rascunho", color: "#6B7280", background: "#F3F4F6" },
-  enviado: { label: "Enviado", color: "#2563EB", background: "#DBEAFE" },
-  aprovado: { label: "Aprovado", color: "#15803D", background: "#DCFCE7" },
-  recusado: { label: "Recusado", color: "#B91C1C", background: "#FEE2E2" },
-  expirado: { label: "Expirado", color: "#C2410C", background: "#FFEDD5" },
+  rascunho: { label: "Rascunho", color: colors.textoSecundario, background: "#F3F4F6" },
+  enviado: { label: "Enviado", color: colors.azul, background: "#DBEAFE" },
+  aprovado: { label: "Aprovado", color: colors.verde, background: "#DCFCE7" },
+  recusado: { label: "Recusado", color: colors.vermelho, background: "#FEE2E2" },
+  expirado: { label: "Expirado", color: colors.laranja, background: "#FFEDD5" },
 };
 
 const serviceTypeMap = {
@@ -203,46 +223,38 @@ function getStatusMeta(status) {
 
 function SummaryCard({ color, icon, label, loading, value, monetaryValue, percentage }) {
   return (
-    <Card
-      bordered={false}
-      style={{ ...panelStyle, position: "relative", overflow: "hidden" }}
-      bodyStyle={{ padding: 18 }}
-    >
-      {/* Left colored accent */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 4,
-          background: color,
-        }}
-      />
-
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
       <Skeleton active loading={loading} paragraph={false} title={{ width: "58%" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                color: colors.textoFraco,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                marginBottom: 14,
+                textTransform: "uppercase",
+              }}
+            >
+              {label}
+            </div>
+
             {/* Main value (count) */}
-            <div style={{ color: "#1E293B", fontSize: 32, fontWeight: 800, lineHeight: 1, marginBottom: 8 }}>
+            <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
               {value}
             </div>
 
-            {/* Label */}
-            <Text style={{ color: "#6B7280", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {label}
-            </Text>
-
             {/* Monetary value if provided */}
             {monetaryValue && (
-              <div style={{ marginTop: 8, color, fontSize: 14, fontWeight: 700 }}>
+              <div style={{ marginTop: 10, color, fontSize: 14, fontWeight: 700 }}>
                 {monetaryValue}
               </div>
             )}
 
             {/* Progress bar if percentage provided */}
             {percentage !== undefined && (
-              <div style={{ marginTop: 8, height: 4, background: "#E5E7EB", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ marginTop: 10, height: 4, background: "#EEF2F7", borderRadius: 2, overflow: "hidden" }}>
                 <div
                   style={{
                     height: "100%",
@@ -259,13 +271,14 @@ function SummaryCard({ color, icon, label, loading, value, monetaryValue, percen
           <div
             style={{
               alignItems: "center",
-              background: `${color}18`,
+              background: `${color}14`,
               borderRadius: 12,
               color,
               display: "flex",
-              height: 50,
+              height: 44,
               justifyContent: "center",
-              width: 50,
+              width: 44,
+              fontSize: 20,
               flexShrink: 0,
             }}
           >
@@ -612,29 +625,30 @@ export default function OrcamentosPage() {
             .orcamentos-table .ant-table-thead > tr > th {
               font-size: 11px;
               font-weight: 800;
+              letter-spacing: 0.04em;
               text-transform: uppercase;
+            }
+
+            .orcamentos-table .ant-table-tbody > tr > td {
+              transition: background 160ms ease;
             }
           `}
         </style>
 
         <div
           style={{
-            background: "#FFFFFF",
-            borderRadius: 16,
-            padding: "20px 28px",
-            marginBottom: 24,
-            display: "flex",
             alignItems: "center",
+            display: "flex",
+            flexWrap: "wrap",
             justifyContent: "space-between",
-            gap: 24,
-            border: "1px solid #E2E8F0",
+            gap: 16,
           }}
         >
           <div>
-            <Title level={2} style={{ color: "#1E293B", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-              Central Técnica de Orçamentos
+            <Title level={1} style={{ color: colors.texto, fontSize: 28, fontWeight: 800, margin: 0 }}>
+              Orçamentos
             </Title>
-            <Text style={{ color: "#64748B", fontSize: 13 }}>
+            <Text style={{ color: colors.textoSecundario }}>
               Controle de escopo, composição técnica, validade e conversão de propostas.
             </Text>
           </div>
@@ -643,14 +657,10 @@ export default function OrcamentosPage() {
               icon={<ThunderboltOutlined />}
               onClick={() => navigate("/orcamentos/inteligente")}
               style={{
-                height: "40px",
-                paddingLeft: "18px",
-                paddingRight: "18px",
-                fontWeight: 700,
-                borderRadius: "8px",
-                background: "#F1F5F9",
-                color: "#1E293B",
-                border: "1px solid #CBD5E1",
+                height: 40,
+                paddingInline: 18,
+                fontWeight: 600,
+                borderRadius: 10,
               }}
             >
               Modelo técnico
@@ -660,16 +670,11 @@ export default function OrcamentosPage() {
               icon={<PlusOutlined />}
               onClick={() => navigate("/orcamentos/novo")}
               style={{
-                background: "#3B82F6",
-                borderColor: "#3B82F6",
-                color: "#ffffff",
-                height: "40px",
-                paddingLeft: "20px",
-                paddingRight: "20px",
+                height: 40,
+                paddingInline: 20,
                 fontWeight: 600,
-                fontSize: "14px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)",
+                fontSize: 14,
+                borderRadius: 10,
               }}
             >
               Novo orçamento
@@ -677,11 +682,11 @@ export default function OrcamentosPage() {
           </Space>
         </div>
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Row gutter={[20, 20]}>
           <Col xs={24} sm={12} xl={6}>
             <SummaryCard
-              color="#D97706"
-              icon={<ClockCircleOutlined style={{ fontSize: 22 }} />}
+              color={colors.laranja}
+              icon={<ClockCircleOutlined />}
               label="Pendentes técnicos"
               loading={loading}
               value={summary.pendentes}
@@ -691,8 +696,8 @@ export default function OrcamentosPage() {
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <SummaryCard
-              color="#15803D"
-              icon={<CheckCircleOutlined style={{ fontSize: 22 }} />}
+              color={colors.verde}
+              icon={<CheckCircleOutlined />}
               label="Aprovados no mês"
               loading={loading}
               value={summary.aprovados}
@@ -701,8 +706,8 @@ export default function OrcamentosPage() {
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <SummaryCard
-              color="#B91C1C"
-              icon={<CloseCircleOutlined style={{ fontSize: 22 }} />}
+              color={colors.vermelho}
+              icon={<CloseCircleOutlined />}
               label="Recusados / cancelados"
               loading={loading}
               value={summary.recusados}
@@ -711,8 +716,8 @@ export default function OrcamentosPage() {
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <SummaryCard
-              color="#3B82F6"
-              icon={<RiseOutlined style={{ fontSize: 22 }} />}
+              color={colors.azul}
+              icon={<RiseOutlined />}
               label="Conversão técnica"
               loading={loading}
               value={`${summary.conversao}%`}
@@ -721,62 +726,118 @@ export default function OrcamentosPage() {
           </Col>
         </Row>
 
-        <Card
-          bordered={false}
-          style={{ ...panelStyle, background: "#FFFFFF", marginBottom: 24 }}
-          bodyStyle={{ padding: "24px" }}
-        >
+        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 24 }}>
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div>
-              <Text style={{ color: "#0F172A", fontSize: 14, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 Painel técnico
               </Text>
-              <div style={{ color: "#64748B", marginTop: 4 }}>
+              <div style={{ color: colors.textoSecundario, marginTop: 6 }}>
                 Leitura rápida dos pontos que travam aprovação: validade, materiais, escopo e completude.
               </div>
             </div>
 
             <Row gutter={[12, 12]}>
-              <Col xs={24} lg={6}>
-                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+              <Col xs={24} sm={12} lg={6}>
+                <Card bordered={false} style={{ borderRadius: 12, background: colors.fundoSuave, border: `1px solid ${colors.borda}` }} bodyStyle={{ padding: 16 }}>
                   <Space align="start">
-                    <WarningOutlined style={{ color: "#F59E0B", fontSize: 22, marginTop: 2 }} />
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: `${colors.laranja}14`,
+                        color: colors.laranja,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <WarningOutlined />
+                    </div>
                     <div>
                       <Text type="secondary">Vencendo em até 7 dias</Text>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A" }}>{summary.vencendo}</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}>{summary.vencendo}</div>
                     </div>
                   </Space>
                 </Card>
               </Col>
-              <Col xs={24} lg={6}>
-                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+              <Col xs={24} sm={12} lg={6}>
+                <Card bordered={false} style={{ borderRadius: 12, background: colors.fundoSuave, border: `1px solid ${colors.borda}` }} bodyStyle={{ padding: 16 }}>
                   <Space align="start">
-                    <AuditOutlined style={{ color: "#10B981", fontSize: 22, marginTop: 2 }} />
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: `${colors.verde}14`,
+                        color: colors.verde,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AuditOutlined />
+                    </div>
                     <div>
                       <Text type="secondary">Completude média</Text>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A" }}>{summary.scoreMedio}%</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}>{summary.scoreMedio}%</div>
                     </div>
                   </Space>
                 </Card>
               </Col>
-              <Col xs={24} lg={6}>
-                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+              <Col xs={24} sm={12} lg={6}>
+                <Card bordered={false} style={{ borderRadius: 12, background: colors.fundoSuave, border: `1px solid ${colors.borda}` }} bodyStyle={{ padding: 16 }}>
                   <Space align="start">
-                    <DollarOutlined style={{ color: "#3B82F6", fontSize: 22, marginTop: 2 }} />
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: `${colors.azul}14`,
+                        color: colors.azul,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <DollarOutlined />
+                    </div>
                     <div>
                       <Text type="secondary">Carteira técnica</Text>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>{moneyFormatter.format(summary.valorTecnico)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: colors.texto }}>{moneyFormatter.format(summary.valorTecnico)}</div>
                     </div>
                   </Space>
                 </Card>
               </Col>
-              <Col xs={24} lg={6}>
-                <Card size="small" bordered style={{ borderRadius: 12, background: "#F8FAFC" }}>
+              <Col xs={24} sm={12} lg={6}>
+                <Card bordered={false} style={{ borderRadius: 12, background: colors.fundoSuave, border: `1px solid ${colors.borda}` }} bodyStyle={{ padding: 16 }}>
                   <Space align="start">
-                    <AppstoreOutlined style={{ color: "#8B5CF6", fontSize: 22, marginTop: 2 }} />
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: `${colors.roxo}14`,
+                        color: colors.roxo,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AppstoreOutlined />
+                    </div>
                     <div>
                       <Text type="secondary">Materiais previstos</Text>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>{moneyFormatter.format(summary.materiais)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: colors.texto }}>{moneyFormatter.format(summary.materiais)}</div>
                     </div>
                   </Space>
                 </Card>
@@ -785,7 +846,7 @@ export default function OrcamentosPage() {
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ ...panelStyle, marginBottom: 16 }} bodyStyle={{ padding: 16 }}>
+        <Card bordered={false} style={filterStyle} bodyStyle={{ padding: 16 }}>
           <Row gutter={[12, 12]} align="middle">
             <Col xs={24} lg={9}>
               <Input
@@ -853,15 +914,11 @@ export default function OrcamentosPage() {
                       icon={<PlusOutlined />}
                       onClick={() => navigate("/orcamentos/novo")}
                       style={{
-                        background: "#3B82F6",
-                        borderColor: "#3B82F6",
-                        color: "#ffffff",
-                        height: "40px",
-                        paddingLeft: "20px",
-                        paddingRight: "20px",
-                        fontWeight: 500,
-                        fontSize: "14px",
-                        borderRadius: "8px",
+                        height: 40,
+                        paddingInline: 20,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        borderRadius: 10,
                       }}
                     >
                       Criar primeiro orçamento
@@ -876,7 +933,7 @@ export default function OrcamentosPage() {
                 showSizeChanger: false,
                 onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
               }}
-                scroll={{ x: 1280 }}
+              scroll={{ x: 1280 }}
             />
           </Skeleton>
         </Card>
@@ -888,31 +945,31 @@ export default function OrcamentosPage() {
             bottom: 24,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#fff",
+            background: "#FFFFFF",
             borderRadius: 16,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            boxShadow: "0 18px 44px rgba(15, 23, 42, 0.16)",
             padding: "14px 24px",
             display: "flex",
             alignItems: "center",
             gap: 16,
             zIndex: 1000,
-            border: "1.5px solid #E2E6EC",
+            border: `1px solid ${colors.borda}`,
             transition: "all 0.2s ease",
             opacity: selectedIds.length >= 2 ? 1 : 0,
             pointerEvents: selectedIds.length >= 2 ? "auto" : "none",
           }}
         >
-          <Text strong style={{ color: "#1E293B", whiteSpace: "nowrap" }}>
+          <Text strong style={{ color: colors.texto, whiteSpace: "nowrap" }}>
             {selectedIds.length} orçamentos selecionados
           </Text>
-          <Button size="small" onClick={() => setSelectedIds([])}>
+          <Button size="small" onClick={() => setSelectedIds([])} style={{ borderRadius: 8 }}>
             Limpar seleção
           </Button>
           <Button
             type="primary"
             icon={<MergeCellsOutlined />}
             onClick={() => navigate(`/orcamentos/unificado?ids=${selectedIds.join(",")}`)}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6" }}
+            style={{ borderRadius: 8, fontWeight: 600 }}
           >
             Unificar Orçamentos
           </Button>
