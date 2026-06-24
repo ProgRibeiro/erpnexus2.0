@@ -19,15 +19,31 @@ import {
   message,
 } from "antd";
 import {
+  ClockCircleOutlined,
   DollarOutlined,
   EditOutlined,
   EyeOutlined,
+  FileTextOutlined,
   PlusOutlined,
   SearchOutlined,
+  ToolOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../services/api";
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
 
 const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
@@ -80,32 +96,34 @@ const serviceTypeLabels = {
 };
 
 const statusConfig = {
-  lead: { label: "Lead", color: "#6B7280", background: "#F3F4F6" },
-  orcamento: { label: "Orçamento", color: "#A16207", background: "#FEF3C7" },
-  aprovado: { label: "Aprovado", color: "#3B82F6", background: "#DBEAFE" },
-  em_execucao: { label: "Em execução", color: "#5B21B6", background: "#EDE9FE" },
-  faturado: { label: "Faturado", color: "#1A7A4A", background: "#DCFCE7" },
+  lead: { label: "Lead", color: colors.textoSecundario, background: "#F3F4F6" },
+  orcamento: { label: "Orçamento", color: colors.laranja, background: "#FEF3C7" },
+  aprovado: { label: "Aprovado", color: colors.azul, background: "#DBEAFE" },
+  em_execucao: { label: "Em execução", color: colors.roxo, background: "#EDE9FE" },
+  faturado: { label: "Faturado", color: colors.verde, background: "#DCFCE7" },
   concluido: { label: "Concluído", color: "#166534", background: "#BBF7D0" },
-  cancelado: { label: "Cancelado", color: "#B91C1C", background: "#FEE2E2" },
+  cancelado: { label: "Cancelado", color: colors.vermelho, background: "#FEE2E2" },
 };
 
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 const cardStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...cardStyle,
+  minHeight: 124,
 };
 
 const filterStyle = {
   ...cardStyle,
-  marginBottom: 16,
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -192,36 +210,44 @@ function isLate(order) {
   return scheduled < today && !["faturado", "concluido", "cancelado"].includes(status);
 }
 
-function SummaryCard({ color, label, loading, value }) {
+function SummaryCard({ color, icon, label, loading, value }) {
   return (
-    <Card bordered={false} style={cardStyle} bodyStyle={{ padding: 18 }}>
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }} hoverable>
       <Skeleton active loading={loading} paragraph={false} title={{ width: "65%" }}>
         <div style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <div>
-            <div style={{ color, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
-              {value}
-            </div>
-            <Text
+          <div style={{ minWidth: 0 }}>
+            <div
               style={{
-                color: "#6B7280",
-                display: "block",
-                fontSize: 12,
+                color: colors.textoFraco,
+                fontSize: 11,
                 fontWeight: 700,
-                marginTop: 10,
+                letterSpacing: "0.06em",
+                marginBottom: 12,
                 textTransform: "uppercase",
               }}
             >
               {label}
-            </Text>
+            </div>
+            <div style={{ color, fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+              {value}
+            </div>
           </div>
           <div
             style={{
+              alignItems: "center",
               background: `${color}14`,
               borderRadius: 10,
+              color,
+              display: "flex",
+              flexShrink: 0,
+              fontSize: 18,
               height: 42,
+              justifyContent: "center",
               width: 42,
             }}
-          />
+          >
+            {icon}
+          </div>
         </div>
       </Skeleton>
     </Card>
@@ -538,51 +564,71 @@ function OrdensPage() {
           style={{
             alignItems: "center",
             display: "flex",
+            flexWrap: "wrap",
             justifyContent: "space-between",
             gap: 16,
-            marginBottom: 20,
           }}
         >
-          <Title level={1} style={{ color: "#111827", fontSize: 24, fontWeight: 800, margin: 0 }}>
-            Ordens de Serviço
-          </Title>
+          <div>
+            <Title level={1} style={{ color: colors.texto, fontSize: 28, fontWeight: 800, margin: 0 }}>
+              Ordens de Serviço
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Acompanhe o fluxo completo, do lead até o faturamento.
+            </Text>
+          </div>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate("/ordens/novo")}
             style={{
-              background: "#3B82F6",
-              borderColor: "#3B82F6",
-              color: "#ffffff",
-              height: "40px",
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              fontWeight: 500,
-              fontSize: "14px",
-              borderRadius: "8px",
+              height: 40,
+              paddingInline: 20,
+              fontWeight: 600,
+              fontSize: 14,
+              borderRadius: 10,
             }}
           >
             Nova OS
           </Button>
         </div>
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Row gutter={[20, 20]}>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#3B82F6" label="OS Abertas" loading={loading} value={summary.abertas} />
-          </Col>
-          <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#5B21B6" label="Em Execução" loading={loading} value={summary.execucao} />
+            <SummaryCard
+              color={colors.azul}
+              icon={<FileTextOutlined />}
+              label="OS Abertas"
+              loading={loading}
+              value={summary.abertas}
+            />
           </Col>
           <Col xs={24} sm={12} xl={6}>
             <SummaryCard
-              color="#B45309"
+              color={colors.roxo}
+              icon={<ToolOutlined />}
+              label="Em Execução"
+              loading={loading}
+              value={summary.execucao}
+            />
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <SummaryCard
+              color={colors.laranja}
+              icon={<ClockCircleOutlined />}
               label="Aguardando Faturamento"
               loading={loading}
               value={summary.faturamento}
             />
           </Col>
           <Col xs={24} sm={12} xl={6}>
-            <SummaryCard color="#B91C1C" label="Atrasadas" loading={loading} value={summary.atrasadas} />
+            <SummaryCard
+              color={colors.vermelho}
+              icon={<DollarOutlined />}
+              label="Atrasadas"
+              loading={loading}
+              value={summary.atrasadas}
+            />
           </Col>
         </Row>
 
@@ -664,15 +710,11 @@ function OrdensPage() {
                       icon={<PlusOutlined />}
                       onClick={() => navigate("/ordens/novo")}
                       style={{
-                        background: "#3B82F6",
-                        borderColor: "#3B82F6",
-                        color: "#ffffff",
-                        height: "40px",
-                        paddingLeft: "20px",
-                        paddingRight: "20px",
-                        fontWeight: 500,
-                        fontSize: "14px",
-                        borderRadius: "8px",
+                        height: 40,
+                        paddingInline: 20,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        borderRadius: 10,
                       }}
                     >
                       Criar primeira OS

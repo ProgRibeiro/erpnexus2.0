@@ -66,24 +66,32 @@ import api from "../../services/api";
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 const panelStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.06)",
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
 };
 
 const primaryButtonStyle = {
-  background: "#3B82F6",
-  borderColor: "#3B82F6",
-  color: "#FFFFFF",
   height: 40,
   paddingInline: 20,
   fontWeight: 600,
@@ -99,7 +107,11 @@ const subtleButtonStyle = {
 
 const sectionCardStyle = {
   ...panelStyle,
-  boxShadow: "none",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 124,
 };
 
 const stageOrder = ["lead", "orcamento", "aprovado", "execucao", "faturamento", "receita"];
@@ -1252,22 +1264,22 @@ export default function OSDetalhePage() {
     {
       title: "Valor orçado",
       value: formatMoney(watchedValorOrcado ?? ordem?.valor_total_orcado),
-      icon: <DollarOutlined style={{ color: "#3B82F6" }} />,
+      icon: <DollarOutlined style={{ color: colors.azul }} />,
     },
     {
       title: "Custos lançados",
       value: formatMoney(expenseSummary.total),
-      icon: <ToolOutlined style={{ color: "#B45309" }} />,
+      icon: <ToolOutlined style={{ color: colors.laranja }} />,
     },
     {
       title: "Margem atual",
       value: formatMoney(margemAtual),
-      icon: <CheckCircleOutlined style={{ color: margemAtual >= 0 ? "#15803D" : "#B91C1C" }} />,
+      icon: <CheckCircleOutlined style={{ color: margemAtual >= 0 ? colors.verde : colors.vermelho }} />,
     },
     {
       title: "Recebimento",
       value: paymentStatusLabels[String(ordem?.status_pagamento || "pendente").toLowerCase()] || "Aguardando",
-      icon: <ClockCircleOutlined style={{ color: "#5B21B6" }} />,
+      icon: <ClockCircleOutlined style={{ color: colors.roxo }} />,
     },
   ];
 
@@ -1278,8 +1290,8 @@ export default function OSDetalhePage() {
       key: "descricao",
       render: (_, item) => (
         <div>
-          <div style={{ color: "#0F172A", fontWeight: 700 }}>{item.descricao}</div>
-          <div style={{ color: "#64748B", fontSize: 12 }}>
+          <div style={{ color: colors.texto, fontWeight: 700 }}>{item.descricao}</div>
+          <div style={{ color: colors.textoSecundario, fontSize: 12 }}>
             {item.codigo_referencia || "-"} • {item.unidade_referencia || "-"}
           </div>
         </div>
@@ -1326,8 +1338,8 @@ export default function OSDetalhePage() {
       key: "descricao",
       render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 700, color: "#10233C" }}>{record.descricao}</div>
-          <div style={{ color: "#6B7280", fontSize: 12 }}>
+          <div style={{ fontWeight: 700, color: colors.texto }}>{record.descricao}</div>
+          <div style={{ color: colors.textoFraco, fontSize: 12 }}>
             {expenseTypeOptions.find((option) => option.value === record.tipo)?.label || record.tipo}
           </div>
         </div>
@@ -1352,13 +1364,13 @@ export default function OSDetalhePage() {
   const renderPhotoGallery = (title, fotos, tipo) => (
     <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
       <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
-        <Title level={5} style={{ margin: 0 }}>{title}</Title>
+        <Title level={5} style={{ margin: 0, color: colors.texto }}>{title}</Title>
         <Button icon={<CameraOutlined />} onClick={() => setPhotoModal({ open: true, tipo, arquivos: [] })}>
           Adicionar fotos
         </Button>
       </Space>
       {fotos.length ? (
-        <Row gutter={[12, 12]}>
+        <Row gutter={[16, 16]}>
           {fotos.map((foto) => (
             <Col xs={12} md={8} lg={6} key={foto.id}>
               <Image
@@ -1366,7 +1378,7 @@ export default function OSDetalhePage() {
                 style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 10 }}
               />
               {foto.legenda ? (
-                <Text style={{ display: "block", marginTop: 6, color: "#64748B", fontSize: 12 }}>
+                <Text style={{ display: "block", marginTop: 6, color: colors.textoSecundario, fontSize: 12 }}>
                   {foto.legenda}
                 </Text>
               ) : null}
@@ -1380,12 +1392,12 @@ export default function OSDetalhePage() {
   );
 
   const dadosGeraisTab = (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: "#6B7280", textTransform: "uppercase" }}>
+        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: colors.textoFraco, letterSpacing: "0.04em", textTransform: "uppercase" }}>
           Identificação
         </Title>
-        <Row gutter={[16, 8]}>
+        <Row gutter={[20, 12]}>
           <Col xs={24} md={8}>
             <Form.Item label="Tipo de serviço" name="tipo_servico">
               <Select options={serviceOptions} />
@@ -1405,10 +1417,10 @@ export default function OSDetalhePage() {
       </Card>
 
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: "#6B7280", textTransform: "uppercase" }}>
+        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: colors.textoFraco, letterSpacing: "0.04em", textTransform: "uppercase" }}>
           Cliente
         </Title>
-        <Row gutter={[16, 8]}>
+        <Row gutter={[20, 12]}>
           <Col xs={24} md={12}>
             <Form.Item label="Cliente" name="cliente" rules={[{ required: true, message: "Selecione o cliente" }]}>
               <Select
@@ -1454,7 +1466,7 @@ export default function OSDetalhePage() {
       </Card>
 
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: "#6B7280", textTransform: "uppercase" }}>
+        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: colors.textoFraco, letterSpacing: "0.04em", textTransform: "uppercase" }}>
           Pedido de compra do cliente
         </Title>
         <Form.Item name="tem_pedido_compra" valuePropName="checked" style={{ marginBottom: 16 }}>
@@ -1462,7 +1474,7 @@ export default function OSDetalhePage() {
         </Form.Item>
 
         {watchedHasPc ? (
-          <Row gutter={[16, 8]}>
+          <Row gutter={[20, 12]}>
             <Col xs={24} md={12}>
               <Form.Item label="Número do PC" name="numero_pc">
                 <Input placeholder="PC-2025-3341" />
@@ -1524,14 +1536,14 @@ export default function OSDetalhePage() {
         {pcAnalysis ? (
           <Card
             bordered={false}
-            style={{ background: "#F8FBFF", border: "1px solid #D6E9FF", borderRadius: 12, marginTop: 16 }}
+            style={{ background: colors.fundoSuave, border: `1px solid ${colors.borda}`, borderRadius: 12, marginTop: 16 }}
             bodyStyle={{ padding: 16 }}
           >
             <Space direction="vertical" size={10} style={{ width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <div>
-                  <Text strong style={{ color: "#3B82F6" }}>Leitura inteligente do pedido de compra</Text>
-                  <div style={{ color: "#64748B", marginTop: 4 }}>
+                  <Text strong style={{ color: colors.azul }}>Leitura inteligente do pedido de compra</Text>
+                  <div style={{ color: colors.textoSecundario, marginTop: 4 }}>
                     Confiança da leitura: {Number(pcAnalysis.confianca || 0).toFixed(0)}%
                   </div>
                 </div>
@@ -1580,10 +1592,10 @@ export default function OSDetalhePage() {
       </Card>
 
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: "#6B7280", textTransform: "uppercase" }}>
+        <Title level={5} style={{ marginTop: 0, marginBottom: 16, color: colors.textoFraco, letterSpacing: "0.04em", textTransform: "uppercase" }}>
           Orçamento
         </Title>
-        <Row gutter={[16, 8]}>
+        <Row gutter={[20, 12]}>
           <Col xs={24}>
             <Form.Item label="Descrição do serviço" name="descricao_servico">
               <TextArea rows={4} />
@@ -1610,12 +1622,12 @@ export default function OSDetalhePage() {
           </Col>
         </Row>
 
-        <Divider />
+        <Divider style={{ borderColor: colors.borda }} />
 
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 12 }} wrap>
           <div>
-            <Text strong style={{ color: "#10233C" }}>Itens do orçamento</Text>
-            <div style={{ color: "#64748B", fontSize: 13 }}>
+            <Text strong style={{ color: colors.texto }}>Itens do orçamento</Text>
+            <div style={{ color: colors.textoSecundario, fontSize: 13 }}>
               A OS continua editável aqui. Se o orçamento mudar, você já ajusta tudo neste ponto.
             </div>
           </div>
@@ -1667,19 +1679,19 @@ export default function OSDetalhePage() {
         padding: "14px 16px",
         borderRadius: 10,
         border: "1px solid",
-        borderColor: isRespondido ? "#D1FAE5" : "#E5E7EB",
-        background: isRespondido ? "#F0FDF4" : "#FAFAFA",
+        borderColor: isRespondido ? "#D1FAE5" : colors.borda,
+        background: isRespondido ? "#F0FDF4" : colors.fundoSuave,
         marginBottom: 10,
         transition: "all 0.2s",
       }}>
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 8 }} wrap>
           <Space>
             {isRespondido
-              ? <CheckCircleOutlined style={{ color: "#10B981", fontSize: 15 }} />
-              : <QuestionCircleOutlined style={{ color: "#9CA3AF", fontSize: 15 }} />
+              ? <CheckCircleOutlined style={{ color: colors.verde, fontSize: 15 }} />
+              : <QuestionCircleOutlined style={{ color: colors.textoFraco, fontSize: 15 }} />
             }
-            <Text strong style={{ fontSize: 13, color: "#1E293B" }}>
-              {item.obrigatorio && <span style={{ color: "#EF4444", marginRight: 4 }}>*</span>}
+            <Text strong style={{ fontSize: 13, color: colors.texto }}>
+              {item.obrigatorio && <span style={{ color: colors.vermelho, marginRight: 4 }}>*</span>}
               {item.texto}
             </Text>
             {item.tipo_resposta && (
@@ -1701,7 +1713,7 @@ export default function OSDetalhePage() {
               size="small"
               type={resposta?.valor_bool === true ? "primary" : "default"}
               icon={<CheckOutlined />}
-              style={resposta?.valor_bool === true ? { background: "#10B981", borderColor: "#10B981" } : {}}
+              style={resposta?.valor_bool === true ? { background: colors.verde, borderColor: colors.verde } : {}}
               onClick={() => handleBool(true)}
             >
               Sim
@@ -1764,10 +1776,10 @@ export default function OSDetalhePage() {
   };
 
   const execucaoTab = (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
-          <Title level={5} style={{ marginTop: 0, marginBottom: 0, color: "#6B7280", textTransform: "uppercase" }}>
+          <Title level={5} style={{ marginTop: 0, marginBottom: 0, color: colors.textoFraco, letterSpacing: "0.04em", textTransform: "uppercase" }}>
             Execução do serviço
           </Title>
           <Space wrap>
@@ -1783,7 +1795,7 @@ export default function OSDetalhePage() {
               icon={<FilePdfOutlined />}
               loading={gerandoRelatorioTecnico}
               onClick={gerarRelatorioTecnico}
-              style={{ background: "#0F172A", borderColor: "#0F172A", borderRadius: 8 }}
+              style={{ background: colors.texto, borderColor: colors.texto, borderRadius: 8 }}
             >
               Emitir relatório do serviço
             </Button>
@@ -1802,7 +1814,7 @@ export default function OSDetalhePage() {
               disabled={servicoFinalizado}
               loading={concluindoOS}
               onClick={() => concluirOSPelaExecucao()}
-              style={{ background: "#16A34A", borderColor: "#16A34A", borderRadius: 8 }}
+              style={{ background: colors.verde, borderColor: colors.verde, borderRadius: 8 }}
             >
               Serviço concluído
             </Button>
@@ -1819,7 +1831,7 @@ export default function OSDetalhePage() {
               : "Preencha execução, medições, observações e fotos antes/depois. Depois clique em Serviço concluído ou em Concluir e emitir relatório para finalizar e gerar o PDF."
           }
         />
-        <Row gutter={[16, 8]}>
+        <Row gutter={[20, 12]}>
           <Col xs={24} md={12}>
             <Form.Item label="Técnico responsável" name="tecnico_responsavel">
               <Select allowClear options={technicians} />
@@ -1889,8 +1901,8 @@ export default function OSDetalhePage() {
       >
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
           <div>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 2, color: "#0F172A" }}>
-              <ToolOutlined style={{ marginRight: 8, color: "#3B82F6" }} />
+            <Title level={5} style={{ marginTop: 0, marginBottom: 2, color: colors.texto }}>
+              <ToolOutlined style={{ marginRight: 8, color: colors.azul }} />
               Checklist Técnico
             </Title>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -1911,8 +1923,8 @@ export default function OSDetalhePage() {
             return (
               <Tooltip title={`${respondidos}/${total} itens respondidos`}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Progress type="circle" percent={pct} size={44} strokeColor="#10B981" />
-                  <Text style={{ fontSize: 12, color: "#6B7280" }}>{respondidos}/{total}</Text>
+                  <Progress type="circle" percent={pct} size={44} strokeColor={colors.verde} />
+                  <Text style={{ fontSize: 12, color: colors.textoFraco }}>{respondidos}/{total}</Text>
                 </div>
               </Tooltip>
             );
@@ -1937,9 +1949,9 @@ export default function OSDetalhePage() {
 
   const chatTab = (
     <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
         <div>
-          <Title level={5} style={{ margin: 0 }}>Chat interno da OS</Title>
+          <Title level={5} style={{ margin: 0, color: colors.texto }}>Chat interno da OS</Title>
           <Text type="secondary">Tudo aqui fica registrado automaticamente para a equipe.</Text>
         </div>
 
@@ -1949,7 +1961,7 @@ export default function OSDetalhePage() {
           renderItem={(item) => (
             <List.Item style={{ paddingInline: 0 }}>
               <List.Item.Meta
-                avatar={<Avatar style={{ background: "#3B82F6" }}>{makeInitials(item.usuario_nome)}</Avatar>}
+                avatar={<Avatar style={{ background: colors.azul }}>{makeInitials(item.usuario_nome)}</Avatar>}
                 title={
                   <Space size={8} wrap>
                     <Text strong>{item.usuario_nome || "Equipe"}</Text>
@@ -1975,7 +1987,7 @@ export default function OSDetalhePage() {
           )}
         />
 
-        <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 16 }}>
+        <div style={{ borderTop: `1px solid ${colors.borda}`, paddingTop: 16 }}>
           <TextArea
             rows={4}
             value={chatMessage}
@@ -1993,11 +2005,11 @@ export default function OSDetalhePage() {
   );
 
   const despesasTab = (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
           <div>
-            <Title level={5} style={{ margin: 0 }}>Despesas da OS</Title>
+            <Title level={5} style={{ margin: 0, color: colors.texto }}>Despesas da OS</Title>
             <Text type="secondary">A margem já reage em tempo real conforme custos e faturamento.</Text>
           </div>
           <Button icon={<PlusOutlined />} onClick={() => setExpenseModalOpen(true)}>
@@ -2005,25 +2017,23 @@ export default function OSDetalhePage() {
           </Button>
         </Space>
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
           {[
-            { label: "Material comprado", value: expenseSummary.material, color: "#B91C1C" },
-            { label: "Combustível", value: expenseSummary.deslocamento, color: "#B45309" },
-            { label: "Alimentação", value: expenseSummary.alimentacao, color: "#7C3AED" },
-            { label: "Terceirizados", value: expenseSummary.terceiro, color: "#1D4ED8" },
-            { label: "Outros custos", value: expenseSummary.outro, color: "#475569" },
-            { label: "Margem da OS", value: margemAtual, color: margemAtual >= 0 ? "#15803D" : "#B91C1C" },
+            { label: "Material comprado", value: expenseSummary.material, color: colors.vermelho },
+            { label: "Combustível", value: expenseSummary.deslocamento, color: colors.laranja },
+            { label: "Alimentação", value: expenseSummary.alimentacao, color: colors.roxo },
+            { label: "Terceirizados", value: expenseSummary.terceiro, color: colors.azul },
+            { label: "Outros custos", value: expenseSummary.outro, color: colors.textoSecundario },
+            { label: "Margem da OS", value: margemAtual, color: margemAtual >= 0 ? colors.verde : colors.vermelho },
           ].map((card) => (
             <Col xs={24} md={12} xl={8} key={card.label}>
               <div
                 style={{
-                  background: "#FFFFFF",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: 12,
+                  ...sectionCardStyle,
                   padding: 16,
                 }}
               >
-                <div style={{ color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 6, textTransform: "uppercase" }}>
+                <div style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 700, marginBottom: 6, textTransform: "uppercase" }}>
                   {card.label}
                 </div>
                 <div style={{ color: card.color, fontSize: 24, fontWeight: 800 }}>
@@ -2096,22 +2106,22 @@ export default function OSDetalhePage() {
         />
       </Col>
       <Col xs={12} sm={6}>
-        <Text style={{ fontSize: 13, color: "#64748B" }}>{formatMoney(valorCalculado)}</Text>
+        <Text style={{ fontSize: 13, color: colors.textoSecundario }}>{formatMoney(valorCalculado)}</Text>
       </Col>
     </Row>
   );
 
   const faturamentoTab = (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
       {/* Dados NF */}
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Space direction="vertical" size={6} style={{ width: "100%", marginBottom: 16 }}>
-          <Title level={5} style={{ margin: 0 }}>Faturamento</Title>
+          <Title level={5} style={{ margin: 0, color: colors.texto }}>Faturamento</Title>
           <Text type="secondary">
             Registre NF, datas, PDF e tributação. Após salvar e confirmar, a OS gera receita no financeiro.
           </Text>
         </Space>
-        <Row gutter={[16, 8]}>
+        <Row gutter={[20, 12]}>
           <Col xs={24} md={12}>
             <Form.Item label="Valor final faturado" name="valor_final_faturado">
               <InputNumber
@@ -2220,7 +2230,7 @@ export default function OSDetalhePage() {
           </Button>
         }
       >
-        <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+        <Row gutter={[20, 12]} style={{ marginBottom: 16 }}>
           <Col xs={24} md={12}>
             <Text strong style={{ fontSize: 13 }}>Regime tributário</Text>
             <Select
@@ -2256,7 +2266,7 @@ export default function OSDetalhePage() {
               />
               <Text style={{ fontSize: 12 }}>Retenção ISSQN na fonte</Text>
               {tributacao.issqn_retencao && (
-                <Text style={{ fontSize: 12, color: "#D97706" }}>
+                <Text style={{ fontSize: 12, color: colors.laranja }}>
                   (retido: {formatMoney(valorRetidoISSQN)})
                 </Text>
               )}
@@ -2283,41 +2293,41 @@ export default function OSDetalhePage() {
 
         <Divider style={{ margin: "12px 0" }} />
 
-        <Row gutter={[12, 12]}>
+        <Row gutter={[16, 16]}>
           <Col xs={24} sm={8}>
-            <div style={{ background: "#F8FAFC", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: colors.fundoSuave, border: `1px solid ${colors.borda}`, borderRadius: 10, padding: "12px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Valor dos itens</Text>
-              <Text strong style={{ color: "#334155", fontSize: 15 }}>{formatMoney(baseCalculoImpostos)}</Text>
+              <Text strong style={{ color: colors.texto, fontSize: 15 }}>{formatMoney(baseCalculoImpostos)}</Text>
             </div>
           </Col>
           <Col xs={24} sm={8}>
-            <div style={{ background: "#EFF6FF", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: "#EFF6FF", border: "1px solid #DBEAFE", borderRadius: 10, padding: "12px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Impostos por fora</Text>
-              <Text strong style={{ color: "#2563EB", fontSize: 15 }}>{formatMoney(totalImpostosPorFora)}</Text>
+              <Text strong style={{ color: colors.azul, fontSize: 15 }}>{formatMoney(totalImpostosPorFora)}</Text>
             </div>
           </Col>
           <Col xs={24} sm={8}>
-            <div style={{ background: "#DBEAFE", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: "#DBEAFE", border: "1px solid #BFDBFE", borderRadius: 10, padding: "12px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Cliente paga</Text>
-              <Text strong style={{ color: "#1D4ED8", fontSize: 15 }}>{formatMoney(valorClienteComImpostos)}</Text>
+              <Text strong style={{ color: colors.azul, fontSize: 15 }}>{formatMoney(valorClienteComImpostos)}</Text>
             </div>
           </Col>
           <Col xs={24} sm={8}>
-            <div style={{ background: "#FEF3C7", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Total retenções</Text>
-              <Text strong style={{ color: "#D97706", fontSize: 15 }}>{formatMoney(totalRetencoesTrib)}</Text>
+              <Text strong style={{ color: colors.laranja, fontSize: 15 }}>{formatMoney(totalRetencoesTrib)}</Text>
             </div>
           </Col>
           <Col xs={24} sm={8}>
-            <div style={{ background: "#DBEAFE", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: "#DBEAFE", border: "1px solid #BFDBFE", borderRadius: 10, padding: "12px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Valor faturado</Text>
-              <Text strong style={{ color: "#1D4ED8", fontSize: 15 }}>{formatMoney(valorFaturadoAtual)}</Text>
+              <Text strong style={{ color: colors.azul, fontSize: 15 }}>{formatMoney(valorFaturadoAtual)}</Text>
             </div>
           </Col>
           <Col xs={24} sm={8}>
-            <div style={{ background: "#DCFCE7", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: "#DCFCE7", border: "1px solid #BBF7D0", borderRadius: 10, padding: "12px 14px" }}>
               <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Valor líquido NF</Text>
-              <Text strong style={{ color: "#15803D", fontSize: 15 }}>{formatMoney(valorLiquidoNF)}</Text>
+              <Text strong style={{ color: colors.verde, fontSize: 15 }}>{formatMoney(valorLiquidoNF)}</Text>
             </div>
           </Col>
         </Row>
@@ -2345,9 +2355,9 @@ export default function OSDetalhePage() {
   );
 
   const historicoTab = (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
-        <Title level={5} style={{ marginTop: 0 }}>Histórico automático</Title>
+        <Title level={5} style={{ marginTop: 0, color: colors.texto }}>Histórico automático</Title>
         <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
           Ninguém precisa preencher aqui. O sistema vai registrando as transições, atualizações e confirmações.
         </Text>
@@ -2356,8 +2366,8 @@ export default function OSDetalhePage() {
             color: item.color,
             children: (
               <div>
-                <div style={{ fontWeight: 700, color: "#0F172A" }}>{item.title}</div>
-                <div style={{ color: "#64748B" }}>{item.description}</div>
+                <div style={{ fontWeight: 700, color: colors.texto }}>{item.title}</div>
+                <div style={{ color: colors.textoSecundario }}>{item.description}</div>
               </div>
             ),
           }))}
@@ -2407,11 +2417,11 @@ export default function OSDetalhePage() {
   return (
     <div style={pageStyle}>
       <Form form={form} layout="vertical">
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div>
               <Space size={10} wrap align="center">
-                <Title level={2} style={{ margin: 0, fontSize: 34, fontWeight: 800, color: "#111827" }}>
+                <Title level={2} style={{ margin: 0, fontSize: 28, fontWeight: 800, color: colors.texto }}>
                   {ordem.numero}
                 </Title>
                 <Tag
@@ -2428,9 +2438,11 @@ export default function OSDetalhePage() {
                   {statusVisual.label}
                 </Tag>
               </Space>
-              <Text style={{ color: "#4B5563", fontSize: 18 }}>
-                {ordem?.cliente_nome || selectedClient?.nome || "Cliente"} • {serviceTypeLabels[ordem?.tipo_servico] || "Serviço"} • Aberta em {ordem?.criado_em ? dayjs(ordem.criado_em).format("DD/MM/YYYY") : "-"}
-              </Text>
+              <div>
+                <Text style={{ color: colors.textoSecundario, fontSize: 15 }}>
+                  {ordem?.cliente_nome || selectedClient?.nome || "Cliente"} • {serviceTypeLabels[ordem?.tipo_servico] || "Serviço"} • Aberta em {ordem?.criado_em ? dayjs(ordem.criado_em).format("DD/MM/YYYY") : "-"}
+                </Text>
+              </div>
             </div>
 
             <Space wrap>
@@ -2451,87 +2463,88 @@ export default function OSDetalhePage() {
               </Dropdown>
             </Space>
           </div>
+        </Card>
 
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0, overflow: "hidden" }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-              }}
-            >
-              {stageOrder.map((stageKey, index) => {
-                const meta = stageMeta[stageKey];
-                const isDone = index < currentStageIndex;
-                const isActive = index === currentStageIndex;
-                return (
+        <Card bordered={false} style={{ ...panelStyle, marginTop: 20 }} bodyStyle={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+            }}
+          >
+            {stageOrder.map((stageKey, index) => {
+              const meta = stageMeta[stageKey];
+              const isDone = index < currentStageIndex;
+              const isActive = index === currentStageIndex;
+              return (
+                <div
+                  key={stageKey}
+                  onClick={() => moverParaEtapa(stageKey)}
+                  style={{
+                    alignItems: "center",
+                    background: isActive ? meta.activeBg : isDone ? meta.doneBg : colors.fundoSuave,
+                    borderRight: index === stageOrder.length - 1 ? "none" : `1px solid ${colors.borda}`,
+                    color: isActive || isDone ? meta.activeColor : colors.textoFraco,
+                    cursor: "pointer",
+                    display: "flex",
+                    fontSize: 14,
+                    fontWeight: isActive ? 700 : 600,
+                    justifyContent: "center",
+                    minHeight: 48,
+                    padding: "0 12px",
+                  }}
+                >
+                  {meta.label}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+          {topSummaryCards.map((card) => (
+            <Col xs={24} md={12} xl={6} key={card.title}>
+              <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: colors.textoFraco, fontSize: 11, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      {card.title}
+                    </div>
+                    <div style={{ color: colors.texto, fontSize: 26, fontWeight: 800, lineHeight: 1.1, wordBreak: "break-word" }}>
+                      {card.value}
+                    </div>
+                  </div>
                   <div
-                    key={stageKey}
-                    onClick={() => moverParaEtapa(stageKey)}
                     style={{
                       alignItems: "center",
-                      background: isActive ? meta.activeBg : isDone ? meta.doneBg : "#F8FAFC",
-                      borderRight: index === stageOrder.length - 1 ? "none" : "1px solid #E5E7EB",
-                      color: isActive || isDone ? meta.activeColor : "#64748B",
-                      cursor: "pointer",
+                      background: colors.fundoSuave,
+                      borderRadius: 12,
                       display: "flex",
-                      fontSize: 14,
-                      fontWeight: isActive ? 700 : 600,
+                      flexShrink: 0,
+                      height: 44,
                       justifyContent: "center",
-                      minHeight: 48,
-                      padding: "0 12px",
+                      width: 44,
                     }}
                   >
-                    {meta.label}
+                    {card.icon}
                   </div>
-                );
-              })}
-            </div>
-          </Card>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
 
-          <Row gutter={[16, 16]}>
-            {topSummaryCards.map((card) => (
-              <Col xs={24} md={12} xl={6} key={card.title}>
-                <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 18 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                    <div>
-                      <div style={{ color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>
-                        {card.title}
-                      </div>
-                      <div style={{ color: "#10233C", fontSize: 26, fontWeight: 800 }}>
-                        {card.value}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        alignItems: "center",
-                        background: "#F8FAFC",
-                        borderRadius: 12,
-                        display: "flex",
-                        height: 44,
-                        justifyContent: "center",
-                        width: 44,
-                      }}
-                    >
-                      {card.icon}
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+        <Alert
+          type="info"
+          showIcon
+          message="Fluxo operacional da OS"
+          description="A barra no topo mostra a etapa exata da OS. Despesas atualizam a margem em tempo real, o faturamento empurra a rotina para o financeiro e o histórico é gerado automaticamente."
+          style={{ borderRadius: 12, marginTop: 20 }}
+        />
 
-          <Alert
-            type="info"
-            showIcon
-            message="Fluxo operacional da OS"
-            description="A barra no topo mostra a etapa exata da OS. Despesas atualizam a margem em tempo real, o faturamento empurra a rotina para o financeiro e o histórico é gerado automaticamente."
-            style={{ borderRadius: 12 }}
-          />
-
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
-          </Card>
-        </Space>
+        <Card bordered={false} style={{ ...panelStyle, marginTop: 20 }} bodyStyle={{ padding: 20 }}>
+          <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+        </Card>
       </Form>
 
       <Modal
