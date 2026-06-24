@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Row, Col, Card, Table, Tag, Typography, Space, Spin, Progress } from "antd";
+import { Row, Col, Card, Table, Tag, Typography, Space, Skeleton, Progress } from "antd";
 import {
   BuildOutlined,
   AlertOutlined,
@@ -11,12 +11,43 @@ import {
   PlayCircleOutlined,
   DollarOutlined,
   CheckSquareOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import api from "../../services/api";
 
 const { Title, Text } = Typography;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 124,
+};
 
 const prioridadeCor = {
   baixa: "blue", media: "gold", alta: "orange", critica: "red", emergencia: "magenta",
@@ -37,6 +68,48 @@ const statusLabel = {
   concluido: "Concluído",
   cancelado: "Cancelado",
 };
+
+function KpiCard({ label, value, icon, color }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textoFraco,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              marginBottom: 14,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            alignItems: "center",
+            background: `${color}14`,
+            borderRadius: 12,
+            color,
+            display: "flex",
+            height: 44,
+            justifyContent: "center",
+            width: 44,
+            fontSize: 20,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 export default function FacilitiesDashboard() {
   const navigate = useNavigate();
@@ -65,62 +138,72 @@ export default function FacilitiesDashboard() {
       label: "Chamados Abertos",
       value: metricas.chamados_abertos || 0,
       icon: <AlertOutlined />,
-      color: "#EF4444",
-      bg: "#FEF2F2",
+      color: colors.vermelho,
     },
     {
       label: "Em Execução",
       value: metricas.chamados_em_execucao || 0,
       icon: <PlayCircleOutlined />,
-      color: "#3B82F6",
-      bg: "#EFF6FF",
+      color: colors.azul,
     },
     {
       label: "SLA Vencendo",
       value: metricas.sla_vencendo || 0,
       icon: <ClockCircleOutlined />,
-      color: (metricas.sla_vencendo || 0) > 0 ? "#EF4444" : "#10B981",
-      bg: (metricas.sla_vencendo || 0) > 0 ? "#FEF2F2" : "#ECFDF5",
+      color: (metricas.sla_vencendo || 0) > 0 ? colors.vermelho : colors.verde,
     },
     {
       label: "Concluídos no Mês",
       value: metricas.concluidos_mes || 0,
       icon: <CheckCircleOutlined />,
-      color: "#10B981",
-      bg: "#ECFDF5",
+      color: colors.verde,
     },
     {
       label: "Unidades Ativas",
       value: metricas.unidades_ativas || 0,
       icon: <BuildOutlined />,
-      color: "#8B5CF6",
-      bg: "#F5F3FF",
+      color: colors.roxo,
     },
     {
       label: "Aprovações Pendentes",
       value: metricas.aprovacoes_pendentes || 0,
       icon: <CheckSquareOutlined />,
-      color: (metricas.aprovacoes_pendentes || 0) > 0 ? "#F59E0B" : "#10B981",
-      bg: (metricas.aprovacoes_pendentes || 0) > 0 ? "#FFFBEB" : "#ECFDF5",
+      color: (metricas.aprovacoes_pendentes || 0) > 0 ? colors.laranja : colors.verde,
     },
   ];
 
+  const acoesRapidas = [
+    { label: "Help Desk / Chamados", path: "/facilities/chamados", icon: <AlertOutlined />, color: colors.vermelho },
+    { label: "Unidades", path: "/facilities/unidades", icon: <BuildOutlined />, color: colors.azul },
+    { label: "Budget", path: "/facilities/budget", icon: <DollarOutlined />, color: colors.laranja },
+    { label: "Aprovações", path: "/facilities/aprovacoes", icon: <CheckSquareOutlined />, color: colors.verde },
+    { label: "Manutenção Preventiva", path: "/facilities/pmp", icon: <ToolOutlined />, color: colors.roxo },
+    { label: "Contratos", path: "/facilities/contratos", icon: <FileProtectOutlined />, color: "#EC4899" },
+    { label: "Obras e Projetos", path: "/facilities/obras", icon: <ProjectOutlined />, color: "#0EA5E9" },
+  ];
+
   const colsChamados = [
-    { title: "Nº", dataIndex: "numero", key: "numero", width: 130 },
+    {
+      title: "Nº",
+      dataIndex: "numero",
+      key: "numero",
+      width: 130,
+      render: (v) => <Text strong style={{ color: colors.azul }}>{v}</Text>,
+    },
     { title: "Tipo de Serviço", dataIndex: "tipo_servico", key: "tipo_servico", ellipsis: true },
     {
       title: "Prioridade",
       dataIndex: "prioridade",
       key: "prioridade",
       width: 110,
-      render: (p) => <Tag color={prioridadeCor[p]}>{p?.toUpperCase()}</Tag>,
+      render: (p) => <Tag color={prioridadeCor[p]} style={{ borderRadius: 999, fontWeight: 600 }}>{p?.toUpperCase()}</Tag>,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
       width: 150,
-      render: (s) => <Tag color={statusCor[s]}>{statusLabel[s] || s}</Tag>,
+      render: (s) => <Tag color={statusCor[s]} style={{ borderRadius: 999, fontWeight: 600 }}>{statusLabel[s] || s}</Tag>,
     },
     {
       title: "Abertura",
@@ -131,132 +214,155 @@ export default function FacilitiesDashboard() {
     },
   ];
 
-  if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
-
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Space direction="vertical" size={4} style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Dashboard Facilities</Title>
-        <Text type="secondary">Visão geral do portal contratante — SaaS</Text>
-      </Space>
+    <div style={pageStyle}>
+      <div>
+        <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>
+          Dashboard Facilities
+        </Title>
+        <Text style={{ color: colors.textoSecundario }}>
+          Visão geral do portal contratante — SaaS
+        </Text>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {kpis.map((k) => (
-          <Col xs={24} sm={12} md={8} lg={4} key={k.label}>
-            <Card
-              style={{ borderRadius: 14, border: "none", background: k.bg, cursor: "default" }}
-              bodyStyle={{ padding: "16px 20px" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 42, height: 42, borderRadius: 10,
-                    background: k.color + "20",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 20, color: k.color,
-                  }}
-                >
-                  {k.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>{k.value}</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>{k.label}</div>
-                </div>
-              </div>
-            </Card>
-          </Col>
-        ))}
-        <Col xs={24} sm={12} md={8} lg={4}>
-          <Card
-            style={{ borderRadius: 14, border: "none", background: "#FFF7ED" }}
-            bodyStyle={{ padding: "16px 20px" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <div
-                style={{
-                  width: 42, height: 42, borderRadius: 10,
-                  background: "#F59E0B20",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 20, color: "#F59E0B",
-                }}
-              >
-                <DollarOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
-                  {budgetPct.toFixed(1)}%
-                </div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Budget Consumido</div>
-              </div>
-            </div>
-            <Progress
-              percent={Math.min(budgetPct, 100)}
-              showInfo={false}
-              strokeColor={budgetPct > 90 ? "#EF4444" : budgetPct > 70 ? "#F59E0B" : "#10B981"}
-              size="small"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
-          <Card
-            title={<span style={{ fontWeight: 600 }}>Chamados Recentes</span>}
-            style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
-            extra={
-              <Text
-                style={{ color: "#3B82F6", cursor: "pointer", fontSize: 13 }}
-                onClick={() => navigate("/facilities/chamados")}
-              >
-                Ver todos
-              </Text>
-            }
-          >
-            <Table
-              dataSource={chamadosRecentes}
-              columns={colsChamados}
-              rowKey="id"
-              pagination={false}
-              size="small"
-              onRow={() => ({ onClick: () => navigate("/facilities/chamados"), style: { cursor: "pointer" } })}
-              locale={{ emptyText: "Nenhum chamado registrado" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card
-            title={<span style={{ fontWeight: 600 }}>Ações Rápidas</span>}
-            style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
-          >
-            {[
-              { label: "Help Desk / Chamados", path: "/facilities/chamados", icon: <AlertOutlined />, color: "#EF4444" },
-              { label: "Unidades", path: "/facilities/unidades", icon: <BuildOutlined />, color: "#3B82F6" },
-              { label: "Budget", path: "/facilities/budget", icon: <DollarOutlined />, color: "#F59E0B" },
-              { label: "Aprovações", path: "/facilities/aprovacoes", icon: <CheckSquareOutlined />, color: "#10B981" },
-              { label: "Manutenção Preventiva", path: "/facilities/pmp", icon: <ToolOutlined />, color: "#8B5CF6" },
-              { label: "Contratos", path: "/facilities/contratos", icon: <FileProtectOutlined />, color: "#EC4899" },
-              { label: "Obras e Projetos", path: "/facilities/obras", icon: <ProjectOutlined />, color: "#0EA5E9" },
-            ].map((item) => (
-              <div
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-                  marginBottom: 8, background: "#F9FAFB",
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F4F6")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#F9FAFB")}
-              >
-                <span style={{ color: item.color, fontSize: 18 }}>{item.icon}</span>
-                <span style={{ fontWeight: 500, color: "#374151" }}>{item.label}</span>
-              </div>
+      {loading ? (
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 10 }} />
+        </Card>
+      ) : (
+        <>
+          <Row gutter={[20, 20]}>
+            {kpis.map((k) => (
+              <Col xs={24} sm={12} md={8} lg={4} key={k.label}>
+                <KpiCard {...k} />
+              </Col>
             ))}
-          </Card>
-        </Col>
-      </Row>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: colors.textoFraco,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: "0.06em",
+                        marginBottom: 14,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Budget Consumido
+                    </div>
+                    <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
+                      {budgetPct.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      alignItems: "center",
+                      background: `${colors.laranja}14`,
+                      borderRadius: 12,
+                      color: colors.laranja,
+                      display: "flex",
+                      height: 44,
+                      justifyContent: "center",
+                      width: 44,
+                      fontSize: 20,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <DollarOutlined />
+                  </div>
+                </div>
+                <Progress
+                  percent={Math.min(budgetPct, 100)}
+                  showInfo={false}
+                  strokeColor={budgetPct > 90 ? colors.vermelho : budgetPct > 70 ? colors.laranja : colors.verde}
+                  size="small"
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[20, 20]}>
+            <Col xs={24} lg={16}>
+              <Card
+                bordered={false}
+                title="Chamados Recentes"
+                style={panelStyle}
+                bodyStyle={{ padding: 0 }}
+                extra={
+                  <Text
+                    style={{ color: colors.azul, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+                    onClick={() => navigate("/facilities/chamados")}
+                  >
+                    Ver todos <ArrowRightOutlined style={{ fontSize: 11 }} />
+                  </Text>
+                }
+              >
+                <Table
+                  dataSource={chamadosRecentes}
+                  columns={colsChamados}
+                  rowKey="id"
+                  pagination={false}
+                  size="middle"
+                  onRow={() => ({ onClick: () => navigate("/facilities/chamados"), style: { cursor: "pointer" } })}
+                  locale={{ emptyText: "Nenhum chamado registrado" }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              <Card
+                bordered={false}
+                title="Ações Rápidas"
+                style={panelStyle}
+              >
+                <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  {acoesRapidas.map((item) => (
+                    <div
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 12,
+                        padding: "12px 14px", borderRadius: 10, cursor: "pointer",
+                        border: `1px solid ${colors.borda}`,
+                        background: colors.fundoSuave,
+                        transition: "background 0.15s, border-color 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#EFF4FB";
+                        e.currentTarget.style.borderColor = "#CBD5E1";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = colors.fundoSuave;
+                        e.currentTarget.style.borderColor = colors.borda;
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          background: `${item.color}14`,
+                          color: item.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {item.icon}
+                      </div>
+                      <span style={{ fontWeight: 600, color: colors.texto, fontSize: 13 }}>{item.label}</span>
+                    </div>
+                  ))}
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
     </div>
   );
 }

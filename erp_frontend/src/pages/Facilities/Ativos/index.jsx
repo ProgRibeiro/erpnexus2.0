@@ -3,13 +3,38 @@ import {
   Table, Button, Modal, Form, Input, Select, DatePicker, Tag,
   Space, Typography, Card, Row, Col, message, InputNumber,
 } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined, ToolOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const statusCor = {
   operacional: "green",
@@ -86,9 +111,29 @@ export default function AtivosPage() {
       dataIndex: "tag",
       key: "tag",
       width: 120,
-      render: (t) => <span style={{ fontWeight: 600, fontFamily: "monospace", color: "#3B82F6" }}>{t}</span>,
+      render: (t) => (
+        <span
+          style={{
+            fontWeight: 700,
+            fontFamily: "monospace",
+            color: colors.azul,
+            background: "#EFF6FF",
+            padding: "2px 8px",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          {t}
+        </span>
+      ),
     },
-    { title: "Nome", dataIndex: "nome", key: "nome", ellipsis: true },
+    {
+      title: "Nome",
+      dataIndex: "nome",
+      key: "nome",
+      ellipsis: true,
+      render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text>,
+    },
     {
       title: "Categoria",
       dataIndex: "categoria",
@@ -108,7 +153,7 @@ export default function AtivosPage() {
       dataIndex: "documentos_count",
       key: "documentos_count",
       width: 110,
-      render: (v) => <Tag color={v ? "blue" : "default"}>{v || 0}</Tag>,
+      render: (v) => <Tag color={v ? "blue" : "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{v || 0}</Tag>,
     },
     {
       title: "Garantia",
@@ -118,7 +163,7 @@ export default function AtivosPage() {
       render: (d) => {
         if (!d) return "-";
         const diff = dayjs(d).diff(dayjs(), "day");
-        return <Tag color={diff < 0 ? "red" : diff <= 30 ? "orange" : "green"}>{dayjs(d).format("DD/MM/YYYY")}</Tag>;
+        return <Tag color={diff < 0 ? "red" : diff <= 30 ? "orange" : "green"} style={{ borderRadius: 999, fontWeight: 600 }}>{dayjs(d).format("DD/MM/YYYY")}</Tag>;
       },
     },
     {
@@ -126,7 +171,7 @@ export default function AtivosPage() {
       dataIndex: "status",
       key: "status",
       width: 140,
-      render: (s) => <Tag color={statusCor[s]}>{statusLabel[s]}</Tag>,
+      render: (s) => <Tag color={statusCor[s]} style={{ borderRadius: 999, fontWeight: 600 }}>{statusLabel[s]}</Tag>,
     },
     {
       title: "Instalação",
@@ -145,40 +190,60 @@ export default function AtivosPage() {
   ];
 
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>Ativos</Title>
-          <Text type="secondary">Cadastro e gestão de equipamentos</Text>
-        </Col>
-        <Col>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.azul}14`,
+                color: colors.azul,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <ToolOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Ativos</Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Cadastro e gestão de equipamentos
+              </Text>
+            </div>
+          </Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setModalOpen(true)}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 8 }}
+            style={{ height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
           >
             Novo Ativo
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </Card>
 
-      <Card style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)", marginBottom: 16 }}>
-        <Row gutter={12} align="middle">
-          <Col flex="auto">
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
+        <Row gutter={[12, 12]} align="middle">
+          <Col xs={24} sm={12} md={12}>
             <Input
               placeholder="Buscar por TAG, nome, fabricante..."
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: colors.textoFraco }} />}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               style={{ borderRadius: 8 }}
             />
           </Col>
-          <Col>
+          <Col xs={12} sm={6} md={6}>
             <Select
               placeholder="Categoria"
               allowClear
-              style={{ width: 150 }}
+              style={{ width: "100%" }}
               onChange={setFiltroCategoria}
             >
               {Object.entries(categoriaLabel).map(([v, l]) => (
@@ -186,11 +251,11 @@ export default function AtivosPage() {
               ))}
             </Select>
           </Col>
-          <Col>
+          <Col xs={12} sm={6} md={6}>
             <Select
               placeholder="Status"
               allowClear
-              style={{ width: 160 }}
+              style={{ width: "100%" }}
               onChange={setFiltroStatus}
             >
               {Object.entries(statusLabel).map(([v, l]) => (
@@ -201,15 +266,17 @@ export default function AtivosPage() {
         </Row>
       </Card>
 
-      <Card style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0 }}>
         <Table
           dataSource={ativos}
           columns={columns}
           rowKey="id"
           loading={loading}
           size="middle"
+          scroll={{ x: 1100 }}
           onRow={(r) => ({ onClick: () => navigate(`/facilities/ativos/${r.id}`), style: { cursor: "pointer" } })}
           pagination={{ pageSize: 20, showSizeChanger: false }}
+          locale={{ emptyText: "Nenhum ativo cadastrado" }}
         />
       </Card>
 
@@ -222,7 +289,6 @@ export default function AtivosPage() {
         cancelText="Cancelar"
         confirmLoading={saving}
         width={700}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={form} layout="vertical" onFinish={salvar} style={{ marginTop: 8 }}>
           <Row gutter={16}>

@@ -1,15 +1,40 @@
 import { useState, useEffect } from "react";
 import {
   Table, Button, Modal, Form, Input, Select, DatePicker, Tag,
-  Row, Col, Card, Typography, message, Space, Collapse, Switch, InputNumber,
+  Row, Col, Card, Typography, message, Space, Collapse, Switch, InputNumber, Skeleton, Empty,
 } from "antd";
-import { PlusOutlined, CheckOutlined } from "@ant-design/icons";
+import { PlusOutlined, CheckOutlined, ToolOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { Panel } = Collapse;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const tipoLabel = { preventiva: "Preventiva", preditiva: "Preditiva", corretiva: "Corretiva", emergencia: "Emergência" };
 const periodicidadeLabel = {
@@ -111,13 +136,13 @@ export default function PMPPage() {
   }, {});
 
   const columns = [
-    { title: "Nome", dataIndex: "nome", key: "nome" },
+    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text> },
     {
       title: "Tipo",
       dataIndex: "tipo",
       key: "tipo",
       width: 120,
-      render: (t) => <Tag>{tipoLabel[t]}</Tag>,
+      render: (t) => <Tag style={{ borderRadius: 999, fontWeight: 600 }}>{tipoLabel[t]}</Tag>,
     },
     {
       title: "Periodicidade",
@@ -140,7 +165,7 @@ export default function PMPPage() {
       width: 160,
       render: (d) => {
         const s = statusPlano(d);
-        return <Tag color={s.cor}>{d ? `${dayjs(d).format("DD/MM/YYYY")} (${s.label})` : s.label}</Tag>;
+        return <Tag color={s.cor} style={{ borderRadius: 999, fontWeight: 600 }}>{d ? `${dayjs(d).format("DD/MM/YYYY")} (${s.label})` : s.label}</Tag>;
       },
     },
     {
@@ -148,7 +173,7 @@ export default function PMPPage() {
       dataIndex: "ativo_plano",
       key: "ativo_plano",
       width: 80,
-      render: (v) => <Tag color={v ? "green" : "default"}>{v ? "Sim" : "Não"}</Tag>,
+      render: (v) => <Tag color={v ? "green" : "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{v ? "Sim" : "Não"}</Tag>,
     },
     {
       title: "Ações",
@@ -159,7 +184,7 @@ export default function PMPPage() {
           size="small"
           icon={<CheckOutlined />}
           onClick={(e) => { e.stopPropagation(); setPlanoExecucao(r); }}
-          style={{ borderColor: "#10B981", color: "#10B981" }}
+          style={{ borderColor: colors.verde, color: colors.verde, borderRadius: 8, fontWeight: 600 }}
         >
           Registrar Exec.
         </Button>
@@ -175,48 +200,70 @@ export default function PMPPage() {
       dataIndex: "obrigatorio",
       key: "obrigatorio",
       width: 110,
-      render: (v) => <Tag color={v ? "red" : "default"}>{v ? "Sim" : "Não"}</Tag>,
+      render: (v) => <Tag color={v ? "red" : "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{v ? "Sim" : "Não"}</Tag>,
     },
   ];
 
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>Manutenção Preventiva (PMP)</Title>
-          <Text type="secondary">Planos e execuções programadas de manutenção</Text>
-        </Col>
-        <Col>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.roxo}14`,
+                color: colors.roxo,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <ToolOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>
+                Manutenção Preventiva (PMP)
+              </Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Planos e execuções programadas de manutenção
+              </Text>
+            </div>
+          </Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setModalOpen(true)}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 8 }}
+            style={{ height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
           >
             Novo Plano
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </Card>
 
-      <Card style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: planos.length ? 8 : 20 }}>
         {loading ? (
-          <div style={{ textAlign: "center", padding: 40 }}>Carregando...</div>
+          <Skeleton active paragraph={{ rows: 6 }} />
         ) : Object.keys(planosPorAtivo).length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "#9CA3AF" }}>Nenhum plano cadastrado</div>
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum plano cadastrado" style={{ padding: "32px 0" }} />
         ) : (
           <Collapse accordion ghost>
             {Object.entries(planosPorAtivo).map(([ativoKey, planosList]) => (
               <Panel
                 key={ativoKey}
                 header={
-                  <Space>
-                    <span style={{ fontWeight: 600 }}>{ativoKey}</span>
-                    <Tag color="blue">{planosList.length} planos</Tag>
+                  <Space wrap>
+                    <span style={{ fontWeight: 700, color: colors.texto }}>{ativoKey}</span>
+                    <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>{planosList.length} planos</Tag>
                     {planosList.some((p) => statusPlano(p.proxima_execucao).cor === "red") && (
-                      <Tag color="red">Vencido</Tag>
+                      <Tag color="red" style={{ borderRadius: 999, fontWeight: 600 }}>Vencido</Tag>
                     )}
                     {planosList.some((p) => statusPlano(p.proxima_execucao).cor === "orange") && (
-                      <Tag color="orange">Vencendo</Tag>
+                      <Tag color="orange" style={{ borderRadius: 999, fontWeight: 600 }}>Vencendo</Tag>
                     )}
                   </Space>
                 }
@@ -230,8 +277,8 @@ export default function PMPPage() {
                   expandable={{
                     expandedRowRender: (r) => (
                       r.checklist?.length > 0 ? (
-                        <div style={{ padding: "8px 16px", background: "#F9FAFB", borderRadius: 8 }}>
-                          <Text strong style={{ fontSize: 13 }}>Checklist:</Text>
+                        <div style={{ padding: "8px 16px", background: colors.fundoSuave, borderRadius: 8 }}>
+                          <Text strong style={{ fontSize: 13, color: colors.texto }}>Checklist:</Text>
                           <Table
                             dataSource={r.checklist}
                             columns={checklistColumns}
@@ -242,7 +289,7 @@ export default function PMPPage() {
                           />
                         </div>
                       ) : (
-                        <span style={{ color: "#9CA3AF", padding: "0 16px" }}>Sem itens no checklist</span>
+                        <span style={{ color: colors.textoFraco, padding: "0 16px" }}>Sem itens no checklist</span>
                       )
                     ),
                   }}
@@ -262,7 +309,6 @@ export default function PMPPage() {
         cancelText="Cancelar"
         confirmLoading={saving}
         width={600}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={form} layout="vertical" onFinish={salvar} style={{ marginTop: 8 }}>
           <Form.Item name="ativo" label="Ativo" rules={[{ required: true }]}>
@@ -329,14 +375,14 @@ export default function PMPPage() {
         okText="Registrar"
         cancelText="Cancelar"
         width={680}
-        okButtonProps={{ style: { background: "#10B981", borderColor: "#10B981" } }}
+        okButtonProps={{ style: { background: colors.verde, borderColor: colors.verde } }}
       >
         <Form form={execForm} layout="vertical" onFinish={salvarExecucao}>
           <div style={{ marginBottom: 12 }}>
-            <Text type="secondary">Checklist digital</Text>
+            <Text style={{ color: colors.textoSecundario }}>Checklist digital</Text>
             <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
               {(planoExecucao?.checklist || []).length === 0 ? (
-                <Text type="secondary">Sem itens cadastrados.</Text>
+                <Text style={{ color: colors.textoSecundario }}>Sem itens cadastrados.</Text>
               ) : planoExecucao.checklist.map((item) => (
                 <Form.Item key={item.id} name={`check_${item.id}`} valuePropName="checked" style={{ marginBottom: 4 }}>
                   <Switch checkedChildren="OK" unCheckedChildren="Pendente" /> <span style={{ marginLeft: 8 }}>{item.descricao}</span>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Row, Col, Card, Tabs, Table, Button, Form, Input, Select,
-  Modal, Typography, Space, Tag, Divider, Spin, message, Tooltip,
+  Modal, Typography, Space, Tag, Divider, Skeleton, message, Tooltip,
   InputNumber, Switch, Badge,
 } from "antd";
 import {
@@ -13,6 +13,31 @@ import {
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const TIPOS_UNIDADE = [
   { value: "loja_shopping", label: "Loja Shopping" },
@@ -101,12 +126,12 @@ function AbaInfoTenant() {
   const cols = [
     { title: "Empresa", dataIndex: "nome", key: "nome", render: (v, r) => (
       <Space direction="vertical" size={0}>
-        <Text strong>{v}</Text>
+        <Text strong style={{ color: colors.texto }}>{v}</Text>
         <Text type="secondary" style={{ fontSize: 12 }}>{r.cnpj}</Text>
       </Space>
     )},
     { title: "Plano", dataIndex: "plano", key: "plano", render: (v) => (
-      <Tag color="purple">{v}</Tag>
+      <Tag color="purple" style={{ borderRadius: 999, fontWeight: 600 }}>{v}</Tag>
     )},
     { title: "Status", dataIndex: "status", key: "status", render: (v) => {
       const s = STATUS_TENANT[v] ?? { color: "default", label: v };
@@ -116,22 +141,22 @@ function AbaInfoTenant() {
     { title: "Limite Unidades", dataIndex: "limite_unidades", key: "limite_unidades" },
     { title: "Ações", key: "acoes", render: (_, r) => (
       <Space>
-        <Tooltip title="Editar"><Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} /></Tooltip>
-        <Tooltip title="Desativar"><Button icon={<DeleteOutlined />} size="small" danger onClick={() => excluir(r.id)} /></Tooltip>
+        <Tooltip title="Editar"><Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} style={{ borderRadius: 8 }} /></Tooltip>
+        <Tooltip title="Desativar"><Button icon={<DeleteOutlined />} size="small" danger onClick={() => excluir(r.id)} style={{ borderRadius: 8 }} /></Tooltip>
       </Space>
     )},
   ];
 
   return (
     <div>
-      <Space className="mb-4" style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo}>Novo Tenant</Button>
+      <Space style={{ marginBottom: 16 }}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo} style={{ borderRadius: 8, fontWeight: 600 }}>Novo Tenant</Button>
       </Space>
       <Table columns={cols} dataSource={tenants} rowKey="id" loading={loading} size="middle" pagination={{ pageSize: 10 }} />
 
       <Modal title={editando ? "Editar Tenant" : "Novo Tenant"} open={modalAberto} onOk={salvar}
         onCancel={() => setModalAberto(false)} confirmLoading={saving} width={640}>
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
           <Row gutter={16}>
             <Col span={12}><Form.Item name="nome" label="Nome" rules={[{ required: true }]}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="cnpj" label="CNPJ" rules={[{ required: true }]}><Input /></Form.Item></Col>
@@ -216,22 +241,22 @@ function AbaEmpresas() {
   const cols = [
     { title: "Empresa", dataIndex: "nome", key: "nome", render: (v, r) => (
       <Space direction="vertical" size={0}>
-        <Text strong>{v}</Text>
+        <Text strong style={{ color: colors.texto }}>{v}</Text>
         <Text type="secondary" style={{ fontSize: 12 }}>{r.cnpj}</Text>
       </Space>
     )},
     { title: "Nível", dataIndex: "nivel_hierarquia", key: "nivel_hierarquia", render: (v) => (
-      <Tag color={NIVEL_COR[v] ?? "default"}>{NIVEL_LABEL[v] ?? v}</Tag>
+      <Tag color={NIVEL_COR[v] ?? "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{NIVEL_LABEL[v] ?? v}</Tag>
     )},
-    { title: "Tipo", dataIndex: "tipo", key: "tipo", render: (v) => <Tag>{v}</Tag> },
+    { title: "Tipo", dataIndex: "tipo", key: "tipo", render: (v) => <Tag style={{ borderRadius: 999, fontWeight: 600 }}>{v}</Tag> },
     { title: "Tenant", dataIndex: "tenant", key: "tenant", render: (id) => {
       const t = tenants.find(t => t.id === id);
       return t ? <Text type="secondary">{t.nome}</Text> : id;
     }},
     { title: "Ações", key: "acoes", render: (_, r) => (
       <Space>
-        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} />
-        <Button icon={<DeleteOutlined />} size="small" danger onClick={() => excluir(r.id)} />
+        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} style={{ borderRadius: 8 }} />
+        <Button icon={<DeleteOutlined />} size="small" danger onClick={() => excluir(r.id)} style={{ borderRadius: 8 }} />
       </Space>
     )},
   ];
@@ -239,12 +264,12 @@ function AbaEmpresas() {
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo}>Nova Empresa</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo} style={{ borderRadius: 8, fontWeight: 600 }}>Nova Empresa</Button>
       </Space>
       <Table columns={cols} dataSource={empresas} rowKey="id" loading={loading} size="middle" />
       <Modal title={editando ? "Editar Empresa" : "Nova Empresa"} open={modalAberto}
         onOk={salvar} onCancel={() => setModalAberto(false)} confirmLoading={saving} width={600}>
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
           <Row gutter={16}>
             <Col span={12}><Form.Item name="nome" label="Nome" rules={[{ required: true }]}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="cnpj" label="CNPJ"><Input /></Form.Item></Col>
@@ -305,13 +330,13 @@ function AbaNiveisAprovacao() {
   };
 
   const cols = [
-    { title: "Ordem", dataIndex: "ordem", key: "ordem", width: 60, render: (v) => <Tag color="blue">{v}°</Tag> },
-    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong>{v}</Text> },
+    { title: "Ordem", dataIndex: "ordem", key: "ordem", width: 60, render: (v) => <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>{v}°</Tag> },
+    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text> },
     { title: "Faixa de Valor", key: "faixa", render: (_, r) => (
       <Text>R$ {Number(r.valor_minimo).toLocaleString("pt-BR")} — R$ {Number(r.valor_maximo).toLocaleString("pt-BR")}</Text>
     )},
     { title: "3 Cotações?", dataIndex: "requer_3_cotacoes", key: "requer_3_cotacoes", render: (v) => (
-      v ? <CheckCircleOutlined style={{ color: "#10B981" }} /> : <Text type="secondary">Não</Text>
+      v ? <CheckCircleOutlined style={{ color: colors.verde }} /> : <Text type="secondary">Não</Text>
     )},
     { title: "Tenant", dataIndex: "tenant", key: "tenant", render: (id) => {
       const t = tenants.find(t => t.id === id);
@@ -319,7 +344,7 @@ function AbaNiveisAprovacao() {
     }},
     { title: "Ações", key: "acoes", render: (_, r) => (
       <Space>
-        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} />
+        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} style={{ borderRadius: 8 }} />
       </Space>
     )},
   ];
@@ -331,12 +356,12 @@ function AbaNiveisAprovacao() {
         passam automaticamente pelo fluxo de aprovação correspondente.
       </Text>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo}>Novo Nível</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo} style={{ borderRadius: 8, fontWeight: 600 }}>Novo Nível</Button>
       </Space>
       <Table columns={cols} dataSource={niveis} rowKey="id" loading={loading} size="middle" />
       <Modal title={editando ? "Editar Nível de Aprovação" : "Novo Nível de Aprovação"}
         open={modalAberto} onOk={salvar} onCancel={() => setModalAberto(false)} confirmLoading={saving}>
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
           <Form.Item name="nome" label="Nome (ex: Coordenador, Diretor)" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
@@ -376,34 +401,37 @@ function AbaPlanosSaaS() {
       <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
         Planos disponíveis na plataforma. Para criar ou editar planos, use o painel administrativo.
       </Text>
-      {loading ? <Spin /> : (
+      {loading ? <Skeleton active paragraph={{ rows: 6 }} /> : (
         <Row gutter={[16, 16]}>
           {planos.map(p => (
             <Col xs={24} md={8} key={p.id}>
-              <Card style={{ borderTop: `4px solid ${COR_PLANO[p.nome.toLowerCase().replace(" ", "")] ?? "#3B82F6"}` }}>
+              <Card
+                bordered={false}
+                style={{ ...panelStyle, borderTop: `4px solid ${COR_PLANO[p.nome.toLowerCase().replace(" ", "")] ?? colors.azul}` }}
+              >
                 <Space direction="vertical" style={{ width: "100%" }}>
                   <Text style={{ fontSize: 28 }}>{ICONE_PLANO[p.nome.toLowerCase().replace(" ", "")]}</Text>
-                  <Title level={4} style={{ margin: 0 }}>{p.nome}</Title>
-                  <Title level={2} style={{ margin: 0, color: "#3B82F6" }}>
+                  <Title level={4} style={{ margin: 0, color: colors.texto }}>{p.nome}</Title>
+                  <Title level={2} style={{ margin: 0, color: colors.azul }}>
                     R$ {Number(p.valor_mensal).toLocaleString("pt-BR")}<span style={{ fontSize: 14, fontWeight: 400 }}>/mês</span>
                   </Title>
                   <Divider style={{ margin: "8px 0" }} />
                   <Space direction="vertical" size={4}>
-                    <Text><UserOutlined /> até {p.limite_usuarios} usuários</Text>
-                    <Text><EnvironmentOutlined /> até {p.limite_unidades} unidades</Text>
-                    <Text><BuildOutlined /> até {p.limite_chamados_mes} chamados/mês</Text>
+                    <Text style={{ color: colors.textoSecundario }}><UserOutlined /> até {p.limite_usuarios} usuários</Text>
+                    <Text style={{ color: colors.textoSecundario }}><EnvironmentOutlined /> até {p.limite_unidades} unidades</Text>
+                    <Text style={{ color: colors.textoSecundario }}><BuildOutlined /> até {p.limite_chamados_mes} chamados/mês</Text>
                   </Space>
                   {p.recursos_inclusos?.length > 0 && (
                     <>
                       <Divider style={{ margin: "8px 0" }} />
                       <Space wrap>
                         {p.recursos_inclusos.map(r => (
-                          <Tag key={r} color="green" icon={<CheckCircleOutlined />}>{r}</Tag>
+                          <Tag key={r} color="green" icon={<CheckCircleOutlined />} style={{ borderRadius: 999, fontWeight: 600 }}>{r}</Tag>
                         ))}
                       </Space>
                     </>
                   )}
-                  <Tag color={p.ativo ? "green" : "red"}>{p.ativo ? "Ativo" : "Inativo"}</Tag>
+                  <Tag color={p.ativo ? "green" : "red"} style={{ borderRadius: 999, fontWeight: 600 }}>{p.ativo ? "Ativo" : "Inativo"}</Tag>
                 </Space>
               </Card>
             </Col>
@@ -449,7 +477,7 @@ function AbaPrestadores() {
   const cols = [
     { title: "Prestador", dataIndex: "tenant_prestador", key: "tenant_prestador", render: (id) => {
       const t = tenants.find(t => t.id === id);
-      return <Text strong>{t?.nome ?? `Tenant #${id}`}</Text>;
+      return <Text strong style={{ color: colors.texto }}>{t?.nome ?? `Tenant #${id}`}</Text>;
     }},
     { title: "SLA Atendimento", dataIndex: "sla_atendimento_horas", key: "sla", render: (v) => `${v}h` },
     { title: "Valor/Hora", dataIndex: "valor_hora_padrao", key: "valor", render: (v) => (
@@ -460,7 +488,7 @@ function AbaPrestadores() {
     )},
     { title: "Ações", key: "acoes", render: (_, r) => (
       <Space>
-        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} />
+        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} style={{ borderRadius: 8 }} />
       </Space>
     )},
   ];
@@ -471,12 +499,12 @@ function AbaPrestadores() {
         Prestadores de serviço com contrato ativo. Podem receber chamados e orçamentos da plataforma.
       </Text>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo}>Adicionar Prestador</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo} style={{ borderRadius: 8, fontWeight: 600 }}>Adicionar Prestador</Button>
       </Space>
       <Table columns={cols} dataSource={prestadores} rowKey="id" loading={loading} size="middle" />
       <Modal title={editando ? "Editar Prestador Contratado" : "Adicionar Prestador Contratado"}
         open={modalAberto} onOk={salvar} onCancel={() => setModalAberto(false)} confirmLoading={saving}>
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
           <Form.Item name="tenant_contratante" label="Contratante" rules={[{ required: true }]}>
             <Select options={tenants.filter(t => t.tipo !== "prestador").map(t => ({ value: t.id, label: t.nome }))} />
           </Form.Item>
@@ -533,15 +561,15 @@ function AbaCategoriasBudget() {
 
   const cols = [
     { title: "Cor", dataIndex: "cor_hex", key: "cor", render: (v) => (
-      <div style={{ width: 24, height: 24, background: v, borderRadius: 6, border: "1px solid #eee" }} />
+      <div style={{ width: 24, height: 24, background: v, borderRadius: 6, border: `1px solid ${colors.borda}` }} />
     )},
-    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong>{v}</Text> },
+    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text> },
     { title: "Status", dataIndex: "ativo", key: "ativo", render: (v) => (
       <Badge status={v ? "success" : "error"} text={v ? "Ativo" : "Inativo"} />
     )},
     { title: "Ações", key: "acoes", render: (_, r) => (
       <Space>
-        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} />
+        <Button icon={<EditOutlined />} size="small" onClick={() => abrirEdicao(r)} style={{ borderRadius: 8 }} />
       </Space>
     )},
   ];
@@ -549,12 +577,12 @@ function AbaCategoriasBudget() {
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo}>Nova Categoria</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={abrirNovo} style={{ borderRadius: 8, fontWeight: 600 }}>Nova Categoria</Button>
       </Space>
       <Table columns={cols} dataSource={dados} rowKey="id" loading={loading} size="middle" />
       <Modal title={editando ? "Editar Categoria" : "Nova Categoria de Budget"}
         open={modalAberto} onOk={salvar} onCancel={() => setModalAberto(false)} confirmLoading={saving}>
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
           <Form.Item name="nome" label="Nome" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="cor_hex" label="Cor (hex)" rules={[{ required: true }]} initialValue="#3B82F6">
             <Input type="color" style={{ width: 80, padding: 2 }} />
@@ -605,35 +633,46 @@ const ABAS = [
 
 export default function FacilitiesConfiguracoesPage() {
   return (
-    <div style={{ padding: "24px" }}>
-      <Row gutter={[0, 16]}>
-        <Col span={24}>
-          <Card>
-            <Space align="start">
-              <SettingOutlined style={{ fontSize: 32, color: "#3B82F6" }} />
-              <div>
-                <Title level={3} style={{ margin: 0 }}>Configurações do Facilities</Title>
-                <Text type="secondary">
-                  Gerencie tenants, estrutura de empresas, alçadas de aprovação, planos e prestadores contratados.
-                  Essas configurações são independentes do ERP Nexus.
-                </Text>
-              </div>
-            </Space>
-          </Card>
-        </Col>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start">
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.azul}14`,
+              color: colors.azul,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <SettingOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>
+              Configurações do Facilities
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Gerencie tenants, estrutura de empresas, alçadas de aprovação, planos e prestadores contratados.
+              Essas configurações são independentes do ERP Nexus.
+            </Text>
+          </div>
+        </Space>
+      </Card>
 
-        <Col span={24}>
-          <Card bodyStyle={{ padding: 0 }}>
-            <Tabs
-              items={ABAS}
-              tabBarStyle={{ padding: "0 24px", marginBottom: 0 }}
-              tabBarGutter={32}
-              style={{ padding: "0" }}
-              tabPosition="top"
-            />
-          </Card>
-        </Col>
-      </Row>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0 }}>
+        <Tabs
+          items={ABAS}
+          tabBarStyle={{ padding: "0 24px", marginBottom: 0 }}
+          tabBarGutter={32}
+          style={{ padding: "16px 8px 8px" }}
+          tabPosition="top"
+        />
+      </Card>
     </div>
   );
 }
