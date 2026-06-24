@@ -13,16 +13,100 @@ import {
   Row,
   Col,
   DatePicker,
-  Badge,
-  Statistic,
   Empty,
 } from "antd";
-import { PlusOutlined, FilterOutlined, ClearOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  FilterOutlined,
+  ClearOutlined,
+  ApartmentOutlined,
+  DollarOutlined,
+  WarningOutlined,
+  RiseOutlined,
+} from "@ant-design/icons";
 
 import clienteService from "../../services/clienteService";
 import crmService from "../../services/crm";
 import KanbanBoard from "./KanbanBoard";
 import OportunidadeDrawer from "./OportunidadeDrawer";
+
+const { Title, Text } = Typography;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const sectionCardStyle = {
+  border: "1px solid #E2E6EC",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  border: "1px solid #E2E6EC",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+  minHeight: 124,
+};
+
+function CrmMetricCard({ label, value, color, icon, valueColor }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: colors.textoFraco,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              marginBottom: 12,
+            }}
+          >
+            {label}
+          </div>
+          <div
+            style={{
+              fontSize: 26,
+              lineHeight: 1.1,
+              fontWeight: 700,
+              color: valueColor || colors.texto,
+              wordBreak: "break-word",
+            }}
+          >
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            flexShrink: 0,
+            borderRadius: 10,
+            background: `${color}14`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color,
+            fontSize: 18,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 export default function CRMPage() {
   const [pipelines, setPipelines] = useState([]);
@@ -196,15 +280,27 @@ export default function CRMPage() {
     });
 
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Header */}
-      <Card>
-        <div className="page-header">
+      <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
           <div>
-            <Typography.Title level={3}>CRM</Typography.Title>
-            <Typography.Text type="secondary">Gestão de oportunidades comerciais</Typography.Text>
+            <Title level={3} style={{ margin: 0, color: colors.texto, fontWeight: 700 }}>
+              CRM
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Gestão de oportunidades comerciais
+            </Text>
           </div>
-          <Space>
+          <Space wrap>
             {pipelines.length > 0 ? (
               <>
                 <Select
@@ -228,117 +324,110 @@ export default function CRMPage() {
             )}
           </Space>
         </div>
+      </Card>
 
-        {pipelines.length > 0 && (
-          <>
-            {/* Estatísticas */}
-            <Row gutter={16} style={{ marginBottom: 16 }}>
-              <Col span={6}>
-                <Card size="small" style={{ textAlign: "center" }}>
-                  <Statistic
-                    title="Total de Oportunidades"
-                    value={estatisticas.total}
-                    prefix={<Badge color="#3B82F6" />}
-                  />
-                </Card>
-              </Col>
-              <Col span={6}>
-                <Card size="small" style={{ textAlign: "center" }}>
-                  <Statistic
-                    title="Valor em Carteira"
-                    value={estatisticas.valor}
-                    formatter={(value) => formatCurrency(value)}
-                    valueStyle={{ color: "#3B82F6", fontSize: 14 }}
-                  />
-                </Card>
-              </Col>
-              <Col span={6}>
-                <Card size="small" style={{ textAlign: "center" }}>
-                  <Statistic
-                    title="Prioridade Alta"
-                    value={estatisticas.altaPrioridade}
-                    valueStyle={{ color: "#ef4444" }}
-                    suffix={
-                      estatisticas.altaPrioridade > 0 ? (
-                        <span style={{ color: "#ef4444", marginLeft: 4 }}>⚠️</span>
-                      ) : null
-                    }
-                  />
-                </Card>
-              </Col>
-              <Col span={6}>
-                <Card size="small" style={{ textAlign: "center" }}>
-                  <Statistic
-                    title="Taxa de Conversão"
-                    value={kanban?.taxa_conversao || 0}
-                    suffix="%"
-                    valueStyle={{ color: "#10b981" }}
-                  />
-                </Card>
-              </Col>
-            </Row>
+      {pipelines.length > 0 && (
+        <>
+          {/* Estatísticas */}
+          <Row gutter={[20, 20]}>
+            <Col xs={24} sm={12} xl={6}>
+              <CrmMetricCard
+                label="Total de Oportunidades"
+                value={estatisticas.total}
+                color={colors.azul}
+                icon={<ApartmentOutlined />}
+              />
+            </Col>
+            <Col xs={24} sm={12} xl={6}>
+              <CrmMetricCard
+                label="Valor em Carteira"
+                value={formatCurrency(estatisticas.valor)}
+                color={colors.azul}
+                icon={<DollarOutlined />}
+              />
+            </Col>
+            <Col xs={24} sm={12} xl={6}>
+              <CrmMetricCard
+                label="Prioridade Alta"
+                value={estatisticas.altaPrioridade}
+                color={colors.vermelho}
+                valueColor={estatisticas.altaPrioridade > 0 ? colors.vermelho : colors.texto}
+                icon={<WarningOutlined />}
+              />
+            </Col>
+            <Col xs={24} sm={12} xl={6}>
+              <CrmMetricCard
+                label="Taxa de Conversão"
+                value={`${kanban?.taxa_conversao || 0}%`}
+                color={colors.verde}
+                valueColor={colors.verde}
+                icon={<RiseOutlined />}
+              />
+            </Col>
+          </Row>
 
-            {/* Filtros */}
-            <Card size="small" style={{ backgroundColor: "#f9fafb", marginBottom: 16 }}>
-              <Form layout="inline" style={{ width: "100%" }}>
-                <Form.Item label={<FilterOutlined />} style={{ marginBottom: 0 }}>
-                  <Select
-                    style={{ width: 200 }}
-                    placeholder="Filtrar por responsável"
-                    allowClear
-                    value={filtros.responsavel_id}
-                    onChange={(value) => setFiltros({ ...filtros, responsavel_id: value })}
-                    options={[
-                      { label: "Todos", value: null },
-                      ...responsaveis.map((r) => ({ label: r.nome, value: r.id })),
-                    ]}
-                  />
-                </Form.Item>
+          {/* Filtros */}
+          <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 16 }}>
+            <Form layout="inline" style={{ width: "100%", rowGap: 12 }}>
+              <Form.Item label={<FilterOutlined style={{ color: colors.textoFraco }} />} style={{ marginBottom: 0 }}>
+                <Select
+                  style={{ width: 200 }}
+                  placeholder="Filtrar por responsável"
+                  allowClear
+                  value={filtros.responsavel_id}
+                  onChange={(value) => setFiltros({ ...filtros, responsavel_id: value })}
+                  options={[
+                    { label: "Todos", value: null },
+                    ...responsaveis.map((r) => ({ label: r.nome, value: r.id })),
+                  ]}
+                />
+              </Form.Item>
 
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Select
+                  style={{ width: 200 }}
+                  placeholder="Filtrar por prioridade"
+                  allowClear
+                  value={filtros.prioridade}
+                  onChange={(value) => setFiltros({ ...filtros, prioridade: value })}
+                  options={[
+                    { label: "Todas", value: null },
+                    { label: "🟢 Baixa", value: "baixa" },
+                    { label: "🟡 Média", value: "media" },
+                    { label: "🔴 Alta", value: "alta" },
+                    { label: "🟣 Urgente", value: "urgente" },
+                  ]}
+                />
+              </Form.Item>
+
+              <Form.Item style={{ marginBottom: 0 }}>
+                <DatePicker
+                  placeholder="Data início"
+                  value={filtros.data_inicio}
+                  onChange={(date) => setFiltros({ ...filtros, data_inicio: date })}
+                />
+              </Form.Item>
+
+              <Form.Item style={{ marginBottom: 0 }}>
+                <DatePicker
+                  placeholder="Data fim"
+                  value={filtros.data_fim}
+                  onChange={(date) => setFiltros({ ...filtros, data_fim: date })}
+                />
+              </Form.Item>
+
+              {temFiltrosAtivos && (
                 <Form.Item style={{ marginBottom: 0 }}>
-                  <Select
-                    style={{ width: 200 }}
-                    placeholder="Filtrar por prioridade"
-                    allowClear
-                    value={filtros.prioridade}
-                    onChange={(value) => setFiltros({ ...filtros, prioridade: value })}
-                    options={[
-                      { label: "Todas", value: null },
-                      { label: "🟢 Baixa", value: "baixa" },
-                      { label: "🟡 Média", value: "media" },
-                      { label: "🔴 Alta", value: "alta" },
-                      { label: "🟣 Urgente", value: "urgente" },
-                    ]}
-                  />
+                  <Button icon={<ClearOutlined />} onClick={handleLimparFiltros}>
+                    Limpar filtros
+                  </Button>
                 </Form.Item>
+              )}
+            </Form>
+          </Card>
 
-                <Form.Item style={{ marginBottom: 0 }}>
-                  <DatePicker
-                    placeholder="Data início"
-                    value={filtros.data_inicio}
-                    onChange={(date) => setFiltros({ ...filtros, data_inicio: date })}
-                  />
-                </Form.Item>
-
-                <Form.Item style={{ marginBottom: 0 }}>
-                  <DatePicker
-                    placeholder="Data fim"
-                    value={filtros.data_fim}
-                    onChange={(date) => setFiltros({ ...filtros, data_fim: date })}
-                  />
-                </Form.Item>
-
-                {temFiltrosAtivos && (
-                  <Form.Item style={{ marginBottom: 0 }}>
-                    <Button icon={<ClearOutlined />} onClick={handleLimparFiltros}>
-                      Limpar filtros
-                    </Button>
-                  </Form.Item>
-                )}
-              </Form>
-            </Card>
-
-            {/* Kanban Board */}
+          {/* Kanban Board */}
+          <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
             {kanban?.colunas?.length ? (
               <KanbanBoard
                 kanban={kanban}
@@ -347,11 +436,11 @@ export default function CRMPage() {
                 onOpen={handleOpen}
               />
             ) : (
-              <Empty description="Nenhuma coluna configurada para este pipeline" />
+              <Empty description="Nenhuma coluna configurada para este pipeline" style={{ padding: "40px 0" }} />
             )}
-          </>
-        )}
-      </Card>
+          </Card>
+        </>
+      )}
 
       {/* Modal de criação */}
       <Modal
@@ -440,6 +529,6 @@ export default function CRMPage() {
         onClose={() => setDrawerOpen(false)}
         onRefresh={handleRefreshDrawer}
       />
-    </Space>
+    </div>
   );
 }

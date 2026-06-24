@@ -1,7 +1,13 @@
-import { Empty, Spin, Typography, Space, Card } from "antd";
+import { Empty, Spin, Typography } from "antd";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 import KanbanCard from "./KanbanCard";
+
+const colors = {
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  azul: "#3B82F6",
+};
 
 export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
   const handleDragEnd = (result) => {
@@ -31,11 +37,15 @@ export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
   };
 
   if (loading) {
-    return <Spin />;
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
+        <Spin />
+      </div>
+    );
   }
 
   if (!kanban?.colunas?.length) {
-    return <Empty description="Nenhum pipeline configurado" />;
+    return <Empty description="Nenhum pipeline configurado" style={{ padding: "40px 0" }} />;
   }
 
   return (
@@ -49,37 +59,49 @@ export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
                 {...provided.droppableProps}
                 className="crm-kanban-column"
                 style={{
-                  backgroundColor: snapshot.isDraggingOver ? "#f0f5ff" : "#f9fafb",
-                  borderRadius: 12,
+                  backgroundColor: snapshot.isDraggingOver ? "#EFF6FF" : "#F8FAFD",
+                  border: `1px solid ${snapshot.isDraggingOver ? "#BFDBFE" : colors.borda}`,
+                  borderRadius: 14,
                   padding: 14,
                   minWidth: 290,
                   maxWidth: 290,
                   minHeight: 400,
-                  transition: "background-color 0.2s ease",
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
                 }}
               >
-                <div className="crm-kanban-column-header">
+                <div
+                  className="crm-kanban-column-header"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    paddingBottom: 12,
+                    marginBottom: 0,
+                    borderBottom: `1px solid ${colors.borda}`,
+                  }}
+                >
                   <span
                     className="crm-kanban-color"
                     style={{
-                      background: coluna.cor || "#3B82F6",
-                      width: 12,
-                      height: 12,
-                      borderRadius: 6,
+                      background: coluna.cor || colors.azul,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
                       marginRight: 8,
+                      flexShrink: 0,
                     }}
                   />
-                  <Typography.Text strong style={{ flex: 1 }}>
+                  <Typography.Text strong style={{ flex: 1, fontSize: 13 }}>
                     {coluna.nome}
                   </Typography.Text>
                   <Typography.Text
-                    type="secondary"
                     style={{
-                      backgroundColor: "#e5e7eb",
-                      padding: "2px 8px",
-                      borderRadius: 12,
+                      backgroundColor: "#FFFFFF",
+                      border: `1px solid ${colors.borda}`,
+                      color: "#475569",
+                      padding: "1px 9px",
+                      borderRadius: 999,
                       fontSize: 11,
-                      fontWeight: 600,
+                      fontWeight: 700,
                     }}
                   >
                     {coluna.oportunidades?.length || 0}
@@ -88,7 +110,7 @@ export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
 
                 <div className="crm-kanban-column-body" style={{ marginTop: 12 }}>
                   {(coluna.oportunidades || []).length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "20px 0", color: "#9099a8" }}>
+                    <div style={{ textAlign: "center", padding: "26px 0", color: colors.textoFraco, fontSize: 12 }}>
                       <Typography.Text type="secondary">Nenhuma oportunidade</Typography.Text>
                     </div>
                   ) : (

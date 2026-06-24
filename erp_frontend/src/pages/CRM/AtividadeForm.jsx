@@ -25,7 +25,11 @@ export default function AtividadeForm({ oportunidadeId, onSubmit, loading }) {
   };
 
   return (
-    <Card size="small" style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb" }}>
+    <Card
+      size="small"
+      bordered={false}
+      style={{ backgroundColor: "#F8FAFD", border: "1px solid #E2E6EC", borderRadius: 12 }}
+    >
       <Form form={form} layout="vertical" onFinish={handleFinish}>
         <Form.Item
           name="tipo"

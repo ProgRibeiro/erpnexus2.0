@@ -3,6 +3,7 @@ import {
   Descriptions,
   Divider,
   Drawer,
+  Empty,
   Form,
   Input,
   List,
@@ -16,6 +17,7 @@ import {
   Row,
   Col,
   Tooltip,
+  Typography,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -27,6 +29,15 @@ import {
 
 import crmService from "../../services/crm";
 import AtividadeForm from "./AtividadeForm";
+
+const colors = {
+  azul: "#3B82F6",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
 
 const formatCurrency = (value) =>
   Number(value || 0).toLocaleString("pt-BR", {
@@ -83,7 +94,7 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
       title={
         oportunidade && (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span>{oportunidade.titulo}</span>
+            <span style={{ fontWeight: 700, color: colors.texto }}>{oportunidade.titulo}</span>
             <Tag color={prioridade.color}>{prioridade.label}</Tag>
           </div>
         )
@@ -100,24 +111,28 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
       {oportunidade && (
         <Space direction="vertical" size={20} style={{ width: "100%" }}>
           {/* Informações principais */}
-          <Card size="small">
+          <Card
+            size="small"
+            bordered={false}
+            style={{ border: `1px solid ${colors.borda}`, borderRadius: 12 }}
+          >
             <Row gutter={16}>
               <Col span={12}>
                 <div>
-                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, color: colors.textoFraco, fontWeight: 700, letterSpacing: "0.04em" }}>
                     CLIENTE
                   </span>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4, color: colors.texto }}>
                     {oportunidade.cliente_nome}
                   </div>
                 </div>
               </Col>
               <Col span={12}>
                 <div>
-                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, color: colors.textoFraco, fontWeight: 700, letterSpacing: "0.04em" }}>
                     CONTATO
                   </span>
-                  <div style={{ fontSize: 14, marginTop: 4 }}>
+                  <div style={{ fontSize: 14, marginTop: 4, color: colors.texto }}>
                     {oportunidade.contato_nome || "-"}
                   </div>
                 </div>
@@ -126,24 +141,28 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
           </Card>
 
           {/* Detalhes financeiros */}
-          <Card size="small">
+          <Card
+            size="small"
+            bordered={false}
+            style={{ border: `1px solid ${colors.borda}`, borderRadius: 12 }}
+          >
             <Row gutter={16}>
               <Col span={12}>
                 <div>
-                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, color: colors.textoFraco, fontWeight: 700, letterSpacing: "0.04em" }}>
                     VALOR ESTIMADO
                   </span>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#3B82F6", marginTop: 4 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: colors.azul, marginTop: 4 }}>
                     {formatCurrency(oportunidade.valor_estimado)}
                   </div>
                 </div>
               </Col>
               <Col span={12}>
                 <div>
-                  <span style={{ fontSize: 11, color: "#9099a8", fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, color: colors.textoFraco, fontWeight: 700, letterSpacing: "0.04em" }}>
                     PROBABILIDADE
                   </span>
-                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4, color: colors.texto }}>
                     {oportunidade.probabilidade}%
                   </div>
                 </div>
@@ -152,7 +171,7 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
           </Card>
 
           {/* Detalhes adicionais */}
-          <Descriptions bordered column={2} size="small">
+          <Descriptions bordered column={2} size="small" style={{ borderRadius: 12, overflow: "hidden" }}>
             <Descriptions.Item label="Responsável">
               {oportunidade.responsavel_nome ? (
                 <Space size={4}>
@@ -178,14 +197,21 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
 
           {/* Descrição */}
           {oportunidade.descricao && (
-            <Card size="small" title={<FileTextOutlined />}>
-              <Typography.Paragraph>{oportunidade.descricao}</Typography.Paragraph>
+            <Card
+              size="small"
+              title={<FileTextOutlined style={{ color: colors.azul }} />}
+              bordered={false}
+              style={{ border: `1px solid ${colors.borda}`, borderRadius: 12 }}
+            >
+              <Typography.Paragraph style={{ color: colors.textoSecundario, marginBottom: 0 }}>
+                {oportunidade.descricao}
+              </Typography.Paragraph>
             </Card>
           )}
 
           {/* Atividades */}
           <div>
-            <Divider orientation="left" style={{ fontSize: 13, fontWeight: 600 }}>
+            <Divider orientation="left" style={{ fontSize: 13, fontWeight: 700, color: colors.texto }}>
               Atividades
             </Divider>
             <AtividadeForm oportunidadeId={oportunidade.id} onSubmit={handleAtividade} />
@@ -194,17 +220,21 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                 style={{ marginTop: 16 }}
                 items={(oportunidade.atividades || []).map((atividade) => ({
                   dot: atividade.concluida ? (
-                    <CheckCircleOutlined style={{ fontSize: 16, color: "#10b981" }} />
+                    <CheckCircleOutlined style={{ fontSize: 16, color: "#1A7A4A" }} />
                   ) : (
-                    <ClockCircleOutlined style={{ fontSize: 16, color: "#3b82f6" }} />
+                    <ClockCircleOutlined style={{ fontSize: 16, color: colors.azul }} />
                   ),
                   color: atividade.concluida ? "green" : "blue",
                   children: (
-                    <Card size="small" style={{ marginBottom: 8 }}>
+                    <Card
+                      size="small"
+                      bordered={false}
+                      style={{ marginBottom: 8, border: `1px solid ${colors.borda}`, borderRadius: 10 }}
+                    >
                       <Space direction="vertical" size={4} style={{ width: "100%" }}>
                         <div>
                           <Tag color="blue">{atividade.tipo}</Tag>
-                          <strong>{atividade.titulo}</strong>
+                          <strong style={{ color: colors.texto }}>{atividade.titulo}</strong>
                           {atividade.concluida && (
                             <Tag color="green" style={{ marginLeft: 8 }}>
                               Concluída
@@ -212,11 +242,11 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                           )}
                         </div>
                         {atividade.descricao && (
-                          <Typography.Paragraph style={{ marginBottom: 0, fontSize: 12 }}>
+                          <Typography.Paragraph style={{ marginBottom: 0, fontSize: 12, color: colors.textoSecundario }}>
                             {atividade.descricao}
                           </Typography.Paragraph>
                         )}
-                        <Space direction="vertical" size={0} style={{ fontSize: 11, color: "#9099a8" }}>
+                        <Space direction="vertical" size={0} style={{ fontSize: 11, color: colors.textoFraco }}>
                           {atividade.usuario_nome && <div>👤 {atividade.usuario_nome}</div>}
                           {atividade.data_atividade && (
                             <div>📅 {new Date(atividade.data_atividade).toLocaleString("pt-BR")}</div>
@@ -234,11 +264,15 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
 
           {/* Emails */}
           <div>
-            <Divider orientation="left" style={{ fontSize: 13, fontWeight: 600 }}>
+            <Divider orientation="left" style={{ fontSize: 13, fontWeight: 700, color: colors.texto }}>
               <MailOutlined /> Comunicação por Email
             </Divider>
 
-            <Card size="small" style={{ marginBottom: 16, backgroundColor: "#f9fafb" }}>
+            <Card
+              size="small"
+              bordered={false}
+              style={{ marginBottom: 16, backgroundColor: colors.fundoSuave, border: `1px solid ${colors.borda}`, borderRadius: 12 }}
+            >
               <Form form={emailForm} layout="vertical" onFinish={handleEmail}>
                 <Form.Item
                   name="destinatario_email"
@@ -280,16 +314,16 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                 renderItem={(email) => (
                   <List.Item>
                     <List.Item.Meta
-                      avatar={<MailOutlined style={{ color: "#3B82F6" }} />}
-                      title={email.assunto}
+                      avatar={<MailOutlined style={{ color: colors.azul }} />}
+                      title={<span style={{ color: colors.texto }}>{email.assunto}</span>}
                       description={
                         <Space wrap size="small">
-                          <span>{email.destinatario_email}</span>
+                          <span style={{ color: colors.textoSecundario }}>{email.destinatario_email}</span>
                           <Tag color={email.status === "enviado" ? "green" : "orange"}>
                             {email.status}
                           </Tag>
                           {email.data_envio && (
-                            <span style={{ fontSize: 12, color: "#9099a8" }}>
+                            <span style={{ fontSize: 12, color: colors.textoFraco }}>
                               {new Date(email.data_envio).toLocaleString("pt-BR")}
                             </span>
                           )}
@@ -306,5 +340,3 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
     </Drawer>
   );
 }
-
-import { Empty, Typography } from "antd";

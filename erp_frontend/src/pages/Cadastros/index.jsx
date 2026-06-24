@@ -14,6 +14,21 @@ import {
 
 const { Title, Paragraph, Text } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const sectionCardStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
 const MODULES = [
   {
     key: "clientes",
@@ -109,16 +124,16 @@ function ModuleCard({ item, onClick }) {
   return (
     <Card
       hoverable
+      bordered={false}
       onClick={onClick}
       style={{
-        borderRadius: 18,
-        border: "1px solid #E2E8F0",
+        ...sectionCardStyle,
         cursor: "pointer",
         height: "100%",
       }}
-      bodyStyle={{ padding: 18 }}
+      bodyStyle={{ padding: 20 }}
     >
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
         <div
           style={{
             width: 48,
@@ -137,11 +152,11 @@ function ModuleCard({ item, onClick }) {
           <Tag color={item.color} style={{ width: "fit-content", margin: 0 }}>
             {item.group}
           </Tag>
-          <Text strong style={{ fontSize: 15 }}>
+          <Text strong style={{ fontSize: 15, color: colors.texto }}>
             {item.title}
           </Text>
           <Paragraph
-            style={{ marginBottom: 0, color: "#64748B", minHeight: 42 }}
+            style={{ marginBottom: 0, color: colors.textoSecundario, minHeight: 42 }}
           >
             {item.description}
           </Paragraph>
@@ -166,14 +181,12 @@ export default function CadastrosPage() {
   }, [search]);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <Card
         bordered={false}
         style={{
-          borderRadius: 22,
-          border: "1px solid #E2E8F0",
-          background: "linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)",
-          marginBottom: 16,
+          ...sectionCardStyle,
+          background: `linear-gradient(135deg, ${colors.fundoSuave} 0%, #EFF6FF 100%)`,
         }}
         bodyStyle={{ padding: 24 }}
       >
@@ -181,11 +194,11 @@ export default function CadastrosPage() {
           <Tag color="blue" style={{ width: "fit-content", margin: 0 }}>
             Central de cadastros
           </Tag>
-          <Title level={2} style={{ margin: 0 }}>
+          <Title level={2} style={{ margin: 0, color: colors.texto }}>
             Registre tudo que alimenta a operação.
           </Title>
           <Paragraph
-            style={{ marginBottom: 0, color: "#475569", maxWidth: 860 }}
+            style={{ marginBottom: 0, color: colors.textoSecundario, maxWidth: 860 }}
           >
             Use esta área como ponto de partida para manter clientes, serviços,
             equipe, estoque e finanças organizados em um fluxo único, como numa
@@ -194,15 +207,7 @@ export default function CadastrosPage() {
         </Space>
       </Card>
 
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 18,
-          border: "1px solid #E2E8F0",
-          marginBottom: 16,
-        }}
-        bodyStyle={{ padding: 16 }}
-      >
+      <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 16 }}>
         <Space wrap style={{ width: "100%", justifyContent: "space-between" }}>
           <Space wrap>
             {QUICK_LINKS.map((item) => (
@@ -217,7 +222,7 @@ export default function CadastrosPage() {
           </Space>
           <Input
             allowClear
-            prefix={<AppstoreOutlined />}
+            prefix={<AppstoreOutlined style={{ color: colors.textoFraco }} />}
             placeholder="Buscar cadastro"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -226,7 +231,7 @@ export default function CadastrosPage() {
         </Space>
       </Card>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[20, 20]}>
         {filtered.map((item) => (
           <Col key={item.key} xs={24} sm={12} lg={8} xl={6}>
             <ModuleCard item={item} onClick={() => navigate(item.path)} />

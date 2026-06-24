@@ -32,19 +32,22 @@ export default function KanbanCard({ oportunidade, onOpen, onDragStart }) {
       onDragStart={(event) => onDragStart(event, oportunidade)}
       onClick={() => onOpen(oportunidade)}
       style={{
-        borderLeft: `4px solid ${prioridade.color}`,
+        borderLeft: `3px solid ${prioridade.color}`,
+        borderRadius: 10,
         cursor: "grab",
+        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.04)",
         transition: "all 0.2s ease",
       }}
+      bodyStyle={{ padding: 12 }}
       hoverable
     >
       <Space direction="vertical" size={8} style={{ width: "100%" }}>
         {/* Título e Prioridade */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <Typography.Text strong style={{ flex: 1 }} ellipsis={{ rows: 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <Typography.Text strong style={{ flex: 1, fontSize: 13 }} ellipsis={{ rows: 1 }}>
             {oportunidade.titulo}
           </Typography.Text>
-          <Tag color={prioridadeTagColor[oportunidade.prioridade]} style={{ marginLeft: 8 }}>
+          <Tag color={prioridadeTagColor[oportunidade.prioridade]} style={{ marginLeft: 0, marginRight: 0 }}>
             {prioridade.label}
           </Tag>
         </div>
@@ -55,7 +58,7 @@ export default function KanbanCard({ oportunidade, onOpen, onDragStart }) {
         </Typography.Text>
 
         {/* Valor */}
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#3B82F6" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#3B82F6" }}>
           {formatCurrency(oportunidade.valor_estimado)}
         </div>
 
@@ -69,8 +72,8 @@ export default function KanbanCard({ oportunidade, onOpen, onDragStart }) {
 
         {/* Responsável com Avatar */}
         {oportunidade.responsavel_nome ? (
-          <Space size={4} style={{ width: "100%" }}>
-            <Avatar size={20} icon={<UserOutlined />} />
+          <Space size={6} style={{ width: "100%" }}>
+            <Avatar size={20} icon={<UserOutlined />} style={{ background: "#DBEAFE", color: "#3B82F6" }} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }} ellipsis>
               {oportunidade.responsavel_nome}
             </Typography.Text>

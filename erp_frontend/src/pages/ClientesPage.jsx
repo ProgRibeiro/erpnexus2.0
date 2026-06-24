@@ -27,25 +27,47 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 import clienteService from "../services/clienteService";
 
 const { Text, Title } = Typography;
 
-const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
 };
 
-const panelStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
+
+const sectionCardStyle = {
+  border: "1px solid #E2E6EC",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  border: "1px solid #E2E6EC",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+  minHeight: 124,
+};
+
+const panelStyle = sectionCardStyle;
 
 const btnStyle = {
   background: "#3B82F6",
@@ -55,6 +77,56 @@ const btnStyle = {
   height: "38px",
   borderRadius: "8px",
 };
+
+function ClientesMetricCard({ label, value, color, icon }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: colors.textoFraco,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              marginBottom: 12,
+            }}
+          >
+            {label}
+          </div>
+          <div
+            style={{
+              fontSize: 28,
+              lineHeight: 1.1,
+              fontWeight: 700,
+              color,
+              wordBreak: "break-word",
+            }}
+          >
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            flexShrink: 0,
+            borderRadius: 10,
+            background: `${color}14`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color,
+            fontSize: 18,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 const maskCNPJ = (value) => {
   if (!value) return "";
@@ -400,8 +472,8 @@ export default function ClientesPage() {
       dataIndex: "nome",
       render: (text, record) => (
         <div>
-          <Text strong>{text || record.nome_fantasia}</Text>
-          <div style={{ color: "#6B7280", fontSize: 12 }}>{record.cnpj_cpf}</div>
+          <Text strong style={{ color: colors.texto }}>{text || record.nome_fantasia}</Text>
+          <div style={{ color: colors.textoFraco, fontSize: 12 }}>{record.cnpj_cpf}</div>
         </div>
       ),
     },
@@ -480,68 +552,61 @@ export default function ClientesPage() {
       }}
     >
       <div style={pageStyle}>
-        <div style={{ marginBottom: 24 }}>
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Title level={1} style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>
+        <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 16,
+            }}
+          >
+            <div>
+              <Title level={3} style={{ margin: 0, color: colors.texto, fontWeight: 700 }}>
                 Clientes
               </Title>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => abrirDrawer()}
-                style={btnStyle}
-              >
-                Novo Cliente
-              </Button>
-            </div>
-          </Card>
-        </div>
-
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card
-              bordered={false}
-              style={panelStyle}
-              bodyStyle={{ padding: 16 }}
-            >
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                TOTAL DE CLIENTES
+              <Text style={{ color: colors.textoSecundario }}>
+                Cadastro e relacionamento com pessoas e empresas
               </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#3B82F6", marginTop: 8 }}>
-                {resumo.total}
-              </div>
-            </Card>
+            </div>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => abrirDrawer()}
+              style={btnStyle}
+            >
+              Novo Cliente
+            </Button>
+          </div>
+        </Card>
+
+        <Row gutter={[20, 20]}>
+          <Col xs={24} sm={12} lg={6}>
+            <ClientesMetricCard
+              label="Total de Clientes"
+              value={resumo.total}
+              color={colors.azul}
+              icon={<TeamOutlined />}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card
-              bordered={false}
-              style={panelStyle}
-              bodyStyle={{ padding: 16 }}
-            >
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                ATIVOS
-              </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#15803D", marginTop: 8 }}>
-                {resumo.ativos}
-              </div>
-            </Card>
+            <ClientesMetricCard
+              label="Ativos"
+              value={resumo.ativos}
+              color={colors.verde}
+              icon={<UserOutlined />}
+            />
           </Col>
         </Row>
 
-        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
+        <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Row gutter={[12, 12]} align="middle">
               <Col xs={24} lg={10}>
                 <Input
                   allowClear
-                  prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
+                  prefix={<SearchOutlined style={{ color: colors.textoFraco }} />}
                   placeholder="Buscar por nome ou CNPJ"
                   value={filtros.busca}
                   onChange={(e) =>
@@ -586,22 +651,24 @@ export default function ClientesPage() {
               </Col>
             </Row>
 
-            <Table
-              columns={colunas}
-              dataSource={clientes}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSize: 20 }}
-              locale={{
-                emptyText: (
-                  <Empty description="Nenhum cliente encontrado" style={{ margin: "44px 0" }}>
-                    <Button type="primary" onClick={() => abrirDrawer()} style={btnStyle}>
-                      Criar primeiro cliente
-                    </Button>
-                  </Empty>
-                ),
-              }}
-            />
+            <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+              <Table
+                columns={colunas}
+                dataSource={clientes}
+                rowKey="id"
+                loading={loading}
+                pagination={{ pageSize: 20 }}
+                locale={{
+                  emptyText: (
+                    <Empty description="Nenhum cliente encontrado" style={{ margin: "44px 0" }}>
+                      <Button type="primary" onClick={() => abrirDrawer()} style={btnStyle}>
+                        Criar primeiro cliente
+                      </Button>
+                    </Empty>
+                  ),
+                }}
+              />
+            </div>
           </Space>
         </Card>
       </div>
