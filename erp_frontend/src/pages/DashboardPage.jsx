@@ -17,6 +17,8 @@ import {
   DollarOutlined,
   FileTextOutlined,
   ToolOutlined,
+  WalletOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import {
   Bar,
@@ -168,9 +170,11 @@ function extractItems(value) {
   return [];
 }
 
-function DashboardMetricCard({ label, value, trend, color, icon }) {
+function DashboardMetricCard({ label, value, trend, color, icon, trendMode = "percent", trendText }) {
   const trendNumber = Number(trend || 0);
   const isPositive = trendNumber >= 0;
+  const isAlertMode = trendMode === "alert";
+  const alertActive = isAlertMode && trendNumber > 0;
 
   return (
     <Card
@@ -231,14 +235,30 @@ function DashboardMetricCard({ label, value, trend, color, icon }) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            color: isPositive ? colors.verde : colors.vermelho,
+            color: isAlertMode
+              ? (alertActive ? colors.vermelho : colors.verde)
+              : (isPositive ? colors.verde : colors.vermelho),
             fontSize: 14,
             fontWeight: 600,
           }}
         >
-          {isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-          <span>{Math.abs(trendNumber)}%</span>
-          <span style={{ color: colors.textoSecundario, fontWeight: 500 }}>vs mês anterior</span>
+          {isAlertMode ? (
+            <>
+              {alertActive ? <WarningOutlined /> : <ArrowUpOutlined />}
+              <span>
+                {trendText ||
+                  (alertActive
+                    ? `${Math.abs(trendNumber)} título${Math.abs(trendNumber) > 1 ? "s" : ""} vencido${Math.abs(trendNumber) > 1 ? "s" : ""}`
+                    : "Tudo em dia")}
+              </span>
+            </>
+          ) : (
+            <>
+              {isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+              <span>{Math.abs(trendNumber)}%</span>
+              <span style={{ color: colors.textoSecundario, fontWeight: 500 }}>vs mês anterior</span>
+            </>
+          )}
         </div>
       </div>
     </Card>
@@ -327,6 +347,23 @@ export default function DashboardPage() {
         trend: dashboard?.aguardando_faturamento_change ?? 0,
         color: colors.laranja,
         icon: <ClockCircleOutlined />,
+      },
+      {
+        key: "lucro",
+        label: "Lucro do Mês",
+        value: formatCurrency(dashboard?.lucro ?? (Number(dashboard?.receita || 0) - Number(dashboard?.despesa || 0))),
+        trend: dashboard?.lucro_change ?? 0,
+        color: colors.azul,
+        icon: <WalletOutlined />,
+      },
+      {
+        key: "vencido",
+        label: "Vencido a Receber",
+        value: formatCurrency(dashboard?.receber_atrasado || 0),
+        trend: dashboard?.receber_atrasado_count || 0,
+        trendMode: "alert",
+        color: colors.vermelho,
+        icon: <WarningOutlined />,
       },
     ],
     [dashboard]
@@ -568,7 +605,7 @@ export default function DashboardPage() {
         <>
           <Row gutter={[20, 20]}>
             {cards.map((card) => (
-              <Col xs={24} sm={12} xl={6} key={card.key}>
+              <Col xs={24} sm={12} xl={4} key={card.key}>
                 <DashboardMetricCard {...card} />
               </Col>
             ))}

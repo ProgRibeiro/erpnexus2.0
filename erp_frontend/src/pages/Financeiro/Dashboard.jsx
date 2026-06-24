@@ -27,9 +27,11 @@ import {
   EditOutlined,
   FileTextOutlined,
   FolderOpenOutlined,
+  PercentageOutlined,
   PlusOutlined,
   ReconciliationOutlined,
   WalletOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import {
   Bar,
@@ -356,6 +358,7 @@ export default function FinanceiroDashboard() {
   const [data, setData] = useState(null);
   const [fluxo, setFluxo] = useState([]);
   const [contas, setContas] = useState([]);
+  const [dre, setDre] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     mes: undefined,
@@ -372,14 +375,16 @@ export default function FinanceiroDashboard() {
         if (filters.mes) params.mes = filters.mes;
         if (filters.ano) params.ano = filters.ano;
 
-        const [dashboard, fluxoCaixa, contasList] = await Promise.all([
+        const [dashboard, fluxoCaixa, contasList, dreData] = await Promise.all([
           financeiroService.dashboard(params),
           financeiroService.fluxoCaixa(params),
           financeiroService.listarContas(),
+          financeiroService.dre(params).catch(() => null),
         ]);
         setData(dashboard);
         setFluxo(fluxoCaixa);
         setContas(contasList);
+        setDre(dreData);
       } catch (error) {
         message.error("Erro ao carregar dashboard");
         console.error(error);
@@ -428,10 +433,42 @@ export default function FinanceiroDashboard() {
 
   const receita = Number(data?.receita || 0);
   const despesa = Number(data?.despesa || 0);
+  const lucro = Number(data?.lucro ?? receita - despesa);
   const contasReceber = Number(data?.contas_receber || 0);
   const contasPagar = Number(data?.contas_pagar || 0);
-  const margem = receita > 0 ? Math.round(((receita - despesa) / receita) * 100) : 0;
+  const receberAtrasado = Number(data?.receber_atrasado || 0);
+  const receberAtrasadoCount = Number(data?.receber_atrasado_count || 0);
+  const pagarAtrasado = Number(data?.pagar_atrasado || 0);
+  const pagarAtrasadoCount = Number(data?.pagar_atrasado_count || 0);
+  const margemLocal = receita > 0 ? Math.round(((receita - despesa) / receita) * 100) : 0;
+  const margem = dre?.margem !== undefined && dre?.margem !== null ? Math.round(Number(dre.margem)) : margemLocal;
   const cobertura = contasPagar > 0 ? Math.min(100, Math.round((contasReceber / contasPagar) * 100)) : 100;
+  const inadimplencia = contasReceber > 0 ? Math.round((receberAtrasado / contasReceber) * 100) : 0;
+
+  // Tendência real (mês atual vs mês anterior), calculada a partir dos próprios dados já carregados
+  const tendencia = useMemo(() => {
+    if (meses.length < 2) return { receita: null, despesa: null, lucro: null };
+    const atual = meses[meses.length - 1];
+    const anterior = meses[meses.length - 2];
+    const variacao = (atualValor, anteriorValor) => {
+      if (!anteriorValor) return atualValor > 0 ? 100 : 0;
+      return Math.round(((atualValor - anteriorValor) / anteriorValor) * 100);
+    };
+    const lucroAtual = Number(atual.receita || 0) - Number(atual.despesa || 0);
+    const lucroAnterior = Number(anterior.receita || 0) - Number(anterior.despesa || 0);
+    return {
+      receita: variacao(Number(atual.receita || 0), Number(anterior.receita || 0)),
+      despesa: variacao(Number(atual.despesa || 0), Number(anterior.despesa || 0)),
+      lucro: variacao(lucroAtual, lucroAnterior),
+    };
+  }, [meses]);
+
+  const formatTendencia = (pct) => (pct === null ? undefined : `${pct >= 0 ? "+" : ""}${pct}% vs mês anterior`);
+  const tendenciaPositiva = (pct) => (pct === null ? "neutral" : pct >= 0 ? "positive" : "negative");
+  const tendenciaInvertida = (pct) => (pct === null ? "neutral" : pct <= 0 ? "positive" : "negative");
+
+  const aging = dre?.aging_receber || {};
+  const agingTotal = Number(aging?.a_vencer || 0) + Number(aging?.vencidos || 0);
 
   const abrirLancamento = (record, action) => {
     navigate(`/financeiro/lancamentos?${action}=${record.id}`);
@@ -492,9 +529,17 @@ export default function FinanceiroDashboard() {
           </Col>
           <Col xs={24} lg={8}>
             <Card bordered={false} style={cardStyle} bodyStyle={{ padding: 16 }}>
-              <Space direction="vertical" style={{ width: "100%" }}>
-                <Text strong>Cobertura de compromissos</Text>
-                <Progress percent={cobertura} strokeColor={cobertura >= 80 ? "#10B981" : "#F59E0B"} />
+              <Space direction="vertical" style={{ width: "100%" }} size={12}>
+                <div>
+                  <Text strong>Cobertura de compromissos</Text>
+                  <Progress percent={cobertura} strokeColor={cobertura >= 80 ? "#10B981" : "#F59E0B"} />
+                </div>
+                <div>
+                  <Text strong>Inadimplência</Text>
+                  <Tooltip title={`${formatMoney(receberAtrasado)} vencidos de ${formatMoney(contasReceber)} a receber`}>
+                    <Progress percent={inadimplencia} strokeColor={inadimplencia <= 10 ? "#10B981" : inadimplencia <= 25 ? "#F59E0B" : "#dc2626"} />
+                  </Tooltip>
+                </div>
               </Space>
             </Card>
           </Col>
@@ -626,58 +671,78 @@ export default function FinanceiroDashboard() {
 
         {/* Cards de Métricas */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={8} xl={4}>
+          <Col xs={24} sm={12} lg={8} xl={3}>
             <MetricCard
               label="Receitas"
-              value={formatMoney(data?.receita)}
-              change="+12% vs mês anterior"
-              trend="positive"
+              value={formatMoney(receita)}
+              change={formatTendencia(tendencia.receita)}
+              trend={tendenciaPositiva(tendencia.receita)}
               color="#16a34a"
               loading={loading}
               icon={ArrowUpOutlined}
             />
           </Col>
-          <Col xs={24} sm={12} lg={8} xl={4}>
+          <Col xs={24} sm={12} lg={8} xl={3}>
             <MetricCard
               label="Despesas"
-              value={formatMoney(data?.despesa)}
-              change="+5% vs mês anterior"
-              trend="negative"
+              value={formatMoney(despesa)}
+              change={formatTendencia(tendencia.despesa)}
+              trend={tendenciaInvertida(tendencia.despesa)}
               color="#dc2626"
               loading={loading}
               icon={ArrowDownOutlined}
             />
           </Col>
-          <Col xs={24} sm={12} lg={8} xl={4}>
+          <Col xs={24} sm={12} lg={8} xl={3}>
             <MetricCard
               label="Lucro"
-              value={formatMoney(data?.lucro)}
-              change="+8% vs mês anterior"
-              trend="positive"
+              value={formatMoney(lucro)}
+              change={formatTendencia(tendencia.lucro)}
+              trend={tendenciaPositiva(tendencia.lucro)}
               color="#3B82F6"
               loading={loading}
               icon={WalletOutlined}
             />
           </Col>
-          <Col xs={24} sm={12} lg={8} xl={4}>
+          <Col xs={24} sm={12} lg={8} xl={3}>
+            <MetricCard
+              label="Margem operacional"
+              value={`${margem}%`}
+              color={margem >= 20 ? "#16a34a" : margem >= 0 ? "#F59E0B" : "#dc2626"}
+              loading={loading}
+              icon={PercentageOutlined}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={8} xl={3}>
             <MetricCard
               label="Contas a Receber"
-              value={formatMoney(data?.contas_receber)}
+              value={formatMoney(contasReceber)}
               color="#EA8C55"
               loading={loading}
               icon={FileTextOutlined}
             />
           </Col>
-          <Col xs={24} sm={12} lg={8} xl={4}>
+          <Col xs={24} sm={12} lg={8} xl={3}>
             <MetricCard
               label="Contas a Pagar"
-              value={formatMoney(data?.contas_pagar)}
+              value={formatMoney(contasPagar)}
               color="#5B21B6"
               loading={loading}
               icon={ReconciliationOutlined}
             />
           </Col>
-          <Col xs={24} sm={12} lg={8} xl={4}>
+          <Col xs={24} sm={12} lg={8} xl={3}>
+            <MetricCard
+              label="Vencido a Receber"
+              value={formatMoney(receberAtrasado)}
+              change={receberAtrasadoCount ? `${receberAtrasadoCount} título(s)` : undefined}
+              trend="negative"
+              color="#dc2626"
+              loading={loading}
+              icon={WarningOutlined}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={8} xl={3}>
             <MetricCard
               label="Saldo Total"
               value={formatMoney(data?.saldo_total)}
@@ -685,6 +750,70 @@ export default function FinanceiroDashboard() {
               loading={loading}
               icon={BankOutlined}
             />
+          </Col>
+        </Row>
+
+        {/* Aging de recebíveis e inadimplência */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} lg={12}>
+            <Card bordered={false} style={cardStyle} title="Aging de Recebíveis">
+              <Skeleton active loading={loading} paragraph={{ rows: 3 }} title={false}>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                      A vencer
+                    </Text>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#16a34a" }}>
+                      {formatMoney(aging?.a_vencer)}
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                      Vencidos (até 30 dias)
+                    </Text>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#F59E0B" }}>
+                      {formatMoney(aging?.ate_30)}
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                      Total vencido
+                    </Text>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#dc2626" }}>
+                      {formatMoney(aging?.vencidos)}
+                    </div>
+                  </Col>
+                </Row>
+                <Progress
+                  style={{ marginTop: 16 }}
+                  percent={agingTotal > 0 ? Math.round((Number(aging?.vencidos || 0) / agingTotal) * 100) : 0}
+                  strokeColor="#dc2626"
+                  trailColor="#DCFCE7"
+                  format={(percent) => `${percent}% vencido`}
+                />
+              </Skeleton>
+            </Card>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Card bordered={false} style={cardStyle} title="Vencido a Pagar">
+              <Skeleton active loading={loading} paragraph={{ rows: 3 }} title={false}>
+                <Space direction="vertical" size={6}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: pagarAtrasado > 0 ? "#dc2626" : "#16a34a" }}>
+                    {formatMoney(pagarAtrasado)}
+                  </div>
+                  <Text type="secondary">
+                    {pagarAtrasadoCount > 0
+                      ? `${pagarAtrasadoCount} título(s) em atraso — priorize a baixa para evitar multas e juros.`
+                      : "Nenhum título de pagamento em atraso no momento."}
+                  </Text>
+                  {pagarAtrasadoCount > 0 && (
+                    <Button danger onClick={() => navigate("/financeiro/lancamentos?tipo=despesa&status=atrasado")}>
+                      Ver títulos vencidos
+                    </Button>
+                  )}
+                </Space>
+              </Skeleton>
+            </Card>
           </Col>
         </Row>
 
