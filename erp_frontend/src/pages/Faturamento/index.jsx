@@ -6,13 +6,13 @@ import {
   Col,
   DatePicker,
   Divider,
+  Empty,
   Form,
   Input,
   Modal,
   Row,
   Select,
   Space,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -33,8 +33,80 @@ import api from "../../services/api";
 
 const { Title, Text } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 124,
+};
+
 const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 function fmt(v) { return moneyFmt.format(Number(v || 0)); }
+
+function SummaryCard({ color, icon, label, value }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textoFraco,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              marginBottom: 14,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            alignItems: "center",
+            background: `${color}14`,
+            borderRadius: 12,
+            color,
+            display: "flex",
+            height: 44,
+            justifyContent: "center",
+            width: 44,
+            fontSize: 20,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function applyMaskCNPJ(value) {
   return value
@@ -190,7 +262,7 @@ export default function FaturamentoPage() {
       title: "Número OS",
       dataIndex: "numero",
       key: "numero",
-      render: (v) => <Text strong style={{ color: "#3B82F6" }}>{v || "-"}</Text>,
+      render: (v) => <Text strong style={{ color: colors.azul }}>{v || "-"}</Text>,
     },
     {
       title: "Cliente",
@@ -208,7 +280,7 @@ export default function FaturamentoPage() {
       title: "Valor Total",
       dataIndex: "valor_total_orcado",
       key: "valor_total_orcado",
-      render: (v) => <Text strong>{fmt(v)}</Text>,
+      render: (v) => <Text strong style={{ color: colors.texto }}>{fmt(v)}</Text>,
     },
     {
       title: "Pedido de Compra",
@@ -216,13 +288,13 @@ export default function FaturamentoPage() {
       width: 150,
       render: (_, record) => {
         const ps = pcStatus(record);
-        if (ps === "sem_pc") return <Tag color="default">Sem PC</Tag>;
+        if (ps === "sem_pc") return <Tag color="default" style={{ borderRadius: 999, fontWeight: 600 }}>Sem PC</Tag>;
         if (ps === "pc_ok") return (
-          <Tag icon={<CheckCircleOutlined />} color="success">PC Preenchido</Tag>
+          <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: 999, fontWeight: 600 }}>PC Preenchido</Tag>
         );
         return (
           <Tooltip title="PC obrigatório não preenchido. Preencha o Pedido de Compra na OS antes de faturar.">
-            <Tag icon={<ExclamationCircleOutlined />} color="warning">PC Pendente</Tag>
+            <Tag icon={<ExclamationCircleOutlined />} color="warning" style={{ borderRadius: 999, fontWeight: 600 }}>PC Pendente</Tag>
           </Tooltip>
         );
       },
@@ -241,7 +313,7 @@ export default function FaturamentoPage() {
                 type="primary"
                 icon={<EyeOutlined />}
                 disabled={bloqueado}
-                style={bloqueado ? {} : { background: "#3B82F6", borderColor: "#3B82F6" }}
+                style={bloqueado ? { borderRadius: 8 } : { background: colors.azul, borderColor: colors.azul, borderRadius: 8, fontWeight: 600 }}
                 onClick={() => navigate(`/ordens/${record.id}`, { state: { tab: "faturamento" } })}
               >
                 {bloqueado ? "PC Pendente" : "Faturar"}
@@ -250,6 +322,7 @@ export default function FaturamentoPage() {
             <Button
               size="small"
               icon={<EyeOutlined />}
+              style={{ borderRadius: 8 }}
               onClick={() => navigate(`/ordens/${record.id}`)}
             >
               Ver OS
@@ -261,64 +334,68 @@ export default function FaturamentoPage() {
   ];
 
   return (
-    <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100vh" }}>
+    <div style={pageStyle}>
       {/* Header */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>
-            <DollarOutlined style={{ marginRight: 10, color: "#3B82F6" }} />
-            Faturamento
-          </Title>
-          <Text type="secondary">Gerencie OS pendentes de faturamento e agrupamentos de NF</Text>
-        </Col>
-        <Col>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.azul}14`,
+                color: colors.azul,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <DollarOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>
+                Faturamento
+              </Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Gerencie OS pendentes de faturamento e agrupamentos de NF
+              </Text>
+            </div>
+          </Space>
           <Button
             type="primary"
             icon={<GroupOutlined />}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 10, fontWeight: 600 }}
+            style={{ height: 40, paddingInline: 20, borderRadius: 10, fontWeight: 600 }}
             onClick={() => setModalOpen(true)}
           >
             Agrupar para NF
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </Card>
 
       {/* Cards de totais */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Row gutter={[20, 20]}>
         <Col xs={24} sm={8}>
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-            <Statistic
-              title="OS pendentes"
-              value={ordens.length}
-              prefix={<FileTextOutlined />}
-              valueStyle={{ color: "#3B82F6" }}
-            />
-          </Card>
+          <SummaryCard color={colors.azul} icon={<FileTextOutlined />} label="OS pendentes" value={ordens.length} />
         </Col>
         <Col xs={24} sm={8}>
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-            <Statistic
-              title="Valor total pendente"
-              value={fmt(totalPendente)}
-              valueStyle={{ color: "#10B981" }}
-            />
-          </Card>
+          <SummaryCard color={colors.verde} icon={<DollarOutlined />} label="Valor total pendente" value={fmt(totalPendente)} />
         </Col>
         <Col xs={24} sm={8}>
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-            <Statistic
-              title="OS selecionadas"
-              value={selectedOrdens.length}
-              suffix={`/ ${ordens.length}`}
-              valueStyle={{ color: "#F59E0B" }}
-            />
-          </Card>
+          <SummaryCard
+            color={colors.laranja}
+            icon={<CheckCircleOutlined />}
+            label="OS selecionadas"
+            value={`${selectedOrdens.length} / ${ordens.length}`}
+          />
         </Col>
       </Row>
 
       {/* Filtros */}
-      <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-        <Row gutter={[16, 8]} align="middle">
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
+        <Row gutter={[12, 12]} align="middle">
           <Col xs={24} sm={10}>
             <Select
               placeholder="Filtrar por cliente"
@@ -338,7 +415,7 @@ export default function FaturamentoPage() {
             />
           </Col>
           <Col xs={24} sm={4}>
-            <Button icon={<SearchOutlined />} onClick={carregarOrdens} style={{ width: "100%" }}>
+            <Button icon={<SearchOutlined />} onClick={carregarOrdens} style={{ width: "100%", borderRadius: 8, fontWeight: 600 }}>
               Filtrar
             </Button>
           </Col>
@@ -346,7 +423,7 @@ export default function FaturamentoPage() {
       </Card>
 
       {/* Tabela */}
-      <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0 }}>
         <Table
           columns={columns}
           dataSource={ordens}
@@ -356,8 +433,17 @@ export default function FaturamentoPage() {
             selectedRowKeys: selectedOrdens,
             onChange: (keys) => setSelectedOrdens(keys),
           }}
+          scroll={{ x: 1000 }}
           pagination={{ pageSize: 20, showSizeChanger: false }}
-          locale={{ emptyText: "Nenhuma OS pendente de faturamento" }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhuma OS pendente de faturamento"
+                style={{ margin: "40px 0" }}
+              />
+            ),
+          }}
         />
       </Card>
 
@@ -370,17 +456,17 @@ export default function FaturamentoPage() {
         width={680}
       >
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Text type="secondary">
+          <Text style={{ color: colors.textoSecundario }}>
             Selecione as OS abaixo e informe o tomador do serviço para gerar uma NF consolidada.
           </Text>
 
           {/* Seleção de OS */}
-          <div style={{ maxHeight: 220, overflowY: "auto", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ maxHeight: 220, overflowY: "auto", border: `1px solid ${colors.borda}`, borderRadius: 10, padding: "8px 12px" }}>
             {ordens.length === 0 ? (
-              <Text type="secondary">Nenhuma OS disponível.</Text>
+              <Text style={{ color: colors.textoFraco }}>Nenhuma OS disponível.</Text>
             ) : (
               ordens.map((o) => (
-                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid #F1F5F9" }}>
+                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #F1F5F9" }}>
                   <Checkbox
                     checked={selectedOrdens.includes(o.id)}
                     onChange={(e) =>
@@ -389,16 +475,16 @@ export default function FaturamentoPage() {
                       )
                     }
                   />
-                  <Text style={{ flex: 1 }}>{o.numero || `OS #${o.id}`}</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{o.cliente_nome || "-"}</Text>
-                  <Text strong style={{ color: "#3B82F6", minWidth: 90, textAlign: "right" }}>{fmt(o.valor_total_orcado)}</Text>
+                  <Text style={{ flex: 1, color: colors.texto }}>{o.numero || `OS #${o.id}`}</Text>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{o.cliente_nome || "-"}</Text>
+                  <Text strong style={{ color: colors.azul, minWidth: 90, textAlign: "right" }}>{fmt(o.valor_total_orcado)}</Text>
                 </div>
               ))
             )}
           </div>
 
           {selectedOrdens.length > 0 && (
-            <div style={{ background: "#EFF6FF", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "10px 14px" }}>
               <Text strong style={{ color: "#1D4ED8" }}>
                 Total consolidado: {fmt(totalSelecionadas)} ({selectedOrdens.length} OS)
               </Text>
@@ -410,12 +496,12 @@ export default function FaturamentoPage() {
           {/* Dados do tomador */}
           <Row gutter={[12, 0]} align="bottom">
             <Col xs={24} sm={14}>
-              <Text strong style={{ fontSize: 13 }}>CNPJ do tomador</Text>
+              <Text strong style={{ fontSize: 13, color: colors.texto }}>CNPJ do tomador</Text>
               <Input
                 value={cnpj}
                 onChange={(e) => setCnpj(applyMaskCNPJ(e.target.value))}
                 placeholder="00.000.000/0000-00"
-                style={{ marginTop: 4 }}
+                style={{ marginTop: 4, borderRadius: 8 }}
               />
             </Col>
             <Col xs={24} sm={10}>
@@ -423,7 +509,7 @@ export default function FaturamentoPage() {
                 onClick={buscarCNPJ}
                 loading={buscandoCnpj}
                 icon={<SearchOutlined />}
-                style={{ marginTop: 22, width: "100%" }}
+                style={{ marginTop: 22, width: "100%", borderRadius: 8, fontWeight: 600 }}
               >
                 Buscar CNPJ
               </Button>
@@ -431,22 +517,22 @@ export default function FaturamentoPage() {
           </Row>
 
           <div>
-            <Text strong style={{ fontSize: 13 }}>Razão Social do tomador</Text>
+            <Text strong style={{ fontSize: 13, color: colors.texto }}>Razão Social do tomador</Text>
             <Input
               value={razaoSocial}
               onChange={(e) => setRazaoSocial(e.target.value)}
               placeholder="Empresa Tomadora Ltda."
-              style={{ marginTop: 4 }}
+              style={{ marginTop: 4, borderRadius: 8 }}
             />
           </div>
 
           <Row justify="end">
             <Space>
-              <Button onClick={() => setModalOpen(false)}>Cancelar</Button>
+              <Button onClick={() => setModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>Cancelar</Button>
               <Button
                 type="primary"
                 icon={<FileTextOutlined />}
-                style={{ background: "#3B82F6", borderColor: "#3B82F6", fontWeight: 600 }}
+                style={{ borderRadius: 8, fontWeight: 600 }}
                 onClick={criarAgrupamento}
                 loading={criando}
               >

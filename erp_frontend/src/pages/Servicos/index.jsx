@@ -21,11 +21,14 @@ import {
   message,
 } from "antd";
 import {
+  CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  FileTextOutlined,
   PlusOutlined,
   SearchOutlined,
+  ToolOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -33,28 +36,83 @@ import servicoService from "../../services/servicoService";
 
 const { Text, Title } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 const panelStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 124,
 };
 
 const btnStyle = {
-  background: '#3B82F6',
-  borderColor: '#3B82F6',
-  color: '#ffffff',
-  fontWeight: 500,
-  height: '38px',
-  borderRadius: '8px',
+  fontWeight: 600,
+  height: 40,
+  borderRadius: 10,
 };
+
+function SummaryCard({ color, icon, label, value }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textoFraco,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              marginBottom: 14,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            alignItems: "center",
+            background: `${color}14`,
+            borderRadius: 12,
+            color,
+            display: "flex",
+            height: 44,
+            justifyContent: "center",
+            width: 44,
+            fontSize: 20,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -182,12 +240,12 @@ export default function ServicosPage() {
       title: "Código",
       dataIndex: "codigo",
       width: 120,
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text) => <Text strong style={{ color: colors.texto }}>{text}</Text>,
     },
     {
       title: "Nome",
       dataIndex: "nome",
-      render: (text) => <Text>{text}</Text>,
+      render: (text) => <Text style={{ color: colors.texto }}>{text}</Text>,
     },
     {
       title: "Categoria",
@@ -195,7 +253,7 @@ export default function ServicosPage() {
       width: 130,
       render: (text) => {
         const cat = categoriasOpcoes.find((c) => c.value === text);
-        return <Tag color="blue">{cat?.label || text}</Tag>;
+        return <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{cat?.label || text}</Tag>;
       },
     },
     {
@@ -203,7 +261,7 @@ export default function ServicosPage() {
       dataIndex: "preco_padrao",
       width: 130,
       align: "right",
-      render: (text) => <Text strong>{moneyFormatter.format(text)}</Text>,
+      render: (text) => <Text strong style={{ color: colors.verde }}>{moneyFormatter.format(text)}</Text>,
     },
     {
       title: "Tributação",
@@ -211,7 +269,7 @@ export default function ServicosPage() {
       width: 120,
       render: (text) => {
         const trib = tributacaoOpcoes.find((t) => t.value === text);
-        return <Tag color="orange">{trib?.label || text}</Tag>;
+        return <Tag color="orange" style={{ borderRadius: 6, fontWeight: 600 }}>{trib?.label || text}</Tag>;
       },
     },
     {
@@ -220,7 +278,7 @@ export default function ServicosPage() {
       width: 100,
       render: (text) => {
         const uni = unidadeMedidaOpcoes.find((u) => u.value === text);
-        return <Text type="secondary">{uni?.label || text}</Text>;
+        return <Text style={{ color: colors.textoFraco }}>{uni?.label || text}</Text>;
       },
     },
     {
@@ -245,7 +303,7 @@ export default function ServicosPage() {
               type="text"
               icon={<EditOutlined />}
               onClick={() => abrirDrawer(record)}
-              style={{ color: "#3B82F6" }}
+              style={{ color: colors.azul }}
             />
           </Tooltip>
           <Tooltip title="Deletar">
@@ -274,86 +332,70 @@ export default function ServicosPage() {
       }}
     >
       <div style={pageStyle}>
-        <div style={{ marginBottom: 24 }}>
-          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Title level={1} style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>
-                Serviços
-              </Title>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => abrirDrawer()}
-                style={btnStyle}
+        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <Space align="start">
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: `${colors.azul}14`,
+                  color: colors.azul,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 22,
+                  flexShrink: 0,
+                }}
               >
-                Novo Serviço
-              </Button>
-            </div>
-          </Card>
-        </div>
+                <ToolOutlined />
+              </div>
+              <div>
+                <Title level={1} style={{ margin: 0, fontSize: 26, fontWeight: 800, color: colors.texto }}>
+                  Serviços
+                </Title>
+                <Text style={{ color: colors.textoSecundario }}>
+                  Catálogo de serviços, preços e regras de tributação
+                </Text>
+              </div>
+            </Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => abrirDrawer()}
+              style={btnStyle}
+            >
+              Novo Serviço
+            </Button>
+          </div>
+        </Card>
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Row gutter={[20, 20]}>
           <Col xs={24} sm={12} lg={6}>
-            <Card
-              bordered={false}
-              style={panelStyle}
-              bodyStyle={{ padding: 16 }}
-            >
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                TOTAL DE SERVIÇOS
-              </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#3B82F6", marginTop: 8 }}>
-                {resumo.total}
-              </div>
-            </Card>
+            <SummaryCard color={colors.azul} icon={<FileTextOutlined />} label="Total de serviços" value={resumo.total} />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card
-              bordered={false}
-              style={panelStyle}
-              bodyStyle={{ padding: 16 }}
-            >
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                ATIVOS
-              </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#15803D", marginTop: 8 }}>
-                {resumo.ativos}
-              </div>
-            </Card>
+            <SummaryCard color={colors.verde} icon={<CheckCircleOutlined />} label="Ativos" value={resumo.ativos} />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card
-              bordered={false}
-              style={panelStyle}
-              bodyStyle={{ padding: 16 }}
-            >
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                HVAC
-              </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#D97706", marginTop: 8 }}>
-                {resumo.porCategoria.hvac || 0}
-              </div>
-            </Card>
+            <SummaryCard color={colors.laranja} icon={<ToolOutlined />} label="HVAC" value={resumo.porCategoria.hvac || 0} />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card
-              bordered={false}
-              style={panelStyle}
-              bodyStyle={{ padding: 16 }}
-            >
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                OUTRAS
-              </Text>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#7C3AED", marginTop: 8 }}>
-                {resumo.total - (resumo.porCategoria.hvac || 0)}
-              </div>
-            </Card>
+            <SummaryCard
+              color={colors.roxo}
+              icon={<FileTextOutlined />}
+              label="Outras categorias"
+              value={resumo.total - (resumo.porCategoria.hvac || 0)}
+            />
           </Col>
         </Row>
 
@@ -411,6 +453,7 @@ export default function ServicosPage() {
               dataSource={servicos}
               rowKey="id"
               loading={loading}
+              scroll={{ x: 1000 }}
               pagination={{ pageSize: 20 }}
               locale={{
                 emptyText: (
