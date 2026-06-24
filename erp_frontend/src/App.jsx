@@ -9,7 +9,7 @@ import { registerKeyboardShortcut } from "./services/keyboardService";
 import { COMMANDS } from "./services/commandPaletteService";
 import integrationsService, { notificationService } from "./services/integrationsService";
 import { useBootstrapAuth } from "./hooks/useBootstrapAuth";
-import DashboardPage from "./pages/Financeiro/Dashboard";
+import DashboardPage from "./pages/Dashboard/DashboardPage";
 import AmbientePage from "./pages/Ambiente";
 import ClientesPage from "./pages/ClientesPage";
 import CRMPage from "./pages/CRM";

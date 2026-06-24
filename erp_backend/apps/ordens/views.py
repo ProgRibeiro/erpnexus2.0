@@ -8,6 +8,8 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import BadHeaderError, EmailMessage
 from django.db import transaction
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Coalesce, TruncMonth
 from django.http import FileResponse
 from django.utils import timezone
 from reportlab.pdfgen import canvas
@@ -683,6 +685,103 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         # Ordenar por hora de início
         ordens = queryset.order_by("hora_inicio")
         return Response(self.get_serializer(ordens, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path="dashboard")
+    def dashboard(self, request):
+        """Indicadores operacionais agregados para o dashboard executivo."""
+        hoje = timezone.localdate()
+        inicio_mes = hoje.replace(day=1)
+        status_encerrados = [
+            OrdemServico.Status.CONCLUIDA,
+            OrdemServico.Status.FATURADA,
+            OrdemServico.Status.CANCELADA,
+        ]
+        status_operacao = [
+            OrdemServico.Status.ABERTA,
+            OrdemServico.Status.APROVADA,
+            OrdemServico.Status.AGENDADA,
+            OrdemServico.Status.EM_EXECUCAO,
+        ]
+        queryset = self.get_queryset()
+
+        if getattr(request.user, "role", None) == "tecnico":
+            queryset = queryset.filter(tecnico_responsavel=request.user)
+
+        resumo = queryset.aggregate(
+            total=Count("id"),
+            abertas=Count("id", filter=Q(status__in=status_operacao)),
+            em_execucao=Count(
+                "id", filter=Q(status=OrdemServico.Status.EM_EXECUCAO)
+            ),
+            concluidas_mes=Count(
+                "id",
+                filter=Q(
+                    status__in=[
+                        OrdemServico.Status.CONCLUIDA,
+                        OrdemServico.Status.FATURADA,
+                    ],
+                    atualizado_em__date__gte=inicio_mes,
+                ),
+            ),
+            atrasadas=Count(
+                "id",
+                filter=Q(data_agendada__lt=hoje)
+                & ~Q(status__in=status_encerrados),
+            ),
+            urgentes=Count(
+                "id",
+                filter=Q(prioridade=OrdemServico.Prioridade.URGENTE)
+                & ~Q(status__in=status_encerrados),
+            ),
+            valor_em_aberto=Coalesce(
+                Sum(
+                    "valor_total_orcado",
+                    filter=Q(status__in=status_operacao),
+                ),
+                Decimal("0.00"),
+            ),
+        )
+
+        por_status = {
+            item["status"]: item["total"]
+            for item in queryset.values("status").annotate(total=Count("id"))
+        }
+        evolucao = list(
+            queryset.annotate(mes=TruncMonth("criado_em"))
+            .values("mes")
+            .annotate(
+                total=Count("id"),
+                concluidas=Count(
+                    "id",
+                    filter=Q(
+                        status__in=[
+                            OrdemServico.Status.CONCLUIDA,
+                            OrdemServico.Status.FATURADA,
+                        ]
+                    ),
+                ),
+            )
+            .order_by("mes")
+        )[-6:]
+
+        total_mes = queryset.filter(criado_em__date__gte=inicio_mes).count()
+        base_taxa_conclusao = max(total_mes, resumo["concluidas_mes"])
+        resumo["taxa_conclusao_mes"] = round(
+            (
+                resumo["concluidas_mes"] / base_taxa_conclusao * 100
+                if base_taxa_conclusao
+                else 0
+            ),
+            1,
+        )
+
+        return Response(
+            {
+                **resumo,
+                "por_status": por_status,
+                "evolucao_mensal": evolucao,
+            }
+        )
 
     @action(detail=True, methods=["patch"], url_path="reagendar")
     def reagendar(self, request, pk=None):

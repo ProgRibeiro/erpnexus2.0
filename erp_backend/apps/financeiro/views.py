@@ -298,6 +298,7 @@ class TransferenciaEntreContaViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def dashboard(request):
     inicio, fim = _periodo(request)
+    hoje = timezone.localdate()
     lancamentos = Lancamento.objects.filter(data_competencia__range=[inicio, fim])
     receita = lancamentos.filter(tipo=Lancamento.Tipo.RECEITA).exclude(status=Lancamento.Status.CANCELADO).aggregate(total=Coalesce(Sum("valor"), Decimal("0.00")))["total"]
     despesa = lancamentos.filter(tipo=Lancamento.Tipo.DESPESA).exclude(status=Lancamento.Status.CANCELADO).aggregate(total=Coalesce(Sum("valor"), Decimal("0.00")))["total"]
@@ -321,6 +322,16 @@ def dashboard(request):
     )
     contas_receber = LancamentoSerializer(Lancamento.objects.filter(tipo=Lancamento.Tipo.RECEITA, status__in=[Lancamento.Status.PENDENTE, Lancamento.Status.ATRASADO]).order_by("data_vencimento")[:10], many=True).data
     contas_pagar = LancamentoSerializer(Lancamento.objects.filter(tipo=Lancamento.Tipo.DESPESA, status__in=[Lancamento.Status.PENDENTE, Lancamento.Status.ATRASADO]).order_by("data_vencimento")[:10], many=True).data
+    receber_atrasado_qs = Lancamento.objects.filter(
+        tipo=Lancamento.Tipo.RECEITA,
+        status__in=[Lancamento.Status.PENDENTE, Lancamento.Status.ATRASADO],
+        data_vencimento__lt=hoje,
+    )
+    pagar_atrasado_qs = Lancamento.objects.filter(
+        tipo=Lancamento.Tipo.DESPESA,
+        status__in=[Lancamento.Status.PENDENTE, Lancamento.Status.ATRASADO],
+        data_vencimento__lt=hoje,
+    )
 
     return Response(
         {
@@ -334,6 +345,14 @@ def dashboard(request):
             "despesas_categoria": list(despesas_categoria),
             "contas_receber_lista": contas_receber,
             "contas_pagar_lista": contas_pagar,
+            "receber_atrasado": receber_atrasado_qs.aggregate(
+                total=Coalesce(Sum("valor"), Decimal("0.00"))
+            )["total"],
+            "receber_atrasado_count": receber_atrasado_qs.count(),
+            "pagar_atrasado": pagar_atrasado_qs.aggregate(
+                total=Coalesce(Sum("valor"), Decimal("0.00"))
+            )["total"],
+            "pagar_atrasado_count": pagar_atrasado_qs.count(),
         }
     )
 

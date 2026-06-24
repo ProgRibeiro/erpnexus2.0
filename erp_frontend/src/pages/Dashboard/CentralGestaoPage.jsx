@@ -1,101 +1,104 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Badge,
   Button,
   Card,
   Col,
-  Divider,
   Empty,
-  Input,
-  List,
   Progress,
   Row,
   Skeleton,
   Space,
-  Statistic,
   Tag,
   Typography,
 } from "antd";
 import {
   AlertOutlined,
-  AppstoreOutlined,
+  ArrowRightOutlined,
   BankOutlined,
-  BarChartOutlined,
-  BuildOutlined,
-  CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   DollarOutlined,
   FileDoneOutlined,
-  FileProtectOutlined,
   FileTextOutlined,
-  MessageOutlined,
+  PlusOutlined,
+  RiseOutlined,
   ShoppingCartOutlined,
-  SettingOutlined,
-  TeamOutlined,
-  ThunderboltOutlined,
+  SyncOutlined,
   ToolOutlined,
-  TrophyOutlined,
   WalletOutlined,
-  DownloadOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
-import {
-  ERP_HUB_MODULES,
-  ERP_WORKFLOW_STEPS,
-} from "../../config/erpExperience";
+import "./dashboard.css";
 
-const { Title, Text, Paragraph } = Typography;
-
-const ICONS = {
-  AlertOutlined,
-  AppstoreOutlined,
-  BankOutlined,
-  BarChartOutlined,
-  BuildOutlined,
-  CalendarOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  DollarOutlined,
-  FileDoneOutlined,
-  FileProtectOutlined,
-  FileTextOutlined,
-  MessageOutlined,
-  ShoppingCartOutlined,
-  SettingOutlined,
-  TeamOutlined,
-  ThunderboltOutlined,
-  ToolOutlined,
-  TrophyOutlined,
-  WalletOutlined,
-  DownloadOutlined,
-  UploadOutlined,
-};
+const { Paragraph, Text, Title } = Typography;
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
+  maximumFractionDigits: 2,
 });
-
+const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 const integerFormatter = new Intl.NumberFormat("pt-BR");
 
-const emptyFinanceiro = {
+const STATUS_CONFIG = {
+  aberta: { label: "Abertas", color: "#3B82F6" },
+  aprovada: { label: "Aprovadas", color: "#8B5CF6" },
+  agendada: { label: "Agendadas", color: "#F59E0B" },
+  em_execucao: { label: "Em execução", color: "#06B6D4" },
+  concluida: { label: "Concluídas", color: "#10B981" },
+  faturada: { label: "Faturadas", color: "#059669" },
+};
+
+const EMPTY_FINANCEIRO = {
   receita: 0,
   despesa: 0,
   lucro: 0,
   contas_receber: 0,
   contas_pagar: 0,
   saldo_total: 0,
-  contas_receber_lista: [],
-  contas_pagar_lista: [],
+  receber_atrasado: 0,
+  receber_atrasado_count: 0,
+  pagar_atrasado: 0,
+  pagar_atrasado_count: 0,
+  por_mes: [],
+  despesas_categoria: [],
 };
 
-const emptyEstoque = {
+const EMPTY_OPERACAO = {
+  total: 0,
+  abertas: 0,
+  em_execucao: 0,
+  concluidas_mes: 0,
+  atrasadas: 0,
+  urgentes: 0,
+  valor_em_aberto: 0,
+  taxa_conclusao_mes: 0,
+  por_status: {},
+  evolucao_mensal: [],
+};
+
+const EMPTY_ESTOQUE = {
   produtos_total: 0,
   produtos_em_alerta: 0,
   alertas_nao_lidos: 0,
@@ -108,37 +111,24 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function normalizeFinanceiro(data = {}) {
-  return {
-    receita: toNumber(data.receita),
-    despesa: toNumber(data.despesa),
-    lucro: toNumber(data.lucro),
-    contas_receber: toNumber(data.contas_receber),
-    contas_pagar: toNumber(data.contas_pagar),
-    saldo_total: toNumber(data.saldo_total),
-    contas_receber_lista: Array.isArray(data.contas_receber_lista)
-      ? data.contas_receber_lista
-      : [],
-    contas_pagar_lista: Array.isArray(data.contas_pagar_lista)
-      ? data.contas_pagar_lista
-      : [],
-  };
+function normalize(source, defaults) {
+  return Object.keys(defaults).reduce((result, key) => {
+    const fallback = defaults[key];
+    const value = source?.[key];
+    if (Array.isArray(fallback)) {
+      result[key] = Array.isArray(value) ? value : fallback;
+    } else if (typeof fallback === "object") {
+      result[key] = value && typeof value === "object" ? value : fallback;
+    } else {
+      result[key] = toNumber(value);
+    }
+    return result;
+  }, {});
 }
 
-function normalizeOrders(data) {
+function normalizeList(data) {
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  return [];
-}
-
-function normalizeEstoque(data = {}) {
-  return {
-    produtos_total: toNumber(data.produtos_total),
-    produtos_em_alerta: toNumber(data.produtos_em_alerta),
-    alertas_nao_lidos: toNumber(data.alertas_nao_lidos),
-    movimentacoes_hoje: toNumber(data.movimentacoes_hoje),
-    valor_total_estoque: toNumber(data.valor_total_estoque),
-  };
+  return Array.isArray(data?.results) ? data.results : [];
 }
 
 function getGreeting() {
@@ -149,174 +139,76 @@ function getGreeting() {
 }
 
 function getFirstName(user) {
-  return (
-    user?.first_name ||
-    user?.nome_completo?.split(" ")[0] ||
-    user?.nome?.split(" ")[0] ||
-    user?.username ||
-    "usuário"
-  );
+  const name =
+    user?.first_name || user?.nome_completo || user?.nome || user?.username;
+  return name?.trim().split(" ")[0] || "Lucas";
 }
 
-function formatDateTime(value) {
-  if (!value) return "--";
+function formatMonth(value) {
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "--";
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (Number.isNaN(date.getTime())) return "";
+  return date
+    .toLocaleDateString("pt-BR", { month: "short" })
+    .replace(".", "")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
-function ModuleCard({ module, onClick }) {
-  const Icon = ICONS[module.iconKey] || AppstoreOutlined;
+function formatDate(value) {
+  if (!value) return "Sem data";
+  const safeValue = String(value).includes("T") ? value : `${value}T00:00:00`;
+  const date = new Date(safeValue);
+  if (Number.isNaN(date.getTime())) return "Sem data";
+  return date.toLocaleDateString("pt-BR");
+}
 
+function MetricCard({ title, value, helper, icon: Icon, color, loading, onClick }) {
   return (
     <Card
-      hoverable
+      className={`executive-metric-card${onClick ? " is-clickable" : ""}`}
+      bordered={false}
       onClick={onClick}
-      style={{
-        borderRadius: 16,
-        border: "1px solid #E2E8F0",
-        height: "100%",
-        cursor: "pointer",
-      }}
-      bodyStyle={{ padding: 18 }}
     >
-      <Space direction="vertical" size={10} style={{ width: "100%" }}>
-        <div
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: 14,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: `${module.accent}14`,
-            color: module.accent,
-          }}
-        >
-          <Icon style={{ fontSize: 20 }} />
+      <Skeleton active loading={loading} paragraph={false} title={{ width: "75%" }}>
+        <div className="executive-metric-head">
+          <div className="executive-metric-icon" style={{ color, background: `${color}14` }}>
+            <Icon />
+          </div>
+          {onClick && <ArrowRightOutlined className="executive-metric-arrow" />}
         </div>
-        <Space direction="vertical" size={2}>
-          <Tag
-            color={module.accent}
-            style={{ width: "fit-content", margin: 0 }}
-          >
-            {module.label}
-          </Tag>
-          <Text strong style={{ fontSize: 15 }}>
-            {module.title}
-          </Text>
-          <Paragraph
-            style={{ marginBottom: 0, color: "#64748B", minHeight: 40 }}
-          >
-            {module.description}
-          </Paragraph>
-        </Space>
-      </Space>
-    </Card>
-  );
-}
-
-function WorkflowCard({ step, onClick, index }) {
-  const Icon = ICONS[step.iconKey] || AppstoreOutlined;
-
-  return (
-    <Card
-      hoverable
-      onClick={onClick}
-      style={{
-        borderRadius: 16,
-        border: "1px solid #E2E8F0",
-        cursor: "pointer",
-        height: "100%",
-      }}
-      bodyStyle={{ padding: 18 }}
-    >
-      <Space align="start" size={14}>
-        <Badge
-          count={index + 1}
-          style={{ backgroundColor: "#3B82F6" }}
-          offset={[-2, 2]}
-        >
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "#EFF6FF",
-              color: "#2563EB",
-            }}
-          >
-            <Icon style={{ fontSize: 18 }} />
-          </div>
-        </Badge>
-        <Space direction="vertical" size={4}>
-          <Text strong>{step.title}</Text>
-          <Text style={{ color: "#64748B" }}>{step.description}</Text>
-        </Space>
-      </Space>
-    </Card>
-  );
-}
-
-function SummaryStat({ title, value, helper, icon, color, loading }) {
-  const Icon = icon;
-
-  return (
-    <Card
-      style={{
-        borderRadius: 18,
-        border: "1px solid #E2E8F0",
-        height: "100%",
-      }}
-      bodyStyle={{ padding: 18 }}
-    >
-      <Skeleton active loading={loading} paragraph={false} title={false}>
-        <Space
-          align="start"
-          style={{ width: "100%", justifyContent: "space-between" }}
-        >
-          <Space direction="vertical" size={8}>
-            <Text
-              style={{
-                color: "#64748B",
-                fontSize: 12,
-                fontWeight: 600,
-                textTransform: "uppercase",
-              }}
-            >
-              {title}
-            </Text>
-            <Title level={3} style={{ margin: 0, color }}>
-              {value}
-            </Title>
-            <Text style={{ color: "#94A3B8" }}>{helper}</Text>
-          </Space>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: `${color}14`,
-              color,
-              flexShrink: 0,
-            }}
-          >
-            <Icon style={{ fontSize: 18 }} />
-          </div>
-        </Space>
+        <Text className="executive-metric-label">{title}</Text>
+        <div className="executive-metric-value" style={{ color }}>
+          {value}
+        </div>
+        <Text className="executive-metric-helper">{helper}</Text>
       </Skeleton>
     </Card>
+  );
+}
+
+function SectionHeader({ title, subtitle, action }) {
+  return (
+    <div className="executive-section-header">
+      <div>
+        <Title level={4}>{title}</Title>
+        <Text>{subtitle}</Text>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function FinancialTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="executive-chart-tooltip">
+      <Text strong>{label}</Text>
+      {payload.map((item) => (
+        <div key={item.dataKey} style={{ color: item.color }}>
+          {item.name}: {currencyFormatter.format(toNumber(item.value))}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -324,533 +216,405 @@ export default function CentralGestaoPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [financeiro, setFinanceiro] = useState(emptyFinanceiro);
-  const [estoque, setEstoque] = useState(emptyEstoque);
-  const [ordensHoje, setOrdensHoje] = useState([]);
-  const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [failedSources, setFailedSources] = useState([]);
+  const [financeiro, setFinanceiro] = useState(EMPTY_FINANCEIRO);
+  const [operacao, setOperacao] = useState(EMPTY_OPERACAO);
+  const [estoque, setEstoque] = useState(EMPTY_ESTOQUE);
+  const [agendaHoje, setAgendaHoje] = useState([]);
 
-  useEffect(() => {
-    let alive = true;
+  const loadDashboard = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
 
-    async function load() {
-      try {
-        setLoading(true);
-        const [financeiroResponse, ordensResponse, estoqueResponse] =
-          await Promise.all([
-            api.get("/financeiro/dashboard/"),
-            api.get("/ordens/agenda/hoje/"),
-            api.get("/estoque/dashboard/"),
-          ]);
+    const requests = [
+      ["financeiro", api.get("/financeiro/dashboard/")],
+      ["operação", api.get("/ordens/dashboard/")],
+      ["estoque", api.get("/estoque/dashboard/")],
+      ["agenda", api.get("/ordens/agenda/hoje/")],
+    ];
+    const responses = await Promise.allSettled(requests.map(([, promise]) => promise));
+    const failed = [];
 
-        if (!alive) return;
-
-        setFinanceiro(normalizeFinanceiro(financeiroResponse.data || {}));
-        setOrdensHoje(normalizeOrders(ordensResponse.data));
-        setEstoque(normalizeEstoque(estoqueResponse.data || {}));
-      } catch {
-        if (!alive) return;
-        setFinanceiro(emptyFinanceiro);
-        setOrdensHoje([]);
-        setEstoque(emptyEstoque);
-      } finally {
-        if (alive) setLoading(false);
+    responses.forEach((response, index) => {
+      const source = requests[index][0];
+      if (response.status === "rejected") {
+        failed.push(source);
+        return;
       }
-    }
+      const data = response.value?.data || {};
+      if (source === "financeiro") setFinanceiro(normalize(data, EMPTY_FINANCEIRO));
+      if (source === "operação") setOperacao(normalize(data, EMPTY_OPERACAO));
+      if (source === "estoque") setEstoque(normalize(data, EMPTY_ESTOQUE));
+      if (source === "agenda") setAgendaHoje(normalizeList(data));
+    });
 
-    load();
-
-    return () => {
-      alive = false;
-    };
+    setFailedSources(failed);
+    setLoading(false);
+    setRefreshing(false);
   }, []);
 
-  const moduleCards = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return ERP_HUB_MODULES;
-    return ERP_HUB_MODULES.filter((module) => {
-      const haystack =
-        `${module.label} ${module.title} ${module.description}`.toLowerCase();
-      return haystack.includes(term);
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const financialEvolution = useMemo(() => {
+    const months = {};
+    financeiro.por_mes.forEach((item) => {
+      const key = String(item.mes || "");
+      if (!months[key]) {
+        months[key] = { key, mes: formatMonth(key), receita: 0, despesa: 0 };
+      }
+      if (item.tipo === "receita" || item.tipo === "despesa") {
+        months[key][item.tipo] = toNumber(item.total);
+      }
     });
-  }, [search]);
+    return Object.values(months).sort((a, b) => a.key.localeCompare(b.key)).slice(-6);
+  }, [financeiro.por_mes]);
 
-  const todayPendingCount = ordensHoje.length;
-  const stockAlertCount =
-    estoque.produtos_em_alerta + estoque.alertas_nao_lidos;
-  const cashGap = financeiro.receita - financeiro.despesa;
+  const statusData = useMemo(
+    () =>
+      Object.entries(STATUS_CONFIG)
+        .map(([key, config]) => ({
+          status: key,
+          nome: config.label,
+          color: config.color,
+          total: toNumber(operacao.por_status[key]),
+        }))
+        .filter((item) => item.total > 0),
+    [operacao.por_status],
+  );
 
-  const quickActions = [
+  const expenseCategories = useMemo(() => {
+    const total = financeiro.despesas_categoria.reduce(
+      (sum, item) => sum + toNumber(item.total),
+      0,
+    );
+    return financeiro.despesas_categoria.slice(0, 4).map((item) => ({
+      name: item["categoria__nome"] || "Sem categoria",
+      color: item["categoria__cor"] || "#3B82F6",
+      value: toNumber(item.total),
+      percent: total ? Math.round((toNumber(item.total) / total) * 100) : 0,
+    }));
+  }, [financeiro.despesas_categoria]);
+
+  const margin = financeiro.receita
+    ? ((financeiro.lucro / financeiro.receita) * 100).toFixed(1)
+    : "0,0";
+  const stockHealth = estoque.produtos_total
+    ? Math.max(
+        0,
+        Math.round(
+          ((estoque.produtos_total - estoque.produtos_em_alerta) /
+            estoque.produtos_total) *
+            100,
+        ),
+      )
+    : 100;
+  const commitmentCoverage = financeiro.contas_pagar
+    ? Math.min(100, Math.round((financeiro.contas_receber / financeiro.contas_pagar) * 100))
+    : 100;
+
+  const metricCards = [
     {
-      key: "novo-orcamento",
-      label: "Novo orçamento",
-      path: "/orcamentos/novo",
-      iconKey: "FileTextOutlined",
-      color: "#8B5CF6",
-    },
-    {
-      key: "nova-os",
-      label: "Nova OS",
-      path: "/ordens/novo",
-      iconKey: "FileDoneOutlined",
+      title: "Receita no mês",
+      value: compactCurrencyFormatter.format(financeiro.receita),
+      helper: `Margem operacional de ${margin}%`,
+      icon: RiseOutlined,
       color: "#10B981",
+      path: "/financeiro/analitico",
     },
     {
-      key: "novo-lancamento",
-      label: "Lançamento",
-      path: "/financeiro/lancamentos/novo",
-      iconKey: "DollarOutlined",
-      color: "#F59E0B",
-    },
-    {
-      key: "estoque",
-      label: "Estoque",
-      path: "/estoque",
-      iconKey: "ShoppingCartOutlined",
-      color: "#0EA5E9",
-    },
-  ];
-
-  const operationalSignals = [
-    {
-      title: "Receita do mês",
-      value: currencyFormatter.format(financeiro.receita),
-      helper: "Base financeira consolidada",
-      icon: DollarOutlined,
-      color: "#10B981",
-    },
-    {
-      title: "Saldo projetado",
-      value: currencyFormatter.format(cashGap),
-      helper: "Receita menos despesas",
+      title: "Resultado do mês",
+      value: compactCurrencyFormatter.format(financeiro.lucro),
+      helper: `${currencyFormatter.format(financeiro.despesa)} em despesas`,
       icon: BankOutlined,
-      color: cashGap >= 0 ? "#2563EB" : "#EF4444",
+      color: financeiro.lucro >= 0 ? "#3B82F6" : "#EF4444",
+      path: "/financeiro/analitico",
     },
     {
-      title: "OS de hoje",
-      value: integerFormatter.format(todayPendingCount),
-      helper: "Agenda operacional",
-      icon: CalendarOutlined,
+      title: "Contas a receber",
+      value: compactCurrencyFormatter.format(financeiro.contas_receber),
+      helper: `${financeiro.receber_atrasado_count} título(s) vencido(s)`,
+      icon: WalletOutlined,
       color: "#8B5CF6",
+      path: "/financeiro/lancamentos?tipo=receita",
+    },
+    {
+      title: "Recebíveis vencidos",
+      value: compactCurrencyFormatter.format(financeiro.receber_atrasado),
+      helper: "Prioridade de cobrança",
+      icon: AlertOutlined,
+      color: financeiro.receber_atrasado > 0 ? "#EF4444" : "#10B981",
+      path: "/financeiro/lancamentos?status=atrasado",
+    },
+    {
+      title: "OS em andamento",
+      value: integerFormatter.format(operacao.abertas),
+      helper: `${operacao.em_execucao} em execução agora`,
+      icon: ToolOutlined,
+      color: "#06B6D4",
+      path: "/ordens",
+    },
+    {
+      title: "Concluídas no mês",
+      value: integerFormatter.format(operacao.concluidas_mes),
+      helper: `${operacao.taxa_conclusao_mes}% de taxa de conclusão`,
+      icon: CheckCircleOutlined,
+      color: "#10B981",
+      path: "/ordens?status=concluida",
+    },
+    {
+      title: "Valor em estoque",
+      value: compactCurrencyFormatter.format(estoque.valor_total_estoque),
+      helper: `${estoque.produtos_total} produtos ativos`,
+      icon: ShoppingCartOutlined,
+      color: "#3B82F6",
+      path: "/estoque",
     },
     {
       title: "Alertas de estoque",
-      value: integerFormatter.format(stockAlertCount),
-      helper: "Produtos abaixo do mínimo",
+      value: integerFormatter.format(estoque.produtos_em_alerta),
+      helper: `${estoque.movimentacoes_hoje} movimentações hoje`,
       icon: AlertOutlined,
-      color: "#F59E0B",
+      color: estoque.produtos_em_alerta > 0 ? "#F59E0B" : "#10B981",
+      path: "/estoque/alertas",
     },
   ];
 
-  const receivables = financeiro.contas_receber_lista.slice(0, 5);
-  const payables = financeiro.contas_pagar_lista.slice(0, 5);
+  const currentDate = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 22,
-          background:
-            "linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 52%, #EEFDF7 100%)",
-          border: "1px solid #E2E8F0",
-          marginBottom: 20,
-        }}
-        bodyStyle={{ padding: 24 }}
-      >
-        <Row gutter={[20, 20]} align="middle">
-          <Col xs={24} lg={14}>
-            <Space direction="vertical" size={10} style={{ width: "100%" }}>
-              <Tag color="blue" style={{ width: "fit-content", margin: 0 }}>
-                Central de gestão
-              </Tag>
-              <Title level={2} style={{ margin: 0, fontSize: 28 }}>
-                {getGreeting()}, {getFirstName(user)}.
-              </Title>
-              <Paragraph
-                style={{
-                  marginBottom: 0,
-                  color: "#475569",
-                  fontSize: 15,
-                  maxWidth: 760,
-                }}
-              >
-                Organize clientes, vendas, ordens, financeiro e estoque em um
-                fluxo único, com atalhos de uso diário e visão operacional
-                semelhante a um ERP completo.
-              </Paragraph>
-            </Space>
-          </Col>
-          <Col xs={24} lg={10}>
-            <Space wrap style={{ justifyContent: "flex-end", width: "100%" }}>
-              {quickActions.map((action) => {
-                const Icon = ICONS[action.iconKey] || AppstoreOutlined;
-                return (
-                  <Button
-                    key={action.key}
-                    icon={<Icon />}
-                    onClick={() => navigate(action.path)}
-                    style={{
-                      borderRadius: 12,
-                      height: 42,
-                      borderColor: `${action.color}33`,
-                      color: action.color,
-                    }}
-                  >
-                    {action.label}
-                  </Button>
-                );
-              })}
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+    <div className="executive-dashboard">
+      <section className="executive-hero">
+        <div>
+          <Tag color="blue" className="executive-eyebrow">
+            Visão executiva
+          </Tag>
+          <Title level={2}>
+            {getGreeting()}, {getFirstName(user)}.
+          </Title>
+          <Paragraph>
+            Acompanhe o que movimenta a empresa e identifique rapidamente onde agir.
+          </Paragraph>
+          <Text className="executive-date">{currentDate}</Text>
+        </div>
+        <Space wrap className="executive-actions">
+          <Button icon={<FileTextOutlined />} onClick={() => navigate("/orcamentos/novo")}>
+            Novo orçamento
+          </Button>
+          <Button icon={<FileDoneOutlined />} onClick={() => navigate("/ordens/novo")}>
+            Nova OS
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/financeiro/lancamentos/novo")}>
+            Novo lançamento
+          </Button>
+          <Button
+            aria-label="Atualizar dashboard"
+            icon={<SyncOutlined spin={refreshing} />}
+            onClick={() => loadDashboard(true)}
+          />
+        </Space>
+      </section>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        {operationalSignals.map((signal) => (
-          <Col key={signal.title} xs={24} sm={12} xl={6}>
-            <SummaryStat
-              title={signal.title}
-              value={signal.value}
-              helper={signal.helper}
-              icon={signal.icon}
-              color={signal.color}
+      {failedSources.length > 0 && (
+        <Alert
+          showIcon
+          closable
+          type="warning"
+          message="Alguns indicadores não puderam ser atualizados"
+          description={`Fontes indisponíveis: ${failedSources.join(", ")}. Os demais dados continuam visíveis.`}
+        />
+      )}
+
+      <Row gutter={[16, 16]} className="executive-metrics-grid">
+        {metricCards.map((metric) => (
+          <Col key={metric.title} xs={24} sm={12} lg={8} xl={6}>
+            <MetricCard
+              {...metric}
               loading={loading}
+              onClick={() => navigate(metric.path)}
             />
           </Col>
         ))}
       </Row>
 
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 20,
-          border: "1px solid #E2E8F0",
-          marginBottom: 16,
-        }}
-        bodyStyle={{ padding: 20 }}
-      >
-        <Space direction="vertical" size={14} style={{ width: "100%" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <Title level={4} style={{ margin: 0 }}>
-                Principais módulos
-              </Title>
-              <Text style={{ color: "#64748B" }}>
-                Navegação por áreas para acelerar rotinas de cadastro, operação
-                e cobrança.
-              </Text>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={15}>
+          <Card className="executive-panel" bordered={false}>
+            <SectionHeader
+              title="Evolução financeira"
+              subtitle="Receitas e despesas dos últimos seis meses"
+              action={
+                <Button type="link" onClick={() => navigate("/financeiro/analitico")}>
+                  Ver análise completa <ArrowRightOutlined />
+                </Button>
+              }
+            />
+            <Skeleton active loading={loading} paragraph={{ rows: 7 }} title={false}>
+              {financialEvolution.length ? (
+                <div className="executive-chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={financialEvolution} margin={{ top: 10, right: 8, left: -15, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.28} />
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.22} />
+                          <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid stroke="#E2E8F0" strokeDasharray="4 4" vertical={false} />
+                      <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: "#64748B", fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 11 }} tickFormatter={(value) => compactCurrencyFormatter.format(value)} />
+                      <ChartTooltip content={<FinancialTooltip />} />
+                      <Area name="Receitas" type="monotone" dataKey="receita" stroke="#3B82F6" strokeWidth={3} fill="url(#revenueGradient)" />
+                      <Area name="Despesas" type="monotone" dataKey="despesa" stroke="#F59E0B" strokeWidth={3} fill="url(#expenseGradient)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <Empty description="Ainda não há histórico financeiro para exibir" />
+              )}
+            </Skeleton>
+          </Card>
+        </Col>
+
+        <Col xs={24} xl={9}>
+          <Card className="executive-panel" bordered={false}>
+            <SectionHeader
+              title="Pipeline operacional"
+              subtitle="Distribuição atual das ordens de serviço"
+              action={<Tag color="blue">{operacao.total} OS</Tag>}
+            />
+            <Skeleton active loading={loading} paragraph={{ rows: 7 }} title={false}>
+              {statusData.length ? (
+                <div className="executive-chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statusData} layout="vertical" margin={{ top: 5, right: 24, left: 12, bottom: 0 }}>
+                      <CartesianGrid stroke="#E2E8F0" strokeDasharray="4 4" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="nome" width={88} axisLine={false} tickLine={false} tick={{ fill: "#64748B", fontSize: 11 }} />
+                      <ChartTooltip cursor={{ fill: "#F8FAFC" }} formatter={(value) => [value, "Ordens"]} />
+                      <Bar dataKey="total" radius={[0, 8, 8, 0]} barSize={18}>
+                        {statusData.map((item) => <Cell key={item.status} fill={item.color} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <Empty description="Nenhuma ordem de serviço cadastrada" />
+              )}
+            </Skeleton>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} className="executive-bottom-row">
+        <Col xs={24} xl={10}>
+          <Card className="executive-panel" bordered={false}>
+            <SectionHeader
+              title="Agenda de hoje"
+              subtitle={`${agendaHoje.length} atendimento(s) programado(s)`}
+              action={<Button type="link" onClick={() => navigate("/agenda/hoje")}>Abrir agenda</Button>}
+            />
+            <Skeleton active loading={loading} paragraph={{ rows: 5 }} title={false}>
+              {agendaHoje.length ? (
+                <div className="executive-agenda-list">
+                  {agendaHoje.slice(0, 5).map((item) => (
+                    <button
+                      className="executive-agenda-item"
+                      key={item.id}
+                      type="button"
+                      onClick={() => navigate(`/ordens/${item.id}`)}
+                    >
+                      <div className="executive-agenda-time">
+                        <ClockCircleOutlined />
+                        {String(item.hora_inicio || "--:--").slice(0, 5)}
+                      </div>
+                      <div className="executive-agenda-content">
+                        <Text strong>{item.numero || `OS #${item.id}`}</Text>
+                        <Text>{item.cliente_nome || "Cliente não informado"}</Text>
+                      </div>
+                      <Tag color={item.status === "em_execucao" ? "cyan" : "blue"}>
+                        {item.status === "em_execucao" ? "Em execução" : "Agendada"}
+                      </Tag>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma OS agendada para hoje" />
+              )}
+            </Skeleton>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12} xl={7}>
+          <Card className="executive-panel" bordered={false}>
+            <SectionHeader title="Saúde da operação" subtitle="Indicadores que pedem acompanhamento" />
+            <div className="executive-health-list">
+              <div>
+                <div className="executive-health-label">
+                  <Text>Conclusão de OS no mês</Text>
+                  <Text strong>{operacao.taxa_conclusao_mes}%</Text>
+                </div>
+                <Progress percent={operacao.taxa_conclusao_mes} showInfo={false} strokeColor="#10B981" />
+              </div>
+              <div>
+                <div className="executive-health-label">
+                  <Text>Cobertura de compromissos</Text>
+                  <Text strong>{commitmentCoverage}%</Text>
+                </div>
+                <Progress percent={commitmentCoverage} showInfo={false} strokeColor="#3B82F6" />
+              </div>
+              <div>
+                <div className="executive-health-label">
+                  <Text>Saúde do estoque</Text>
+                  <Text strong>{stockHealth}%</Text>
+                </div>
+                <Progress percent={stockHealth} showInfo={false} strokeColor={stockHealth >= 80 ? "#10B981" : "#F59E0B"} />
+              </div>
+              <div className="executive-alert-grid">
+                <button type="button" onClick={() => navigate("/ordens")}>
+                  <strong>{operacao.atrasadas}</strong>
+                  <span>OS atrasadas</span>
+                </button>
+                <button type="button" onClick={() => navigate("/ordens")}>
+                  <strong>{operacao.urgentes}</strong>
+                  <span>OS urgentes</span>
+                </button>
+              </div>
             </div>
-            <Input.Search
-              allowClear
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar módulo"
-              style={{ maxWidth: 320 }}
-            />
-          </div>
+          </Card>
+        </Col>
 
-          <Row gutter={[14, 14]}>
-            {moduleCards.map((module) => (
-              <Col key={module.key} xs={24} sm={12} lg={8} xl={6}>
-                <ModuleCard
-                  module={module}
-                  onClick={() => navigate(module.path)}
-                />
-              </Col>
-            ))}
-          </Row>
-        </Space>
-      </Card>
-
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={24} lg={14}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 20,
-              border: "1px solid #E2E8F0",
-              height: "100%",
-            }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>
-                  Fluxo operacional
-                </Title>
-                <Text style={{ color: "#64748B" }}>
-                  Um caminho simples para vender, executar, faturar e controlar.
-                </Text>
-              </div>
-              <Row gutter={[12, 12]}>
-                {ERP_WORKFLOW_STEPS.map((step, index) => (
-                  <Col key={step.key} xs={24} sm={12} lg={12} xl={8}>
-                    <WorkflowCard
-                      step={step}
-                      index={index}
-                      onClick={() => navigate(step.path)}
-                    />
-                  </Col>
+        <Col xs={24} md={12} xl={7}>
+          <Card className="executive-panel" bordered={false}>
+            <SectionHeader title="Maiores despesas" subtitle="Categorias com maior peso no mês" />
+            {expenseCategories.length ? (
+              <div className="executive-expenses-list">
+                {expenseCategories.map((item) => (
+                  <div key={item.name}>
+                    <div className="executive-expense-row">
+                      <span><i style={{ background: item.color }} />{item.name}</span>
+                      <Text strong>{compactCurrencyFormatter.format(item.value)}</Text>
+                    </div>
+                    <Progress percent={item.percent} showInfo={false} strokeColor={item.color} size="small" />
+                  </div>
                 ))}
-              </Row>
-            </Space>
-          </Card>
-        </Col>
-        <Col xs={24} lg={10}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 20,
-              border: "1px solid #E2E8F0",
-              height: "100%",
-            }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <Space direction="vertical" size={14} style={{ width: "100%" }}>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>
-                  Pendências do dia
-                </Title>
-                <Text style={{ color: "#64748B" }}>
-                  O que precisa de ação agora para manter a operação fluindo.
-                </Text>
               </div>
-
-              <Alert
-                type="info"
-                showIcon
-                message={`${integerFormatter.format(todayPendingCount)} ordens agendadas para hoje`}
-                description="Use a agenda para priorizar atendimento, execução e faturamento."
-              />
-
-              <Alert
-                type="warning"
-                showIcon
-                message={`${integerFormatter.format(stockAlertCount)} alertas de estoque ativos`}
-                description="Revise itens abaixo do mínimo antes de liberar novas ordens."
-              />
-
-              <Alert
-                type={financeiro.contas_receber > 0 ? "error" : "success"}
-                showIcon
-                message={`${currencyFormatter.format(financeiro.contas_receber)} a receber`}
-                description="Acompanhe títulos pendentes e mantenha o caixa previsível."
-              />
-
-              <Progress
-                percent={Math.min(
-                  100,
-                  Math.max(
-                    0,
-                    estoque.produtos_total
-                      ? (estoque.produtos_em_alerta / estoque.produtos_total) *
-                          100
-                      : 0,
-                  ),
-                )}
-                strokeColor="#F59E0B"
-                trailColor="#E2E8F0"
-                format={(value) =>
-                  `${value ? value.toFixed(0) : 0}% dos itens em alerta`
-                }
-              />
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 20,
-              border: "1px solid #E2E8F0",
-              height: "100%",
-            }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <Space direction="vertical" size={14} style={{ width: "100%" }}>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>
-                  Contas a receber
-                </Title>
-                <Text style={{ color: "#64748B" }}>
-                  Títulos em aberto ordenados por vencimento.
-                </Text>
-              </div>
-              <Skeleton
-                active
-                loading={loading}
-                paragraph={{ rows: 5 }}
-                title={false}
-              >
-                {receivables.length > 0 ? (
-                  <List
-                    dataSource={receivables}
-                    renderItem={(item, index) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            key="open"
-                            type="link"
-                            onClick={() => navigate("/financeiro/lancamentos")}
-                          >
-                            Abrir
-                          </Button>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Badge
-                              count={index + 1}
-                              style={{ backgroundColor: "#3B82F6" }}
-                            />
-                          }
-                          title={
-                            item.descricao ||
-                            item.numero_documento ||
-                            "Lançamento"
-                          }
-                          description={formatDateTime(
-                            item.data_vencimento || item.data_competencia,
-                          )}
-                        />
-                        <Text strong>
-                          {currencyFormatter.format(toNumber(item.valor))}
-                        </Text>
-                      </List.Item>
-                    )}
-                  />
-                ) : (
-                  <Empty description="Sem contas a receber" />
-                )}
-              </Skeleton>
-            </Space>
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 20,
-              border: "1px solid #E2E8F0",
-              height: "100%",
-            }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <Space direction="vertical" size={14} style={{ width: "100%" }}>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>
-                  Ordens de hoje
-                </Title>
-                <Text style={{ color: "#64748B" }}>
-                  Acompanhe a execução operacional em andamento.
-                </Text>
-              </div>
-              <Skeleton
-                active
-                loading={loading}
-                paragraph={{ rows: 5 }}
-                title={false}
-              >
-                {ordensHoje.length > 0 ? (
-                  <List
-                    dataSource={ordensHoje.slice(0, 5)}
-                    renderItem={(item, index) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            key="open"
-                            type="link"
-                            onClick={() => navigate(`/ordens/${item.id}`)}
-                          >
-                            Ver
-                          </Button>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Badge
-                              count={index + 1}
-                              style={{ backgroundColor: "#10B981" }}
-                            />
-                          }
-                          title={
-                            item.numero || item.codigo || `OS ${index + 1}`
-                          }
-                          description={
-                            item.cliente?.nome ||
-                            item.cliente_nome ||
-                            "Cliente não informado"
-                          }
-                        />
-                        <Space direction="vertical" align="end" size={0}>
-                          <Text strong>
-                            {currencyFormatter.format(
-                              toNumber(
-                                item.valor_total_orcado || item.valor_total,
-                              ),
-                            )}
-                          </Text>
-                          <Tag color="green">{item.status || "Agendada"}</Tag>
-                        </Space>
-                      </List.Item>
-                    )}
-                  />
-                ) : (
-                  <Empty description="Sem ordens para hoje" />
-                )}
-              </Skeleton>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-
-      <Divider />
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 18, border: "1px solid #E2E8F0" }}
-          >
-            <Statistic
-              title="Saldo projetado"
-              value={currencyFormatter.format(financeiro.lucro)}
-              prefix={<CheckCircleOutlined style={{ color: "#10B981" }} />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 18, border: "1px solid #E2E8F0" }}
-          >
-            <Statistic
-              title="Movimentações hoje"
-              value={estoque.movimentacoes_hoje}
-              prefix={<ShoppingCartOutlined style={{ color: "#0EA5E9" }} />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 18, border: "1px solid #E2E8F0" }}
-          >
-            <Statistic
-              title="Valor total do estoque"
-              value={currencyFormatter.format(estoque.valor_total_estoque)}
-              prefix={<BankOutlined style={{ color: "#6366F1" }} />}
-            />
+            ) : (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sem despesas no período" />
+            )}
+            <Button block icon={<DollarOutlined />} onClick={() => navigate("/financeiro/lancamentos?tipo=despesa")}>
+              Ver despesas
+            </Button>
           </Card>
         </Col>
       </Row>
