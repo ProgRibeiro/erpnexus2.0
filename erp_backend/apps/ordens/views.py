@@ -221,6 +221,82 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             linhas.extend(f"- {label}: {valor}" for label, valor in briefing.items())
         return "\n".join(linhas)
 
+    def _status_label(self, status_os):
+        return dict(OrdemServico.Status.choices).get(status_os, status_os)
+
+    def _validar_pronto_para_execucao(self, ordem):
+        pendencias = []
+        if not ordem.tecnico_responsavel_id:
+            pendencias.append("defina o técnico responsável")
+        if not ordem.data_agendada:
+            pendencias.append("informe a data agendada")
+        if not ordem.descricao_servico.strip():
+            pendencias.append("preencha a descrição do serviço")
+        return pendencias
+
+    def _validar_pronto_para_conclusao(self, ordem):
+        pendencias = []
+        if not ordem.tipo_relatorio:
+            pendencias.append("selecione o tipo de relatório")
+
+        tipo_relatorio = str(ordem.tipo_relatorio or "").lower()
+        observacoes = str(ordem.observacoes_tecnicas or "").strip()
+        descricao = str(ordem.descricao_servico or "").strip()
+
+        if tipo_relatorio == OrdemServico.TipoRelatorio.FOTOGRAFICO:
+            if not descricao:
+                pendencias.append("preencha a descrição do serviço executado")
+            if not ordem.fotos.exists():
+                pendencias.append("anexe ao menos uma foto do serviço")
+        elif not observacoes:
+            pendencias.append("preencha as observações técnicas do relatório")
+
+        return pendencias
+
+    def _validar_transicao_status(self, ordem, status_novo):
+        status_anterior = ordem.status
+
+        if status_anterior == status_novo:
+            return []
+
+        if status_anterior == OrdemServico.Status.FATURADA:
+            return ["OS faturada não pode ter status alterado. Ajustes devem ser feitos pelo financeiro."]
+
+        if status_novo == OrdemServico.Status.FATURADA:
+            return ["Use a ação de confirmar faturamento para faturar a OS e gerar o lançamento financeiro."]
+
+        if status_novo == OrdemServico.Status.CANCELADA:
+            return []
+
+        statuses_orcamento = {
+            OrdemServico.Status.RASCUNHO,
+            OrdemServico.Status.ORCAMENTO_ENVIADO,
+        }
+        statuses_os = {
+            OrdemServico.Status.ABERTA,
+            OrdemServico.Status.AGENDADA,
+            OrdemServico.Status.EM_EXECUCAO,
+            OrdemServico.Status.CONCLUIDA,
+        }
+
+        if status_anterior in statuses_orcamento and status_novo in statuses_os:
+            return ["O orçamento precisa ser aprovado antes de se tornar uma Ordem de Serviço."]
+
+        if status_anterior in statuses_os and status_novo in statuses_orcamento:
+            return ["Não é possível reverter uma Ordem de Serviço para status de orçamento."]
+
+        if status_novo == OrdemServico.Status.EM_EXECUCAO:
+            pendencias = self._validar_pronto_para_execucao(ordem)
+            if pendencias:
+                return [f"Antes de iniciar a execução, {', '.join(pendencias)}."]
+
+        if status_novo == OrdemServico.Status.CONCLUIDA:
+            pendencias = self._validar_pronto_para_conclusao(ordem)
+            if pendencias:
+                return [f"Antes de concluir a OS, {', '.join(pendencias)}."]
+
+        return []
+
     @action(detail=False, methods=["post"], url_path="motor-orcamento/analisar")
     def motor_orcamento_analisar(self, request):
         dados = self._dados_motor_orcamento(request)
@@ -319,33 +395,31 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         status_anterior = ordem.status
         status_novo = serializer.validated_data["status"]
 
-        # Guarda de transição: orçamentos só viram OS após aprovação
-        STATUSES_ORCAMENTO = {
-            OrdemServico.Status.RASCUNHO,
-            OrdemServico.Status.ORCAMENTO_ENVIADO,
-        }
-        STATUSES_OS = {
-            OrdemServico.Status.ABERTA,
-            OrdemServico.Status.AGENDADA,
-            OrdemServico.Status.EM_EXECUCAO,
-            OrdemServico.Status.CONCLUIDA,
-            OrdemServico.Status.FATURADA,
-        }
-        # Não permite pular de orçamento direto para status de OS sem passar por "aprovada"
-        if status_anterior in STATUSES_ORCAMENTO and status_novo in STATUSES_OS:
+        pendencias_transicao = self._validar_transicao_status(ordem, status_novo)
+        if pendencias_transicao:
             return Response(
-                {"detail": "O orçamento precisa ser aprovado antes de se tornar uma Ordem de Serviço."},
-                status=400,
+                {
+                    "detail": pendencias_transicao[0],
+                    "pendencias": pendencias_transicao,
+                    "status_atual": status_anterior,
+                    "status_solicitado": status_novo,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        # Não permite voltar de OS para orçamento
-        if status_anterior in STATUSES_OS and status_novo in STATUSES_ORCAMENTO:
-            return Response(
-                {"detail": "Não é possível reverter uma Ordem de Serviço para status de orçamento."},
-                status=400,
-            )
+
+        if status_anterior == status_novo:
+            data = self.get_serializer(ordem).data
+            data["status_inalterado"] = True
+            return Response(data)
+
         ordem.status = status_novo
         ordem.atualizado_por = request.user
-        ordem.save(update_fields=["status", "atualizado_por", "atualizado_em"])
+        update_fields = ["status", "atualizado_por", "atualizado_em"]
+        if status_novo == OrdemServico.Status.APROVADA and not ordem.data_aprovacao:
+            ordem.data_aprovacao = timezone.now()
+            ordem.aprovado_por = getattr(request.user, "nome_completo", "") or getattr(request.user, "username", "")
+            update_fields.extend(["data_aprovacao", "aprovado_por"])
+        ordem.save(update_fields=update_fields)
         estoque_resultado = []
         aprendizado_resultado = []
         if status_novo == OrdemServico.Status.CONCLUIDA:
@@ -382,9 +456,22 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
         # Regra 1: somente OS com status "concluida" podem ser faturadas
         if ordem.status != OrdemServico.Status.CONCLUIDA:
-            status_label = dict(OrdemServico.Status.choices).get(ordem.status, ordem.status)
+            status_label = self._status_label(ordem.status)
             return Response(
                 {"detail": f"Somente ordens com status 'Concluída' podem ser faturadas. Status atual: {status_label}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        valor_receber_previsto = ordem.valor_final_faturado or ordem.total_com_impostos or ordem.valor_total_orcado
+        if not valor_receber_previsto or valor_receber_previsto <= 0:
+            return Response(
+                {"detail": "Informe um valor final faturado maior que zero antes de confirmar o faturamento."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if ordem.data_emissao_nf and ordem.data_vencimento and ordem.data_vencimento < ordem.data_emissao_nf:
+            return Response(
+                {"detail": "A data de vencimento não pode ser anterior à data de emissão da NF."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -396,12 +483,30 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             tem_dados = bool(isinstance(ordem.dados_pc_extraidos, dict) and ordem.dados_pc_extraidos)
             pc_preenchido = tem_numero or tem_valor or tem_dados
             forcar = request.data.get("forcar_sem_pc", False)
+            forcar_valor_pc = request.data.get("forcar_valor_pc", False)
             if not pc_preenchido and not forcar:
                 return Response(
                     {
                         "detail": "Esta OS possui Pedido de Compra mas os dados não foram preenchidos. "
                                   "Preencha o PC na OS ou confirme para faturar sem PC.",
                         "requer_confirmacao_pc": True,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if (
+                ordem.valor_autorizado_pc
+                and valor_receber_previsto > ordem.valor_autorizado_pc
+                and not forcar_valor_pc
+            ):
+                return Response(
+                    {
+                        "detail": (
+                            "O valor final faturado está acima do valor autorizado no Pedido de Compra. "
+                            "Revise os valores ou confirme conscientemente para continuar."
+                        ),
+                        "requer_confirmacao_valor_pc": True,
+                        "valor_final_faturado": str(valor_receber_previsto),
+                        "valor_autorizado_pc": str(ordem.valor_autorizado_pc),
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -423,12 +528,12 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                     "saldo_inicial": 0,
                     "ativo": True,
                 },
-            )
+                )
 
         with transaction.atomic():
             status_anterior = ordem.status
             if not ordem.valor_final_faturado:
-                ordem.valor_final_faturado = ordem.total_com_impostos or ordem.valor_total_orcado
+                ordem.valor_final_faturado = valor_receber_previsto
             ordem.status = OrdemServico.Status.FATURADA
             ordem.atualizado_por = request.user
             ordem.save(update_fields=["valor_final_faturado", "status", "atualizado_por", "atualizado_em"])

@@ -447,6 +447,7 @@ export default function OSDetalhePage() {
     () => (ordem?.fotos || []).filter((foto) => String(foto.tipo) === "depois"),
     [ordem?.fotos]
   );
+  const hasServicePhotos = (ordem?.fotos || []).length > 0;
 
   useEffect(() => {
     carregarTela();
@@ -1106,15 +1107,60 @@ export default function OSDetalhePage() {
           return;
         }
 
+        if (!precisaObservacaoTecnica && !hasServicePhotos) {
+          setActiveTab("execucao");
+          message.warning("Anexe ao menos uma foto do serviço antes de faturar com relatório fotográfico.");
+          return;
+        }
+
         const osConcluida = await changeStatus("concluida", "OS concluída automaticamente ao iniciar faturamento.");
         if (!osConcluida) {
           return;
         }
       }
 
-      const response = await api.post(`/ordens/${id}/confirmar-faturamento/`, {
-        conta_bancaria: form.getFieldValue("conta_recebimento"),
-      });
+      const enviarFaturamento = (flags = {}) =>
+        api.post(`/ordens/${id}/confirmar-faturamento/`, {
+          conta_bancaria: form.getFieldValue("conta_recebimento"),
+          ...flags,
+        });
+
+      let response;
+      try {
+        response = await enviarFaturamento();
+      } catch (error) {
+        const data = error?.response?.data || {};
+        if (data.requer_confirmacao_pc || data.requer_confirmacao_valor_pc) {
+          const confirmado = await new Promise((resolve) => {
+            Modal.confirm({
+              title: data.requer_confirmacao_valor_pc
+                ? "Faturar acima do valor autorizado no PC?"
+                : "Faturar sem dados completos do PC?",
+              content:
+                data.detail ||
+                "A OS precisa de uma confirmação adicional antes de gerar o lançamento financeiro.",
+              okText: "Confirmar e faturar",
+              cancelText: "Revisar OS",
+              okButtonProps: { danger: data.requer_confirmacao_valor_pc },
+              onOk: () => resolve(true),
+              onCancel: () => resolve(false),
+            });
+          });
+
+          if (!confirmado) {
+            setActiveTab("dados-gerais");
+            return;
+          }
+
+          response = await enviarFaturamento({
+            forcar_sem_pc: Boolean(data.requer_confirmacao_pc),
+            forcar_valor_pc: Boolean(data.requer_confirmacao_valor_pc),
+          });
+        } else {
+          throw error;
+        }
+      }
+
       if (response.data?.ordem) {
         setOrdem(response.data.ordem);
         preencherFormulario(response.data.ordem);
@@ -1179,6 +1225,12 @@ export default function OSDetalhePage() {
     if (!precisaObservacaoTecnica && !descricaoServico) {
       setActiveTab("dados-gerais");
       message.warning("No relatório de manutenção geral (fotos), preencha a descrição do serviço antes de concluir a OS.");
+      return;
+    }
+
+    if (!precisaObservacaoTecnica && !hasServicePhotos) {
+      setActiveTab("execucao");
+      message.warning("Anexe ao menos uma foto do serviço antes de concluir com relatório fotográfico.");
       return;
     }
 
