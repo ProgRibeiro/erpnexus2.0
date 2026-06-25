@@ -6,6 +6,7 @@ import {
   Card,
   Checkbox,
   Col,
+  Collapse,
   DatePicker,
   Descriptions,
   Divider,
@@ -435,6 +436,7 @@ export default function OSDetalhePage() {
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
   const [reportGovernance, setReportGovernance] = useState(null);
+  const [mostrarChecklistCompleto, setMostrarChecklistCompleto] = useState(false);
   const [concluindoOS, setConcluindoOS] = useState(false);
   const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
   const [tributacao, setTributacao] = useState({
@@ -527,6 +529,15 @@ export default function OSDetalhePage() {
       percentual: total ? Math.round((respondidos / total) * 100) : 0,
     };
   }, [checklistRespostas, checklistTemplate?.itens]);
+  const checklistRapidoItens = useMemo(() => {
+    const itens = checklistTemplate?.itens || [];
+    const obrigatorios = itens.filter((item) => item.obrigatorio);
+    if (obrigatorios.length) return obrigatorios.slice(0, 4);
+    return itens.slice(0, 3);
+  }, [checklistTemplate?.itens]);
+  const checklistItensVisiveis = mostrarChecklistCompleto
+    ? checklistTemplate?.itens || []
+    : checklistRapidoItens;
 
   useEffect(() => {
     carregarTela();
@@ -2056,7 +2067,7 @@ export default function OSDetalhePage() {
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
           <Title level={5} style={{ marginTop: 0, marginBottom: 0, color: colors.textoFraco, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-            Execução do serviço
+            Relatório rápido da OS
           </Title>
           <Space wrap>
             <Button
@@ -2100,76 +2111,104 @@ export default function OSDetalhePage() {
           showIcon
           type={servicoFinalizado ? "success" : "info"}
           style={{ marginBottom: 16, borderRadius: 10 }}
-          message={servicoFinalizado ? "Serviço concluído" : "Fluxo de execução do serviço"}
+          message={servicoFinalizado ? "Serviço concluído" : "Preenchimento rápido do relatório"}
           description={
             servicoFinalizado
               ? "A OS já está concluída. Você pode emitir o relatório do serviço executado em PDF ou seguir para o faturamento."
-              : "Preencha execução, medições, observações e fotos antes/depois. Depois clique em Serviço concluído ou em Concluir e emitir relatório para finalizar e gerar o PDF."
+              : "Escolha a categoria, escreva um resumo curto, responda só o essencial e anexe as fotos. O restante é opcional."
           }
         />
         <Row gutter={[20, 12]}>
-          <Col xs={24} md={12}>
-            <Form.Item label="Técnico responsável" name="tecnico_responsavel">
-              <Select allowClear options={technicians} />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Data agendada" name="data_agendada">
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Hora de início" name="hora_inicio">
-              <DatePicker picker="time" format="HH:mm" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Hora de conclusão" name="hora_conclusao">
-              <DatePicker picker="time" format="HH:mm" style={{ width: "100%" }} />
+          <Col xs={24}>
+            <Form.Item label="Descrição curta para o relatório" name="descricao_servico">
+              <TextArea
+                rows={2}
+                placeholder="Ex: Manutenção corretiva em ar-condicionado com limpeza, teste e liberação do equipamento."
+              />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item label="Marca do equipamento" name="equipamento_marca">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={8}>
-            <Form.Item label="Modelo" name="equipamento_modelo">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={8}>
-            <Form.Item label="Número de série" name="equipamento_serie">
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={8}>
-            <Form.Item label="Tipo de relatório" name="tipo_relatorio">
+            <Form.Item label="Categoria do relatório" name="tipo_relatorio">
               <Select options={reportTypeOptions} />
             </Form.Item>
             <Text type="secondary" style={{ display: "block", marginTop: -8 }}>
-              O padrão é simples: basta a descrição. Preventivo pede checklist ou observação; fotográfico pede foto.
+              Simples = descrição. Preventivo = observação ou pergunta. Fotos = descrição + foto.
             </Text>
           </Col>
           <Col xs={24} md={16}>
-            <Form.Item label="Checklist técnico aplicado">
-              <Select
-                value={checklistTipoSelecionado}
-                options={checklistTypeOptions}
-                onChange={setChecklistTipoSelecionado}
-                placeholder="Selecione o checklist para este atendimento"
+            <Form.Item label="Resumo rápido do serviço" name="observacoes_tecnicas">
+              <TextArea
+                rows={2}
+                placeholder="Ex: Realizada limpeza, teste de funcionamento e orientação ao responsável."
               />
             </Form.Item>
           </Col>
           <Col xs={24}>
-            <Form.Item label="Observações técnicas" name="observacoes_tecnicas">
-              <TextArea rows={4} />
-            </Form.Item>
+            <Space wrap>
+              <Button icon={<CameraOutlined />} onClick={() => setPhotoModal({ open: true, tipo: "antes", arquivos: [] })}>
+                Fotos antes
+              </Button>
+              <Button icon={<CameraOutlined />} onClick={() => setPhotoModal({ open: true, tipo: "depois", arquivos: [] })}>
+                Fotos depois
+              </Button>
+              <Text type="secondary">
+                {hasServicePhotos ? `${(ordem?.fotos || []).length} foto(s) anexada(s)` : "Sem foto ainda"}
+              </Text>
+            </Space>
           </Col>
         </Row>
+
+        <Collapse
+          ghost
+          style={{ marginTop: 14 }}
+          items={[
+            {
+              key: "detalhes-opcionais",
+              label: "Detalhes opcionais do atendimento",
+              children: (
+                <Row gutter={[20, 12]}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Técnico responsável" name="tecnico_responsavel">
+                      <Select allowClear options={technicians} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Data agendada / execução" name="data_agendada">
+                      <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Hora de início" name="hora_inicio">
+                      <DatePicker picker="time" format="HH:mm" style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Hora de conclusão" name="hora_conclusao">
+                      <DatePicker picker="time" format="HH:mm" style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item label="Marca do equipamento" name="equipamento_marca">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item label="Modelo" name="equipamento_modelo">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item label="Número de série" name="equipamento_serie">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              ),
+            },
+          ]}
+        />
       </Card>
 
-      {/* Checklist técnico */}
       <Card
         bordered={false}
         style={sectionCardStyle}
@@ -2179,41 +2218,52 @@ export default function OSDetalhePage() {
           <div>
             <Title level={5} style={{ marginTop: 0, marginBottom: 2, color: colors.texto }}>
               <ToolOutlined style={{ marginRight: 8, color: colors.azul }} />
-              Checklist Técnico
+              Perguntas importantes
             </Title>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {checklistTemplate
-                ? checklistTemplate.nome
+                ? mostrarChecklistCompleto
+                  ? `${checklistTemplate.nome} completo`
+                  : "Mostrando só as perguntas essenciais para ser rápido"
                 : checklistTipoSelecionado
                 ? `Nenhum template configurado para "${checklistTipoSelecionado}"`
-                : "Selecione o checklist técnico aplicado"}
+                : "Checklist opcional"}
             </Text>
           </div>
-          {checklistTemplate && (() => {
-            const total = checklistTemplate.itens?.length || 0;
-            const respondidos = (checklistTemplate.itens || []).filter((it) => {
-              const r = checklistRespostas[it.id];
-              return r && (r.valor_bool !== null && r.valor_bool !== undefined || r.valor_texto || r.valor_numero !== null && r.valor_numero !== undefined || (r.fotos?.length || 0) > 0);
-            }).length;
-            const pct = total > 0 ? Math.round((respondidos / total) * 100) : 0;
-            return (
-              <Tooltip title={`${respondidos}/${total} itens respondidos`}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Progress type="circle" percent={pct} size={44} strokeColor={colors.verde} />
-                  <Text style={{ fontSize: 12, color: colors.textoFraco }}>{respondidos}/{total}</Text>
-                </div>
+          <Space wrap>
+            <Select
+              size="small"
+              value={checklistTipoSelecionado}
+              options={checklistTypeOptions}
+              onChange={setChecklistTipoSelecionado}
+              style={{ minWidth: 210 }}
+            />
+            {checklistTemplate ? (
+              <Button size="small" onClick={() => setMostrarChecklistCompleto((value) => !value)}>
+                {mostrarChecklistCompleto ? "Ver só importantes" : "Ver checklist completo"}
+              </Button>
+            ) : null}
+            {checklistTemplate ? (
+              <Tooltip title={`${checklistStats.respondidos}/${checklistStats.total} itens respondidos`}>
+                <Tag color={checklistStats.respondidos ? "green" : "default"}>
+                  {checklistStats.respondidos}/{checklistStats.total}
+                </Tag>
               </Tooltip>
-            );
-          })()}
+            ) : null}
+          </Space>
         </Space>
 
         {checklistLoading ? (
           <Spin tip="Carregando checklist..." style={{ display: "block", textAlign: "center", padding: 32 }} />
         ) : !checklistTemplate ? (
-          <Empty description="Nenhum checklist disponível para este tipo de serviço" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description="Sem perguntas configuradas. Você pode concluir só com descrição e fotos." image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           <div>
-            {(checklistTemplate.itens || []).map(renderChecklistItem)}
+            {checklistItensVisiveis.length ? (
+              checklistItensVisiveis.map(renderChecklistItem)
+            ) : (
+              <Empty description="Nenhuma pergunta essencial configurada" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
           </div>
         )}
       </Card>
