@@ -380,6 +380,17 @@ function createUploadValue(file) {
   return file ? [{ uid: String(file.uid || Date.now()), name: file.name, status: "done", originFileObj: file }] : [];
 }
 
+function downloadBlob(response, filename) {
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
 export default function OSDetalhePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -483,6 +494,25 @@ export default function OSDetalhePage() {
     [ordem?.fotos]
   );
   const hasServicePhotos = (ordem?.fotos || []).length > 0;
+  const checklistStats = useMemo(() => {
+    const itens = checklistTemplate?.itens || [];
+    const total = itens.length;
+    const respondidos = itens.filter((item) => {
+      const resposta = checklistRespostas[item.id];
+      if (!resposta) return false;
+      return (
+        resposta.valor_bool !== null && resposta.valor_bool !== undefined ||
+        Boolean(resposta.valor_texto) ||
+        resposta.valor_numero !== null && resposta.valor_numero !== undefined ||
+        (resposta.fotos || []).length > 0
+      );
+    }).length;
+    return {
+      total,
+      respondidos,
+      percentual: total ? Math.round((respondidos / total) * 100) : 0,
+    };
+  }, [checklistRespostas, checklistTemplate?.itens]);
 
   useEffect(() => {
     carregarTela();
@@ -903,18 +933,26 @@ export default function OSDetalhePage() {
     try {
       setReportLoading(true);
       const response = await api.post(`/ordens/${id}/gerar-pdf-relatorio/`, {}, { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `relatorio_${ordem?.numero || id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      message.success("Relatório gerado com sucesso.");
+      downloadBlob(response, `relatorio_atendimento_${ordem?.numero || id}.pdf`);
+      message.success("Relatório de atendimento gerado com sucesso.");
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);
       message.error("Não foi possível gerar o relatório.");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const gerarOrcamentoPdf = async () => {
+    try {
+      setReportLoading(true);
+      await salvarOS();
+      const response = await api.post(`/ordens/${id}/gerar-pdf-orcamento/`, {}, { responseType: "blob" });
+      downloadBlob(response, `orcamento_${ordem?.numero || id}.pdf`);
+      message.success("Orçamento/proposta gerado com sucesso.");
+    } catch (error) {
+      console.error("Erro ao gerar orçamento:", error);
+      message.error("Não foi possível gerar o orçamento.");
     } finally {
       setReportLoading(false);
     }
@@ -1076,19 +1114,13 @@ export default function OSDetalhePage() {
   const gerarRelatorioTecnico = async () => {
     try {
       setGerandoRelatorioTecnico(true);
+      await salvarOS();
       const response = await api.post(
         `/ordens/${id}/gerar-relatorio-tecnico/`,
         {},
         { responseType: "blob" }
       );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `relatorio_tecnico_${ordem?.numero || id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlob(response, `relatorio_tecnico_${ordem?.numero || id}.pdf`);
       message.success("Relatório técnico gerado com sucesso!");
     } catch (err) {
       console.error("Erro ao gerar relatório técnico:", err);
@@ -1100,6 +1132,35 @@ export default function OSDetalhePage() {
     } finally {
       setGerandoRelatorioTecnico(false);
     }
+  };
+
+  const menuRelatorios = {
+    items: [
+      {
+        key: "tecnico",
+        label: "Relatório técnico completo",
+        icon: <FilePdfOutlined />,
+      },
+      {
+        key: "atendimento",
+        label: "Relatório de atendimento",
+        icon: <FileSearchOutlined />,
+      },
+      {
+        key: "orcamento",
+        label: "Orçamento / proposta",
+        icon: <DollarOutlined />,
+      },
+    ],
+    onClick: async ({ key }) => {
+      if (key === "tecnico") {
+        await gerarRelatorioTecnico();
+      } else if (key === "orcamento") {
+        await gerarOrcamentoPdf();
+      } else {
+        await gerarRelatorio();
+      }
+    },
   };
 
 
@@ -1418,6 +1479,34 @@ export default function OSDetalhePage() {
       icon: <ClockCircleOutlined style={{ color: colors.roxo }} />,
     },
   ];
+
+  const reportReadinessItems = [
+    {
+      label: "Tipo de relatório definido",
+      done: Boolean(form.getFieldValue("tipo_relatorio") || ordem?.tipo_relatorio),
+      hint: "Escolha corretivo, preventivo ou fotográfico na execução.",
+    },
+    {
+      label: "Observações técnicas",
+      done: Boolean(String(form.getFieldValue("observacoes_tecnicas") || ordem?.observacoes_tecnicas || "").trim()),
+      hint: "Registre diagnóstico, solução e recomendações.",
+    },
+    {
+      label: "Fotos anexadas",
+      done: hasServicePhotos,
+      hint: "Fotos antes/depois deixam o relatório mais forte.",
+    },
+    {
+      label: "Checklist técnico",
+      done: checklistStats.total === 0 || checklistStats.percentual >= 80,
+      hint: checklistStats.total
+        ? `${checklistStats.respondidos}/${checklistStats.total} itens respondidos.`
+        : "Selecione um checklist para acompanhar a execução.",
+    },
+  ];
+  const reportReadinessPercent = Math.round(
+    (reportReadinessItems.filter((item) => item.done).length / reportReadinessItems.length) * 100
+  );
 
   const itemColumns = [
     {
@@ -2717,9 +2806,11 @@ export default function OSDetalhePage() {
               <Button icon={<ToolOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("execucao")}>
                 Execução
               </Button>
-              <Button icon={<FilePdfOutlined />} style={subtleButtonStyle} onClick={gerarRelatorio} loading={reportLoading}>
-                Gerar relatório
-              </Button>
+              <Dropdown menu={menuRelatorios} trigger={["click"]}>
+                <Button icon={<FilePdfOutlined />} style={subtleButtonStyle} loading={reportLoading || gerandoRelatorioTecnico}>
+                  Relatórios
+                </Button>
+              </Dropdown>
               <Button icon={<DollarOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("faturamento")}>
                 Faturamento pendente
               </Button>
@@ -2876,6 +2967,68 @@ export default function OSDetalhePage() {
           description="A barra superior mostra o status da OS. As páginas abaixo organizam o trabalho: você avança etapa por etapa, deixa o faturamento pendente e depois acompanha o ok do financeiro."
           style={{ borderRadius: 12, marginTop: 20 }}
         />
+
+        <Card bordered={false} style={{ ...panelStyle, marginTop: 20 }} bodyStyle={{ padding: 20 }}>
+          <Row gutter={[20, 20]} align="middle">
+            <Col xs={24} lg={7}>
+              <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Qualidade do relatório
+                </Text>
+                <Title level={4} style={{ margin: 0, color: colors.texto }}>
+                  Documento {reportReadinessPercent}% pronto
+                </Title>
+                <Text type="secondary">
+                  Quanto mais completo, mais profissional fica o PDF entregue ao cliente.
+                </Text>
+                <Progress percent={reportReadinessPercent} strokeColor={colors.azul} />
+              </Space>
+            </Col>
+            <Col xs={24} lg={11}>
+              <Row gutter={[10, 10]}>
+                {reportReadinessItems.map((item) => (
+                  <Col xs={24} md={12} key={item.label}>
+                    <div
+                      style={{
+                        alignItems: "flex-start",
+                        background: item.done ? "#F0FDF4" : "#FFFBEB",
+                        border: `1px solid ${item.done ? "#BBF7D0" : "#FDE68A"}`,
+                        borderRadius: 12,
+                        display: "flex",
+                        gap: 10,
+                        padding: 12,
+                      }}
+                    >
+                      {item.done ? (
+                        <CheckCircleOutlined style={{ color: colors.verde, marginTop: 3 }} />
+                      ) : (
+                        <InfoCircleOutlined style={{ color: colors.laranja, marginTop: 3 }} />
+                      )}
+                      <div>
+                        <Text strong style={{ color: colors.texto }}>{item.label}</Text>
+                        <Text style={{ color: colors.textoSecundario, display: "block", fontSize: 12 }}>
+                          {item.hint}
+                        </Text>
+                      </div>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </Col>
+            <Col xs={24} lg={6}>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Dropdown menu={menuRelatorios} trigger={["click"]}>
+                  <Button block type="primary" icon={<FilePdfOutlined />} style={primaryButtonStyle} loading={reportLoading || gerandoRelatorioTecnico}>
+                    Gerar PDF profissional
+                  </Button>
+                </Dropdown>
+                <Button block icon={<CameraOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("execucao")}>
+                  Completar evidências
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
 
         <Card bordered={false} style={{ ...panelStyle, marginTop: 20 }} bodyStyle={{ padding: 20 }}>
           <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />

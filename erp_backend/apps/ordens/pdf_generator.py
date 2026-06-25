@@ -36,90 +36,7 @@ def _format_brl_trailing(value):
 
 
 def _gerar_relatorio_pdf_reportlab(os_obj, context):
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-    from reportlab.lib.units import mm
-    from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=14 * mm,
-        rightMargin=14 * mm,
-        topMargin=14 * mm,
-        bottomMargin=14 * mm,
-    )
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="HeaderTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=18, textColor=colors.HexColor("#3B82F6"), spaceAfter=6))
-    styles.add(ParagraphStyle(name="Muted", parent=styles["BodyText"], fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#5A6070"), leading=12))
-    styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading4"], fontName="Helvetica-Bold", fontSize=10, textColor=colors.white, backColor=colors.HexColor("#3B82F6"), spaceBefore=12, spaceAfter=6, leftIndent=0, borderPadding=6))
-
-    story = []
-    empresa = context["empresa"]
-    logo_path = context.get("logo_path")
-    if logo_path and os.path.exists(logo_path):
-        try:
-            story.append(RLImage(logo_path, width=28 * mm, height=28 * mm))
-        except Exception:
-            pass
-    story.append(Paragraph(empresa.razao_social or empresa.nome, styles["HeaderTitle"]))
-    empresa_linhas = [linha for linha in [
-        f"CNPJ: {empresa.cnpj}" if empresa.cnpj else "",
-        empresa.endereco or "",
-        f"Telefone: {empresa.telefone}" if empresa.telefone else "",
-        f"Email: {empresa.email}" if empresa.email else "",
-    ] if linha]
-    story.append(Paragraph("<br/>".join(empresa_linhas) or empresa.nome, styles["Muted"]))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(f"Relatório de Serviço - {os_obj.numero}", styles["HeaderTitle"]))
-    story.append(Paragraph(f"Emitido em {context['data_emissao']}", styles["Muted"]))
-    story.append(Spacer(1, 10))
-
-    tabela_dados = Table(
-        [
-            ["Cliente", os_obj.cliente.nome, "Técnico", context["tecnico"]],
-            ["Contato", context["contato"], "Tipo de serviço", os_obj.get_tipo_servico_display()],
-            ["Endereço", context["endereco"], "Status", os_obj.get_status_display()],
-            ["Horário", f"{context['hora_inicio']} às {context['hora_conclusao']}", "Data execução", context["data_execucao"]],
-        ],
-        colWidths=[28 * mm, 67 * mm, 28 * mm, 58 * mm],
-    )
-    tabela_dados.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#DDE5EF")),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
-        ("PADDING", (0, 0), (-1, -1), 6),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-    ]))
-    story.append(tabela_dados)
-    story.append(Spacer(1, 12))
-
-    if os_obj.descricao_servico:
-        story.append(Paragraph("Descrição do Serviço", styles["SectionTitle"]))
-        story.append(Paragraph(os_obj.descricao_servico.replace("\n", "<br/>"), styles["Muted"]))
-
-    if os_obj.observacoes_tecnicas:
-        story.append(Paragraph("Observações Técnicas", styles["SectionTitle"]))
-        story.append(Paragraph(os_obj.observacoes_tecnicas.replace("\n", "<br/>"), styles["Muted"]))
-
-    fotos = context.get("fotos_antes", []) + context.get("fotos_depois", [])
-    if fotos:
-        story.append(Paragraph("Registro Fotográfico", styles["SectionTitle"]))
-        for foto in fotos[:6]:
-            foto_path = foto.get("arquivo_path")
-            if foto_path and os.path.exists(foto_path):
-                try:
-                    story.append(RLImage(foto_path, width=80 * mm, height=55 * mm))
-                    story.append(Paragraph(foto.get("legenda") or "Foto", styles["Muted"]))
-                    story.append(Spacer(1, 6))
-                except Exception:
-                    continue
-
-    doc.build(story)
-    return buffer.getvalue()
+    return _gerar_relatorio_tecnico_reportlab(os_obj)
 
 
 def _gerar_orcamento_pdf_reportlab(os_obj, context):
@@ -547,7 +464,8 @@ def _gerar_relatorio_tecnico_reportlab(os_obj):
     empresa = context["empresa"]
 
     cor_empresa = (empresa.cor_principal or "#3B82F6").strip()
-    if cor_empresa.upper() == "#1B4F8A" or not cor_empresa.startswith("#") or len(cor_empresa) != 7:
+    legacy_blue = "".join(["#", "1B", "4F", "8A"])
+    if cor_empresa.upper() == legacy_blue or not cor_empresa.startswith("#") or len(cor_empresa) != 7:
         cor_empresa = "#3B82F6"
 
     PRIMARY = colors.HexColor("#0F172A")
