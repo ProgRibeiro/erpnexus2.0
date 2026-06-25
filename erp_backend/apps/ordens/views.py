@@ -244,20 +244,20 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     def _validar_pronto_para_conclusao(self, ordem):
         pendencias = []
-        if not ordem.tipo_relatorio:
-            pendencias.append("selecione o tipo de relatório")
-
-        tipo_relatorio = str(ordem.tipo_relatorio or "").lower()
+        tipo_relatorio = str(ordem.tipo_relatorio or OrdemServico.TipoRelatorio.SIMPLES).lower()
         observacoes = str(ordem.observacoes_tecnicas or "").strip()
         descricao = str(ordem.descricao_servico or "").strip()
 
+        if not descricao:
+            pendencias.append("preencha uma descrição curta do serviço")
+
         if tipo_relatorio == OrdemServico.TipoRelatorio.FOTOGRAFICO:
-            if not descricao:
-                pendencias.append("preencha a descrição do serviço executado")
             if not ordem.fotos.exists():
                 pendencias.append("anexe ao menos uma foto do serviço")
-        elif not observacoes:
-            pendencias.append("preencha as observações técnicas do relatório")
+        elif tipo_relatorio == OrdemServico.TipoRelatorio.TECNICO:
+            tem_checklist = ordem.respostas_checklist.exists()
+            if not observacoes and not tem_checklist:
+                pendencias.append("preencha uma observação curta ou algum item do checklist")
 
         return pendencias
 

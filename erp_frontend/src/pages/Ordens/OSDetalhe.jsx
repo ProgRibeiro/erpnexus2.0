@@ -603,7 +603,7 @@ export default function OSDetalhePage() {
       equipamento_marca: ordemAtual?.equipamento_marca || "",
       equipamento_modelo: ordemAtual?.equipamento_modelo || "",
       equipamento_serie: ordemAtual?.equipamento_serie || "",
-      tipo_relatorio: ordemAtual?.tipo_relatorio || undefined,
+      tipo_relatorio: ordemAtual?.tipo_relatorio || "simples",
       valor_final_faturado: Number(ordemAtual?.valor_final_faturado || ordemAtual?.total_com_impostos || ordemAtual?.valor_total_orcado || 0),
       numero_nf: ordemAtual?.numero_nf || "",
       data_emissao_nf: ordemAtual?.data_emissao_nf ? dayjs(ordemAtual.data_emissao_nf) : null,
@@ -1230,6 +1230,33 @@ export default function OSDetalhePage() {
     },
   };
 
+  const validarMinimoRelatorioPorCategoria = () => {
+    const tipoRelatorio = form.getFieldValue("tipo_relatorio") || "simples";
+    const observacoesTecnicas = String(form.getFieldValue("observacoes_tecnicas") || "").trim();
+    const descricaoServico = String(form.getFieldValue("descricao_servico") || "").trim();
+    const temChecklist = checklistStats.respondidos > 0;
+
+    if (!descricaoServico) {
+      setActiveTab("dados-gerais");
+      message.warning("Preencha uma descrição curta do serviço. É o único obrigatório do relatório simples.");
+      return false;
+    }
+
+    if (tipoRelatorio === "tecnico" && !observacoesTecnicas && !temChecklist) {
+      setActiveTab("execucao");
+      message.warning("Para relatório preventivo/técnico, preencha uma observação curta ou responda algum item do checklist.");
+      return false;
+    }
+
+    if (tipoRelatorio === "fotografico" && !hasServicePhotos) {
+      setActiveTab("execucao");
+      message.warning("Para relatório fotográfico, anexe pelo menos uma foto.");
+      return false;
+    }
+
+    return true;
+  };
+
 
   const confirmarFaturamento = async () => {
     setSendingBilling(true);
@@ -1246,32 +1273,7 @@ export default function OSDetalhePage() {
 
       const statusAtual = String(ordem?.status || "").toLowerCase();
       if (statusAtual === "em_execucao") {
-        const tipoRelatorio = form.getFieldValue("tipo_relatorio");
-        const observacoesTecnicas = String(form.getFieldValue("observacoes_tecnicas") || "").trim();
-        const descricaoServico = String(form.getFieldValue("descricao_servico") || "").trim();
-
-        if (!tipoRelatorio) {
-          setActiveTab("execucao");
-          message.warning("Selecione o tipo de relatório na aba Execução e fotos antes de faturar.");
-          return;
-        }
-
-        const precisaObservacaoTecnica = tipoRelatorio !== "fotografico";
-        if (precisaObservacaoTecnica && !observacoesTecnicas) {
-          setActiveTab("execucao");
-          message.warning("Preencha as observações técnicas na aba Execução e fotos antes de faturar.");
-          return;
-        }
-
-        if (!precisaObservacaoTecnica && !descricaoServico) {
-          setActiveTab("dados-gerais");
-          message.warning("No relatório de manutenção geral (fotos), preencha a descrição do serviço antes de faturar.");
-          return;
-        }
-
-        if (!precisaObservacaoTecnica && !hasServicePhotos) {
-          setActiveTab("execucao");
-          message.warning("Anexe ao menos uma foto do serviço antes de faturar com relatório fotográfico.");
+        if (!validarMinimoRelatorioPorCategoria()) {
           return;
         }
 
@@ -1367,33 +1369,7 @@ export default function OSDetalhePage() {
       return;
     }
 
-    const tipoRelatorio = form.getFieldValue("tipo_relatorio");
-    const observacoesTecnicas = String(form.getFieldValue("observacoes_tecnicas") || "").trim();
-    const descricaoServico = String(form.getFieldValue("descricao_servico") || "").trim();
-
-    if (!tipoRelatorio) {
-      setActiveTab("execucao");
-      message.warning("Selecione o tipo de relatório antes de concluir a OS.");
-      return;
-    }
-
-    const precisaObservacaoTecnica = tipoRelatorio !== "fotografico";
-
-    if (precisaObservacaoTecnica && !observacoesTecnicas) {
-      setActiveTab("execucao");
-      message.warning("Preencha as observações técnicas do relatório antes de concluir a OS.");
-      return;
-    }
-
-    if (!precisaObservacaoTecnica && !descricaoServico) {
-      setActiveTab("dados-gerais");
-      message.warning("No relatório de manutenção geral (fotos), preencha a descrição do serviço antes de concluir a OS.");
-      return;
-    }
-
-    if (!precisaObservacaoTecnica && !hasServicePhotos) {
-      setActiveTab("execucao");
-      message.warning("Anexe ao menos uma foto do serviço antes de concluir com relatório fotográfico.");
+    if (!validarMinimoRelatorioPorCategoria()) {
       return;
     }
 
@@ -2169,10 +2145,10 @@ export default function OSDetalhePage() {
           </Col>
           <Col xs={24} md={8}>
             <Form.Item label="Tipo de relatório" name="tipo_relatorio">
-              <Select allowClear options={reportTypeOptions} />
+              <Select options={reportTypeOptions} />
             </Form.Item>
             <Text type="secondary" style={{ display: "block", marginTop: -8 }}>
-              Em "Manutenção geral (fotos)", preencha a descrição do serviço e registre as fotos.
+              O padrão é simples: basta a descrição. Preventivo pede checklist ou observação; fotográfico pede foto.
             </Text>
           </Col>
           <Col xs={24} md={16}>
@@ -3051,14 +3027,14 @@ export default function OSDetalhePage() {
                   Qualidade do relatório
                 </Text>
                 <Title level={4} style={{ margin: 0, color: colors.texto }}>
-                  Documento {reportReadinessPercent}% pronto
+                  {reportGovernance?.categoria?.nome || "Relatório simples"} • {reportReadinessPercent}% pronto
                 </Title>
                 <Text type="secondary">
                   {reportGovernance?.pronto_final
                     ? "Versão final liberada para entrega ao cliente."
                     : reportGovernance?.pode_rascunho
-                    ? "Rascunho liberado; versão final exige completar os bloqueios."
-                    : "Complete as pendências para gerar um documento seguro."}
+                    ? "Se faltar algo, você ainda pode gerar rascunho. O final pede só o mínimo da categoria."
+                    : "Complete o mínimo da categoria para gerar o documento."}
                 </Text>
                 {reportGovernance?.proxima_acao ? (
                   <Alert

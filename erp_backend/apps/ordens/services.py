@@ -936,7 +936,22 @@ class GovernancaRelatorioOS:
     quer revisar antes de fechar.
     """
 
-    SCORE_MINIMO_FINAL = 80
+    SCORE_MINIMO_FINAL = 60
+
+    CATEGORIAS = {
+        OrdemServico.TipoRelatorio.SIMPLES: {
+            "nome": "Corretivo simples",
+            "descricao": "Relatório enxuto para atendimento corretivo ou serviço rápido.",
+        },
+        OrdemServico.TipoRelatorio.TECNICO: {
+            "nome": "Preventivo / técnico",
+            "descricao": "Relatório técnico com checklist ou observações de execução.",
+        },
+        OrdemServico.TipoRelatorio.FOTOGRAFICO: {
+            "nome": "Fotográfico",
+            "descricao": "Relatório focado em evidências visuais antes/depois.",
+        },
+    }
 
     def avaliar(self, ordem):
         fotos = list(ordem.fotos.all())
@@ -950,6 +965,12 @@ class GovernancaRelatorioOS:
         checklist_respondido = sum(1 for resposta in respostas if self._resposta_preenchida(resposta))
         checklist_percentual = round((checklist_respondido / checklist_total) * 100) if checklist_total else 0
 
+        categoria = ordem.tipo_relatorio or OrdemServico.TipoRelatorio.SIMPLES
+        tem_descricao = bool(str(ordem.descricao_servico or "").strip())
+        tem_observacao = bool(str(ordem.observacoes_tecnicas or "").strip())
+        tem_foto = bool(fotos)
+        tem_checklist = checklist_respondido > 0
+
         requisitos = [
             self._item(
                 "cliente",
@@ -961,63 +982,89 @@ class GovernancaRelatorioOS:
             self._item(
                 "descricao",
                 "Descrição do serviço",
-                bool(str(ordem.descricao_servico or "").strip()),
+                tem_descricao,
                 "critico",
-                "Preencha escopo, demanda ou serviço executado.",
+                "Escreva uma descrição curta do que foi feito ou solicitado.",
             ),
+        ]
+
+        if categoria == OrdemServico.TipoRelatorio.TECNICO:
+            requisitos.append(
+                self._item(
+                    "checklist_ou_observacao",
+                    "Checklist ou observação",
+                    tem_checklist or tem_observacao,
+                    "critico",
+                    "Para preventivo/técnico, responda algum item do checklist ou escreva uma observação curta.",
+                )
+            )
+
+        if categoria == OrdemServico.TipoRelatorio.FOTOGRAFICO:
+            requisitos.append(
+                self._item(
+                    "fotos",
+                    "Fotos do serviço",
+                    tem_foto,
+                    "critico",
+                    "Para relatório fotográfico, anexe pelo menos uma foto.",
+                )
+            )
+
+        opcionais = [
             self._item(
                 "tipo_relatorio",
-                "Tipo de relatório",
+                "Categoria do relatório",
                 bool(ordem.tipo_relatorio),
-                "critico",
-                "Selecione o tipo de relatório na etapa Execução.",
+                "recomendado",
+                "Escolha uma categoria para o documento sair com texto e estrutura corretos.",
             ),
             self._item(
                 "tecnico",
                 "Técnico responsável",
                 bool(ordem.tecnico_responsavel_id),
-                "critico",
-                "Defina quem executou ou será responsável pelo atendimento.",
+                "recomendado",
+                "Definir técnico melhora a rastreabilidade.",
             ),
             self._item(
                 "data_execucao",
                 "Data de execução/agendamento",
                 bool(ordem.data_agendada),
-                "critico",
-                "Informe a data do serviço para rastreabilidade.",
+                "recomendado",
+                "Informar data melhora a rastreabilidade.",
             ),
             self._item(
                 "observacoes_tecnicas",
                 "Observações técnicas",
-                bool(str(ordem.observacoes_tecnicas or "").strip()),
-                "importante",
-                "Registre diagnóstico, solução, testes e recomendações.",
+                tem_observacao,
+                "recomendado",
+                "Uma observação curta deixa o relatório mais claro.",
             ),
             self._item(
-                "fotos",
+                "fotos_opcionais",
                 "Registro fotográfico",
-                bool(fotos),
-                "importante",
-                "Anexe fotos antes/depois ou evidências do checklist.",
+                tem_foto,
+                "recomendado",
+                "Fotos deixam o relatório mais profissional.",
             ),
             self._item(
                 "checklist",
                 "Checklist técnico",
-                checklist_total == 0 or checklist_percentual >= 80,
+                checklist_total == 0 or checklist_percentual >= 50,
                 "recomendado",
-                "Responda ao menos 80% do checklist quando houver modelo aplicado.",
+                "Checklist é opcional, mas ajuda em preventivas.",
             ),
             self._item(
                 "equipamento",
                 "Dados do equipamento",
                 any([ordem.equipamento_marca, ordem.equipamento_modelo, ordem.equipamento_serie]),
                 "recomendado",
-                "Informe marca, modelo ou série quando aplicável.",
+                "Marca/modelo/série são opcionais.",
             ),
         ]
+        requisitos.extend(opcionais)
 
         score = 0
-        pesos = {"critico": 14, "importante": 10, "recomendado": 6}
+        pesos = {"critico": 30, "importante": 12, "recomendado": 6}
         for requisito in requisitos:
             if requisito["ok"]:
                 score += pesos[requisito["peso"]]
@@ -1037,6 +1084,10 @@ class GovernancaRelatorioOS:
             "pronto_final": pronto_final,
             "pode_rascunho": True,
             "minimo_final": self.SCORE_MINIMO_FINAL,
+            "categoria": {
+                "codigo": categoria,
+                **self.CATEGORIAS.get(categoria, self.CATEGORIAS[OrdemServico.TipoRelatorio.SIMPLES]),
+            },
             "requisitos": requisitos,
             "pendencias": pendencias,
             "bloqueios": criticos,
