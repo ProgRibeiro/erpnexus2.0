@@ -128,7 +128,7 @@ const stageTabMap = {
   aprovado: "dados-gerais",
   execucao: "execucao",
   faturamento: "faturamento",
-  receita: "faturamento",
+  receita: "financeiro",
 };
 
 const stageMeta = {
@@ -136,9 +136,37 @@ const stageMeta = {
   orcamento: { label: "Orçamento", doneBg: "#E8F3D6", activeBg: "#DDEECC", activeColor: "#507B17" },
   aprovado: { label: "Aprovado", doneBg: "#E8F3D6", activeBg: "#DDEECC", activeColor: "#507B17" },
   execucao: { label: "Em execução", doneBg: "#DCEAFE", activeBg: "#DCEAFE", activeColor: "#1D4ED8" },
-  faturamento: { label: "Faturamento", doneBg: "#F7F2E7", activeBg: "#F7F2E7", activeColor: "#8A5A14" },
-  receita: { label: "Receita", doneBg: "#DCFCE7", activeBg: "#DCFCE7", activeColor: "#15803D" },
+  faturamento: { label: "Faturamento pendente", doneBg: "#F7F2E7", activeBg: "#F7F2E7", activeColor: "#8A5A14" },
+  receita: { label: "Ok financeiro", doneBg: "#DCFCE7", activeBg: "#DCFCE7", activeColor: "#15803D" },
 };
+
+const workflowPages = [
+  {
+    key: "dados-gerais",
+    title: "Dados gerais",
+    subtitle: "Cliente, escopo, orçamento e pedido de compra.",
+  },
+  {
+    key: "execucao",
+    title: "Execução e fotos",
+    subtitle: "Técnico, agenda, checklist, evidências e conclusão.",
+  },
+  {
+    key: "despesas",
+    title: "Despesas",
+    subtitle: "Custos da OS e margem operacional em tempo real.",
+  },
+  {
+    key: "faturamento",
+    title: "Faturamento pendente",
+    subtitle: "NF, impostos, previsão de recebimento e envio ao financeiro.",
+  },
+  {
+    key: "financeiro",
+    title: "Ok financeiro",
+    subtitle: "Acompanhamento do lançamento, recebimento e baixa financeira.",
+  },
+];
 
 const statusMeta = {
   rascunho: { label: "Rascunho", color: "#6B7280", background: "#F3F4F6" },
@@ -407,8 +435,15 @@ export default function OSDetalhePage() {
   const statusVisual = getStatusVisual(ordem?.status);
   const currentStage = getStageKey(ordem);
   const currentStageIndex = stageOrder.indexOf(currentStage);
+  const activeWorkflowIndex = workflowPages.findIndex((page) => page.key === activeTab);
+  const activeWorkflowPage = workflowPages[activeWorkflowIndex] || null;
+  const isWorkflowPage = activeWorkflowIndex >= 0;
   const statusAtualOS = String(ordem?.status || "").toLowerCase();
+  const statusPagamentoAtual = String(ordem?.status_pagamento || "pendente").toLowerCase();
   const servicoFinalizado = ["concluida", "faturada"].includes(statusAtualOS);
+  const faturamentoPendente = statusAtualOS === "concluida";
+  const financeiroAguardandoOk = statusAtualOS === "faturada" && statusPagamentoAtual !== "pago";
+  const financeiroOk = statusPagamentoAtual === "pago";
   const selectedClient = useMemo(
     () => clients.find((cliente) => String(cliente.id) === String(watchedClient)),
     [clients, watchedClient]
@@ -1076,7 +1111,6 @@ export default function OSDetalhePage() {
         "numero_nf",
         "data_emissao_nf",
         "data_vencimento",
-        "data_recebimento",
         "forma_cobranca",
         "conta_recebimento",
       ]);
@@ -1165,7 +1199,8 @@ export default function OSDetalhePage() {
         setOrdem(response.data.ordem);
         preencherFormulario(response.data.ordem);
       }
-      message.success("Faturamento confirmado e lançamento financeiro criado com a conta escolhida.");
+      setActiveTab("financeiro");
+      message.success("Faturamento enviado ao financeiro. Agora ele fica aguardando o ok/recebimento.");
     } catch (error) {
       console.error("Erro ao confirmar faturamento:", error);
       message.error(error?.response?.data?.detail || "Não foi possível confirmar o faturamento.");
@@ -1280,6 +1315,55 @@ export default function OSDetalhePage() {
 
     await salvarOS();
     await changeStatus(targetStatus, `Movida pela barra operacional para ${stageMeta[stageKey].label}.`);
+  };
+
+  const irParaPaginaFluxo = (pageKey) => {
+    setActiveTab(pageKey);
+  };
+
+  const avancarPaginaFluxo = async () => {
+    if (activeTab === "dados-gerais") {
+      await salvarOS();
+      setActiveTab("execucao");
+      return;
+    }
+
+    if (activeTab === "execucao") {
+      await salvarOS();
+      setActiveTab("despesas");
+      return;
+    }
+
+    if (activeTab === "despesas") {
+      await salvarOS();
+      if (!servicoFinalizado) {
+        setActiveTab("execucao");
+        message.warning("Conclua a execução da OS antes de mandar para faturamento.");
+        return;
+      }
+      setActiveTab("faturamento");
+      return;
+    }
+
+    if (activeTab === "faturamento") {
+      if (!isFinanceAdmin) {
+        await salvarOS();
+        setActiveTab("financeiro");
+        message.info("Faturamento salvo. O financeiro precisa confirmar para gerar o lançamento.");
+        return;
+      }
+      await confirmarFaturamento();
+      return;
+    }
+
+    if (activeTab === "financeiro") {
+      navigate("/financeiro/lancamentos");
+    }
+  };
+
+  const voltarPaginaFluxo = () => {
+    if (!isWorkflowPage || activeWorkflowIndex === 0) return;
+    setActiveTab(workflowPages[activeWorkflowIndex - 1].key);
   };
 
   const menuAcoesRapidas = {
@@ -2168,11 +2252,34 @@ export default function OSDetalhePage() {
       {/* Dados NF */}
       <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
         <Space direction="vertical" size={6} style={{ width: "100%", marginBottom: 16 }}>
-          <Title level={5} style={{ margin: 0, color: colors.texto }}>Faturamento</Title>
+          <Title level={5} style={{ margin: 0, color: colors.texto }}>Faturamento pendente</Title>
           <Text type="secondary">
-            Registre NF, datas, PDF e tributação. Após salvar e confirmar, a OS gera receita no financeiro.
+            Registre NF, impostos e previsão de recebimento. Depois o financeiro confirma e acompanha a baixa.
           </Text>
         </Space>
+        <Alert
+          type={faturamentoPendente ? "warning" : financeiroAguardandoOk ? "info" : financeiroOk ? "success" : "info"}
+          showIcon
+          style={{ borderRadius: 12, marginBottom: 16 }}
+          message={
+            faturamentoPendente
+              ? "OS concluída aguardando faturamento"
+              : financeiroAguardandoOk
+              ? "Faturamento enviado ao financeiro"
+              : financeiroOk
+              ? "Recebimento confirmado pelo financeiro"
+              : "Preencha os dados para preparar o faturamento"
+          }
+          description={
+            faturamentoPendente
+              ? "Preencha NF, forma de cobrança e previsão de recebimento. Ao confirmar, será criado o lançamento financeiro pendente."
+              : financeiroAguardandoOk
+              ? "O lançamento já foi criado no financeiro e permanece aguardando pagamento/baixa."
+              : financeiroOk
+              ? "A receita já foi confirmada. Consulte o financeiro para conciliação e histórico."
+              : "A OS precisa estar concluída para seguir ao faturamento definitivo."
+          }
+        />
         <Row gutter={[20, 12]}>
           <Col xs={24} md={12}>
             <Form.Item label="Valor final faturado" name="valor_final_faturado">
@@ -2199,13 +2306,22 @@ export default function OSDetalhePage() {
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Data de vencimento" name="data_vencimento">
+            <Form.Item
+              label="Previsão de recebimento / vencimento"
+              name="data_vencimento"
+              rules={[{ required: true, message: "Informe quando você espera receber." }]}
+            >
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Data de recebimento" name="data_recebimento">
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            <Form.Item label="Recebido em (ok financeiro)" name="data_recebimento">
+              <DatePicker
+                disabled={!isFinanceAdmin || statusPagamentoAtual !== "pago"}
+                format="DD/MM/YYYY"
+                placeholder="Preenchido na baixa financeira"
+                style={{ width: "100%" }}
+              />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
@@ -2395,11 +2511,110 @@ export default function OSDetalhePage() {
           description={`Itens: ${formatMoney(baseCalculoImpostos)} • Impostos por fora: ${formatMoney(totalImpostosPorFora)} • Cliente paga: ${formatMoney(valorFaturadoAtual || valorClienteComImpostos)} • Custos lançados: ${formatMoney(expenseSummary.total)} • Margem atual: ${formatMoney(margemAtual)}`}
         />
         <Space wrap>
-          <Button type="primary" icon={<CheckCircleOutlined />} style={primaryButtonStyle} onClick={confirmarFaturamento} loading={sendingBilling}>
-            Confirmar faturamento e ir para o financeiro
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            style={primaryButtonStyle}
+            onClick={confirmarFaturamento}
+            loading={sendingBilling}
+            disabled={!isFinanceAdmin || financeiroAguardandoOk || financeiroOk}
+          >
+            {isFinanceAdmin ? "Confirmar e enviar ao financeiro" : "Aguardando financeiro confirmar"}
           </Button>
           <Button icon={<SaveOutlined />} style={subtleButtonStyle} onClick={() => salvarOS()} loading={saving}>
             Salvar faturamento
+          </Button>
+        </Space>
+      </Card>
+    </Space>
+  );
+
+  const financeiroTab = (
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
+        <Space direction="vertical" size={6} style={{ width: "100%", marginBottom: 16 }}>
+          <Title level={5} style={{ margin: 0, color: colors.texto }}>Ok financeiro</Title>
+          <Text type="secondary">
+            Esta página acompanha a OS depois do faturamento: lançamento pendente, previsão de recebimento e baixa pelo financeiro.
+          </Text>
+        </Space>
+
+        <Alert
+          type={financeiroOk ? "success" : financeiroAguardandoOk ? "warning" : faturamentoPendente ? "info" : "info"}
+          showIcon
+          style={{ borderRadius: 12, marginBottom: 16 }}
+          message={
+            financeiroOk
+              ? "Financeiro deu ok: receita recebida"
+              : financeiroAguardandoOk
+              ? "Aguardando baixa/ok do financeiro"
+              : faturamentoPendente
+              ? "Ainda está em faturamento pendente"
+              : "Ainda não foi enviado ao financeiro"
+          }
+          description={
+            financeiroOk
+              ? "A OS já está marcada como recebida. Use o financeiro para conferência de caixa e conciliação."
+              : financeiroAguardandoOk
+              ? "O lançamento financeiro foi criado como pendente. Quando o dinheiro cair, o financeiro faz a baixa no módulo financeiro."
+              : faturamentoPendente
+              ? "Volte para Faturamento pendente, informe NF e previsão de recebimento, depois confirme o envio ao financeiro."
+              : "Conclua execução e faturamento para esta OS entrar na fila do financeiro."
+          }
+        />
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={8}>
+            <Card bordered style={{ borderRadius: 14 }}>
+              <Text type="secondary" style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                Valor no financeiro
+              </Text>
+              <Title level={3} style={{ margin: "8px 0 0", color: colors.texto }}>
+                {formatMoney(valorFaturadoAtual || valorClienteComImpostos)}
+              </Title>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card bordered style={{ borderRadius: 14 }}>
+              <Text type="secondary" style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                Previsão de recebimento
+              </Text>
+              <Title level={4} style={{ margin: "8px 0 0", color: colors.texto }}>
+                {form.getFieldValue("data_vencimento") ? form.getFieldValue("data_vencimento").format("DD/MM/YYYY") : ordem?.data_vencimento ? dayjs(ordem.data_vencimento).format("DD/MM/YYYY") : "-"}
+              </Title>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card bordered style={{ borderRadius: 14 }}>
+              <Text type="secondary" style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                Situação
+              </Text>
+              <Title level={4} style={{ margin: "8px 0 0", color: financeiroOk ? colors.verde : colors.laranja }}>
+                {financeiroOk ? "Recebido" : financeiroAguardandoOk ? "Pendente financeiro" : "Não enviado"}
+              </Title>
+            </Card>
+          </Col>
+        </Row>
+
+        <Divider />
+
+        <Space wrap>
+          <Button
+            type="primary"
+            icon={<DollarOutlined />}
+            style={primaryButtonStyle}
+            onClick={() => navigate("/financeiro/lancamentos")}
+          >
+            Abrir lançamentos financeiros
+          </Button>
+          <Button
+            icon={<SaveOutlined />}
+            style={subtleButtonStyle}
+            onClick={() => {
+              setActiveTab("faturamento");
+            }}
+          >
+            Voltar ao faturamento
           </Button>
         </Space>
       </Card>
@@ -2438,11 +2653,12 @@ export default function OSDetalhePage() {
   );
 
   const tabItems = [
-    { key: "dados-gerais", label: "Dados gerais", children: dadosGeraisTab },
-    { key: "execucao", label: "Execução e fotos", children: execucaoTab },
-    { key: "chat", label: "Chat interno", children: chatTab },
-    { key: "despesas", label: "Despesas", children: despesasTab },
-    { key: "faturamento", label: "Faturamento", children: faturamentoTab },
+    { key: "dados-gerais", label: "1. Dados gerais", children: dadosGeraisTab },
+    { key: "execucao", label: "2. Execução", children: execucaoTab },
+    { key: "despesas", label: "3. Despesas", children: despesasTab },
+    { key: "faturamento", label: "4. Faturamento pendente", children: faturamentoTab },
+    { key: "financeiro", label: "5. Ok financeiro", children: financeiroTab },
+    { key: "chat", label: "Chat", children: chatTab },
     { key: "historico", label: "Histórico", children: historicoTab },
   ];
 
@@ -2499,13 +2715,13 @@ export default function OSDetalhePage() {
 
             <Space wrap>
               <Button icon={<ToolOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("execucao")}>
-                Execução / concluir
+                Execução
               </Button>
               <Button icon={<FilePdfOutlined />} style={subtleButtonStyle} onClick={gerarRelatorio} loading={reportLoading}>
                 Gerar relatório
               </Button>
               <Button icon={<DollarOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("faturamento")}>
-                Faturar OS
+                Faturamento pendente
               </Button>
               <Button type="primary" icon={<SaveOutlined />} style={primaryButtonStyle} onClick={() => salvarOS()} loading={saving}>
                 Salvar
@@ -2553,6 +2769,73 @@ export default function OSDetalhePage() {
           </div>
         </Card>
 
+        <Card bordered={false} style={{ ...panelStyle, marginTop: 20 }} bodyStyle={{ padding: 18 }}>
+          <Space direction="vertical" size={14} style={{ width: "100%" }}>
+            <div>
+              <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Páginas da OS
+              </Text>
+              <Title level={4} style={{ margin: "4px 0 0", color: colors.texto }}>
+                {activeWorkflowPage?.title || "Apoio da OS"}
+              </Title>
+              <Text type="secondary">
+                {activeWorkflowPage?.subtitle || "Chat e histórico ficam como apoio, sem mudar a etapa operacional."}
+              </Text>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+              }}
+            >
+              {workflowPages.map((page, index) => {
+                const isActive = activeTab === page.key;
+                const isDone = isWorkflowPage && index < activeWorkflowIndex;
+                return (
+                  <button
+                    key={page.key}
+                    type="button"
+                    onClick={() => irParaPaginaFluxo(page.key)}
+                    style={{
+                      background: isActive ? "#EFF6FF" : isDone ? "#F0FDF4" : "#FFFFFF",
+                      border: `1px solid ${isActive ? "#93C5FD" : isDone ? "#BBF7D0" : colors.borda}`,
+                      borderRadius: 14,
+                      color: isActive ? colors.azul : isDone ? colors.verde : colors.texto,
+                      cursor: "pointer",
+                      minHeight: 82,
+                      padding: 12,
+                      textAlign: "left",
+                    }}
+                  >
+                    <div style={{ alignItems: "center", display: "flex", gap: 8, marginBottom: 6 }}>
+                      <span
+                        style={{
+                          alignItems: "center",
+                          background: isActive ? colors.azul : isDone ? colors.verde : colors.fundoSuave,
+                          borderRadius: 999,
+                          color: isActive || isDone ? "#FFFFFF" : colors.textoFraco,
+                          display: "inline-flex",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          height: 24,
+                          justifyContent: "center",
+                          width: 24,
+                        }}
+                      >
+                        {index + 1}
+                      </span>
+                      <Text strong style={{ color: "inherit" }}>{page.title}</Text>
+                    </div>
+                    <Text style={{ color: colors.textoSecundario, fontSize: 12 }}>{page.subtitle}</Text>
+                  </button>
+                );
+              })}
+            </div>
+          </Space>
+        </Card>
+
         <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
           {topSummaryCards.map((card) => (
             <Col xs={24} md={12} xl={6} key={card.title}>
@@ -2590,12 +2873,52 @@ export default function OSDetalhePage() {
           type="info"
           showIcon
           message="Fluxo operacional da OS"
-          description="A barra no topo mostra a etapa exata da OS. Despesas atualizam a margem em tempo real, o faturamento empurra a rotina para o financeiro e o histórico é gerado automaticamente."
+          description="A barra superior mostra o status da OS. As páginas abaixo organizam o trabalho: você avança etapa por etapa, deixa o faturamento pendente e depois acompanha o ok do financeiro."
           style={{ borderRadius: 12, marginTop: 20 }}
         />
 
         <Card bordered={false} style={{ ...panelStyle, marginTop: 20 }} bodyStyle={{ padding: 20 }}>
           <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+          {isWorkflowPage ? (
+            <div
+              style={{
+                borderTop: `1px solid ${colors.borda}`,
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 24,
+                paddingTop: 18,
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                disabled={activeWorkflowIndex <= 0}
+                onClick={voltarPaginaFluxo}
+                style={subtleButtonStyle}
+              >
+                Voltar etapa
+              </Button>
+              <Space wrap>
+                <Button icon={<SaveOutlined />} onClick={() => salvarOS()} loading={saving} style={subtleButtonStyle}>
+                  Salvar esta página
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={avancarPaginaFluxo}
+                  loading={saving || sendingBilling}
+                  style={primaryButtonStyle}
+                >
+                  {activeTab === "faturamento"
+                    ? isFinanceAdmin
+                      ? "Confirmar e enviar ao financeiro"
+                      : "Salvar e aguardar financeiro"
+                    : activeTab === "financeiro"
+                    ? "Abrir financeiro"
+                    : "Salvar e avançar"}
+                </Button>
+              </Space>
+            </div>
+          ) : null}
         </Card>
       </Form>
 

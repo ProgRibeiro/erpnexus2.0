@@ -45,6 +45,21 @@ def _parse_date(value):
     return None
 
 
+def _sincronizar_recebimento_os(lancamento):
+    if (
+        lancamento.tipo != Lancamento.Tipo.RECEITA
+        or lancamento.status != Lancamento.Status.PAGO
+        or not lancamento.os_id
+    ):
+        return
+
+    OrdemServico.objects.filter(pk=lancamento.os_id).update(
+        status_pagamento=OrdemServico.StatusPagamento.PAGO,
+        data_recebimento=lancamento.data_pagamento or timezone.localdate(),
+        atualizado_em=timezone.now(),
+    )
+
+
 def _parse_decimal(value):
     if isinstance(value, Decimal):
         return value
@@ -171,6 +186,7 @@ class LancamentoViewSet(viewsets.ModelViewSet):
             lancamento.conta_bancaria_id = conta_bancaria
             update_fields.append("conta_bancaria")
         lancamento.save(update_fields=update_fields)
+        _sincronizar_recebimento_os(lancamento)
         for arquivo in request.FILES.getlist("arquivos") or request.FILES.getlist("arquivo"):
             AnexoLancamento.objects.create(
                 lancamento=lancamento,
@@ -241,6 +257,7 @@ class LancamentoViewSet(viewsets.ModelViewSet):
                 lancamento.conta_bancaria = conta
                 lancamento.observacoes = f"{lancamento.observacoes}\n{observacao}".strip()
                 lancamento.save(update_fields=["status", "data_pagamento", "conta_bancaria", "observacoes"])
+                _sincronizar_recebimento_os(lancamento)
                 conciliados.append({"linha": index, "lancamento": lancamento.id, "descricao": lancamento.descricao})
                 continue
 
