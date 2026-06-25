@@ -25,7 +25,7 @@ from apps.clientes.models import Cliente
 from apps.configuracoes.models import get_empresa_configurada
 from .models import AnexoChatOS, ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, ItemOrcamento, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
-from .services import MotorOrcamentoInteligente, PedidoCompraInteligente
+from .services import GovernancaRelatorioOS, MotorOrcamentoInteligente, PedidoCompraInteligente
 from .serializers import (
     ChatOSSerializer,
     ChecklistItemSerializer,
@@ -41,6 +41,14 @@ from .serializers import (
     RelatorioPublicoSerializer,
     RespostaChecklistSerializer,
 )
+
+
+def _as_bool(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "sim", "yes", "on"}
 
 
 class OrdemServicoViewSet(viewsets.ModelViewSet):
@@ -930,18 +938,39 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="gerar-pdf-relatorio")
     def gerar_pdf_relatorio(self, request, pk=None):
         ordem = self.get_object()
+        final = _as_bool(request.data.get("final"), False)
+        rascunho = _as_bool(request.data.get("rascunho"), not final)
+        try:
+            avaliacao = GovernancaRelatorioOS().validar_geracao_final(ordem, permitir_rascunho=rascunho)
+        except ValueError as exc:
+            return Response(
+                {
+                    "detail": str(exc),
+                    "avaliacao": GovernancaRelatorioOS().avaliar(ordem),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         pdf_bytes = gerar_relatorio_pdf(ordem.pk)
         if pdf_bytes:
             return FileResponse(
                 BytesIO(pdf_bytes),
                 as_attachment=True,
-                filename=f"relatorio_{ordem.numero}.pdf",
+                filename=GovernancaRelatorioOS().nome_arquivo(
+                    ordem,
+                    "relatorio_atendimento",
+                    final=avaliacao["pronto_final"] and not rascunho,
+                ),
                 content_type="application/pdf",
             )
         return Response(
             {"detail": "Erro ao gerar PDF de relatório"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+    @action(detail=True, methods=["get"], url_path="relatorio/qualidade")
+    def qualidade_relatorio(self, request, pk=None):
+        ordem = self.get_object()
+        return Response(GovernancaRelatorioOS().avaliar(ordem))
 
     @action(detail=True, methods=["post"], url_path="gerar-pdf-orcamento")
     def gerar_pdf_orcamento(self, request, pk=None):
@@ -1146,12 +1175,20 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         """Gera PDF do relatório técnico de execução com checklist e fotos."""
         from .pdf_generator import gerar_relatorio_tecnico_pdf, salvar_relatorio_tecnico_pdf
         ordem = self.get_object()
+        rascunho = _as_bool(request.data.get("rascunho"), False)
+        governanca = GovernancaRelatorioOS()
         try:
+            avaliacao = governanca.validar_geracao_final(ordem, permitir_rascunho=rascunho)
             pdf_bytes = gerar_relatorio_tecnico_pdf(ordem.pk)
             if not pdf_bytes:
                 return Response({"detail": "Não foi possível gerar o relatório técnico."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            salvar_relatorio_tecnico_pdf(ordem, pdf_bytes)
-            nome = f"relatorio_tecnico_{ordem.numero or ordem.pk}.pdf"
+            if avaliacao["pronto_final"] and not rascunho:
+                salvar_relatorio_tecnico_pdf(ordem, pdf_bytes)
+            nome = governanca.nome_arquivo(
+                ordem,
+                "relatorio_tecnico",
+                final=avaliacao["pronto_final"] and not rascunho,
+            )
             response = FileResponse(
                 BytesIO(pdf_bytes),
                 as_attachment=True,
@@ -1159,6 +1196,15 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 content_type="application/pdf",
             )
             return response
+        except ValueError as exc:
+            return Response(
+                {
+                    "detail": str(exc),
+                    "avaliacao": governanca.avaliar(ordem),
+                    "permite_rascunho": True,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

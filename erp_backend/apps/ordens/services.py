@@ -12,8 +12,7 @@ from pypdf import PdfReader
 
 from apps.estoque.models import Produto, ReferenciaPrecoPublico, Servico
 from apps.estoque.services import MemoriaMotorInteligente
-from .models import ItemOrcamento
-from .models import AprendizadoPedidoCompra
+from .models import AprendizadoPedidoCompra, ItemOrcamento, OrdemServico
 
 
 class PedidoCompraInteligente:
@@ -925,3 +924,177 @@ class MotorOrcamentoInteligente:
             for token in re.findall(r"[a-z0-9]{3,}", self._normalizar(texto))
             if token not in self.STOPWORDS
         }
+
+
+class GovernancaRelatorioOS:
+    """
+    Motor de qualidade para geração de relatórios de OS.
+
+    A ideia é tratar o PDF como uma entrega operacional: primeiro valida o dossiê,
+    calcula score, classifica riscos e só libera o documento final quando os
+    requisitos críticos estão atendidos. Ainda permite rascunho quando o usuário
+    quer revisar antes de fechar.
+    """
+
+    SCORE_MINIMO_FINAL = 80
+
+    def avaliar(self, ordem):
+        fotos = list(ordem.fotos.all())
+        respostas = list(
+            ordem.respostas_checklist
+            .select_related("item")
+            .prefetch_related("fotos")
+            .all()
+        )
+        checklist_total = len(respostas)
+        checklist_respondido = sum(1 for resposta in respostas if self._resposta_preenchida(resposta))
+        checklist_percentual = round((checklist_respondido / checklist_total) * 100) if checklist_total else 0
+
+        requisitos = [
+            self._item(
+                "cliente",
+                "Cliente vinculado",
+                bool(ordem.cliente_id),
+                "critico",
+                "Vincule um cliente antes de gerar documentos finais.",
+            ),
+            self._item(
+                "descricao",
+                "Descrição do serviço",
+                bool(str(ordem.descricao_servico or "").strip()),
+                "critico",
+                "Preencha escopo, demanda ou serviço executado.",
+            ),
+            self._item(
+                "tipo_relatorio",
+                "Tipo de relatório",
+                bool(ordem.tipo_relatorio),
+                "critico",
+                "Selecione o tipo de relatório na etapa Execução.",
+            ),
+            self._item(
+                "tecnico",
+                "Técnico responsável",
+                bool(ordem.tecnico_responsavel_id),
+                "critico",
+                "Defina quem executou ou será responsável pelo atendimento.",
+            ),
+            self._item(
+                "data_execucao",
+                "Data de execução/agendamento",
+                bool(ordem.data_agendada),
+                "critico",
+                "Informe a data do serviço para rastreabilidade.",
+            ),
+            self._item(
+                "observacoes_tecnicas",
+                "Observações técnicas",
+                bool(str(ordem.observacoes_tecnicas or "").strip()),
+                "importante",
+                "Registre diagnóstico, solução, testes e recomendações.",
+            ),
+            self._item(
+                "fotos",
+                "Registro fotográfico",
+                bool(fotos),
+                "importante",
+                "Anexe fotos antes/depois ou evidências do checklist.",
+            ),
+            self._item(
+                "checklist",
+                "Checklist técnico",
+                checklist_total == 0 or checklist_percentual >= 80,
+                "recomendado",
+                "Responda ao menos 80% do checklist quando houver modelo aplicado.",
+            ),
+            self._item(
+                "equipamento",
+                "Dados do equipamento",
+                any([ordem.equipamento_marca, ordem.equipamento_modelo, ordem.equipamento_serie]),
+                "recomendado",
+                "Informe marca, modelo ou série quando aplicável.",
+            ),
+        ]
+
+        score = 0
+        pesos = {"critico": 14, "importante": 10, "recomendado": 6}
+        for requisito in requisitos:
+            if requisito["ok"]:
+                score += pesos[requisito["peso"]]
+        score = min(score, 100)
+
+        criticos = [item for item in requisitos if item["peso"] == "critico" and not item["ok"]]
+        importantes = [item for item in requisitos if item["peso"] == "importante" and not item["ok"]]
+        recomendados = [item for item in requisitos if item["peso"] == "recomendado" and not item["ok"]]
+        pendencias = criticos + importantes + recomendados
+
+        pronto_final = not criticos and score >= self.SCORE_MINIMO_FINAL
+        nivel = "excelente" if score >= 92 else "bom" if score >= 80 else "atencao" if score >= 60 else "critico"
+
+        return {
+            "score": score,
+            "nivel": nivel,
+            "pronto_final": pronto_final,
+            "pode_rascunho": True,
+            "minimo_final": self.SCORE_MINIMO_FINAL,
+            "requisitos": requisitos,
+            "pendencias": pendencias,
+            "bloqueios": criticos,
+            "alertas": importantes,
+            "melhorias": recomendados,
+            "metricas": {
+                "fotos": len(fotos),
+                "checklist_total": checklist_total,
+                "checklist_respondido": checklist_respondido,
+                "checklist_percentual": checklist_percentual,
+                "itens_orcamento": ordem.itens.count(),
+            },
+            "proxima_acao": self._proxima_acao(criticos, importantes, recomendados, pronto_final),
+            "nome_arquivo_sugerido": self.nome_arquivo(ordem, "relatorio_tecnico", final=pronto_final),
+        }
+
+    def validar_geracao_final(self, ordem, permitir_rascunho=False):
+        avaliacao = self.avaliar(ordem)
+        if avaliacao["pronto_final"] or permitir_rascunho:
+            return avaliacao
+        mensagens = [item["ajuda"] for item in avaliacao["bloqueios"]] or [
+            f"O relatório precisa atingir pelo menos {self.SCORE_MINIMO_FINAL}% de qualidade para emissão final."
+        ]
+        raise ValueError(" ".join(mensagens))
+
+    def nome_arquivo(self, ordem, tipo_documento, final=True):
+        numero = re.sub(r"[^A-Za-z0-9_-]+", "-", str(ordem.numero or ordem.pk)).strip("-")
+        cliente = re.sub(r"[^A-Za-z0-9_-]+", "-", str(getattr(ordem.cliente, "nome", "cliente") or "cliente")).strip("-")
+        versao = "final" if final else "rascunho"
+        data = timezone.localdate().strftime("%Y%m%d")
+        return f"{tipo_documento}_{numero}_{cliente[:32]}_{versao}_{data}.pdf"
+
+    def _item(self, codigo, titulo, ok, peso, ajuda):
+        return {
+            "codigo": codigo,
+            "titulo": titulo,
+            "ok": bool(ok),
+            "peso": peso,
+            "ajuda": ajuda,
+        }
+
+    def _resposta_preenchida(self, resposta):
+        return any(
+            [
+                resposta.valor_bool is not None,
+                bool(str(resposta.valor_texto or "").strip()),
+                resposta.valor_numero is not None,
+                resposta.fotos.exists(),
+            ]
+        )
+
+    def _proxima_acao(self, criticos, importantes, recomendados, pronto_final):
+        if pronto_final:
+            return "Relatório pronto para emissão final."
+        if criticos:
+            return criticos[0]["ajuda"]
+        if importantes:
+            return importantes[0]["ajuda"]
+        if recomendados:
+            return recomendados[0]["ajuda"]
+        return "Revise o relatório antes de emitir."

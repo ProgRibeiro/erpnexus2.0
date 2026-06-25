@@ -391,6 +391,19 @@ function downloadBlob(response, filename) {
   window.URL.revokeObjectURL(url);
 }
 
+async function parseApiErrorData(error) {
+  const data = error?.response?.data;
+  if (data instanceof Blob) {
+    try {
+      const text = await data.text();
+      return JSON.parse(text);
+    } catch {
+      return {};
+    }
+  }
+  return data || {};
+}
+
 export default function OSDetalhePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -421,6 +434,7 @@ export default function OSDetalhePage() {
   const [checklistRespostas, setChecklistRespostas] = useState({});
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
+  const [reportGovernance, setReportGovernance] = useState(null);
   const [concluindoOS, setConcluindoOS] = useState(false);
   const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
   const [tributacao, setTributacao] = useState({
@@ -501,9 +515,9 @@ export default function OSDetalhePage() {
       const resposta = checklistRespostas[item.id];
       if (!resposta) return false;
       return (
-        resposta.valor_bool !== null && resposta.valor_bool !== undefined ||
+        (resposta.valor_bool !== null && resposta.valor_bool !== undefined) ||
         Boolean(resposta.valor_texto) ||
-        resposta.valor_numero !== null && resposta.valor_numero !== undefined ||
+        (resposta.valor_numero !== null && resposta.valor_numero !== undefined) ||
         (resposta.fotos || []).length > 0
       );
     }).length;
@@ -611,12 +625,13 @@ export default function OSDetalhePage() {
   const carregarTela = async () => {
     try {
       setLoading(true);
-      const [ordemResponse, clientsResponse, techniciansResponse, empresaResponse, contasResponse] = await Promise.allSettled([
+      const [ordemResponse, clientsResponse, techniciansResponse, empresaResponse, contasResponse, qualidadeResponse] = await Promise.allSettled([
         api.get(`/ordens/${id}/`),
         api.get("/clientes/"),
         api.get("/auth/"),
         api.get("/configuracoes/empresa/"),
         api.get("/financeiro/contas-bancarias/", { params: { ativo: true } }),
+        api.get(`/ordens/${id}/relatorio/qualidade/`),
       ]);
 
       if (ordemResponse.status !== "fulfilled") {
@@ -672,6 +687,9 @@ export default function OSDetalhePage() {
         const regime = empresaResponse.value.data?.regime_tributario || "simples_nacional";
         setRegimeEmpresa(regime);
         setTributacao((prev) => ({ ...prev, regime }));
+      }
+      if (qualidadeResponse.status === "fulfilled") {
+        setReportGovernance(qualidadeResponse.value.data);
       }
 
       if (techniciansResponse.status !== "fulfilled") {
@@ -929,15 +947,54 @@ export default function OSDetalhePage() {
     form.setFieldValue("valor_total_orcado", Number(totalOrcamentoEditavel || 0));
   }, [form, totalOrcamentoEditavel]);
 
-  const gerarRelatorio = async () => {
+  const atualizarQualidadeRelatorio = async () => {
+    try {
+      const response = await api.get(`/ordens/${id}/relatorio/qualidade/`);
+      setReportGovernance(response.data);
+      return response.data;
+    } catch {
+      return null;
+    }
+  };
+
+  const confirmarRascunhoRelatorio = (detail) =>
+    new Promise((resolve) => {
+      Modal.confirm({
+        title: "Gerar como rascunho?",
+        content:
+          detail ||
+          "O relatório ainda tem pendências de qualidade. Você pode gerar um rascunho para revisar, mas a versão final fica bloqueada até completar os requisitos.",
+        okText: "Gerar rascunho",
+        cancelText: "Voltar e completar",
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
+    });
+
+  const gerarRelatorio = async ({ rascunho = false } = {}) => {
     try {
       setReportLoading(true);
-      const response = await api.post(`/ordens/${id}/gerar-pdf-relatorio/`, {}, { responseType: "blob" });
+      await salvarOS();
+      const response = await api.post(
+        `/ordens/${id}/gerar-pdf-relatorio/`,
+        { final: !rascunho, rascunho },
+        { responseType: "blob" }
+      );
       downloadBlob(response, `relatorio_atendimento_${ordem?.numero || id}.pdf`);
-      message.success("Relatório de atendimento gerado com sucesso.");
+      await atualizarQualidadeRelatorio();
+      message.success(rascunho ? "Rascunho de atendimento gerado." : "Relatório de atendimento final gerado.");
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);
-      message.error("Não foi possível gerar o relatório.");
+      if (error?.response?.status === 400 && !rascunho) {
+        const data = await parseApiErrorData(error);
+        if (data.avaliacao) setReportGovernance(data.avaliacao);
+        const gerarRascunho = await confirmarRascunhoRelatorio(data.detail);
+        if (gerarRascunho) {
+          await gerarRelatorio({ rascunho: true });
+          return;
+        }
+      }
+      message.error((await parseApiErrorData(error))?.detail || "Não foi possível gerar o relatório.");
     } finally {
       setReportLoading(false);
     }
@@ -1111,23 +1168,33 @@ export default function OSDetalhePage() {
     }
   };
 
-  const gerarRelatorioTecnico = async () => {
+  const gerarRelatorioTecnico = async ({ rascunho = false } = {}) => {
     try {
       setGerandoRelatorioTecnico(true);
       await salvarOS();
       const response = await api.post(
         `/ordens/${id}/gerar-relatorio-tecnico/`,
-        {},
+        { rascunho },
         { responseType: "blob" }
       );
       downloadBlob(response, `relatorio_tecnico_${ordem?.numero || id}.pdf`);
-      message.success("Relatório técnico gerado com sucesso!");
+      await atualizarQualidadeRelatorio();
+      message.success(rascunho ? "Rascunho técnico gerado com sucesso." : "Relatório técnico final gerado com sucesso!");
     } catch (err) {
       console.error("Erro ao gerar relatório técnico:", err);
+      if (err?.response?.status === 400 && !rascunho) {
+        const data = await parseApiErrorData(err);
+        if (data.avaliacao) setReportGovernance(data.avaliacao);
+        const gerarRascunho = await confirmarRascunhoRelatorio(data.detail);
+        if (gerarRascunho) {
+          await gerarRelatorioTecnico({ rascunho: true });
+          return;
+        }
+      }
       const detalhe =
         err?.response?.status === 404
           ? "Esta ordem de serviço não existe mais no banco atual. Volte para a listagem e abra uma OS existente."
-          : err?.response?.data?.detail || "Não foi possível gerar o relatório técnico.";
+          : (await parseApiErrorData(err))?.detail || "Não foi possível gerar o relatório técnico.";
       message.error(detalhe);
     } finally {
       setGerandoRelatorioTecnico(false);
@@ -1504,9 +1571,17 @@ export default function OSDetalhePage() {
         : "Selecione um checklist para acompanhar a execução.",
     },
   ];
-  const reportReadinessPercent = Math.round(
+  const localReportReadinessPercent = Math.round(
     (reportReadinessItems.filter((item) => item.done).length / reportReadinessItems.length) * 100
   );
+  const reportReadinessPercent = Number(reportGovernance?.score ?? localReportReadinessPercent);
+  const reportGovernanceItems = Array.isArray(reportGovernance?.requisitos)
+    ? reportGovernance.requisitos.map((item) => ({
+        label: item.titulo,
+        done: item.ok,
+        hint: item.ok ? "Pronto" : item.ajuda,
+      }))
+    : reportReadinessItems;
 
   const itemColumns = [
     {
@@ -2979,14 +3054,26 @@ export default function OSDetalhePage() {
                   Documento {reportReadinessPercent}% pronto
                 </Title>
                 <Text type="secondary">
-                  Quanto mais completo, mais profissional fica o PDF entregue ao cliente.
+                  {reportGovernance?.pronto_final
+                    ? "Versão final liberada para entrega ao cliente."
+                    : reportGovernance?.pode_rascunho
+                    ? "Rascunho liberado; versão final exige completar os bloqueios."
+                    : "Complete as pendências para gerar um documento seguro."}
                 </Text>
+                {reportGovernance?.proxima_acao ? (
+                  <Alert
+                    type={reportGovernance.pronto_final ? "success" : "warning"}
+                    showIcon
+                    message={reportGovernance.proxima_acao}
+                    style={{ borderRadius: 10, marginTop: 8 }}
+                  />
+                ) : null}
                 <Progress percent={reportReadinessPercent} strokeColor={colors.azul} />
               </Space>
             </Col>
             <Col xs={24} lg={11}>
               <Row gutter={[10, 10]}>
-                {reportReadinessItems.map((item) => (
+                {reportGovernanceItems.slice(0, 6).map((item) => (
                   <Col xs={24} md={12} key={item.label}>
                     <div
                       style={{
@@ -3019,7 +3106,7 @@ export default function OSDetalhePage() {
               <Space direction="vertical" style={{ width: "100%" }}>
                 <Dropdown menu={menuRelatorios} trigger={["click"]}>
                   <Button block type="primary" icon={<FilePdfOutlined />} style={primaryButtonStyle} loading={reportLoading || gerandoRelatorioTecnico}>
-                    Gerar PDF profissional
+                    {reportGovernance?.pronto_final ? "Gerar PDF final" : "Gerar PDF / rascunho"}
                   </Button>
                 </Dropdown>
                 <Button block icon={<CameraOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("execucao")}>
