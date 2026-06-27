@@ -22,6 +22,8 @@ import {
   ColorPicker,
   Drawer,
   Space,
+  Typography,
+  Avatar,
 } from "antd";
 import {
   InfoCircleOutlined,
@@ -30,6 +32,16 @@ import {
   KeyOutlined,
   PlusOutlined,
   UploadOutlined,
+  SettingOutlined,
+  BellOutlined,
+  FileTextOutlined,
+  DollarOutlined,
+  TeamOutlined,
+  PercentageOutlined,
+  ImportOutlined,
+  ShopOutlined,
+  CheckCircleOutlined,
+  CloudUploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -38,14 +50,64 @@ import usuariosService from "../../services/usuariosService";
 import ExcelImportModal from "../../components/ExcelImportModal";
 import GuiaLucroPresumido from "../Fiscal/components/GuiaLucroPresumido";
 
+const { Title, Text } = Typography;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const sectionCardStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 14,
+  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.045)",
+};
+
 const btnStyle = {
-  background: "#3B82F6",
-  borderColor: "#3B82F6",
+  background: colors.azul,
+  borderColor: colors.azul,
   color: "#ffffff",
-  fontWeight: 500,
+  fontWeight: 600,
   height: "38px",
   borderRadius: "8px",
 };
+
+function SectionLabel({ children }) {
+  return (
+    <div
+      style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: colors.textoFraco,
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        margin: "8px 0 16px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 const maskCNPJ = (value) => {
   if (!value) return "";
@@ -487,16 +549,33 @@ export default function ConfiguracoesPage() {
       dataIndex: "nome_completo",
       key: "nome_completo",
       sorter: (a, b) => a.nome_completo.localeCompare(b.nome_completo),
+      render: (value, record) => (
+        <Space>
+          <Avatar
+            size={32}
+            style={{ background: "#DBEAFE", color: colors.azul, fontWeight: 700, flexShrink: 0 }}
+          >
+            {String(value || "U").charAt(0).toUpperCase()}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 600, color: colors.texto }}>{value}</div>
+            <div style={{ fontSize: 12, color: colors.textoFraco }}>{record.email}</div>
+          </div>
+        </Space>
+      ),
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
+      responsive: ["lg"],
     },
     {
       title: "Cargo",
       dataIndex: "cargo",
       key: "cargo",
+      responsive: ["md"],
+      render: (value) => value || <Text type="secondary">—</Text>,
     },
     {
       title: "Role",
@@ -529,27 +608,36 @@ export default function ConfiguracoesPage() {
     {
       title: "Ações",
       key: "acoes",
+      width: 140,
       render: (_, usuario) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEditarUsuario(usuario)}
-          />
-          <Button
-            type="text"
-            danger
-            icon={<KeyOutlined />}
-            onClick={() => handleResetarSenha(usuario)}
-            title="Resetar senha"
-          />
-          {usuario.status === "ativo" && (
+        <Space size={4}>
+          <Tooltip title="Editar">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => handleEditarUsuario(usuario)}
+              style={{ borderRadius: 8 }}
+            />
+          </Tooltip>
+          <Tooltip title="Resetar senha">
             <Button
               type="text"
               danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDesativarUsuario(usuario)}
+              icon={<KeyOutlined />}
+              onClick={() => handleResetarSenha(usuario)}
+              style={{ borderRadius: 8 }}
             />
+          </Tooltip>
+          {usuario.status === "ativo" && (
+            <Tooltip title="Desativar">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDesativarUsuario(usuario)}
+                style={{ borderRadius: 8 }}
+              />
+            </Tooltip>
           )}
         </Space>
       ),
@@ -557,19 +645,58 @@ export default function ConfiguracoesPage() {
   ];
 
   return (
-    <Card>
-      <Tabs
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start">
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.azul}14`,
+              color: colors.azul,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <SettingOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>
+              Configurações
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Gerencie dados da empresa, notificações, ordens de serviço, financeiro, usuários e configurações fiscais.
+            </Text>
+          </div>
+        </Space>
+      </Card>
+
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0 }}>
+        <Tabs
+        tabBarStyle={{ padding: "0 24px", marginBottom: 0 }}
+        tabBarGutter={32}
+        style={{ padding: "16px 8px 8px" }}
         items={[
           // ABA: EMPRESA
           {
             key: "empresa",
-            label: "Empresa",
+            label: (
+              <Space>
+                <ShopOutlined /> Empresa
+              </Space>
+            ),
             children: (
+              <div style={{ padding: "8px 16px 24px" }}>
               <Form
                 form={empresaForm}
                 layout="vertical"
                 onFinish={salvarEmpresa}
               >
+                <SectionLabel>Dados gerais</SectionLabel>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="nome" label="Nome da empresa">
@@ -633,6 +760,8 @@ export default function ConfiguracoesPage() {
                   <Input.TextArea rows={3} />
                 </Form.Item>
 
+                <Divider style={{ margin: "8px 0 20px" }} />
+                <SectionLabel>Identidade visual</SectionLabel>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="logo" label="Logo">
@@ -655,7 +784,7 @@ export default function ConfiguracoesPage() {
                           setLogoPreview(null);
                         }}
                       >
-                        <Button icon={<UploadOutlined />}>
+                        <Button icon={<UploadOutlined />} style={{ borderRadius: 8 }}>
                           Fazer upload da logo
                         </Button>
                       </Upload>
@@ -680,7 +809,7 @@ export default function ConfiguracoesPage() {
                     <Form.Item name="cor_principal" label="Cor principal">
                       <Input
                         type="color"
-                        style={{ height: "40px", width: "100%" }}
+                        style={{ height: "40px", width: "100%", borderRadius: 8 }}
                         onChange={(e) => {
                           setCorPrincipal(e.target.value);
                           empresaForm.setFieldValue(
@@ -694,10 +823,12 @@ export default function ConfiguracoesPage() {
                       style={{
                         marginTop: 8,
                         padding: "10px 15px",
-                        borderRadius: 4,
+                        borderRadius: 8,
                         backgroundColor: corPrincipal,
                         color: "white",
                         textAlign: "center",
+                        fontWeight: 600,
+                        fontSize: 13,
                       }}
                     >
                       Preview: {corPrincipal}
@@ -705,73 +836,98 @@ export default function ConfiguracoesPage() {
                   </Col>
                 </Row>
 
-                <Button htmlType="submit" style={btnStyle}>
+                <Button htmlType="submit" type="primary" style={btnStyle}>
                   Salvar Empresa
                 </Button>
               </Form>
+              </div>
             ),
           },
 
           // ABA: NOTIFICAÇÕES
           {
             key: "notificacoes",
-            label: "Notificações",
+            label: (
+              <Space>
+                <BellOutlined /> Notificações
+              </Space>
+            ),
             children: (
-              <>
-                <Table
-                  rowKey="tipo"
-                  dataSource={notificacoes}
-                  columns={[
-                    { title: "Tipo", dataIndex: "tipo" },
-                    {
-                      title: "Ativo",
-                      dataIndex: "ativo",
-                      render: (value, record, index) => (
-                        <Switch
-                          checked={value}
-                          onChange={(checked) => {
-                            const next = [...notificacoes];
-                            next[index] = { ...record, ativo: checked };
-                            setNotificacoes(next);
-                          }}
-                        />
-                      ),
-                    },
-                    {
-                      title: "Email destino",
-                      dataIndex: "email_destino",
-                      render: (value, record, index) => (
-                        <Input
-                          value={value}
-                          onChange={(event) => {
-                            const next = [...notificacoes];
-                            next[index] = {
-                              ...record,
-                              email_destino: event.target.value,
-                            };
-                            setNotificacoes(next);
-                          }}
-                        />
-                      ),
-                    },
-                  ]}
-                />
+              <div style={{ padding: "8px 16px 24px" }}>
+                <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
+                  Defina quais eventos disparam notificações automáticas e para qual email elas devem ser enviadas.
+                </Text>
+                <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
+                  <Table
+                    rowKey="tipo"
+                    dataSource={notificacoes}
+                    pagination={false}
+                    size="middle"
+                    locale={{ emptyText: "Nenhuma notificação configurada" }}
+                    columns={[
+                      {
+                        title: "Tipo",
+                        dataIndex: "tipo",
+                        render: (value) => <Text strong style={{ color: colors.texto }}>{value}</Text>,
+                      },
+                      {
+                        title: "Ativo",
+                        dataIndex: "ativo",
+                        width: 100,
+                        render: (value, record, index) => (
+                          <Switch
+                            checked={value}
+                            onChange={(checked) => {
+                              const next = [...notificacoes];
+                              next[index] = { ...record, ativo: checked };
+                              setNotificacoes(next);
+                            }}
+                          />
+                        ),
+                      },
+                      {
+                        title: "Email destino",
+                        dataIndex: "email_destino",
+                        render: (value, record, index) => (
+                          <Input
+                            value={value}
+                            onChange={(event) => {
+                              const next = [...notificacoes];
+                              next[index] = {
+                                ...record,
+                                email_destino: event.target.value,
+                              };
+                              setNotificacoes(next);
+                            }}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
                 <Button
+                  type="primary"
                   onClick={salvarNotificacoes}
-                  style={{ ...btnStyle, marginTop: 16 }}
+                  style={{ ...btnStyle, marginTop: 20 }}
                 >
                   Salvar Notificações
                 </Button>
-              </>
+              </div>
             ),
           },
 
           // ABA: ORDENS DE SERVIÇO
           {
             key: "os",
-            label: "Ordens de Serviço",
+            label: (
+              <Space>
+                <FileTextOutlined /> Ordens de Serviço
+              </Space>
+            ),
             children: (
+              <div style={{ padding: "8px 16px 24px" }}>
               <Form form={osForm} layout="vertical" onFinish={salvarOS}>
+                <SectionLabel>Numeração</SectionLabel>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item name="prefixo" label="Prefixo de numeração">
@@ -789,6 +945,8 @@ export default function ConfiguracoesPage() {
                   </Col>
                 </Row>
 
+                <Divider style={{ margin: "8px 0 20px" }} />
+                <SectionLabel>Documento em PDF</SectionLabel>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item
@@ -815,6 +973,8 @@ export default function ConfiguracoesPage() {
                   <Switch />
                 </Form.Item>
 
+                <Divider style={{ margin: "8px 0 20px" }} />
+                <SectionLabel>Textos padrão</SectionLabel>
                 <Form.Item name="texto_termos" label="Texto de termos padrão">
                   <Input.TextArea
                     rows={4}
@@ -829,31 +989,37 @@ export default function ConfiguracoesPage() {
                   <Input.TextArea rows={4} />
                 </Form.Item>
 
-                <Button htmlType="submit" style={btnStyle}>
+                <Button htmlType="submit" type="primary" style={btnStyle}>
                   Salvar Configuração OS
                 </Button>
               </Form>
+              </div>
             ),
           },
 
           // ABA: FINANCEIRA
           {
             key: "financeira",
-            label: "Financeira",
+            label: (
+              <Space>
+                <DollarOutlined /> Financeira
+              </Space>
+            ),
             children: (
+              <div style={{ padding: "8px 16px 24px" }}>
               <Form
                 form={financeiraForm}
                 layout="vertical"
                 onFinish={salvarFinanceira}
               >
-                <Divider>ISS</Divider>
+                <SectionLabel>ISS</SectionLabel>
                 <Form.Item
                   name="aliquota_iss"
                   label={
                     <span>
                       Alíquota ISS (%)
                       <Tooltip title="Padrão 5%, consulte seu município">
-                        <InfoCircleOutlined style={{ marginLeft: 8 }} />
+                        <InfoCircleOutlined style={{ marginLeft: 8, color: colors.azul }} />
                       </Tooltip>
                     </span>
                   }
@@ -866,7 +1032,8 @@ export default function ConfiguracoesPage() {
                   />
                 </Form.Item>
 
-                <Divider>Contas Padrão</Divider>
+                <Divider style={{ margin: "8px 0 20px" }} />
+                <SectionLabel>Contas padrão</SectionLabel>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item
@@ -907,7 +1074,8 @@ export default function ConfiguracoesPage() {
                   </Col>
                 </Row>
 
-                <Divider>Prazos e Multas</Divider>
+                <Divider style={{ margin: "8px 0 20px" }} />
+                <SectionLabel>Prazos e multas</SectionLabel>
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item
@@ -951,19 +1119,24 @@ export default function ConfiguracoesPage() {
                   </Col>
                 </Row>
 
-                <Button htmlType="submit" style={btnStyle}>
+                <Button htmlType="submit" type="primary" style={btnStyle}>
                   Salvar Configuração Financeira
                 </Button>
               </Form>
+              </div>
             ),
           },
 
           // ABA: USUÁRIOS
           {
             key: "usuarios",
-            label: "Usuários",
+            label: (
+              <Space>
+                <TeamOutlined /> Usuários
+              </Space>
+            ),
             children: (
-              <>
+              <div style={{ padding: "8px 16px 24px" }}>
                 <div style={{ marginBottom: 16 }}>
                   <Button
                     type="primary"
@@ -975,19 +1148,24 @@ export default function ConfiguracoesPage() {
                   </Button>
                 </div>
 
-                <Table
-                  loading={loadingUsuarios}
-                  columns={usuariosColumns}
-                  dataSource={usuarios}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                />
+                <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
+                  <Table
+                    loading={loadingUsuarios}
+                    columns={usuariosColumns}
+                    dataSource={usuarios}
+                    rowKey="id"
+                    pagination={{ pageSize: 10 }}
+                    size="middle"
+                    locale={{ emptyText: "Nenhum usuário cadastrado" }}
+                  />
+                </div>
 
                 <Drawer
                   title={usuarioEditando ? "Editar usuário" : "Novo usuário"}
                   onClose={() => setDrawerUsuarioOpen(false)}
                   open={drawerUsuarioOpen}
                   width={500}
+                  styles={{ body: { paddingTop: 20 } }}
                 >
                   <Form
                     form={usuarioForm}
@@ -1019,7 +1197,7 @@ export default function ConfiguracoesPage() {
                         message="Uma senha temporária será gerada automaticamente"
                         type="info"
                         showIcon
-                        style={{ marginBottom: 16 }}
+                        style={{ marginBottom: 16, borderRadius: 10 }}
                       />
                     )}
 
@@ -1050,24 +1228,29 @@ export default function ConfiguracoesPage() {
                     </Form.Item>
 
                     <Space style={{ width: "100%" }}>
-                      <Button htmlType="submit" style={btnStyle}>
+                      <Button htmlType="submit" type="primary" style={btnStyle}>
                         Salvar
                       </Button>
-                      <Button onClick={() => setDrawerUsuarioOpen(false)}>
+                      <Button onClick={() => setDrawerUsuarioOpen(false)} style={{ borderRadius: 8, height: 38 }}>
                         Cancelar
                       </Button>
                     </Space>
                   </Form>
                 </Drawer>
-              </>
+              </div>
             ),
           },
 
           // ABA: FISCAL
           {
             key: "fiscal",
-            label: "Fiscal",
+            label: (
+              <Space>
+                <PercentageOutlined /> Fiscal
+              </Space>
+            ),
             children: (
+              <div style={{ padding: "8px 16px 24px" }}>
               <Spin spinning={loadingImpostos}>
                 <Form
                   form={fiscalForm}
@@ -1080,7 +1263,7 @@ export default function ConfiguracoesPage() {
                   }}
                 >
                   {/* SEÇÃO: Consulta automática por CNPJ */}
-                  <Divider>Consulta automática por CNPJ</Divider>
+                  <SectionLabel>Consulta automática por CNPJ</SectionLabel>
                   <Row gutter={16} style={{ marginBottom: 24 }}>
                     <Col xs={24} sm={16}>
                       <Form.Item name="cnpj_consulta" label="CNPJ">
@@ -1098,6 +1281,7 @@ export default function ConfiguracoesPage() {
                     <Col xs={24} sm={8}>
                       <Form.Item label=" ">
                         <Button
+                          type="primary"
                           loading={loadingCNPJ}
                           onClick={consultarCNPJ}
                           style={btnStyle}
@@ -1119,7 +1303,7 @@ export default function ConfiguracoesPage() {
                         </>
                       }
                       type="success"
-                      style={{ marginBottom: 16 }}
+                      style={{ marginBottom: 16, borderRadius: 10 }}
                       showIcon
                     />
                   )}
@@ -1130,13 +1314,14 @@ export default function ConfiguracoesPage() {
                         <Badge status="error" text="CNPJ não encontrado" />
                       }
                       type="error"
-                      style={{ marginBottom: 16 }}
+                      style={{ marginBottom: 16, borderRadius: 10 }}
                       showIcon
                     />
                   )}
 
                   {/* SEÇÃO: Regime tributário */}
-                  <Divider>Regime tributário</Divider>
+                  <Divider style={{ margin: "8px 0 20px" }} />
+                  <SectionLabel>Regime tributário</SectionLabel>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
                       <Form.Item
@@ -1197,7 +1382,8 @@ export default function ConfiguracoesPage() {
                   </Row>
 
                   {/* SEÇÃO: ISS — Imposto Sobre Serviços */}
-                  <Divider>ISS — Imposto Sobre Serviços</Divider>
+                  <Divider style={{ margin: "8px 0 20px" }} />
+                  <SectionLabel>ISS — Imposto Sobre Serviços</SectionLabel>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
                       <Form.Item
@@ -1259,34 +1445,37 @@ export default function ConfiguracoesPage() {
                   {/* SEÇÃO: Alíquotas — Lucro Presumido */}
                   {regime === "lucro_presumido" && (
                     <>
-                      <Divider>Alíquotas — Lucro Presumido</Divider>
-                      <Table
-                        dataSource={[
-                          { imposto: "PIS", aliquota: "0,65%" },
-                          { imposto: "COFINS", aliquota: "3,00%" },
-                          { imposto: "IRPJ (serviços)", aliquota: "4,80%" },
-                          { imposto: "CSLL (serviços)", aliquota: "2,88%" },
-                          { imposto: "Total aproximado", aliquota: "~13%" },
-                        ]}
-                        columns={[
-                          { title: "Imposto", dataIndex: "imposto" },
-                          { title: "Alíquota", dataIndex: "aliquota" },
-                        ]}
-                        pagination={false}
-                        size="small"
-                        style={{ marginBottom: 16 }}
-                      />
+                      <Divider style={{ margin: "8px 0 20px" }} />
+                      <SectionLabel>Alíquotas — Lucro Presumido</SectionLabel>
+                      <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+                        <Table
+                          dataSource={[
+                            { imposto: "PIS", aliquota: "0,65%" },
+                            { imposto: "COFINS", aliquota: "3,00%" },
+                            { imposto: "IRPJ (serviços)", aliquota: "4,80%" },
+                            { imposto: "CSLL (serviços)", aliquota: "2,88%" },
+                            { imposto: "Total aproximado", aliquota: "~13%" },
+                          ]}
+                          columns={[
+                            { title: "Imposto", dataIndex: "imposto" },
+                            { title: "Alíquota", dataIndex: "aliquota" },
+                          ]}
+                          pagination={false}
+                          size="small"
+                        />
+                      </div>
                       <Alert
                         message="Alíquotas padrão do Lucro Presumido 2025. Consulte seu contador para confirmar."
                         type="info"
                         showIcon
-                        style={{ marginBottom: 24 }}
+                        style={{ marginBottom: 24, borderRadius: 10 }}
                       />
                     </>
                   )}
 
                   {/* SEÇÃO: Preview de impostos */}
-                  <Divider>Preview de impostos</Divider>
+                  <Divider style={{ margin: "8px 0 20px" }} />
+                  <SectionLabel>Preview de impostos</SectionLabel>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
                       <Form.Item
@@ -1318,6 +1507,7 @@ export default function ConfiguracoesPage() {
 
                   <Button
                     onClick={calcularImpostos}
+                    type="primary"
                     style={{ ...btnStyle, marginBottom: 24 }}
                   >
                     Calcular impostos
@@ -1325,7 +1515,8 @@ export default function ConfiguracoesPage() {
 
                   {impostoPreview && (
                     <Card
-                      style={{ backgroundColor: "#f5f5f5", marginBottom: 24 }}
+                      bordered={false}
+                      style={{ ...sectionCardStyle, backgroundColor: colors.fundoSuave, marginBottom: 24 }}
                     >
                       <Row gutter={[16, 8]}>
                         <Col xs={24} sm={12}>
@@ -1374,7 +1565,7 @@ export default function ConfiguracoesPage() {
                       <Divider style={{ margin: "16px 0" }} />
                       <Row gutter={[16, 8]}>
                         <Col xs={24} sm={12}>
-                          <div style={{ fontSize: 14, color: "#d32f2f" }}>
+                          <div style={{ fontSize: 14, color: colors.vermelho }}>
                             <strong>Total impostos:</strong> R${" "}
                             {impostoPreview.total_impostos.toFixed(2)}
                           </div>
@@ -1383,7 +1574,7 @@ export default function ConfiguracoesPage() {
                           <div
                             style={{
                               fontSize: 14,
-                              color: "#3B82F6",
+                              color: colors.azul,
                               fontWeight: "bold",
                             }}
                           >
@@ -1397,29 +1588,62 @@ export default function ConfiguracoesPage() {
 
                   <Button
                     onClick={salvarConfigFiscal}
+                    type="primary"
                     style={{
                       ...btnStyle,
-                      backgroundColor: "#52c41a",
-                      borderColor: "#52c41a",
+                      backgroundColor: colors.verde,
+                      borderColor: colors.verde,
                     }}
                   >
                     Salvar configuração fiscal
                   </Button>
                 </Form>
               </Spin>
+              </div>
             ),
           },
 
           // ABA: IMPORTAÇÃO
           {
             key: "importacao",
-            label: "Importação",
+            label: (
+              <Space>
+                <ImportOutlined /> Importação
+              </Space>
+            ),
             children: (
-              <div>
-                <p style={{ marginBottom: 16 }}>
-                  Importar dados via Excel para Clientes, Serviços e Produtos.
-                </p>
+              <div style={{ padding: "8px 16px 24px" }}>
+                <Card bordered={false} style={{ ...sectionCardStyle, marginBottom: 20 }} bodyStyle={{ padding: 24 }}>
+                  <Space align="start" style={{ width: "100%" }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: `${colors.azul}14`,
+                        color: colors.azul,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 20,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <CloudUploadOutlined />
+                    </div>
+                    <div>
+                      <Text strong style={{ color: colors.texto, fontSize: 15, display: "block", marginBottom: 4 }}>
+                        Importação em massa
+                      </Text>
+                      <Text style={{ color: colors.textoSecundario }}>
+                        Importar dados via Excel para Clientes, Serviços e Produtos.
+                      </Text>
+                    </div>
+                  </Space>
+                </Card>
                 <Button
+                  type="primary"
+                  icon={<ImportOutlined />}
                   onClick={() => setImportModalOpen(true)}
                   style={btnStyle}
                 >
@@ -1440,15 +1664,19 @@ export default function ConfiguracoesPage() {
           // ABA: PARCEIROS / REFERÊNCIAS
           {
             key: "parceiros",
-            label: "Parceiros",
+            label: (
+              <Space>
+                <CheckCircleOutlined /> Parceiros
+              </Space>
+            ),
             children: (
-              <div>
+              <div style={{ padding: "8px 16px 24px" }}>
                 <div
                   style={{
                     background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
                     borderRadius: 14,
                     padding: "24px 28px",
-                    marginBottom: 28,
+                    marginBottom: 24,
                     display: "flex",
                     alignItems: "center",
                     gap: 18,
@@ -1466,15 +1694,16 @@ export default function ConfiguracoesPage() {
 
                 {/* Upload novo logo */}
                 <Card
-                  style={{ borderRadius: 12, border: "1px dashed #3B82F6", marginBottom: 28, background: "#F8FAFF" }}
+                  bordered={false}
+                  style={{ borderRadius: 12, border: `1px dashed ${colors.azul}`, marginBottom: 24, background: "#F8FAFF" }}
                   bodyStyle={{ padding: "20px 24px" }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: "#1E293B" }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 14, color: colors.texto }}>
                     Adicionar novo parceiro
                   </div>
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
                     <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ fontSize: 12, color: "#64748B", marginBottom: 4 }}>Nome da empresa *</div>
+                      <div style={{ fontSize: 12, color: colors.textoSecundario, marginBottom: 4 }}>Nome da empresa *</div>
                       <Input
                         placeholder="Ex: Empresa ABC"
                         value={novoLogoNome}
@@ -1488,6 +1717,7 @@ export default function ConfiguracoesPage() {
                       customRequest={handleUploadLogoCliente}
                     >
                       <Button
+                        type="primary"
                         icon={<UploadOutlined />}
                         loading={uploadingLogoCliente}
                         style={{ ...btnStyle, height: 32 }}
@@ -1496,7 +1726,7 @@ export default function ConfiguracoesPage() {
                       </Button>
                     </Upload>
                   </div>
-                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 8 }}>
+                  <div style={{ fontSize: 11, color: colors.textoFraco, marginTop: 8 }}>
                     Formatos aceitos: PNG, JPG, SVG. Fundo transparente (PNG) fica melhor.
                   </div>
                 </Card>
@@ -1507,9 +1737,10 @@ export default function ConfiguracoesPage() {
                     style={{
                       textAlign: "center",
                       padding: "48px 24px",
-                      background: "#F8FAFC",
+                      background: colors.fundoSuave,
+                      border: `1px solid ${colors.borda}`,
                       borderRadius: 12,
-                      color: "#94A3B8",
+                      color: colors.textoFraco,
                       fontSize: 14,
                     }}
                   >
@@ -1587,7 +1818,7 @@ export default function ConfiguracoesPage() {
                 )}
 
                 {logosClientes.length > 0 && (
-                  <div style={{ marginTop: 16, color: "#64748B", fontSize: 12 }}>
+                  <div style={{ marginTop: 16, color: colors.textoSecundario, fontSize: 12 }}>
                     {logosClientes.filter((l) => l.ativo).length} de {logosClientes.length} parceiro(s) ativos e visíveis nos orçamentos.
                   </div>
                 )}
@@ -1595,7 +1826,8 @@ export default function ConfiguracoesPage() {
             ),
           },
         ]}
-      />
-    </Card>
+        />
+      </Card>
+    </div>
   );
 }
