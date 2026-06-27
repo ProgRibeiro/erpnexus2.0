@@ -1,10 +1,40 @@
 import { useState, useEffect } from "react";
-import { Row, Col, Card, Tag, Typography, Space, Spin, Select, Progress, Divider } from "antd";
-import { DollarOutlined } from "@ant-design/icons";
+import { Row, Col, Card, Tag, Typography, Space, Skeleton, Select, Progress, Divider } from "antd";
+import { DollarOutlined, WalletOutlined, PieChartOutlined } from "@ant-design/icons";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 124,
+};
 
 const statusColor = {
   rascunho: "default",
@@ -21,6 +51,53 @@ const statusLabel = {
 
 const anoAtual = new Date().getFullYear();
 const anos = [anoAtual - 1, anoAtual, anoAtual + 1];
+
+function consumoCor(pct) {
+  return pct > 90 ? colors.vermelho : pct > 70 ? colors.laranja : colors.verde;
+}
+
+function KpiCard({ label, value, icon, color, children }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: children ? 14 : 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textoFraco,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              marginBottom: 14,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <div style={{ color: colors.texto, fontSize: 26, fontWeight: 800, lineHeight: 1, wordBreak: "break-word" }}>
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            alignItems: "center",
+            background: `${color}14`,
+            borderRadius: 12,
+            color,
+            display: "flex",
+            height: 44,
+            justifyContent: "center",
+            width: 44,
+            fontSize: 20,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+      {children}
+    </Card>
+  );
+}
 
 export default function BudgetPage() {
   const [budgets, setBudgets] = useState([]);
@@ -41,134 +118,139 @@ export default function BudgetPage() {
   const totalRealizado = budgets.reduce((acc, b) => acc + Number(b.valor_realizado || 0), 0);
   const consumoGeral = totalAprovado > 0 ? (totalRealizado / totalAprovado) * 100 : 0;
 
-  if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
-
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>Budget</Title>
-          <Text type="secondary">Controle de orçamento por empresa e ano</Text>
-        </Col>
-        <Col>
-          <Select value={filtroAno} onChange={setFiltroAno} style={{ width: 120 }}>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.laranja}14`,
+                color: colors.laranja,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <DollarOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Budget</Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Controle de orçamento por empresa e ano
+              </Text>
+            </div>
+          </Space>
+          <Select value={filtroAno} onChange={setFiltroAno} style={{ width: 130 }}>
             {anos.map((a) => <Option key={a} value={a}>{a}</Option>)}
           </Select>
-        </Col>
-      </Row>
+        </div>
+      </Card>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card style={{ borderRadius: 14, border: "none", background: "#EFF6FF" }} bodyStyle={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: "#3B82F620", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#3B82F6" }}>
-                <DollarOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>
-                  R$ {totalAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Total Aprovado</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card style={{ borderRadius: 14, border: "none", background: "#ECFDF5" }} bodyStyle={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: "#10B98120", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#10B981" }}>
-                <DollarOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>
-                  R$ {totalRealizado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Total Realizado</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card style={{ borderRadius: 14, border: "none", background: "#FFF7ED" }} bodyStyle={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: "#F59E0B20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#F59E0B" }}>
-                <DollarOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>{consumoGeral.toFixed(1)}%</div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Consumo Geral</div>
-              </div>
-            </div>
-            <Progress
-              percent={Math.min(consumoGeral, 100)}
-              showInfo={false}
-              strokeColor={consumoGeral > 90 ? "#EF4444" : consumoGeral > 70 ? "#F59E0B" : "#10B981"}
-              size="small"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {budgets.length === 0 ? (
-        <Card style={{ borderRadius: 14, textAlign: "center", padding: 40 }}>
-          <Text type="secondary">Nenhum budget encontrado para {filtroAno}</Text>
+      {loading ? (
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 8 }} />
         </Card>
       ) : (
-        <Row gutter={[16, 16]}>
-          {budgets.map((b) => {
-            const pct = Number(b.percentual_consumo || 0);
-            const aprovado = Number(b.valor_aprovado || 0);
-            const realizado = Number(b.valor_realizado || 0);
-            return (
-              <Col xs={24} md={12} lg={8} key={b.id}>
-                <Card
-                  style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
-                  bodyStyle={{ padding: "20px 24px" }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>
-                      {b.empresa || "Empresa"}
-                    </div>
-                    <Tag color={statusColor[b.status] || "default"}>
-                      {statusLabel[b.status] || b.status || "-"}
-                    </Tag>
-                  </div>
-                  <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 16 }}>Ano: {b.ano}</div>
+        <>
+          <Row gutter={[20, 20]}>
+            <Col xs={24} sm={8}>
+              <KpiCard
+                label="Total Aprovado"
+                value={`R$ ${totalAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={<WalletOutlined />}
+                color={colors.azul}
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <KpiCard
+                label="Total Realizado"
+                value={`R$ ${totalRealizado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={<DollarOutlined />}
+                color={colors.verde}
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <KpiCard
+                label="Consumo Geral"
+                value={`${consumoGeral.toFixed(1)}%`}
+                icon={<PieChartOutlined />}
+                color={colors.laranja}
+              >
+                <Progress
+                  percent={Math.min(consumoGeral, 100)}
+                  showInfo={false}
+                  strokeColor={consumoCor(consumoGeral)}
+                  size="small"
+                />
+              </KpiCard>
+            </Col>
+          </Row>
 
-                  <Divider style={{ margin: "12px 0" }} />
-
-                  <Row gutter={8} style={{ marginBottom: 16 }}>
-                    <Col span={12}>
-                      <div style={{ fontSize: 11, color: "#9CA3AF" }}>Aprovado</div>
-                      <div style={{ fontWeight: 600, color: "#3B82F6", fontSize: 14 }}>
-                        R$ {aprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          {budgets.length === 0 ? (
+            <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
+              <Text style={{ color: colors.textoSecundario }}>Nenhum budget encontrado para {filtroAno}</Text>
+            </Card>
+          ) : (
+            <Row gutter={[20, 20]}>
+              {budgets.map((b) => {
+                const pct = Number(b.percentual_consumo || 0);
+                const aprovado = Number(b.valor_aprovado || 0);
+                const realizado = Number(b.valor_realizado || 0);
+                return (
+                  <Col xs={24} md={12} lg={8} key={b.id}>
+                    <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 22 }} hoverable>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: colors.texto }}>
+                          {b.empresa || "Empresa"}
+                        </div>
+                        <Tag color={statusColor[b.status] || "default"} style={{ borderRadius: 999, fontWeight: 600 }}>
+                          {statusLabel[b.status] || b.status || "-"}
+                        </Tag>
                       </div>
-                    </Col>
-                    <Col span={12}>
-                      <div style={{ fontSize: 11, color: "#9CA3AF" }}>Realizado</div>
-                      <div style={{ fontWeight: 600, color: "#10B981", fontSize: 14 }}>
-                        R$ {realizado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </div>
-                    </Col>
-                  </Row>
+                      <div style={{ fontSize: 12, color: colors.textoFraco, marginBottom: 16 }}>Ano: {b.ano}</div>
 
-                  <div style={{ marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
-                    <Text style={{ fontSize: 12, color: "#6B7280" }}>Consumo</Text>
-                    <Text style={{ fontSize: 12, fontWeight: 700, color: pct > 90 ? "#EF4444" : pct > 70 ? "#F59E0B" : "#10B981" }}>
-                      {pct.toFixed(1)}%
-                    </Text>
-                  </div>
-                  <Progress
-                    percent={Math.min(pct, 100)}
-                    showInfo={false}
-                    strokeColor={pct > 90 ? "#EF4444" : pct > 70 ? "#F59E0B" : "#10B981"}
-                    size="small"
-                  />
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
+                      <Divider style={{ margin: "12px 0" }} />
+
+                      <Row gutter={8} style={{ marginBottom: 16 }}>
+                        <Col span={12}>
+                          <div style={{ fontSize: 11, color: colors.textoFraco }}>Aprovado</div>
+                          <div style={{ fontWeight: 700, color: colors.azul, fontSize: 14 }}>
+                            R$ {aprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div style={{ fontSize: 11, color: colors.textoFraco }}>Realizado</div>
+                          <div style={{ fontWeight: 700, color: colors.verde, fontSize: 14 }}>
+                            R$ {realizado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </div>
+                        </Col>
+                      </Row>
+
+                      <div style={{ marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
+                        <Text style={{ fontSize: 12, color: colors.textoSecundario }}>Consumo</Text>
+                        <Text style={{ fontSize: 12, fontWeight: 700, color: consumoCor(pct) }}>
+                          {pct.toFixed(1)}%
+                        </Text>
+                      </div>
+                      <Progress
+                        percent={Math.min(pct, 100)}
+                        showInfo={false}
+                        strokeColor={consumoCor(pct)}
+                        size="small"
+                      />
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          )}
+        </>
       )}
     </div>
   );

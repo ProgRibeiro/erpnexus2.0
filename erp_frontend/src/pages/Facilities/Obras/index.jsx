@@ -1,15 +1,40 @@
 import { useState, useEffect } from "react";
 import {
   Row, Col, Card, Button, Modal, Form, Input, Select, DatePicker,
-  Tag, Typography, message, Progress, InputNumber,
+  Tag, Typography, message, Progress, InputNumber, Space, Skeleton, Empty,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ProjectOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const statusCor = {
   planejamento: "blue", em_andamento: "green",
@@ -62,39 +87,59 @@ export default function ObrasPage() {
   };
 
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>Obras e Projetos</Title>
-          <Text type="secondary">Gestão de projetos de engenharia e obras</Text>
-        </Col>
-        <Col>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "#0EA5E914",
+                color: "#0EA5E9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <ProjectOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Obras e Projetos</Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Gestão de projetos de engenharia e obras
+              </Text>
+            </div>
+          </Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setModalOpen(true)}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 8 }}
+            style={{ height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
           >
             Novo Projeto
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </Card>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: 60, color: "#9CA3AF" }}>Carregando...</div>
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 10 }} />
+        </Card>
       ) : projetos.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: "#9CA3AF" }}>Nenhum projeto cadastrado</div>
+        <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
+          <Empty description="Nenhum projeto cadastrado" />
+        </Card>
       ) : (
-        <Row gutter={[16, 16]}>
+        <Row gutter={[20, 20]}>
           {projetos.map((p) => (
             <Col xs={24} sm={12} lg={8} xl={6} key={p.id}>
               <Card
-                style={{
-                  borderRadius: 14,
-                  boxShadow: "0 1px 8px rgba(0,0,0,0.07)",
-                  cursor: "pointer",
-                  transition: "box-shadow 0.15s",
-                }}
+                bordered={false}
+                style={panelStyle}
                 bodyStyle={{ padding: 20 }}
                 onClick={() => navigate(`/facilities/obras/${p.id}`)}
                 hoverable
@@ -103,42 +148,42 @@ export default function ObrasPage() {
                   <span
                     style={{
                       fontFamily: "monospace", fontWeight: 700, fontSize: 13,
-                      color: "#3B82F6", background: "#EFF6FF",
+                      color: colors.azul, background: "#EFF6FF",
                       padding: "2px 8px", borderRadius: 6,
                     }}
                   >
                     {p.codigo}
                   </span>
-                  <Tag color={statusCor[p.status]}>{statusLabel[p.status]}</Tag>
+                  <Tag color={statusCor[p.status]} style={{ borderRadius: 999, fontWeight: 600 }}>{statusLabel[p.status]}</Tag>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, color: "#111827" }}>{p.nome}</div>
-                <div style={{ color: "#6B7280", fontSize: 13, marginBottom: 12 }}>{tipoLabel[p.tipo]}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, color: colors.texto }}>{p.nome}</div>
+                <div style={{ color: colors.textoSecundario, fontSize: 13, marginBottom: 12 }}>{tipoLabel[p.tipo]}</div>
 
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <Text style={{ fontSize: 12, color: "#6B7280" }}>Conclusão</Text>
-                    <Text style={{ fontSize: 12, fontWeight: 600 }}>{Number(p.percentual_concluido).toFixed(0)}%</Text>
+                    <Text style={{ fontSize: 12, color: colors.textoFraco }}>Conclusão</Text>
+                    <Text style={{ fontSize: 12, fontWeight: 700, color: colors.texto }}>{Number(p.percentual_concluido).toFixed(0)}%</Text>
                   </div>
                   <Progress
                     percent={Number(p.percentual_concluido)}
                     showInfo={false}
-                    strokeColor="#3B82F6"
+                    strokeColor={colors.azul}
                     trailColor="#E5E7EB"
                     size="small"
                   />
                 </div>
 
-                <div style={{ borderTop: "1px solid #F3F4F6", paddingTop: 10, marginTop: 8 }}>
+                <div style={{ borderTop: `1px solid ${colors.borda}`, paddingTop: 10, marginTop: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <div>
-                      <div style={{ fontSize: 11, color: "#9CA3AF" }}>Previsto</div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>
+                      <div style={{ fontSize: 11, color: colors.textoFraco }}>Previsto</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: colors.texto }}>
                         R$ {Number(p.orcamento_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 11, color: "#9CA3AF" }}>Realizado</div>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: Number(p.orcamento_realizado) > Number(p.orcamento_previsto) ? "#EF4444" : "#10B981" }}>
+                      <div style={{ fontSize: 11, color: colors.textoFraco }}>Realizado</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: Number(p.orcamento_realizado) > Number(p.orcamento_previsto) ? colors.vermelho : colors.verde }}>
                         R$ {Number(p.orcamento_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
                       </div>
                     </div>
@@ -146,7 +191,7 @@ export default function ObrasPage() {
                 </div>
 
                 {p.data_fim_prevista && (
-                  <div style={{ marginTop: 10, fontSize: 12, color: "#9CA3AF" }}>
+                  <div style={{ marginTop: 10, fontSize: 12, color: colors.textoFraco }}>
                     Previsão fim: {dayjs(p.data_fim_prevista).format("DD/MM/YYYY")}
                   </div>
                 )}
@@ -165,7 +210,6 @@ export default function ObrasPage() {
         cancelText="Cancelar"
         confirmLoading={saving}
         width={700}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={form} layout="vertical" onFinish={salvar} style={{ marginTop: 8 }}>
           <Row gutter={16}>

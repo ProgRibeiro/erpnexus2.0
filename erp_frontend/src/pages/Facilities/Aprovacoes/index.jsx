@@ -1,10 +1,35 @@
 import { useState, useEffect } from "react";
-import { Row, Col, Card, Button, Tag, Typography, Space, Spin, Modal, Input, message, Empty } from "antd";
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { Row, Col, Card, Button, Tag, Typography, Space, Skeleton, Modal, Input, message, Empty } from "antd";
+import { CheckOutlined, CloseOutlined, CheckSquareOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const tipoLabel = {
   orcamento: "Orçamento",
@@ -58,57 +83,83 @@ export default function AprovacoesPage() {
     }
   };
 
-  if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
-
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Space direction="vertical" size={4} style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Aprovações Pendentes</Title>
-        <Text type="secondary">{aprovacoes.length} item(s) aguardando sua aprovação</Text>
-      </Space>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start">
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.laranja}14`,
+              color: colors.laranja,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <CheckSquareOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Aprovações Pendentes</Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              {loading ? "Carregando..." : `${aprovacoes.length} item(s) aguardando sua aprovação`}
+            </Text>
+          </div>
+        </Space>
+      </Card>
 
-      {aprovacoes.length === 0 ? (
-        <Card style={{ borderRadius: 14, textAlign: "center", padding: 40 }}>
+      {loading ? (
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      ) : aprovacoes.length === 0 ? (
+        <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
           <Empty description="Nenhuma aprovação pendente" />
         </Card>
       ) : (
-        <Row gutter={[16, 16]}>
+        <Row gutter={[20, 20]}>
           {aprovacoes.map((apr) => (
             <Col xs={24} md={12} lg={8} key={apr.id}>
               <Card
-                style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)", borderTop: "3px solid #F59E0B" }}
-                bodyStyle={{ padding: "20px 24px" }}
+                bordered={false}
+                style={{ ...panelStyle, borderTop: `3px solid ${colors.laranja}` }}
+                bodyStyle={{ padding: 22 }}
+                hoverable
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                  <Tag color={tipoColor[apr.objeto_tipo] || "default"}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <Tag color={tipoColor[apr.objeto_tipo] || "default"} style={{ borderRadius: 999, fontWeight: 600 }}>
                     {tipoLabel[apr.objeto_tipo] || apr.objeto_tipo || "Solicitação"}
                   </Tag>
-                  <div style={{ fontWeight: 700, fontSize: 20, color: "#10B981" }}>
+                  <div style={{ fontWeight: 800, fontSize: 20, color: colors.verde }}>
                     R$ {Number(apr.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 8 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Solicitado por</Text>
-                  <div style={{ fontWeight: 600, color: "#111827" }}>{apr.solicitado_por || "-"}</div>
+                <div style={{ marginBottom: 10 }}>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>Solicitado por</Text>
+                  <div style={{ fontWeight: 600, color: colors.texto }}>{apr.solicitado_por || "-"}</div>
                 </div>
 
-                <div style={{ marginBottom: 8 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Data da Solicitação</Text>
-                  <div style={{ fontWeight: 500, color: "#374151" }}>
+                <div style={{ marginBottom: 10 }}>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>Data da Solicitação</Text>
+                  <div style={{ fontWeight: 500, color: colors.textoSecundario }}>
                     {apr.data_solicitacao ? dayjs(apr.data_solicitacao).format("DD/MM/YYYY HH:mm") : "-"}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 12 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Nível de Aprovação</Text>
+                <div style={{ marginBottom: 14 }}>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>Nível de Aprovação</Text>
                   <div>
-                    <Tag color="gold">{nivelLabel[apr.nivel_necessario] || `Nível ${apr.nivel_necessario}`}</Tag>
+                    <Tag color="gold" style={{ borderRadius: 999, fontWeight: 600 }}>{nivelLabel[apr.nivel_necessario] || `Nível ${apr.nivel_necessario}`}</Tag>
                   </div>
                 </div>
 
                 {apr.observacao_aprovacao && (
-                  <div style={{ marginBottom: 12, padding: "8px 12px", background: "#F3F4F6", borderRadius: 8, fontSize: 13, color: "#374151" }}>
+                  <div style={{ marginBottom: 14, padding: "10px 12px", background: colors.fundoSuave, border: `1px solid ${colors.borda}`, borderRadius: 10, fontSize: 13, color: colors.textoSecundario }}>
                     {apr.observacao_aprovacao}
                   </div>
                 )}
@@ -117,7 +168,7 @@ export default function AprovacoesPage() {
                   <Button
                     type="primary"
                     icon={<CheckOutlined />}
-                    style={{ background: "#10B981", borderColor: "#10B981" }}
+                    style={{ background: colors.verde, borderColor: colors.verde, borderRadius: 8, fontWeight: 600 }}
                     onClick={() => setModalAcao({ id: apr.id, tipo: "aprovar", valor: apr.valor })}
                   >
                     Aprovar
@@ -125,6 +176,7 @@ export default function AprovacoesPage() {
                   <Button
                     danger
                     icon={<CloseOutlined />}
+                    style={{ borderRadius: 8, fontWeight: 600 }}
                     onClick={() => setModalAcao({ id: apr.id, tipo: "reprovar", valor: apr.valor })}
                   >
                     Reprovar
@@ -146,8 +198,8 @@ export default function AprovacoesPage() {
         confirmLoading={saving}
         okButtonProps={{
           style: modalAcao?.tipo === "aprovar"
-            ? { background: "#10B981", borderColor: "#10B981" }
-            : { background: "#EF4444", borderColor: "#EF4444" },
+            ? { background: colors.verde, borderColor: colors.verde }
+            : { background: colors.vermelho, borderColor: colors.vermelho },
         }}
       >
         {modalAcao && (

@@ -1,14 +1,39 @@
 import { useState, useEffect } from "react";
 import {
   Table, Button, Modal, Form, Input, Select, DatePicker, Tag,
-  Row, Col, Card, Typography, message, Alert, Rate, InputNumber,
+  Row, Col, Card, Typography, message, Alert, Rate, InputNumber, Space,
 } from "antd";
-import { PlusOutlined, WarningOutlined } from "@ant-design/icons";
+import { PlusOutlined, WarningOutlined, FileProtectOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const statusCor = { ativo: "green", vencendo: "gold", vencido: "red", rescindido: "default" };
 const statusLabel = { ativo: "Ativo", vencendo: "Vencendo", vencido: "Vencido", rescindido: "Rescindido" };
@@ -63,14 +88,20 @@ export default function ContratosFacilities() {
   );
 
   const columns = [
-    { title: "Fornecedor", dataIndex: "fornecedor_nome", key: "fornecedor_nome", ellipsis: true },
+    {
+      title: "Fornecedor",
+      dataIndex: "fornecedor_nome",
+      key: "fornecedor_nome",
+      ellipsis: true,
+      render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text>,
+    },
     { title: "CNPJ", dataIndex: "fornecedor_cnpj", key: "fornecedor_cnpj", width: 160 },
     { title: "Tipo de Serviço", dataIndex: "tipo_servico", key: "tipo_servico" },
     {
       title: "Valor Mensal",
       dataIndex: "valor_mensal",
       key: "valor_mensal",
-      width: 130,
+      width: 140,
       render: (v) => v
         ? `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
         : "-",
@@ -86,47 +117,67 @@ export default function ContratosFacilities() {
       title: "Vencimento",
       dataIndex: "data_fim",
       key: "data_fim",
-      width: 120,
+      width: 130,
       render: (d) => {
         const diff = dayjs(d).diff(hoje, "day");
         const cor = diff < 0 ? "red" : diff < 30 ? "orange" : "default";
-        return <Tag color={cor}>{dayjs(d).format("DD/MM/YYYY")}</Tag>;
+        return <Tag color={cor} style={{ borderRadius: 999, fontWeight: 600 }}>{dayjs(d).format("DD/MM/YYYY")}</Tag>;
       },
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 110,
-      render: (s) => <Tag color={statusCor[s]}>{statusLabel[s]}</Tag>,
+      width: 120,
+      render: (s) => <Tag color={statusCor[s]} style={{ borderRadius: 999, fontWeight: 600 }}>{statusLabel[s]}</Tag>,
     },
     {
       title: "Avaliação",
       dataIndex: "avaliacao_fornecedor",
       key: "avaliacao_fornecedor",
-      width: 140,
+      width: 150,
       render: (v) => v ? <Rate disabled defaultValue={v} count={5} style={{ fontSize: 14 }} /> : "-",
     },
   ];
 
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Title level={3} style={{ margin: 0 }}>Contratos Terceirizados</Title>
-          <Text type="secondary">Gestão de contratos com prestadores externos</Text>
-        </Col>
-        <Col>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "#EC489914",
+                color: "#EC4899",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <FileProtectOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Contratos Terceirizados</Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Gestão de contratos com prestadores externos
+              </Text>
+            </div>
+          </Space>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setModalOpen(true)}
-            style={{ background: "#3B82F6", borderColor: "#3B82F6", borderRadius: 8 }}
+            style={{ height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
           >
             Novo Contrato
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </Card>
 
       {vencendo.length > 0 && (
         <Alert
@@ -140,17 +191,18 @@ export default function ContratosFacilities() {
             </div>
           ))}
           showIcon
-          style={{ borderRadius: 10, marginBottom: 16 }}
+          style={{ borderRadius: 12 }}
         />
       )}
 
-      <Card style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0 }}>
         <Table
           dataSource={contratos}
           columns={columns}
           rowKey="id"
           loading={loading}
           size="middle"
+          scroll={{ x: 1100 }}
           pagination={{ pageSize: 20 }}
           locale={{ emptyText: "Nenhum contrato cadastrado" }}
         />
@@ -165,7 +217,6 @@ export default function ContratosFacilities() {
         cancelText="Cancelar"
         confirmLoading={saving}
         width={700}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={form} layout="vertical" onFinish={salvar} style={{ marginTop: 8 }}>
           <Row gutter={16}>

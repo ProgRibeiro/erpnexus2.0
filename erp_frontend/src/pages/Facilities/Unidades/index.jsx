@@ -1,10 +1,40 @@
 import { useState, useEffect } from "react";
-import { Row, Col, Card, Table, Tag, Typography, Space, Spin, Select, Statistic } from "antd";
-import { BuildOutlined } from "@ant-design/icons";
+import { Row, Col, Card, Table, Tag, Typography, Space, Skeleton, Select } from "antd";
+import { BuildOutlined, CheckCircleOutlined, StopOutlined } from "@ant-design/icons";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  ...panelStyle,
+  minHeight: 110,
+};
 
 const tipoLabel = {
   loja_shopping: "Loja Shopping",
@@ -21,6 +51,48 @@ const tipoColor = {
   centro_distribuicao: "purple",
   outlet: "cyan",
 };
+
+function KpiCard({ label, value, icon, color }) {
+  return (
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textoFraco,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              marginBottom: 14,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
+            {value}
+          </div>
+        </div>
+        <div
+          style={{
+            alignItems: "center",
+            background: `${color}14`,
+            borderRadius: 12,
+            color,
+            display: "flex",
+            height: 44,
+            justifyContent: "center",
+            width: 44,
+            fontSize: 20,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 export default function UnidadesPage() {
   const [unidades, setUnidades] = useState([]);
@@ -46,22 +118,42 @@ export default function UnidadesPage() {
       title: "Código",
       dataIndex: "codigo_interno",
       key: "codigo_interno",
-      width: 120,
-      render: (v) => <span style={{ fontFamily: "monospace", fontWeight: 600, color: "#3B82F6" }}>{v || "-"}</span>,
+      width: 130,
+      render: (v) => (
+        <span
+          style={{
+            fontWeight: 700,
+            fontFamily: "monospace",
+            color: colors.azul,
+            background: "#EFF6FF",
+            padding: "2px 8px",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          {v || "-"}
+        </span>
+      ),
     },
-    { title: "Nome", dataIndex: "nome", key: "nome", ellipsis: true },
+    {
+      title: "Nome",
+      dataIndex: "nome",
+      key: "nome",
+      ellipsis: true,
+      render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text>,
+    },
     {
       title: "Tipo",
       dataIndex: "tipo",
       key: "tipo",
-      width: 160,
-      render: (t) => <Tag color={tipoColor[t] || "default"}>{tipoLabel[t] || t || "-"}</Tag>,
+      width: 170,
+      render: (t) => <Tag color={tipoColor[t] || "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{tipoLabel[t] || t || "-"}</Tag>,
     },
     {
       title: "Área (m²)",
       dataIndex: "area_m2",
       key: "area_m2",
-      width: 100,
+      width: 110,
       render: (v) => v ? `${Number(v).toLocaleString("pt-BR")} m²` : "-",
     },
     {
@@ -73,70 +165,66 @@ export default function UnidadesPage() {
       title: "Status",
       dataIndex: "ativo",
       key: "ativo",
-      width: 100,
+      width: 110,
       render: (v) => (
-        <Tag color={v ? "green" : "default"}>{v ? "Ativo" : "Inativo"}</Tag>
+        <Tag color={v ? "green" : "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{v ? "Ativo" : "Inativo"}</Tag>
       ),
     },
   ];
 
-  if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
-
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Space direction="vertical" size={4} style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>Unidades</Title>
-        <Text type="secondary">Gerenciamento de unidades do tenant</Text>
-      </Space>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start">
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.azul}14`,
+              color: colors.azul,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <BuildOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Unidades</Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Gerenciamento de unidades do tenant
+            </Text>
+          </div>
+        </Space>
+      </Card>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card style={{ borderRadius: 14, border: "none", background: "#EFF6FF" }} bodyStyle={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: "#3B82F620", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#3B82F6" }}>
-                <BuildOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#111827" }}>{unidades.length}</div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Total de Unidades</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card style={{ borderRadius: 14, border: "none", background: "#ECFDF5" }} bodyStyle={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: "#10B98120", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#10B981" }}>
-                <BuildOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#111827" }}>{totalAtivas}</div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Unidades Ativas</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card style={{ borderRadius: 14, border: "none", background: "#F3F4F6" }} bodyStyle={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: "#6B728020", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#6B7280" }}>
-                <BuildOutlined />
-              </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#111827" }}>{totalInativas}</div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Unidades Inativas</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+      {loading ? (
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      ) : (
+        <>
+          <Row gutter={[20, 20]}>
+            <Col xs={24} sm={8}>
+              <KpiCard label="Total de Unidades" value={unidades.length} icon={<BuildOutlined />} color={colors.azul} />
+            </Col>
+            <Col xs={24} sm={8}>
+              <KpiCard label="Unidades Ativas" value={totalAtivas} icon={<CheckCircleOutlined />} color={colors.verde} />
+            </Col>
+            <Col xs={24} sm={8}>
+              <KpiCard label="Unidades Inativas" value={totalInativas} icon={<StopOutlined />} color={colors.textoFraco} />
+            </Col>
+          </Row>
 
-      <Card
-        style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}
-        title={
-          <Row justify="space-between" align="middle">
-            <Col><span style={{ fontWeight: 600 }}>Lista de Unidades</span></Col>
-            <Col>
+          <Card
+            bordered={false}
+            style={panelStyle}
+            bodyStyle={{ padding: 0 }}
+            title="Lista de Unidades"
+            extra={
               <Select
                 allowClear
                 placeholder="Filtrar por tipo"
@@ -148,19 +236,20 @@ export default function UnidadesPage() {
                   <Option key={v} value={v}>{l}</Option>
                 ))}
               </Select>
-            </Col>
-          </Row>
-        }
-      >
-        <Table
-          dataSource={lista}
-          columns={colunas}
-          rowKey="id"
-          pagination={{ pageSize: 20, showTotal: (t) => `${t} unidades` }}
-          size="small"
-          locale={{ emptyText: "Nenhuma unidade encontrada" }}
-        />
-      </Card>
+            }
+          >
+            <Table
+              dataSource={lista}
+              columns={colunas}
+              rowKey="id"
+              pagination={{ pageSize: 20, showTotal: (t) => `${t} unidades` }}
+              size="middle"
+              scroll={{ x: 900 }}
+              locale={{ emptyText: "Nenhuma unidade encontrada" }}
+            />
+          </Card>
+        </>
+      )}
     </div>
   );
 }

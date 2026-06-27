@@ -17,7 +17,7 @@ import {
   Tag,
   Typography,
   message,
-  Spin,
+  Skeleton,
 } from "antd";
 import {
   TrophyOutlined,
@@ -32,6 +32,31 @@ import api from "../../../services/api";
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const formatMoney = (value) =>
   `R$ ${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -147,13 +172,21 @@ export default function LicitacaoFacilitiesPage() {
     });
 
   const renderCards = (lista) => {
-    if (loading) return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
+    if (loading) {
+      return (
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      );
+    }
     if (!lista.length) {
       return (
-        <Empty
-          image={<TrophyOutlined style={{ fontSize: 64, color: "#CBD5E1" }} />}
-          description={<span style={{ color: "#94A3B8", fontSize: 16 }}>Nenhuma licitação nesta categoria</span>}
-        />
+        <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
+          <Empty
+            image={<TrophyOutlined style={{ fontSize: 64, color: colors.textoFraco }} />}
+            description={<span style={{ color: colors.textoFraco, fontSize: 16 }}>Nenhuma licitação nesta categoria</span>}
+          />
+        </Card>
       );
     }
     return (
@@ -164,25 +197,27 @@ export default function LicitacaoFacilitiesPage() {
           return (
             <Card
               key={l.id}
-              style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "none" }}
+              bordered={false}
+              style={panelStyle}
               bodyStyle={{ padding: "20px 24px" }}
+              hoverable
             >
               <Row align="middle" gutter={[16, 12]}>
                 <Col xs={24} md={16}>
                   <Space direction="vertical" size={6} style={{ width: "100%" }}>
                     <Space wrap>
-                      <Tag color={statusConf.color} style={{ borderRadius: 6 }}>{statusConf.label}</Tag>
-                      <Tag color="blue" style={{ borderRadius: 6 }}>{l.tipo_servico}</Tag>
-                      {l.modo === "convidada" && <Tag color="purple">Convidada</Tag>}
+                      <Tag color={statusConf.color} style={{ borderRadius: 999, fontWeight: 600 }}>{statusConf.label}</Tag>
+                      <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>{l.tipo_servico}</Tag>
+                      {l.modo === "convidada" && <Tag color="purple" style={{ borderRadius: 999, fontWeight: 600 }}>Convidada</Tag>}
                     </Space>
-                    <Text strong style={{ fontSize: 16 }}>{l.titulo}</Text>
+                    <Text strong style={{ fontSize: 16, color: colors.texto }}>{l.titulo}</Text>
                     <Space wrap>
-                      <Text type="secondary" style={{ fontSize: 13 }}>
+                      <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                         <TeamOutlined style={{ marginRight: 4 }} />
                         {numPropostas} proposta(s) recebida(s)
                       </Text>
                       {l.prazo_propostas && (
-                        <Text type="secondary" style={{ fontSize: 13 }}>
+                        <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                           Prazo: {new Date(l.prazo_propostas).toLocaleDateString("pt-BR")}
                         </Text>
                       )}
@@ -191,9 +226,10 @@ export default function LicitacaoFacilitiesPage() {
                 </Col>
                 <Col xs={24} md={8} style={{ textAlign: "right" }}>
                   <Button
-                    style={{ borderRadius: 8, background: "#3B82F6", color: "#fff", border: "none" }}
+                    type="primary"
                     icon={<TeamOutlined />}
                     onClick={() => setModalPropostas(l)}
+                    style={{ borderRadius: 10, fontWeight: 600, height: 38 }}
                   >
                     Ver Propostas ({numPropostas})
                   </Button>
@@ -258,7 +294,7 @@ export default function LicitacaoFacilitiesPage() {
       dataIndex: "status",
       key: "status",
       render: (s) => (
-        <Tag color={s === "aceita" ? "green" : s === "recusada" ? "red" : "blue"}>
+        <Tag color={s === "aceita" ? "green" : s === "recusada" ? "red" : "blue"} style={{ borderRadius: 999, fontWeight: 600 }}>
           {s === "aceita" ? "Aceita" : s === "recusada" ? "Recusada" : "Enviada"}
         </Tag>
       ),
@@ -273,7 +309,7 @@ export default function LicitacaoFacilitiesPage() {
             size="small"
             icon={<CheckOutlined />}
             loading={aceitarLoading === row.id}
-            style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 6 }}
+            style={{ background: colors.verde, borderColor: colors.verde, borderRadius: 8, fontWeight: 600 }}
             onClick={() => handleAceitarProposta(licitacao.id, row.id)}
           >
             Aceitar
@@ -286,41 +322,43 @@ export default function LicitacaoFacilitiesPage() {
     const itensProposta = proposta.itens_orcamento || [];
 
     return (
-      <div style={{ padding: "8px 8px 12px", background: "#F8FAFC", borderRadius: 8 }}>
+      <div style={{ padding: "8px 8px 12px", background: colors.fundoSuave, borderRadius: 8 }}>
         <Space direction="vertical" size={12} style={{ width: "100%" }}>
           <Space wrap>
-            <Tag color="blue">
+            <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>
               <FileTextOutlined style={{ marginRight: 4 }} />
               {itensProposta.length} item(s) cotado(s)
             </Tag>
-            {proposta.condicao_pagamento && <Tag>Pagamento: {proposta.condicao_pagamento}</Tag>}
-            {proposta.validade_proposta && <Tag>Validade: {new Date(proposta.validade_proposta).toLocaleDateString("pt-BR")}</Tag>}
+            {proposta.condicao_pagamento && <Tag style={{ borderRadius: 999 }}>Pagamento: {proposta.condicao_pagamento}</Tag>}
+            {proposta.validade_proposta && <Tag style={{ borderRadius: 999 }}>Validade: {new Date(proposta.validade_proposta).toLocaleDateString("pt-BR")}</Tag>}
           </Space>
 
-          <Table
-            size="small"
-            rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}
-            dataSource={itensProposta}
-            pagination={false}
-            locale={{ emptyText: "Nenhum item informado nesta proposta" }}
-            columns={[
-              { title: "Item cotado", dataIndex: "descricao", ellipsis: true },
-              { title: "Qtd", dataIndex: "quantidade", width: 80 },
-              { title: "Un.", dataIndex: "unidade", width: 80 },
-              { title: "Valor unit.", dataIndex: "valor_unitario", width: 130, render: formatMoney },
-              {
-                title: "Total",
-                dataIndex: "valor_total",
-                width: 130,
-                render: (value, row) => formatMoney(value ?? Number(row.quantidade || 0) * Number(row.valor_unitario || 0)),
-              },
-            ]}
-          />
+          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              size="small"
+              rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}
+              dataSource={itensProposta}
+              pagination={false}
+              locale={{ emptyText: "Nenhum item informado nesta proposta" }}
+              columns={[
+                { title: "Item cotado", dataIndex: "descricao", ellipsis: true },
+                { title: "Qtd", dataIndex: "quantidade", width: 80 },
+                { title: "Un.", dataIndex: "unidade", width: 80 },
+                { title: "Valor unit.", dataIndex: "valor_unitario", width: 130, render: formatMoney },
+                {
+                  title: "Total",
+                  dataIndex: "valor_total",
+                  width: 130,
+                  render: (value, row) => formatMoney(value ?? Number(row.quantidade || 0) * Number(row.valor_unitario || 0)),
+                },
+              ]}
+            />
+          </div>
 
           {proposta.observacoes && (
-            <div style={{ padding: 12, border: "1px solid #E2E8F0", borderRadius: 8, background: "#FFFFFF" }}>
-              <Text strong>Observações do prestador</Text>
-              <Text style={{ display: "block", marginTop: 4 }}>{proposta.observacoes}</Text>
+            <div style={{ padding: 12, border: `1px solid ${colors.borda}`, borderRadius: 10, background: "#FFFFFF" }}>
+              <Text strong style={{ color: colors.texto }}>Observações do prestador</Text>
+              <Text style={{ display: "block", marginTop: 4, color: colors.textoSecundario }}>{proposta.observacoes}</Text>
             </div>
           )}
 
@@ -330,6 +368,7 @@ export default function LicitacaoFacilitiesPage() {
               href={proposta.arquivo_proposta}
               target="_blank"
               rel="noreferrer"
+              style={{ borderRadius: 8 }}
             >
               Abrir anexo da proposta
             </Button>
@@ -340,43 +379,59 @@ export default function LicitacaoFacilitiesPage() {
   };
 
   return (
-    <div style={{ padding: "24px", background: "#F8FAFC", minHeight: "100vh" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <TrophyOutlined style={{ fontSize: 28, color: "#10B981" }} />
-          <div>
-            <Title level={3} style={{ margin: 0 }}>Licitações</Title>
-            <Text type="secondary">Gerencie licitações e propostas de prestadores</Text>
-          </div>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.verde}14`,
+                color: colors.verde,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <TrophyOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Licitações</Title>
+              <Text style={{ color: colors.textoSecundario }}>Gerencie licitações e propostas de prestadores</Text>
+            </div>
+          </Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setModalNova(true);
+              setModoSelecionado("aberta");
+              form.resetFields();
+            }}
+            style={{ height: 40, paddingInline: 20, fontWeight: 600, borderRadius: 10 }}
+          >
+            Nova Licitação
+          </Button>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8 }}
-          onClick={() => {
-            setModalNova(true);
-            setModoSelecionado("aberta");
-            form.resetFields();
-          }}
-        >
-          Nova Licitação
-        </Button>
-      </div>
+      </Card>
 
-      <Tabs
-        activeKey={tabAtiva}
-        onChange={setTabAtiva}
-        items={[
-          { key: "publicada", label: `Abertas (${filtradas("publicada").length})` },
-          { key: "em_analise", label: `Em Análise (${filtradas("em_analise").length})` },
-          { key: "concluida", label: `Concluídas (${filtradas("concluida").length})` },
-        ]}
-      />
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
+        <Tabs
+          activeKey={tabAtiva}
+          onChange={setTabAtiva}
+          items={[
+            { key: "publicada", label: `Abertas (${filtradas("publicada").length})` },
+            { key: "em_analise", label: `Em Análise (${filtradas("em_analise").length})` },
+            { key: "concluida", label: `Concluídas (${filtradas("concluida").length})` },
+          ]}
+        />
+      </Card>
 
-      <div style={{ marginTop: 16 }}>
-        {renderCards(filtradas(tabAtiva))}
-      </div>
+      {renderCards(filtradas(tabAtiva))}
 
       {/* Modal Nova Licitação */}
       <Modal
@@ -384,7 +439,7 @@ export default function LicitacaoFacilitiesPage() {
         onCancel={() => { setModalNova(false); form.resetFields(); }}
         title={
           <Space>
-            <TrophyOutlined style={{ color: "#10B981" }} />
+            <TrophyOutlined style={{ color: colors.verde }} />
             <span>Nova Licitação</span>
           </Space>
         }
@@ -487,7 +542,7 @@ export default function LicitacaoFacilitiesPage() {
               htmlType="submit"
               loading={criarLoading}
               block
-              style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8, height: 42 }}
+              style={{ background: colors.verde, borderColor: colors.verde, borderRadius: 10, height: 42, fontWeight: 600 }}
             >
               Publicar Licitação
             </Button>
@@ -501,7 +556,7 @@ export default function LicitacaoFacilitiesPage() {
         onCancel={() => setModalPropostas(null)}
         title={
           <Space>
-            <TeamOutlined style={{ color: "#3B82F6" }} />
+            <TeamOutlined style={{ color: colors.azul }} />
             <span>Propostas — {modalPropostas?.titulo}</span>
           </Space>
         }
@@ -509,18 +564,20 @@ export default function LicitacaoFacilitiesPage() {
         width={900}
       >
         {modalPropostas && (
-          <Table
-            dataSource={modalPropostas.propostas ?? []}
-            columns={colunasPropostas(modalPropostas)}
-            rowKey="id"
-            pagination={false}
-            expandable={{
-              expandedRowRender: renderDetalhesProposta,
-              rowExpandable: (row) => Boolean(row.itens_orcamento?.length || row.observacoes || row.arquivo_proposta),
-            }}
-            scroll={{ x: 900 }}
-            locale={{ emptyText: "Nenhuma proposta recebida ainda" }}
-          />
+          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              dataSource={modalPropostas.propostas ?? []}
+              columns={colunasPropostas(modalPropostas)}
+              rowKey="id"
+              pagination={false}
+              expandable={{
+                expandedRowRender: renderDetalhesProposta,
+                rowExpandable: (row) => Boolean(row.itens_orcamento?.length || row.observacoes || row.arquivo_proposta),
+              }}
+              scroll={{ x: 900 }}
+              locale={{ emptyText: "Nenhuma proposta recebida ainda" }}
+            />
+          </div>
         )}
       </Modal>
     </div>

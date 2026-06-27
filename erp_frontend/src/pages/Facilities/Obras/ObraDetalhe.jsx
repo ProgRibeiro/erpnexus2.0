@@ -1,16 +1,41 @@
 import { useState, useEffect } from "react";
 import {
   Row, Col, Card, Tag, Button, Spin, Tabs, Table, Typography,
-  Space, Progress, Statistic, Modal, Form, Input, Select, DatePicker,
+  Space, Progress, Modal, Form, Input, Select, DatePicker,
   message, InputNumber,
 } from "antd";
-import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, PlusOutlined, ProjectOutlined } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const statusCor = {
   planejamento: "blue", em_andamento: "green",
@@ -109,7 +134,15 @@ export default function ObraDetalhe() {
     }
   };
 
-  if (loading) return <Spin style={{ display: "block", marginTop: 80, textAlign: "center" }} />;
+  if (loading) {
+    return (
+      <div style={pageStyle}>
+        <Card bordered={false} style={panelStyle}>
+          <Spin style={{ display: "block", margin: "40px 0", textAlign: "center" }} />
+        </Card>
+      </div>
+    );
+  }
   if (!projeto) return null;
 
   const fasesCols = [
@@ -120,7 +153,7 @@ export default function ObraDetalhe() {
       dataIndex: "status",
       key: "status",
       width: 140,
-      render: (s) => <Tag color={faseStatusCor[s]}>{faseStatusLabel[s]}</Tag>,
+      render: (s) => <Tag color={faseStatusCor[s]} style={{ borderRadius: 999, fontWeight: 600 }}>{faseStatusLabel[s]}</Tag>,
     },
     {
       title: "Início",
@@ -141,7 +174,7 @@ export default function ObraDetalhe() {
       dataIndex: "percentual_concluido",
       key: "percentual_concluido",
       width: 160,
-      render: (v) => <Progress percent={Number(v)} size="small" strokeColor="#3B82F6" />,
+      render: (v) => <Progress percent={Number(v)} size="small" strokeColor={colors.azul} />,
     },
   ];
 
@@ -192,7 +225,7 @@ export default function ObraDetalhe() {
       dataIndex: "percentual_executado",
       key: "percentual_executado",
       width: 140,
-      render: (v) => <Progress percent={Number(v)} size="small" strokeColor="#10B981" />,
+      render: (v) => <Progress percent={Number(v)} size="small" strokeColor={colors.verde} />,
     },
     {
       title: "Valor Medido",
@@ -206,7 +239,7 @@ export default function ObraDetalhe() {
       dataIndex: "status",
       key: "status",
       width: 110,
-      render: (s) => <Tag color={bmStatusCor[s]}>{s.toUpperCase()}</Tag>,
+      render: (s) => <Tag color={bmStatusCor[s]} style={{ borderRadius: 999, fontWeight: 600 }}>{s.toUpperCase()}</Tag>,
     },
   ];
 
@@ -220,19 +253,21 @@ export default function ObraDetalhe() {
             <Button
               icon={<PlusOutlined />}
               onClick={() => setModalFase(true)}
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, fontWeight: 600 }}
             >
               Nova Fase
             </Button>
           </div>
-          <Table
-            dataSource={projeto.fases || []}
-            columns={fasesCols}
-            rowKey="id"
-            pagination={false}
-            size="small"
-            locale={{ emptyText: "Nenhuma fase cadastrada" }}
-          />
+          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              dataSource={projeto.fases || []}
+              columns={fasesCols}
+              rowKey="id"
+              pagination={false}
+              size="middle"
+              locale={{ emptyText: "Nenhuma fase cadastrada" }}
+            />
+          </div>
         </div>
       ),
     },
@@ -245,19 +280,21 @@ export default function ObraDetalhe() {
             <Button
               icon={<PlusOutlined />}
               onClick={() => setModalDiario(true)}
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, fontWeight: 600 }}
             >
               Novo Registro
             </Button>
           </div>
-          <Table
-            dataSource={projeto.diarios || []}
-            columns={diarioCols}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            size="small"
-            locale={{ emptyText: "Nenhum registro no diário" }}
-          />
+          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              dataSource={projeto.diarios || []}
+              columns={diarioCols}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              size="middle"
+              locale={{ emptyText: "Nenhum registro no diário" }}
+            />
+          </div>
         </div>
       ),
     },
@@ -270,107 +307,126 @@ export default function ObraDetalhe() {
             <Button
               icon={<PlusOutlined />}
               onClick={() => setModalBM(true)}
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, fontWeight: 600 }}
             >
               Novo BM
             </Button>
           </div>
-          <Table
-            dataSource={projeto.boletins || []}
-            columns={bmCols}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            size="small"
-            locale={{ emptyText: "Nenhum boletim cadastrado" }}
-          />
+          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              dataSource={projeto.boletins || []}
+              columns={bmCols}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              size="middle"
+              locale={{ emptyText: "Nenhum boletim cadastrado" }}
+            />
+          </div>
         </div>
       ),
     },
   ];
 
+  const kpis = [
+    {
+      title: "Orçamento Previsto",
+      value: `R$ ${Number(projeto.orcamento_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      color: colors.azul,
+    },
+    {
+      title: "Orçamento Realizado",
+      value: `R$ ${Number(projeto.orcamento_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      color: Number(projeto.orcamento_realizado) > Number(projeto.orcamento_previsto) ? colors.vermelho : colors.verde,
+    },
+    {
+      title: "% Concluído",
+      value: `${Number(projeto.percentual_concluido || 0).toFixed(1)}%`,
+      color: colors.roxo,
+    },
+    {
+      title: "Previsão de Conclusão",
+      value: projeto.data_fim_prevista ? dayjs(projeto.data_fim_prevista).format("DD/MM/YYYY") : "-",
+      color: colors.laranja,
+    },
+  ];
+
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/facilities/obras")}>
+    <div style={pageStyle}>
+      <div>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/facilities/obras")} style={{ borderRadius: 8, fontWeight: 600 }}>
           Voltar
         </Button>
-      </Space>
+      </div>
 
-      <Card style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)", marginBottom: 16 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Space align="center" size={16}>
-              <span
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Row justify="space-between" align="middle" gutter={[16, 12]}>
+          <Col flex="1">
+            <Space align="start" size={16} wrap>
+              <div
                 style={{
-                  fontFamily: "monospace", fontWeight: 700, fontSize: 16,
-                  color: "#3B82F6", background: "#EFF6FF",
-                  padding: "4px 12px", borderRadius: 8,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "#0EA5E914",
+                  color: "#0EA5E9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 22,
+                  flexShrink: 0,
                 }}
               >
-                {projeto.codigo}
-              </span>
-              <div>
-                <Title level={4} style={{ margin: 0 }}>{projeto.nome}</Title>
-                <Text type="secondary">{projeto.descricao}</Text>
+                <ProjectOutlined />
               </div>
-              <Tag color={statusCor[projeto.status]} style={{ fontSize: 13 }}>
-                {statusLabel[projeto.status]}
-              </Tag>
+              <div>
+                <Space align="center" size={10} wrap>
+                  <span
+                    style={{
+                      fontFamily: "monospace", fontWeight: 700, fontSize: 13,
+                      color: colors.azul, background: "#EFF6FF",
+                      padding: "2px 10px", borderRadius: 8,
+                    }}
+                  >
+                    {projeto.codigo}
+                  </span>
+                  <Tag color={statusCor[projeto.status]} style={{ borderRadius: 999, fontWeight: 600 }}>
+                    {statusLabel[projeto.status]}
+                  </Tag>
+                </Space>
+                <Title level={3} style={{ margin: "6px 0 2px", color: colors.texto, fontWeight: 800 }}>{projeto.nome}</Title>
+                <Text style={{ color: colors.textoSecundario }}>{projeto.descricao}</Text>
+              </div>
             </Space>
           </Col>
           {projeto.responsavel_nome && (
             <Col>
-              <Text type="secondary">Responsável: <strong>{projeto.responsavel_nome}</strong></Text>
+              <Text style={{ color: colors.textoSecundario }}>Responsável: <strong style={{ color: colors.texto }}>{projeto.responsavel_nome}</strong></Text>
             </Col>
           )}
         </Row>
       </Card>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        {[
-          {
-            title: "Orçamento Previsto",
-            value: `R$ ${Number(projeto.orcamento_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-            color: "#3B82F6",
-          },
-          {
-            title: "Orçamento Realizado",
-            value: `R$ ${Number(projeto.orcamento_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-            color: Number(projeto.orcamento_realizado) > Number(projeto.orcamento_previsto) ? "#EF4444" : "#10B981",
-          },
-          {
-            title: "% Concluído",
-            value: `${Number(projeto.percentual_concluido || 0).toFixed(1)}%`,
-            color: "#8B5CF6",
-          },
-          {
-            title: "Previsão de Conclusão",
-            value: projeto.data_fim_prevista ? dayjs(projeto.data_fim_prevista).format("DD/MM/YYYY") : "-",
-            color: "#F59E0B",
-          },
-        ].map((kpi) => (
+      <Row gutter={[20, 20]}>
+        {kpis.map((kpi) => (
           <Col xs={12} sm={6} key={kpi.title}>
-            <Card
-              style={{ borderRadius: 12, border: "none", background: "#F9FAFB" }}
-              bodyStyle={{ padding: "16px 20px" }}
-            >
-              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 4 }}>{kpi.title}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }} hoverable>
+              <div style={{ fontSize: 11, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>{kpi.title}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, wordBreak: "break-word" }}>{kpi.value}</div>
             </Card>
           </Col>
         ))}
       </Row>
 
-      <div style={{ marginBottom: 16 }}>
-        <Text type="secondary" style={{ marginRight: 8 }}>Progresso geral:</Text>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Text style={{ color: colors.textoSecundario, marginRight: 8, fontWeight: 600 }}>Progresso geral:</Text>
         <Progress
           percent={Number(projeto.percentual_concluido || 0)}
-          strokeColor="#3B82F6"
-          style={{ maxWidth: 400 }}
+          strokeColor={colors.azul}
+          style={{ maxWidth: 420, marginTop: 8 }}
         />
-      </div>
+      </Card>
 
-      <Card style={{ borderRadius: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+      <Card bordered={false} style={panelStyle}>
         <Tabs items={tabItems} />
       </Card>
 
@@ -382,7 +438,6 @@ export default function ObraDetalhe() {
         onOk={() => formFase.submit()}
         okText="Salvar"
         confirmLoading={saving}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={formFase} layout="vertical" onFinish={salvarFase}>
           <Form.Item name="nome" label="Nome da Fase" rules={[{ required: true }]}>
@@ -422,7 +477,6 @@ export default function ObraDetalhe() {
         okText="Salvar"
         confirmLoading={saving}
         width={600}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={formDiario} layout="vertical" onFinish={salvarDiario}>
           <Row gutter={16}>
@@ -461,7 +515,6 @@ export default function ObraDetalhe() {
         onOk={() => formBM.submit()}
         okText="Salvar"
         confirmLoading={saving}
-        okButtonProps={{ style: { background: "#3B82F6", borderColor: "#3B82F6" } }}
       >
         <Form form={formBM} layout="vertical" onFinish={salvarBM}>
           <Row gutter={16}>

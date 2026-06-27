@@ -17,7 +17,7 @@ import {
   Typography,
   Upload,
   message,
-  Spin,
+  Skeleton,
   Tooltip,
   DatePicker,
 } from "antd";
@@ -44,6 +44,31 @@ import api from "../../services/api";
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const CONDICAO_PGTO = [
   { value: "a_vista", label: "À Vista" },
@@ -292,39 +317,40 @@ export default function LicitacoesPage() {
   };
 
   return (
-    <div
-      style={{
-        padding: "24px",
-        background: "#F4F6F9",
-        minHeight: "100vh",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <TrophyOutlined style={{ fontSize: 28, color: "#3B82F6" }} />
-          <div>
-            <Title level={3} style={{ margin: 0 }}>
-              Licitações
-            </Title>
-            <Text type="secondary">
-              Licitações abertas de clientes para prestação de serviço
-            </Text>
-          </div>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.azul}14`,
+                color: colors.azul,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <TrophyOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>Licitações</Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                Licitações abertas de clientes para prestação de serviço
+              </Text>
+            </div>
+          </Space>
+          <Button onClick={fetchLicitacoes} style={{ borderRadius: 10, height: 40, paddingInline: 18, fontWeight: 600 }}>
+            Atualizar
+          </Button>
         </div>
-        <Button onClick={fetchLicitacoes}>Atualizar</Button>
-      </div>
+      </Card>
 
-      {/* Filtros */}
-      <Card style={{ marginBottom: 20, borderRadius: 12 }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 18 }}>
         <Select
           value={filtroStatus}
           onChange={setFiltroStatus}
@@ -340,18 +366,20 @@ export default function LicitacoesPage() {
 
       {/* Lista */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: 80 }}>
-          <Spin size="large" />
-        </div>
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
       ) : filtradas.length === 0 ? (
-        <Empty
-          image={<TrophyOutlined style={{ fontSize: 64, color: "#CBD5E1" }} />}
-          description={
-            <span style={{ color: "#94A3B8", fontSize: 16 }}>
-              Nenhuma licitação disponível no momento
-            </span>
-          }
-        />
+        <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
+          <Empty
+            image={<TrophyOutlined style={{ fontSize: 64, color: colors.textoFraco }} />}
+            description={
+              <span style={{ color: colors.textoFraco, fontSize: 16 }}>
+                Nenhuma licitação disponível no momento
+              </span>
+            }
+          />
+        </Card>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {filtradas.map((l) => {
@@ -363,12 +391,10 @@ export default function LicitacoesPage() {
             return (
               <Card
                 key={l.id}
-                style={{
-                  borderRadius: 12,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                  border: "none",
-                }}
+                bordered={false}
+                style={panelStyle}
                 bodyStyle={{ padding: "20px 24px" }}
+                hoverable
               >
                 <Row align="middle" gutter={[16, 12]}>
                   <Col xs={24} md={16}>
@@ -380,26 +406,26 @@ export default function LicitacoesPage() {
                       <Space wrap>
                         <Tag
                           color={statusConf.color}
-                          style={{ borderRadius: 6 }}
+                          style={{ borderRadius: 999, fontWeight: 600 }}
                         >
                           {statusConf.label}
                         </Tag>
-                        <Tag color="blue" style={{ borderRadius: 6 }}>
+                        <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>
                           {l.tipo_servico}
                         </Tag>
                       </Space>
-                      <Text strong style={{ fontSize: 16 }}>
+                      <Text strong style={{ fontSize: 16, color: colors.texto }}>
                         {l.titulo}
                       </Text>
                       {l.descricao && (
-                        <Text type="secondary" style={{ fontSize: 13 }}>
+                        <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                           {String(l.descricao).slice(0, 140)}
                           {l.descricao.length > 140 ? "..." : ""}
                         </Text>
                       )}
                       <Space wrap>
                         {l.valor_maximo && (
-                          <Text type="secondary" style={{ fontSize: 13 }}>
+                          <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                             <DollarOutlined style={{ marginRight: 4 }} />
                             Máx: R${" "}
                             {Number(l.valor_maximo).toLocaleString("pt-BR", {
@@ -407,13 +433,13 @@ export default function LicitacoesPage() {
                             })}
                           </Text>
                         )}
-                        <Text type="secondary" style={{ fontSize: 13 }}>
+                        <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                           <TeamOutlined style={{ marginRight: 4 }} />
                           {l.propostas_count ?? l.propostas?.length ?? 0}{" "}
                           proposta(s)
                         </Text>
                         {l.prazo_execucao && (
-                          <Text type="secondary" style={{ fontSize: 13 }}>
+                          <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                             <CalendarOutlined style={{ marginRight: 4 }} />
                             Prazo execução: {l.prazo_execucao} dias
                           </Text>
@@ -424,13 +450,13 @@ export default function LicitacoesPage() {
                           style={{
                             fontSize: 12,
                             color: countdown.vencido
-                              ? "#EF4444"
+                              ? colors.vermelho
                               : countdown.urgente
-                                ? "#F59E0B"
-                                : "#64748B",
+                                ? colors.laranja
+                                : colors.textoFraco,
                             fontWeight:
                               countdown.urgente || countdown.vencido
-                                ? 600
+                                ? 700
                                 : 400,
                           }}
                         >
@@ -448,7 +474,7 @@ export default function LicitacoesPage() {
                           <Button
                             icon={<EyeOutlined />}
                             onClick={() => setModalDetalheProposta(l.minha_proposta)}
-                            style={{ borderRadius: 8, width: "100%" }}
+                            style={{ borderRadius: 10, width: "100%", fontWeight: 600 }}
                           >
                             Ver Proposta
                           </Button>
@@ -458,19 +484,24 @@ export default function LicitacoesPage() {
                           type="primary"
                           icon={<SendOutlined />}
                           style={{
-                            background: "#10B981",
-                            borderColor: "#10B981",
-                            borderRadius: 8,
+                            background: colors.verde,
+                            borderColor: colors.verde,
+                            borderRadius: 10,
                             width: "100%",
+                            fontWeight: 600,
                           }}
                           onClick={() => abrirModal(l)}
                         >
                           Enviar Proposta
                         </Button>
                       ) : (
-                        <Tag color={statusConf.color}>{statusConf.label}</Tag>
+                        <Tag color={statusConf.color} style={{ borderRadius: 999, fontWeight: 600 }}>{statusConf.label}</Tag>
                       )}
-                      <Button icon={<MessageOutlined />} style={{ borderRadius: 8, width: "100%" }} onClick={() => abrirChat(l)}>
+                      <Button
+                        icon={<MessageOutlined />}
+                        style={{ borderRadius: 10, width: "100%", fontWeight: 600 }}
+                        onClick={() => abrirChat(l)}
+                      >
                         Chat da licitação
                       </Button>
                     </Space>
@@ -501,14 +532,14 @@ export default function LicitacoesPage() {
             <div
               style={{
                 background: "linear-gradient(135deg,#0F172A,#1E293B)",
-                borderRadius: "8px 8px 0 0",
+                borderRadius: "16px 16px 0 0",
                 padding: "20px 24px",
               }}
             >
               <Space>
-                <SendOutlined style={{ color: "#10B981", fontSize: 18 }} />
+                <SendOutlined style={{ color: colors.verde, fontSize: 18 }} />
                 <span
-                  style={{ color: "#F1F5F9", fontSize: 16, fontWeight: 600 }}
+                  style={{ color: "#F1F5F9", fontSize: 16, fontWeight: 700 }}
                 >
                   Enviar Proposta
                 </span>
@@ -519,28 +550,29 @@ export default function LicitacoesPage() {
             <div
               style={{
                 padding: "20px 24px",
-                background: "#F8FAFC",
-                borderBottom: "1px solid #E2E8F0",
+                background: colors.fundoSuave,
+                borderBottom: `1px solid ${colors.borda}`,
               }}
             >
               <Text
-                type="secondary"
                 style={{
                   fontSize: 11,
                   textTransform: "uppercase",
                   letterSpacing: 1,
+                  color: colors.textoFraco,
+                  fontWeight: 700,
                 }}
               >
                 Detalhes do Serviço
               </Text>
               <div style={{ marginTop: 10 }}>
                 <Space wrap style={{ marginBottom: 8 }}>
-                  <Tag color="blue" style={{ borderRadius: 6 }}>
+                  <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>
                     <ToolOutlined style={{ marginRight: 4 }} />
                     {modalProposta.tipo_servico}
                   </Tag>
                   {modalProposta.valor_maximo && (
-                    <Tag color="green" style={{ borderRadius: 6 }}>
+                    <Tag color="green" style={{ borderRadius: 999, fontWeight: 600 }}>
                       <DollarOutlined style={{ marginRight: 4 }} />
                       Máx: R${" "}
                       {Number(modalProposta.valor_maximo).toLocaleString(
@@ -550,7 +582,7 @@ export default function LicitacoesPage() {
                     </Tag>
                   )}
                   {modalProposta.prazo_execucao && (
-                    <Tag color="orange" style={{ borderRadius: 6 }}>
+                    <Tag color="orange" style={{ borderRadius: 999, fontWeight: 600 }}>
                       <ClockCircleOutlined style={{ marginRight: 4 }} />
                       Prazo: {modalProposta.prazo_execucao} dias
                     </Tag>
@@ -558,14 +590,13 @@ export default function LicitacoesPage() {
                 </Space>
                 <Text
                   strong
-                  style={{ fontSize: 15, display: "block", marginBottom: 6 }}
+                  style={{ fontSize: 15, display: "block", marginBottom: 6, color: colors.texto }}
                 >
                   {modalProposta.titulo}
                 </Text>
                 {modalProposta.descricao && (
                   <Paragraph
-                    type="secondary"
-                    style={{ fontSize: 13, margin: 0 }}
+                    style={{ fontSize: 13, margin: 0, color: colors.textoSecundario }}
                   >
                     {modalProposta.descricao}
                   </Paragraph>
@@ -582,7 +613,7 @@ export default function LicitacoesPage() {
                   >
                     <Text style={{ fontSize: 12 }}>
                       <InfoCircleOutlined
-                        style={{ marginRight: 6, color: "#D97706" }}
+                        style={{ marginRight: 6, color: colors.laranja }}
                       />
                       <strong>Requisitos:</strong> {modalProposta.requisitos}
                     </Text>
@@ -608,9 +639,9 @@ export default function LicitacoesPage() {
                       marginBottom: 10,
                     }}
                   >
-                    <Text strong>
+                    <Text strong style={{ color: colors.texto }}>
                       <FileTextOutlined
-                        style={{ marginRight: 6, color: "#3B82F6" }}
+                        style={{ marginRight: 6, color: colors.azul }}
                       />
                       Itens do Orçamento
                     </Text>
@@ -618,7 +649,7 @@ export default function LicitacoesPage() {
                       size="small"
                       icon={<PlusOutlined />}
                       onClick={adicionarItem}
-                      style={{ borderRadius: 6 }}
+                      style={{ borderRadius: 8, fontWeight: 600 }}
                     >
                       Adicionar item
                     </Button>
@@ -626,8 +657,8 @@ export default function LicitacoesPage() {
 
                   <div
                     style={{
-                      border: "1px solid #E2E8F0",
-                      borderRadius: 10,
+                      border: `1px solid ${colors.borda}`,
+                      borderRadius: 12,
                       overflow: "hidden",
                     }}
                   >
@@ -638,42 +669,47 @@ export default function LicitacoesPage() {
                         gridTemplateColumns: "1fr 60px 90px 110px 36px",
                         gap: 8,
                         padding: "8px 12px",
-                        background: "#F1F5F9",
-                        borderBottom: "1px solid #E2E8F0",
+                        background: colors.fundoSuave,
+                        borderBottom: `1px solid ${colors.borda}`,
                       }}
                     >
                       <Text
                         style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#475569",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: colors.textoFraco,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
                         }}
                       >
                         Descrição do Item / Serviço
                       </Text>
                       <Text
                         style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#475569",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: colors.textoFraco,
+                          textTransform: "uppercase",
                         }}
                       >
                         Qtd
                       </Text>
                       <Text
                         style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#475569",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: colors.textoFraco,
+                          textTransform: "uppercase",
                         }}
                       >
                         Unidade
                       </Text>
                       <Text
                         style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#475569",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: colors.textoFraco,
+                          textTransform: "uppercase",
                         }}
                       >
                         Valor Unit.
@@ -691,7 +727,7 @@ export default function LicitacoesPage() {
                           padding: "8px 12px",
                           borderBottom:
                             idx < itens.length - 1
-                              ? "1px solid #F1F5F9"
+                              ? `1px solid ${colors.fundoSuave}`
                               : "none",
                           alignItems: "center",
                         }}
@@ -760,13 +796,13 @@ export default function LicitacoesPage() {
                         display: "flex",
                         justifyContent: "flex-end",
                         padding: "10px 12px",
-                        background: "#F8FAFC",
-                        borderTop: "1px solid #E2E8F0",
+                        background: colors.fundoSuave,
+                        borderTop: `1px solid ${colors.borda}`,
                       }}
                     >
-                      <Text strong style={{ fontSize: 15 }}>
+                      <Text strong style={{ fontSize: 15, color: colors.texto }}>
                         Total:{" "}
-                        <span style={{ color: "#10B981", fontSize: 16 }}>
+                        <span style={{ color: colors.verde, fontSize: 16 }}>
                           R${" "}
                           {totalItens.toLocaleString("pt-BR", {
                             minimumFractionDigits: 2,
@@ -837,9 +873,9 @@ export default function LicitacoesPage() {
                     onChange={({ fileList }) => setArquivoProposta(fileList)}
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
                   >
-                    <Button icon={<UploadOutlined />}>Anexar arquivo</Button>
+                    <Button icon={<UploadOutlined />} style={{ borderRadius: 8 }}>Anexar arquivo</Button>
                   </Upload>
-                  <Text type="secondary" style={{ display: "block", marginTop: 6, fontSize: 12 }}>
+                  <Text style={{ display: "block", marginTop: 6, fontSize: 12, color: colors.textoFraco }}>
                     Envie PDF, planilha ou documento complementar com a proposta formal.
                   </Text>
                 </Form.Item>
@@ -852,7 +888,10 @@ export default function LicitacoesPage() {
                     paddingTop: 4,
                   }}
                 >
-                  <Button onClick={() => setModalProposta(null)}>
+                  <Button
+                    onClick={() => setModalProposta(null)}
+                    style={{ borderRadius: 8, fontWeight: 600 }}
+                  >
                     Cancelar
                   </Button>
                   <Button
@@ -861,10 +900,11 @@ export default function LicitacoesPage() {
                     loading={propostaLoading}
                     icon={<SendOutlined />}
                     style={{
-                      background: "#10B981",
-                      borderColor: "#10B981",
+                      background: colors.verde,
+                      borderColor: colors.verde,
                       borderRadius: 8,
                       minWidth: 160,
+                      fontWeight: 600,
                     }}
                   >
                     Enviar Proposta
@@ -885,9 +925,9 @@ export default function LicitacoesPage() {
       >
         {modalChat && (
           <Space direction="vertical" size={12} style={{ width: "100%" }}>
-            <Card size="small" style={{ borderRadius: 10 }}>
-              <Text strong>{modalChat.titulo}</Text>
-              <div style={{ color: "#64748B", fontSize: 13, marginTop: 4 }}>
+            <Card size="small" bordered={false} style={{ ...panelStyle, boxShadow: "none" }}>
+              <Text strong style={{ color: colors.texto }}>{modalChat.titulo}</Text>
+              <div style={{ color: colors.textoSecundario, fontSize: 13, marginTop: 4 }}>
                 Comunicação entre ERP do contratante e ERP do prestador.
               </div>
             </Card>
@@ -900,15 +940,15 @@ export default function LicitacoesPage() {
                   style={{
                     alignSelf: item.origem_sistema === "prestador" ? "flex-end" : "flex-start",
                     maxWidth: "86%",
-                    background: item.origem_sistema === "prestador" ? "#EFF6FF" : "#F8FAFC",
-                    border: "1px solid #E2E8F0",
+                    background: item.origem_sistema === "prestador" ? "#EFF6FF" : colors.fundoSuave,
+                    border: `1px solid ${colors.borda}`,
                     borderRadius: 10,
                     padding: "8px 10px",
                   }}
                 >
-                  <Text strong style={{ fontSize: 12 }}>{item.usuario_nome || item.origem_sistema}</Text>
-                  <div style={{ fontSize: 13, color: "#334155", marginTop: 2 }}>{item.mensagem}</div>
-                  <Text type="secondary" style={{ fontSize: 11 }}>
+                  <Text strong style={{ fontSize: 12, color: colors.texto }}>{item.usuario_nome || item.origem_sistema}</Text>
+                  <div style={{ fontSize: 13, color: colors.textoSecundario, marginTop: 2 }}>{item.mensagem}</div>
+                  <Text style={{ fontSize: 11, color: colors.textoFraco }}>
                     {new Date(item.criado_em).toLocaleString("pt-BR")}
                   </Text>
                 </div>
@@ -921,7 +961,13 @@ export default function LicitacoesPage() {
               placeholder="Enviar pergunta, alinhamento técnico ou negociação para a outra ponta..."
             />
             <div style={{ textAlign: "right" }}>
-              <Button type="primary" icon={<SendOutlined />} loading={chatLoading} onClick={enviarChat}>
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                loading={chatLoading}
+                onClick={enviarChat}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+              >
                 Enviar mensagem
               </Button>
             </div>
@@ -934,12 +980,12 @@ export default function LicitacoesPage() {
         onCancel={() => setModalDetalheProposta(null)}
         title={
           <Space>
-            <FileTextOutlined style={{ color: "#3B82F6" }} />
+            <FileTextOutlined style={{ color: colors.azul }} />
             <span>Minha proposta enviada</span>
           </Space>
         }
         footer={[
-          <Button key="fechar" onClick={() => setModalDetalheProposta(null)}>
+          <Button key="fechar" onClick={() => setModalDetalheProposta(null)} style={{ borderRadius: 8, fontWeight: 600 }}>
             Fechar
           </Button>,
         ]}
@@ -949,26 +995,29 @@ export default function LicitacoesPage() {
           <Space direction="vertical" size={14} style={{ width: "100%" }}>
             <Row gutter={12}>
               <Col xs={24} md={8}>
-                <Card size="small">
-                  <Text type="secondary">Valor total</Text>
-                  <Title level={4} style={{ margin: 0, color: "#10B981" }}>
+                <Card size="small" bordered={false} style={panelStyle}>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>Valor total</Text>
+                  <Title level={4} style={{ margin: 0, color: colors.verde }}>
                     R$ {Number(modalDetalheProposta.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </Title>
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card size="small">
-                  <Text type="secondary">Prazo</Text>
-                  <Title level={4} style={{ margin: 0 }}>
+                <Card size="small" bordered={false} style={panelStyle}>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>Prazo</Text>
+                  <Title level={4} style={{ margin: 0, color: colors.texto }}>
                     {modalDetalheProposta.prazo_execucao_dias} dias
                   </Title>
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card size="small">
-                  <Text type="secondary">Status</Text>
+                <Card size="small" bordered={false} style={panelStyle}>
+                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>Status</Text>
                   <div style={{ marginTop: 4 }}>
-                    <Tag color={modalDetalheProposta.status === "aceita" ? "green" : modalDetalheProposta.status === "recusada" ? "red" : "blue"}>
+                    <Tag
+                      color={modalDetalheProposta.status === "aceita" ? "green" : modalDetalheProposta.status === "recusada" ? "red" : "blue"}
+                      style={{ borderRadius: 999, fontWeight: 600 }}
+                    >
                       {modalDetalheProposta.status}
                     </Tag>
                   </div>
@@ -976,36 +1025,38 @@ export default function LicitacoesPage() {
               </Col>
             </Row>
 
-            <Table
-              size="small"
-              rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}
-              pagination={false}
-              dataSource={modalDetalheProposta.itens_orcamento || []}
-              columns={[
-                { title: "Item cotado", dataIndex: "descricao", ellipsis: true },
-                { title: "Qtd", dataIndex: "quantidade", width: 80 },
-                { title: "Un.", dataIndex: "unidade", width: 90 },
-                {
-                  title: "Valor unit.",
-                  dataIndex: "valor_unitario",
-                  width: 130,
-                  render: (v) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-                },
-                {
-                  title: "Total",
-                  dataIndex: "valor_total",
-                  width: 130,
-                  render: (v, row) => {
-                    const total = v ?? Number(row.quantidade || 0) * Number(row.valor_unitario || 0);
-                    return `R$ ${Number(total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+            <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+              <Table
+                size="small"
+                rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}
+                pagination={false}
+                dataSource={modalDetalheProposta.itens_orcamento || []}
+                columns={[
+                  { title: "Item cotado", dataIndex: "descricao", ellipsis: true },
+                  { title: "Qtd", dataIndex: "quantidade", width: 80 },
+                  { title: "Un.", dataIndex: "unidade", width: 90 },
+                  {
+                    title: "Valor unit.",
+                    dataIndex: "valor_unitario",
+                    width: 130,
+                    render: (v) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
                   },
-                },
-              ]}
-            />
+                  {
+                    title: "Total",
+                    dataIndex: "valor_total",
+                    width: 130,
+                    render: (v, row) => {
+                      const total = v ?? Number(row.quantidade || 0) * Number(row.valor_unitario || 0);
+                      return `R$ ${Number(total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                    },
+                  },
+                ]}
+              />
+            </div>
 
             {modalDetalheProposta.observacoes && (
-              <Card size="small" title="Observações">
-                <Paragraph style={{ margin: 0 }}>{modalDetalheProposta.observacoes}</Paragraph>
+              <Card size="small" bordered={false} style={panelStyle} title="Observações">
+                <Paragraph style={{ margin: 0, color: colors.textoSecundario }}>{modalDetalheProposta.observacoes}</Paragraph>
               </Card>
             )}
 
@@ -1015,6 +1066,7 @@ export default function LicitacoesPage() {
                 href={modalDetalheProposta.arquivo_proposta}
                 target="_blank"
                 rel="noreferrer"
+                style={{ borderRadius: 8 }}
               >
                 Abrir anexo da proposta
               </Button>
