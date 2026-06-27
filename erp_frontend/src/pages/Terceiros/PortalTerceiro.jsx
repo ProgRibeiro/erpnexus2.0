@@ -1,11 +1,31 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Col, Row, Space, Table, Typography, Upload, message } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { SolutionOutlined, UploadOutlined } from "@ant-design/icons";
 
 import api from "../../services/api";
 
 const { Text, Title } = Typography;
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+const colors = {
+  azul: "#3B82F6",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+};
+
+const pageStyle = {
+  minHeight: "100vh",
+  background: "#F8FAFD",
+  padding: 24,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 export default function PortalTerceiroPage() {
   const [dados, setDados] = useState({ ordens: [], lancamentos: [] });
@@ -43,15 +63,39 @@ export default function PortalTerceiroPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F4F6F9", padding: 24 }}>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Card>
-          <Title level={2} style={{ margin: 0 }}>Portal do Terceirizado</Title>
-          <Text>{dados.terceiro?.nome_fantasia || dados.terceiro?.nome || "Terceirizado"}</Text>
+    <div style={pageStyle}>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
+        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.azul}14`,
+                color: colors.azul,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <SolutionOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 24, fontWeight: 800 }}>
+                Portal do Terceirizado
+              </Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                {dados.terceiro?.nome_fantasia || dados.terceiro?.nome || "Terceirizado"}
+              </Text>
+            </div>
+          </Space>
         </Card>
-        <Row gutter={[16, 16]}>
+        <Row gutter={[20, 20]}>
           <Col xs={24} lg={14}>
-            <Card title="Serviços aprovados / em execução">
+            <Card bordered={false} style={panelStyle} title="Serviços aprovados / em execução">
               <Table
                 loading={loading}
                 rowKey="id"
@@ -65,7 +109,7 @@ export default function PortalTerceiroPage() {
                     title: "Fotos",
                     render: (_, ordem) => (
                       <Upload beforeUpload={(file) => enviarFoto(ordem, file)} showUploadList={false}>
-                        <Button icon={<UploadOutlined />}>Anexar foto</Button>
+                        <Button icon={<UploadOutlined />} style={{ borderRadius: 8 }}>Anexar foto</Button>
                       </Upload>
                     ),
                   },
@@ -74,7 +118,7 @@ export default function PortalTerceiroPage() {
             </Card>
           </Col>
           <Col xs={24} lg={10}>
-            <Card title="Financeiro">
+            <Card bordered={false} style={panelStyle} title="Financeiro">
               <Table
                 loading={loading}
                 rowKey="id"

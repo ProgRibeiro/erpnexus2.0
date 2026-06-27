@@ -1,6 +1,26 @@
 import { Alert, Card, Col, Collapse, Descriptions, Row, Space, Statistic, Table, Tag, Typography } from "antd";
+import { SafetyCertificateOutlined } from "@ant-design/icons";
 
 const { Paragraph, Text, Title } = Typography;
+
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("pt-BR", {
@@ -325,41 +345,65 @@ export default function GuiaLucroPresumido({ config = {}, valorReferencia = 1000
   ];
 
   return (
-    <Card style={{ borderRadius: 12, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)" }} bodyStyle={{ padding: compact ? 16 : 20 }}>
+    <Card bordered={false} style={panelStyle} bodyStyle={{ padding: compact ? 16 : 20 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-        <div>
-          <Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-            Validador fiscal - Lucro Presumido
-          </Title>
-          <Text type="secondary">
-            Orientação prática para NFS-e, ISS, LC 116/2003, alíquotas federais e Reforma Tributária.
-          </Text>
-        </div>
+        <Space align="start">
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: `${colors.roxo}14`,
+              color: colors.roxo,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 19,
+              flexShrink: 0,
+            }}
+          >
+            <SafetyCertificateOutlined />
+          </div>
+          <div>
+            <Title level={4} style={{ marginTop: 0, marginBottom: 4, color: colors.texto }}>
+              Validador fiscal - Lucro Presumido
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Orientação prática para NFS-e, ISS, LC 116/2003, alíquotas federais e Reforma Tributária.
+            </Text>
+          </div>
+        </Space>
         <Space wrap>
-          <Tag color={config.regime_tributario === "lucro_presumido" ? "blue" : "gold"}>
+          <Tag color={config.regime_tributario === "lucro_presumido" ? "blue" : "gold"} style={{ borderRadius: 999, fontWeight: 600 }}>
             {config.regime_tributario === "lucro_presumido" ? "Lucro Presumido" : "Verificar regime"}
           </Tag>
-          <Tag color={tipoNota === "nfse" || tipoNota === "ambas" ? "green" : "orange"}>
+          <Tag color={tipoNota === "nfse" || tipoNota === "ambas" ? "green" : "orange"} style={{ borderRadius: 999, fontWeight: 600 }}>
             {tipoNota === "nfse" ? "NFS-e" : tipoNota === "ambas" ? "NFS-e/NF-e" : "Tipo a revisar"}
           </Tag>
         </Space>
       </div>
 
-      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} md={8}>
-          <Statistic title="Carga federal padrão" value={11.33} precision={2} suffix="%" />
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, padding: 16, background: colors.fundoSuave }}>
+            <Statistic title="Carga federal padrão" value={11.33} precision={2} suffix="%" />
+          </div>
         </Col>
         <Col xs={24} md={8}>
-          <Statistic title="ISS configurado" value={aliquotaIss} precision={2} suffix="%" />
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, padding: 16, background: colors.fundoSuave }}>
+            <Statistic title="ISS configurado" value={aliquotaIss} precision={2} suffix="%" />
+          </div>
         </Col>
         <Col xs={24} md={8}>
-          <Statistic title="Carga estimada total" value={exemplo.cargaTotal} precision={2} suffix="%" />
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, padding: 16, background: colors.fundoSuave }}>
+            <Statistic title="Carga estimada total" value={exemplo.cargaTotal} precision={2} suffix="%" />
+          </div>
         </Col>
       </Row>
 
       <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }} size={8}>
         {validacoes.map((item, index) => (
-          <Alert key={`${item.message}-${index}`} type={item.type} showIcon message={item.message} description={item.description} />
+          <Alert key={`${item.message}-${index}`} type={item.type} showIcon message={item.message} description={item.description} style={{ borderRadius: 10 }} />
         ))}
       </Space>
 
@@ -367,13 +411,13 @@ export default function GuiaLucroPresumido({ config = {}, valorReferencia = 1000
         bordered={false}
         defaultActiveKey={compact ? ["1", "8"] : ["1", "4", "6", "7", "8"]}
         items={collapseItems}
-        style={{ background: "#F8FAFC", borderRadius: 10 }}
+        style={{ background: colors.fundoSuave, borderRadius: 12, border: `1px solid ${colors.borda}` }}
       />
 
       <Alert
         type="info"
         showIcon
-        style={{ marginTop: 16 }}
+        style={{ marginTop: 16, borderRadius: 10 }}
         message="Base normativa considerada"
         description="LC 116/2003 e LC 157/2016 para ISS e lista de serviços; legislação federal de IRPJ/CSLL no Lucro Presumido; LC 214/2025 para CBS, IBS e transição da Reforma Tributária. Regras municipais continuam obrigatórias para alíquota, retenção e emissão da NFS-e."
       />

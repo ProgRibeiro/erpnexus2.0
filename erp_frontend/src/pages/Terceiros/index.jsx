@@ -16,7 +16,7 @@ import {
   Upload,
   message,
 } from "antd";
-import { BankOutlined, DollarOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
+import { BankOutlined, DollarOutlined, PlusOutlined, TeamOutlined, UploadOutlined } from "@ant-design/icons";
 
 import api from "../../services/api";
 
@@ -25,25 +25,39 @@ const { TextArea } = Input;
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
-  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 const panelStyle = {
-  background: "#FFFFFF",
-  border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const metricCardStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
 };
 
 const btnPrimaryStyle = {
-  background: "#3B82F6",
-  borderColor: "#3B82F6",
-  color: "#ffffff",
-  fontWeight: 500,
+  fontWeight: 600,
   height: 38,
   borderRadius: 8,
 };
@@ -152,44 +166,44 @@ export default function TerceirosPage() {
       dataIndex: "nome",
       render: (_, record) => (
         <Space direction="vertical" size={2}>
-          <Text strong>{record.nome_fantasia || record.nome}</Text>
-          <Text style={{ color: "#6B7280", fontSize: 12 }}>{record.documento || "Sem documento"}</Text>
+          <Text strong style={{ color: colors.texto }}>{record.nome_fantasia || record.nome}</Text>
+          <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{record.documento || "Sem documento"}</Text>
         </Space>
       ),
     },
     {
       title: "Base",
-      render: (_, record) => <Text>{[record.cidade_base, record.estado_base].filter(Boolean).join(" / ") || "-"}</Text>,
+      render: (_, record) => <Text style={{ color: colors.textoSecundario }}>{[record.cidade_base, record.estado_base].filter(Boolean).join(" / ") || "-"}</Text>,
     },
     {
       title: "Especialidades",
       dataIndex: "especialidades",
-      render: (value) => <Text>{value || "-"}</Text>,
+      render: (value) => <Text style={{ color: colors.textoSecundario }}>{value || "-"}</Text>,
     },
     {
       title: "PIX / Banco",
       render: (_, record) => (
         <Space direction="vertical" size={2}>
-          <Text>{record.chave_pix || "Sem PIX"}</Text>
-          <Text style={{ color: "#6B7280", fontSize: 12 }}>{record.banco || record.conta ? `${record.banco} ${record.agencia || ""} ${record.conta || ""}` : "Sem dados bancários"}</Text>
+          <Text style={{ color: colors.textoSecundario }}>{record.chave_pix || "Sem PIX"}</Text>
+          <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{record.banco || record.conta ? `${record.banco} ${record.agencia || ""} ${record.conta || ""}` : "Sem dados bancários"}</Text>
         </Space>
       ),
     },
     {
       title: "Pendente",
       dataIndex: "total_pendente",
-      render: (value) => <Text strong>{moneyFormatter.format(Number(value || 0))}</Text>,
+      render: (value) => <Text strong style={{ color: colors.laranja }}>{moneyFormatter.format(Number(value || 0))}</Text>,
     },
     {
       title: "Status",
       dataIndex: "status",
-      render: (value) => <Tag color={value === "ativo" ? "green" : "default"}>{value === "ativo" ? "Ativo" : "Inativo"}</Tag>,
+      render: (value) => <Tag color={value === "ativo" ? "green" : "default"} style={{ borderRadius: 999, fontWeight: 600 }}>{value === "ativo" ? "Ativo" : "Inativo"}</Tag>,
     },
     {
       title: "Ações",
       width: 120,
       render: (_, record) => (
-        <Button type="link" onClick={() => abrirDrawer(record)}>
+        <Button type="link" onClick={() => abrirDrawer(record)} style={{ fontWeight: 600 }}>
           Editar
         </Button>
       ),
@@ -198,72 +212,106 @@ export default function TerceirosPage() {
 
   return (
     <div style={pageStyle}>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
-          <Space style={{ justifyContent: "space-between", width: "100%" }} wrap>
-            <Space direction="vertical" size={2}>
-              <Title level={1} style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Space align="start">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: `${colors.azul}14`,
+                color: colors.azul,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              <TeamOutlined />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 24, fontWeight: 800 }}>
                 Terceirizados
               </Title>
-              <Text style={{ color: "#6B7280" }}>Cadastro, custos internos, pagamentos e portal de execução.</Text>
-            </Space>
-            <Button type="primary" icon={<PlusOutlined />} style={btnPrimaryStyle} onClick={() => abrirDrawer()}>
-              Novo terceirizado
-            </Button>
+              <Text style={{ color: colors.textoSecundario }}>Cadastro, custos internos, pagamentos e portal de execução.</Text>
+            </div>
           </Space>
-        </Card>
+          <Button type="primary" icon={<PlusOutlined />} style={btnPrimaryStyle} onClick={() => abrirDrawer()}>
+            Novo terceirizado
+          </Button>
+        </div>
+      </Card>
 
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={8}>
-            <Card bordered={false} style={panelStyle}>
-              <Text style={{ color: "#6B7280", fontWeight: 700 }}>ATIVOS</Text>
-              <div style={{ color: "#3B82F6", fontSize: 28, fontWeight: 800 }}>{resumo.ativos}</div>
-            </Card>
-          </Col>
-          <Col xs={24} md={8}>
-            <Card bordered={false} style={panelStyle}>
-              <Text style={{ color: "#6B7280", fontWeight: 700 }}>PAGAMENTOS PENDENTES</Text>
-              <div style={{ color: "#B45309", fontSize: 28, fontWeight: 800 }}>{moneyFormatter.format(resumo.pendente)}</div>
-            </Card>
-          </Col>
-        </Row>
+      <Row gutter={[20, 20]}>
+        <Col xs={24} sm={12} md={8}>
+          <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 14 }}>
+                  Ativos
+                </div>
+                <div style={{ fontSize: 32, lineHeight: 1, fontWeight: 700, color: colors.texto }}>{resumo.ativos}</div>
+              </div>
+              <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, background: `${colors.azul}14`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.azul, fontSize: 20 }}>
+                <TeamOutlined />
+              </div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 14 }}>
+                  Pagamentos Pendentes
+                </div>
+                <div style={{ fontSize: 32, lineHeight: 1, fontWeight: 700, color: colors.texto }}>{moneyFormatter.format(resumo.pendente)}</div>
+              </div>
+              <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, background: `${colors.laranja}14`, display: "flex", alignItems: "center", justifyContent: "center", color: colors.laranja, fontSize: 20 }}>
+                <DollarOutlined />
+              </div>
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
-        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
-          <Table
-            columns={columns}
-            dataSource={terceiros}
-            rowKey="id"
-            loading={loading}
-            expandable={{
-              expandedRowRender: (record) => (
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  <Text strong>Pagamentos pendentes para este terceiro</Text>
-                  <Table
-                    size="small"
-                    pagination={false}
-                    rowKey="id"
-                    dataSource={record.pagamentos_pendentes || []}
-                    columns={[
-                      { title: "Descrição", dataIndex: "descricao" },
-                      { title: "OS", dataIndex: "os_numero" },
-                      { title: "Vencimento", dataIndex: "data_vencimento" },
-                      { title: "Valor", dataIndex: "valor", render: (value) => moneyFormatter.format(Number(value || 0)) },
-                      {
-                        title: "Comprovante",
-                        render: (_, lancamento) => (
-                          <Upload beforeUpload={(file) => anexarComprovante(lancamento.id, file)} showUploadList={false}>
-                            <Button size="small" icon={<UploadOutlined />}>Anexar</Button>
-                          </Upload>
-                        ),
-                      },
-                    ]}
-                  />
-                </Space>
-              ),
-            }}
-          />
-        </Card>
-      </Space>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
+        <Table
+          columns={columns}
+          dataSource={terceiros}
+          rowKey="id"
+          loading={loading}
+          expandable={{
+            expandedRowRender: (record) => (
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Text strong style={{ color: colors.texto }}>Pagamentos pendentes para este terceiro</Text>
+                <Table
+                  size="small"
+                  pagination={false}
+                  rowKey="id"
+                  dataSource={record.pagamentos_pendentes || []}
+                  columns={[
+                    { title: "Descrição", dataIndex: "descricao" },
+                    { title: "OS", dataIndex: "os_numero" },
+                    { title: "Vencimento", dataIndex: "data_vencimento" },
+                    { title: "Valor", dataIndex: "valor", render: (value) => moneyFormatter.format(Number(value || 0)) },
+                    {
+                      title: "Comprovante",
+                      render: (_, lancamento) => (
+                        <Upload beforeUpload={(file) => anexarComprovante(lancamento.id, file)} showUploadList={false}>
+                          <Button size="small" icon={<UploadOutlined />} style={{ borderRadius: 8 }}>Anexar</Button>
+                        </Upload>
+                      ),
+                    },
+                  ]}
+                />
+              </Space>
+            ),
+          }}
+        />
+      </Card>
 
       <Drawer
         title={terceiroSelecionado ? "Editar terceirizado" : "Novo terceirizado"}
@@ -273,7 +321,7 @@ export default function TerceirosPage() {
         onClose={() => setDrawerAberto(false)}
       >
         <Form layout="vertical" form={form} onFinish={salvar}>
-          <Title level={5}>Dados cadastrais</Title>
+          <Title level={5} style={{ color: colors.texto }}>Dados cadastrais</Title>
           <Row gutter={12}>
             <Col xs={24} md={12}>
               <Form.Item label="Nome / responsável" name="nome" rules={[{ required: true, message: "Informe o nome" }]}>
@@ -332,7 +380,7 @@ export default function TerceirosPage() {
             </Col>
           </Row>
 
-          <Title level={5}><BankOutlined /> Dados de pagamento</Title>
+          <Title level={5} style={{ color: colors.texto }}><BankOutlined /> Dados de pagamento</Title>
           <Row gutter={12}>
             <Col xs={24} md={12}>
               <Form.Item label="Chave PIX" name="chave_pix">

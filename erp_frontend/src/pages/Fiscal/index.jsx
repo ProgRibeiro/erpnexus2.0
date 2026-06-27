@@ -1,11 +1,37 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Space, Spin, Table, Tag, Typography, message } from "antd";
+import { Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Skeleton, Space, Table, Tag, Typography, message } from "antd";
+import { CalculatorOutlined, FileProtectOutlined } from "@ant-design/icons";
 import api from "../../services/api";
 import GuiaLucroPresumido from "./components/GuiaLucroPresumido";
 
 const { Text, Title } = Typography;
 
-const btnStyle = { background: "#3B82F6", borderColor: "#3B82F6", color: "#fff", fontWeight: 500, height: "38px", borderRadius: "8px" };
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
+const btnStyle = { fontWeight: 600, height: "38px", borderRadius: "8px" };
 
 const regimeOpcoes = [
   { label: "MEI", value: "mei" },
@@ -79,17 +105,52 @@ export default function FiscalPage() {
     }
   };
 
-  if (loading) return <Spin />;
+  if (loading) {
+    return (
+      <div style={pageStyle}>
+        <Card bordered={false} style={panelStyle}>
+          <Skeleton active paragraph={{ rows: 10 }} />
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F4F6F9", padding: 24 }}>
-      <Title level={2}>Fiscal</Title>
+    <div style={pageStyle}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start">
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.azul}14`,
+              color: colors.azul,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <FileProtectOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 24, fontWeight: 800 }}>
+              Fiscal
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Configuração tributária, calculadora de impostos e validação fiscal
+            </Text>
+          </div>
+        </Space>
+      </Card>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[20, 20]}>
         <Col xs={24} lg={12}>
-          <Card style={{ borderRadius: 12, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)" }} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-              <Title level={4} style={{ margin: 0 }}>
+              <Title level={4} style={{ margin: 0, color: colors.texto }}>
                 Configuração Fiscal
               </Title>
               <Button type="primary" onClick={() => setEditando(!editando)} style={btnStyle}>
@@ -151,34 +212,36 @@ export default function FiscalPage() {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card style={{ borderRadius: 12, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)" }} bodyStyle={{ padding: 20 }}>
-            <Title level={4} style={{ marginTop: 0 }}>
+          <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+            <Title level={4} style={{ marginTop: 0, color: colors.texto }}>
+              <CalculatorOutlined style={{ marginRight: 8, color: colors.azul }} />
               Calculadora de Impostos
             </Title>
 
             <Space direction="vertical" style={{ width: "100%" }} size={16}>
               <Row gutter={12}>
                 <Col xs={24} sm={12}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Valor Serviços</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.04em" }}>Valor Serviços</span>
                   <InputNumber value={valores.valor_servicos} onChange={(v) => setValores((s) => ({ ...s, valor_servicos: v || 0 }))} min={0} style={{ width: "100%", marginTop: 4 }} />
                 </Col>
                 <Col xs={24} sm={12}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>Valor Materiais</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.04em" }}>Valor Materiais</span>
                   <InputNumber value={valores.valor_materiais} onChange={(v) => setValores((s) => ({ ...s, valor_materiais: v || 0 }))} min={0} style={{ width: "100%", marginTop: 4 }} />
                 </Col>
               </Row>
 
-              <Button onClick={calcularImpostos} style={btnStyle} block>
+              <Button type="primary" onClick={calcularImpostos} style={btnStyle} block>
                 Calcular
               </Button>
 
               {calculo && (
-                <div style={{ background: "#f8f9fa", padding: 12, borderRadius: 8 }}>
+                <div style={{ background: colors.fundoSuave, border: `1px solid ${colors.borda}`, padding: 16, borderRadius: 12 }}>
                   <div style={{ marginBottom: 8 }}>
-                    <Text strong>Regime:</Text> <Tag>{calculo.regime}</Tag>
+                    <Text strong style={{ color: colors.texto }}>Regime:</Text>{" "}
+                    <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>{calculo.regime}</Tag>
                   </div>
                   <Divider style={{ margin: "8px 0" }} />
-                  <div style={{ fontSize: 12 }}>
+                  <div style={{ fontSize: 13, color: colors.textoSecundario, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div>Subtotal Serviços: R$ {calculo.subtotal_servicos?.toFixed(2)}</div>
                     <div>Subtotal Materiais: R$ {calculo.subtotal_materiais?.toFixed(2)}</div>
                     <div>Subtotal: R$ {calculo.subtotal?.toFixed(2)}</div>
@@ -189,10 +252,10 @@ export default function FiscalPage() {
                     <div>IRPJ: R$ {calculo.irpj?.toFixed(2)}</div>
                     <div>CSLL: R$ {calculo.csll?.toFixed(2)}</div>
                     <Divider style={{ margin: "8px 0" }} />
-                    <div style={{ fontWeight: 600, color: "#3B82F6", fontSize: 14 }}>
+                    <div style={{ fontWeight: 700, color: colors.azul, fontSize: 14 }}>
                       Total Impostos: R$ {calculo.total_impostos?.toFixed(2)}
                     </div>
-                    <div style={{ fontWeight: 600, color: "#3B82F6", fontSize: 16 }}>
+                    <div style={{ fontWeight: 700, color: colors.azul, fontSize: 16 }}>
                       Total Geral: R$ {calculo.total_geral?.toFixed(2)}
                     </div>
                   </div>
@@ -204,8 +267,8 @@ export default function FiscalPage() {
       </Row>
 
       {config?.regime_tributario === "lucro_presumido" && (
-        <Card style={{ marginTop: 16, borderRadius: 12, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)" }} bodyStyle={{ padding: 20 }}>
-          <Title level={4}>Tabela de Impostos - Lucro Presumido</Title>
+        <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+          <Title level={4} style={{ color: colors.texto }}>Tabela de Impostos - Lucro Presumido</Title>
           <Table
             dataSource={impostos}
             rowKey="id"
@@ -221,12 +284,10 @@ export default function FiscalPage() {
         </Card>
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <GuiaLucroPresumido
-          config={config || {}}
-          valorReferencia={valores.valor_servicos || 10000}
-        />
-      </div>
+      <GuiaLucroPresumido
+        config={config || {}}
+        valorReferencia={valores.valor_servicos || 10000}
+      />
     </div>
   );
 }

@@ -33,6 +33,31 @@ import api from "../../services/api";
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
+const pageStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+
+const panelStyle = {
+  border: `1px solid ${colors.borda}`,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+};
+
 const PRIORIDADE_CONFIG = {
   critica: { color: "#EF4444", label: "Crítica" },
   alta:    { color: "#F59E0B", label: "Alta" },
@@ -172,34 +197,53 @@ export default function ChamadosExternosPage() {
   };
 
   return (
-    <div style={{ padding: "24px", background: "#F8FAFC", minHeight: "100vh" }}>
+    <div style={pageStyle}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <AlertOutlined style={{ fontSize: 28, color: "#3B82F6" }} />
-        <div>
-          <Title level={3} style={{ margin: 0 }}>
-            Chamados de Clientes{" "}
-            {abertos > 0 && (
-              <Badge count={abertos} style={{ backgroundColor: "#EF4444", marginLeft: 8 }} />
-            )}
-          </Title>
-          <Text type="secondary">Chamados recebidos de clientes que utilizam o módulo Facilities</Text>
-        </div>
-      </div>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start">
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.azul}14`,
+              color: colors.azul,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <AlertOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 24, fontWeight: 800 }}>
+              Chamados de Clientes{" "}
+              {abertos > 0 && (
+                <Badge count={abertos} style={{ backgroundColor: colors.vermelho, marginLeft: 8 }} />
+              )}
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Chamados recebidos de clientes que utilizam o módulo Facilities
+            </Text>
+          </div>
+        </Space>
+      </Card>
 
       {/* Filtros */}
-      <Card style={{ marginBottom: 20, borderRadius: 12 }}>
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 16 }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={8}>
+          <Col xs={24} sm={24} md={8}>
             <Input
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: colors.textoFraco }} />}
               placeholder="Buscar por título, número, cliente ou local..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               allowClear
             />
           </Col>
-          <Col xs={12} md={6}>
+          <Col xs={12} sm={12} md={6}>
             <Select value={filtroStatus} onChange={setFiltroStatus} style={{ width: "100%" }}>
               <Option value="todos">Todos os status</Option>
               <Option value="aberto">Aberto</Option>
@@ -209,7 +253,7 @@ export default function ChamadosExternosPage() {
               <Option value="fechado">Fechado</Option>
             </Select>
           </Col>
-          <Col xs={12} md={6}>
+          <Col xs={12} sm={12} md={6}>
             <Select value={filtroPrioridade} onChange={setFiltroPrioridade} style={{ width: "100%" }}>
               <Option value="todos">Todas as prioridades</Option>
               <Option value="critica">Crítica</Option>
@@ -218,8 +262,8 @@ export default function ChamadosExternosPage() {
               <Option value="baixa">Baixa</Option>
             </Select>
           </Col>
-          <Col xs={24} md={4}>
-            <Button onClick={fetchChamados} style={{ width: "100%" }}>
+          <Col xs={24} sm={24} md={4}>
+            <Button onClick={fetchChamados} style={{ width: "100%", borderRadius: 8, fontWeight: 600 }}>
               Atualizar
             </Button>
           </Col>
@@ -228,18 +272,23 @@ export default function ChamadosExternosPage() {
 
       {/* Lista */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: 80 }}>
-          <Spin size="large" />
-        </div>
+        <Card bordered={false} style={panelStyle}>
+          <div style={{ textAlign: "center", padding: 80 }}>
+            <Spin size="large" />
+          </div>
+        </Card>
       ) : chamadosFiltrados.length === 0 ? (
-        <Empty
-          image={<AlertOutlined style={{ fontSize: 64, color: "#CBD5E1" }} />}
-          description={
-            <span style={{ color: "#94A3B8", fontSize: 16 }}>
-              Nenhum chamado recebido de clientes
-            </span>
-          }
-        />
+        <Card bordered={false} style={panelStyle}>
+          <Empty
+            image={<AlertOutlined style={{ fontSize: 64, color: "#CBD5E1" }} />}
+            description={
+              <span style={{ color: colors.textoFraco, fontSize: 16 }}>
+                Nenhum chamado recebido de clientes
+              </span>
+            }
+            style={{ padding: "32px 0" }}
+          />
+        </Card>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {chamadosFiltrados.map((c) => {
@@ -250,8 +299,13 @@ export default function ChamadosExternosPage() {
             return (
               <Card
                 key={c.id}
-                style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "none" }}
+                bordered={false}
+                style={{
+                  ...panelStyle,
+                  borderLeft: `4px solid ${prioConf.color}`,
+                }}
                 bodyStyle={{ padding: "20px 24px" }}
+                hoverable
               >
                 <Row align="middle" gutter={[16, 12]}>
                   <Col xs={24} md={16}>
@@ -263,29 +317,29 @@ export default function ChamadosExternosPage() {
                             color: "#fff",
                             border: "none",
                             fontWeight: 600,
-                            borderRadius: 6,
+                            borderRadius: 999,
                           }}
                         >
                           {prioConf.label}
                         </Tag>
-                        <Tag color={statusConf.color} style={{ borderRadius: 6 }}>
+                        <Tag color={statusConf.color} style={{ borderRadius: 999, fontWeight: 600 }}>
                           {statusConf.label}
                         </Tag>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
+                        <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>
                           #{c.numero}
                         </Text>
                       </Space>
 
-                      <Text strong style={{ fontSize: 16 }}>{c.titulo}</Text>
+                      <Text strong style={{ fontSize: 16, color: colors.texto }}>{c.titulo}</Text>
 
                       <Space wrap>
-                        <Text type="secondary" style={{ fontSize: 13 }}>
+                        <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                           <UserOutlined style={{ marginRight: 4 }} />
                           {c.solicitante_nome}
                           {c.solicitante_email && ` · ${c.solicitante_email}`}
                         </Text>
                         {c.local && (
-                          <Text type="secondary" style={{ fontSize: 13 }}>
+                          <Text style={{ fontSize: 13, color: colors.textoSecundario }}>
                             <EnvironmentOutlined style={{ marginRight: 4 }} />
                             {c.local}
                           </Text>
@@ -295,8 +349,8 @@ export default function ChamadosExternosPage() {
                       <Text
                         style={{
                           fontSize: 12,
-                          color: sla.vencido ? "#EF4444" : "#64748B",
-                          fontWeight: sla.vencido ? 600 : 400,
+                          color: sla.vencido ? colors.vermelho : colors.textoFraco,
+                          fontWeight: sla.vencido ? 700 : 500,
                         }}
                       >
                         <ClockCircleOutlined style={{ marginRight: 4 }} />
@@ -305,17 +359,18 @@ export default function ChamadosExternosPage() {
                     </Space>
                   </Col>
 
-                  <Col xs={24} md={8} style={{ textAlign: "right" }}>
+                  <Col xs={24} md={8}>
                     <Space direction="vertical" style={{ width: "100%" }}>
                       {(c.status === "aberto") && (
                         <Button
                           type="primary"
                           icon={<CheckOutlined />}
                           style={{
-                            background: "#10B981",
-                            borderColor: "#10B981",
+                            background: colors.verde,
+                            borderColor: colors.verde,
                             borderRadius: 8,
                             width: "100%",
+                            fontWeight: 600,
                           }}
                           onClick={() => handleAcao(c.id, "em_atendimento")}
                           loading={actionLoading}
@@ -324,7 +379,8 @@ export default function ChamadosExternosPage() {
                         </Button>
                       )}
                       <Button
-                        style={{ borderRadius: 8, width: "100%", background: "#3B82F6", color: "#fff", border: "none" }}
+                        type="primary"
+                        style={{ borderRadius: 8, width: "100%", fontWeight: 600 }}
                         onClick={() => abrirDetalhes(c)}
                       >
                         Ver Detalhes
@@ -344,7 +400,7 @@ export default function ChamadosExternosPage() {
         onCancel={() => { setModalChamado(null); formObs.resetFields(); }}
         title={
           <Space>
-            <AlertOutlined style={{ color: "#3B82F6" }} />
+            <AlertOutlined style={{ color: colors.azul }} />
             <span>#{modalChamado?.numero} — {modalChamado?.titulo}</span>
           </Space>
         }
@@ -359,29 +415,31 @@ export default function ChamadosExternosPage() {
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Row gutter={16}>
                 <Col span={12}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Prioridade</Text>
+                  <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>Prioridade</Text>
                   <div>
-                    <Tag style={{ background: prioConf.color, color: "#fff", border: "none" }}>
+                    <Tag style={{ background: prioConf.color, color: "#fff", border: "none", borderRadius: 999, fontWeight: 600 }}>
                       {prioConf.label}
                     </Tag>
                   </div>
                 </Col>
                 <Col span={12}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Status</Text>
-                  <div><Tag color={statusConf.color}>{statusConf.label}</Tag></div>
+                  <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>Status</Text>
+                  <div><Tag color={statusConf.color} style={{ borderRadius: 999, fontWeight: 600 }}>{statusConf.label}</Tag></div>
                 </Col>
               </Row>
 
               <div>
-                <Text type="secondary" style={{ fontSize: 12 }}>Descrição</Text>
+                <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>Descrição</Text>
                 <div
                   style={{
-                    background: "#F8FAFC",
+                    background: colors.fundoSuave,
+                    border: `1px solid ${colors.borda}`,
                     padding: "12px 16px",
-                    borderRadius: 8,
+                    borderRadius: 10,
                     marginTop: 4,
                     fontSize: 14,
                     lineHeight: 1.6,
+                    color: colors.textoSecundario,
                   }}
                 >
                   {modalChamado.descricao || "Sem descrição"}
@@ -390,23 +448,23 @@ export default function ChamadosExternosPage() {
 
               <Row gutter={16}>
                 <Col span={12}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Solicitante</Text>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{modalChamado.solicitante_nome}</div>
+                  <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>Solicitante</Text>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: colors.texto }}>{modalChamado.solicitante_nome}</div>
                   {modalChamado.solicitante_email && (
-                    <div style={{ fontSize: 13, color: "#64748B" }}>{modalChamado.solicitante_email}</div>
+                    <div style={{ fontSize: 13, color: colors.textoSecundario }}>{modalChamado.solicitante_email}</div>
                   )}
                   {modalChamado.solicitante_ramal && (
-                    <div style={{ fontSize: 13, color: "#64748B" }}>Ramal: {modalChamado.solicitante_ramal}</div>
+                    <div style={{ fontSize: 13, color: colors.textoSecundario }}>Ramal: {modalChamado.solicitante_ramal}</div>
                   )}
                 </Col>
                 <Col span={12}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Local</Text>
-                  <div style={{ fontSize: 14 }}>{modalChamado.local || "—"}</div>
+                  <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>Local</Text>
+                  <div style={{ fontSize: 14, color: colors.texto }}>{modalChamado.local || "—"}</div>
                   {modalChamado.ativo_tag && (
                     <>
-                      <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 8 }}>Ativo vinculado</Text>
+                      <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600, display: "block", marginTop: 8 }}>Ativo vinculado</Text>
                       <div style={{ fontSize: 14 }}>
-                        <Tag>{modalChamado.ativo_tag}</Tag> {modalChamado.ativo_nome}
+                        <Tag style={{ borderRadius: 999 }}>{modalChamado.ativo_tag}</Tag> {modalChamado.ativo_nome}
                       </div>
                     </>
                   )}
@@ -417,8 +475,8 @@ export default function ChamadosExternosPage() {
                 <Text
                   style={{
                     fontSize: 13,
-                    color: sla.vencido ? "#EF4444" : "#64748B",
-                    fontWeight: sla.vencido ? 600 : 400,
+                    color: sla.vencido ? colors.vermelho : colors.textoFraco,
+                    fontWeight: sla.vencido ? 700 : 500,
                   }}
                 >
                   <ClockCircleOutlined style={{ marginRight: 4 }} />
@@ -429,8 +487,8 @@ export default function ChamadosExternosPage() {
               <Card
                 size="small"
                 title={<Space><MessageOutlined /> Chat entre sistemas</Space>}
-                extra={modalChamado.ordem_servico_id ? <Tag color="blue">OS #{modalChamado.ordem_servico_id}</Tag> : null}
-                style={{ borderRadius: 10 }}
+                extra={modalChamado.ordem_servico_id ? <Tag color="blue" style={{ borderRadius: 999 }}>OS #{modalChamado.ordem_servico_id}</Tag> : null}
+                style={{ borderRadius: 12, border: `1px solid ${colors.borda}` }}
               >
                 <Space direction="vertical" size={10} style={{ width: "100%" }}>
                   <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -442,17 +500,17 @@ export default function ChamadosExternosPage() {
                         style={{
                           alignSelf: item.origem_sistema === "prestador" ? "flex-end" : "flex-start",
                           maxWidth: "86%",
-                          background: item.origem_sistema === "prestador" ? "#EFF6FF" : "#F8FAFC",
-                          border: "1px solid #E2E8F0",
+                          background: item.origem_sistema === "prestador" ? "#EFF6FF" : colors.fundoSuave,
+                          border: `1px solid ${colors.borda}`,
                           borderRadius: 10,
                           padding: "8px 10px",
                         }}
                       >
-                        <Text strong style={{ fontSize: 12 }}>
+                        <Text strong style={{ fontSize: 12, color: colors.texto }}>
                           {item.usuario_nome || item.origem_sistema}
                         </Text>
-                        <div style={{ fontSize: 13, color: "#334155", marginTop: 2 }}>{item.mensagem}</div>
-                        <Text type="secondary" style={{ fontSize: 11 }}>
+                        <div style={{ fontSize: 13, color: colors.textoSecundario, marginTop: 2 }}>{item.mensagem}</div>
+                        <Text style={{ fontSize: 11, color: colors.textoFraco }}>
                           {new Date(item.criado_em).toLocaleString("pt-BR")}
                         </Text>
                       </div>
@@ -465,10 +523,10 @@ export default function ChamadosExternosPage() {
                     placeholder="Responder para o contratante ou equipe do prestador..."
                   />
                   <Space style={{ justifyContent: "space-between", width: "100%" }} wrap>
-                    <Button icon={<ToolOutlined />} loading={actionLoading} onClick={gerarOS}>
+                    <Button icon={<ToolOutlined />} loading={actionLoading} onClick={gerarOS} style={{ borderRadius: 8, fontWeight: 600 }}>
                       {modalChamado.ordem_servico_id ? "OS já vinculada" : "Gerar OS no ERP"}
                     </Button>
-                    <Button type="primary" icon={<SendOutlined />} loading={chatLoading} onClick={enviarChat}>
+                    <Button type="primary" icon={<SendOutlined />} loading={chatLoading} onClick={enviarChat} style={{ borderRadius: 8, fontWeight: 600 }}>
                       Enviar mensagem
                     </Button>
                   </Space>
@@ -477,12 +535,12 @@ export default function ChamadosExternosPage() {
 
               {modalChamado.foto_antes && (
                 <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Foto (antes)</Text>
+                  <Text style={{ fontSize: 12, color: colors.textoFraco, fontWeight: 600 }}>Foto (antes)</Text>
                   <div style={{ marginTop: 8 }}>
                     <img
                       src={modalChamado.foto_antes}
                       alt="Antes"
-                      style={{ maxWidth: "100%", borderRadius: 8 }}
+                      style={{ maxWidth: "100%", borderRadius: 10, border: `1px solid ${colors.borda}` }}
                     />
                   </div>
                 </div>
@@ -496,11 +554,11 @@ export default function ChamadosExternosPage() {
 
               <Row gutter={12}>
                 {modalChamado.status === "aberto" && (
-                  <Col span={8}>
+                  <Col xs={24} sm={8}>
                     <Button
                       block
                       type="primary"
-                      style={{ background: "#10B981", borderColor: "#10B981", borderRadius: 8 }}
+                      style={{ background: colors.verde, borderColor: colors.verde, borderRadius: 8, fontWeight: 600 }}
                       loading={actionLoading}
                       onClick={() => handleAcao(modalChamado.id, "em_atendimento")}
                     >
@@ -509,10 +567,11 @@ export default function ChamadosExternosPage() {
                   </Col>
                 )}
                 {(modalChamado.status === "aberto" || modalChamado.status === "em_atendimento") && (
-                  <Col span={8}>
+                  <Col xs={24} sm={8}>
                     <Button
                       block
-                      style={{ background: "#3B82F6", color: "#fff", border: "none", borderRadius: 8 }}
+                      type="primary"
+                      style={{ borderRadius: 8, fontWeight: 600 }}
                       loading={actionLoading}
                       onClick={() => handleAcao(modalChamado.id, "resolvido")}
                     >
@@ -521,11 +580,11 @@ export default function ChamadosExternosPage() {
                   </Col>
                 )}
                 {modalChamado.status === "aberto" && (
-                  <Col span={8}>
+                  <Col xs={24} sm={8}>
                     <Button
                       block
                       danger
-                      style={{ borderRadius: 8 }}
+                      style={{ borderRadius: 8, fontWeight: 600 }}
                       icon={<CloseOutlined />}
                       loading={actionLoading}
                       onClick={() => handleAcao(modalChamado.id, "fechado")}
