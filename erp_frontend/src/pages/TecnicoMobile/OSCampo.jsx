@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Button, Input, Image, Space, Modal, message, Divider, Tag, Empty, Spin, Row, Col } from 'antd';
-import { CameraOutlined, CheckCircleOutlined, FileTextOutlined, SendOutlined, DeleteOutlined, EditOutlined, ClockCircleOutlined, CopyOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Button, Input, Image, Space, Modal, message, Tag, Empty, Spin, Row, Col } from 'antd';
+import { CameraOutlined, CheckCircleOutlined, FileTextOutlined, SendOutlined, DeleteOutlined, EditOutlined, ClockCircleOutlined, CopyOutlined, EnvironmentOutlined, MessageOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import api from '../../services/api';
 import { useOffline } from '../../hooks/useOffline';
 import { useIndexedDB } from '../../hooks/useIndexedDB';
@@ -265,7 +265,7 @@ export default function OSCampo() {
   if (!ordem_data) {
     return (
       <PageContainer>
-        <div className="flex-center" style={{ height: '100vh' }}>
+        <div className="flex-center" style={{ height: '100vh', background: '#F8FAFD' }}>
           <Spin size="large" tip="Carregando ordem..." />
         </div>
       </PageContainer>
@@ -293,11 +293,9 @@ export default function OSCampo() {
           </div>
         </div>
 
-        <Divider />
-
         {/* Timeline de Horários */}
         <div className="timeline-section">
-          <Row gutter={16}>
+          <Row gutter={12}>
             <Col xs={12} className="timeline-item">
               <ClockCircleOutlined className="icon-timeline" />
               <span className="label-timeline">Chegada</span>
@@ -310,8 +308,6 @@ export default function OSCampo() {
             </Col>
           </Row>
         </div>
-
-        <Divider />
 
         {/* Status */}
         <div className="status-section">
@@ -338,7 +334,7 @@ export default function OSCampo() {
 
           {/* Fotos */}
           <div className="section-fotos">
-            <h3 className="section-title">Fotos do Atendimento</h3>
+            <h3 className="section-title"><CameraOutlined /> Fotos do Atendimento</h3>
 
             <Space direction="vertical" style={{ width: '100%' }} size="small">
               <Button
@@ -397,7 +393,7 @@ export default function OSCampo() {
 
           {/* Laudo */}
           <div className="section-laudo">
-            <h3 className="section-title">Laudo do Atendimento</h3>
+            <h3 className="section-title"><FileTextOutlined /> Laudo do Atendimento</h3>
 
             <Input.TextArea
               rows={5}
@@ -412,7 +408,7 @@ export default function OSCampo() {
 
           {/* Chat Interno */}
           <div className="section-chat">
-            <h3 className="section-title">Chat Interno</h3>
+            <h3 className="section-title"><MessageOutlined /> Chat Interno</h3>
 
             {chat.length === 0 ? (
               <Empty description="Sem mensagens" />
@@ -457,7 +453,7 @@ export default function OSCampo() {
 
           {/* Assinatura */}
           <div className="section-assinatura">
-            <h3 className="section-title">Assinatura do Cliente</h3>
+            <h3 className="section-title"><SafetyCertificateOutlined /> Assinatura do Cliente</h3>
 
             {assinatura ? (
               <div className="assinatura-display">

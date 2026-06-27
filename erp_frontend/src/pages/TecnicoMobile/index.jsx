@@ -101,7 +101,7 @@ export default function TecnicoMobile() {
   if (loading) {
     return (
       <PageContainer>
-        <div className="flex-center" style={{ height: '100vh' }}>
+        <div className="flex-center" style={{ height: '100vh', background: '#F8FAFD' }}>
           <Spin size="large" tip="Carregando ordens..." />
         </div>
       </PageContainer>
@@ -112,7 +112,12 @@ export default function TecnicoMobile() {
     <PageContainer>
       <div className="tecnico-mobile-container">
         <div className="tecnico-header">
-          <h1>Minhas OS de Hoje</h1>
+          <div>
+            <h1>Minhas OS de Hoje</h1>
+            <p className="tecnico-header-sub">
+              {ordensHoje.length} ordem{ordensHoje.length === 1 ? '' : 's'} agendada{ordensHoje.length === 1 ? '' : 's'} para hoje
+            </p>
+          </div>
           <Button
             type="text"
             icon={<ReloadOutlined />}

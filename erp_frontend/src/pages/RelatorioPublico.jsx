@@ -12,16 +12,22 @@ import {
   Row,
   Space,
   Spin,
+  Tag,
   Typography,
 } from "antd";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import {
   ArrowDownOutlined,
+  CalendarOutlined,
   CheckCircleOutlined,
   CopyOutlined,
   DownloadOutlined,
   FileTextOutlined,
+  SafetyCertificateOutlined,
   ShareAltOutlined,
+  ToolOutlined,
+  UserOutlined,
+  WalletOutlined,
   WhatsAppOutlined,
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
@@ -30,30 +36,42 @@ import api from "../services/api";
 const { Header, Footer, Content } = Layout;
 const { Text, Title, Paragraph } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const pageStyle = {
   minHeight: "100vh",
-  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+  background: colors.fundoSuave,
   padding: 0,
 };
 
 const contentStyle = {
-  background: "#F4F6F9",
+  background: colors.fundoSuave,
   minHeight: "calc(100vh - 64px - 70px)",
-  padding: "32px 16px",
+  padding: "32px 16px 48px",
 };
 
 const cardStyle = {
   background: "#FFFFFF",
   border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)",
-  marginBottom: 16,
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+  marginBottom: 20,
+  overflow: "hidden",
 };
 
 const headerCardStyle = {
   ...cardStyle,
-  background: "linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)",
-  borderTop: "4px solid #667eea",
+  background: "linear-gradient(135deg, #3B82F6 0%, #5B21B6 100%)",
+  border: "none",
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -159,19 +177,20 @@ export default function RelatorioPublicoPage() {
       <Layout style={pageStyle}>
         <Header
           style={{
-            background: "rgba(255, 255, 255, 0.95)",
+            background: "rgba(255, 255, 255, 0.96)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            borderBottom: `1px solid ${colors.borda}`,
+            boxShadow: "0 6px 20px rgba(15, 23, 42, 0.04)",
           }}
         >
-          <Title level={3} style={{ margin: 0, color: "#667eea" }}>
-            Relatório Público
+          <Title level={3} style={{ margin: 0, color: colors.azul, fontWeight: 800 }}>
+            Relatório de Serviço
           </Title>
         </Header>
         <Content style={contentStyle}>
-          <div style={{ textAlign: "center", paddingTop: 100 }}>
+          <div style={{ textAlign: "center", paddingTop: 120 }}>
             <Spin size="large" />
           </div>
         </Content>
@@ -184,15 +203,16 @@ export default function RelatorioPublicoPage() {
       <Layout style={pageStyle}>
         <Header
           style={{
-            background: "rgba(255, 255, 255, 0.95)",
+            background: "rgba(255, 255, 255, 0.96)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            borderBottom: `1px solid ${colors.borda}`,
+            boxShadow: "0 6px 20px rgba(15, 23, 42, 0.04)",
           }}
         >
-          <Title level={3} style={{ margin: 0, color: "#667eea" }}>
-            Relatório Público
+          <Title level={3} style={{ margin: 0, color: colors.azul, fontWeight: 800 }}>
+            Relatório de Serviço
           </Title>
         </Header>
         <Content style={contentStyle}>
@@ -211,19 +231,43 @@ export default function RelatorioPublicoPage() {
     <Layout style={pageStyle}>
       <Header
         style={{
-          background: "rgba(255, 255, 255, 0.95)",
+          background: "rgba(255, 255, 255, 0.96)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           paddingLeft: 24,
           paddingRight: 24,
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+          borderBottom: `1px solid ${colors.borda}`,
+          boxShadow: "0 6px 20px rgba(15, 23, 42, 0.04)",
         }}
       >
-        <Title level={3} style={{ margin: 0, color: "#667eea" }}>
-          Relatório OS {relatorio.numero}
-        </Title>
-        <Button type="primary" icon={<DownloadOutlined />} onClick={handleBaixarPDF}>
+        <Space align="center" size={12}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 17,
+              flexShrink: 0,
+            }}
+          >
+            <SafetyCertificateOutlined />
+          </div>
+          <Title level={4} style={{ margin: 0, color: colors.texto, fontWeight: 800, lineHeight: 1.1 }}>
+            Relatório OS {relatorio.numero}
+          </Title>
+        </Space>
+        <Button
+          type="primary"
+          icon={<DownloadOutlined />}
+          onClick={handleBaixarPDF}
+          style={{ borderRadius: 8, fontWeight: 600 }}
+        >
           Baixar PDF
         </Button>
       </Header>
@@ -231,84 +275,99 @@ export default function RelatorioPublicoPage() {
       <Content style={contentStyle}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           {/* Dados Principais */}
-          <Card style={headerCardStyle}>
-            <Row gutter={[16, 16]}>
+          <Card style={headerCardStyle} bodyStyle={{ padding: 28 }}>
+            <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={12}>
                 <div>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
                     ORDEM DE SERVIÇO
                   </Text>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#667eea", marginTop: 4 }}>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: "#FFFFFF", marginTop: 4 }}>
                     {relatorio.numero}
                   </div>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
                 <div>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
                     STATUS
                   </Text>
-                  <div style={{ marginTop: 4 }}>
+                  <div style={{ marginTop: 6 }}>
                     {relatorio.status === "concluida" ? (
-                      <Space size="small" style={{ color: "#059669" }}>
-                        <CheckCircleOutlined style={{ fontSize: 20 }} />
-                        <Text strong style={{ color: "#059669", fontSize: 16 }}>
+                      <Space size="small">
+                        <CheckCircleOutlined style={{ fontSize: 20, color: "#A7F3D0" }} />
+                        <Text strong style={{ color: "#FFFFFF", fontSize: 17 }}>
                           Concluída
                         </Text>
                       </Space>
                     ) : (
-                      <Text strong style={{ fontSize: 16, color: "#666" }}>
+                      <Tag
+                        color={statusConfig[relatorio.status]?.color || "default"}
+                        style={{ fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 6 }}
+                      >
                         {statusConfig[relatorio.status]?.label || relatorio.status}
-                      </Text>
+                      </Tag>
                     )}
                   </div>
                 </div>
               </Col>
             </Row>
 
-            <Divider style={{ margin: "16px 0" }} />
+            <Divider style={{ margin: "20px 0", borderColor: "rgba(255,255,255,0.18)" }} />
 
-            <Row gutter={[24, 16]}>
+            <Row gutter={[24, 18]}>
               <Col xs={24} sm={12}>
-                <div>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
-                    CLIENTE
-                  </Text>
-                  <Paragraph style={{ margin: "8px 0 0 0", fontSize: 16, fontWeight: 600 }}>
-                    {relatorio.cliente?.nome}
-                  </Paragraph>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <UserOutlined style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginTop: 3 }} />
+                  <div>
+                    <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
+                      CLIENTE
+                    </Text>
+                    <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
+                      {relatorio.cliente?.nome}
+                    </Paragraph>
+                  </div>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
-                <div>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
-                    TIPO DE SERVIÇO
-                  </Text>
-                  <Paragraph style={{ margin: "8px 0 0 0", fontSize: 16, fontWeight: 600 }}>
-                    {relatorio.tipo_servico?.toUpperCase()}
-                  </Paragraph>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <ToolOutlined style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginTop: 3 }} />
+                  <div>
+                    <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
+                      TIPO DE SERVIÇO
+                    </Text>
+                    <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
+                      {relatorio.tipo_servico?.toUpperCase()}
+                    </Paragraph>
+                  </div>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
-                <div>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
-                    DATA AGENDADA
-                  </Text>
-                  <Paragraph style={{ margin: "8px 0 0 0", fontSize: 16, fontWeight: 600 }}>
-                    {relatorio.data_agendada
-                      ? new Date(relatorio.data_agendada).toLocaleDateString("pt-BR")
-                      : "-"}
-                  </Paragraph>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <CalendarOutlined style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginTop: 3 }} />
+                  <div>
+                    <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
+                      DATA AGENDADA
+                    </Text>
+                    <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
+                      {relatorio.data_agendada
+                        ? new Date(relatorio.data_agendada).toLocaleDateString("pt-BR")
+                        : "-"}
+                    </Paragraph>
+                  </div>
                 </div>
               </Col>
               <Col xs={24} sm={12}>
-                <div>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
-                    VALOR TOTAL
-                  </Text>
-                  <Paragraph style={{ margin: "8px 0 0 0", fontSize: 16, fontWeight: 600 }}>
-                    {moneyFormatter.format(relatorio.valor_total_orcado || 0)}
-                  </Paragraph>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <WalletOutlined style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginTop: 3 }} />
+                  <div>
+                    <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
+                      VALOR TOTAL
+                    </Text>
+                    <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
+                      {moneyFormatter.format(relatorio.valor_total_orcado || 0)}
+                    </Paragraph>
+                  </div>
                 </div>
               </Col>
             </Row>
@@ -316,32 +375,34 @@ export default function RelatorioPublicoPage() {
 
           {/* Descrição do Serviço */}
           {relatorio.descricao_servico && (
-            <Card style={cardStyle}>
-              <Title level={4} style={{ marginTop: 0 }}>
-                <FileTextOutlined /> Descrição do Serviço
+            <Card style={cardStyle} bodyStyle={{ padding: 24 }}>
+              <Title level={4} style={{ marginTop: 0, marginBottom: 14, color: colors.texto, display: "flex", alignItems: "center", gap: 10 }}>
+                <FileTextOutlined style={{ color: colors.azul }} /> Descrição do Serviço
               </Title>
-              <Paragraph>{relatorio.descricao_servico}</Paragraph>
+              <Paragraph style={{ color: colors.textoSecundario, fontSize: 15, lineHeight: 1.7, marginBottom: 0 }}>
+                {relatorio.descricao_servico}
+              </Paragraph>
             </Card>
           )}
 
           {/* Fotos Antes */}
           {fotosAntes.length > 0 && (
-            <Card style={cardStyle}>
-              <Title level={4} style={{ marginTop: 0 }}>
-                Fotos - ANTES
+            <Card style={cardStyle} bodyStyle={{ padding: 24 }}>
+              <Title level={4} style={{ marginTop: 0, marginBottom: 14, color: colors.texto }}>
+                Fotos — Antes
               </Title>
               <Row gutter={[12, 12]}>
                 {fotosAntes.map((foto) => (
                   <Col xs={12} sm={8} md={6} key={foto.id}>
                     <Image
                       src={foto.arquivo}
-                      style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8 }}
+                      style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 10, border: `1px solid ${colors.borda}` }}
                       preview={{
                         mask: "Visualizar",
                       }}
                     />
                     {foto.legenda && (
-                      <Text style={{ display: "block", marginTop: 4, fontSize: 12, color: "#666" }}>
+                      <Text style={{ display: "block", marginTop: 6, fontSize: 12, color: colors.textoFraco }}>
                         {foto.legenda}
                       </Text>
                     )}
@@ -353,22 +414,22 @@ export default function RelatorioPublicoPage() {
 
           {/* Fotos Depois */}
           {fotosDepois.length > 0 && (
-            <Card style={cardStyle}>
-              <Title level={4} style={{ marginTop: 0 }}>
-                <ArrowDownOutlined /> Fotos - DEPOIS
+            <Card style={cardStyle} bodyStyle={{ padding: 24 }}>
+              <Title level={4} style={{ marginTop: 0, marginBottom: 14, color: colors.texto, display: "flex", alignItems: "center", gap: 10 }}>
+                <ArrowDownOutlined style={{ color: colors.verde }} /> Fotos — Depois
               </Title>
               <Row gutter={[12, 12]}>
                 {fotosDepois.map((foto) => (
                   <Col xs={12} sm={8} md={6} key={foto.id}>
                     <Image
                       src={foto.arquivo}
-                      style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8 }}
+                      style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 10, border: `1px solid ${colors.borda}` }}
                       preview={{
                         mask: "Visualizar",
                       }}
                     />
                     {foto.legenda && (
-                      <Text style={{ display: "block", marginTop: 4, fontSize: 12, color: "#666" }}>
+                      <Text style={{ display: "block", marginTop: 6, fontSize: 12, color: colors.textoFraco }}>
                         {foto.legenda}
                       </Text>
                     )}
@@ -380,27 +441,27 @@ export default function RelatorioPublicoPage() {
 
           {/* Assinatura do Cliente */}
           {relatorio.assinatura_cliente && (
-            <Card style={cardStyle}>
-              <Title level={4} style={{ marginTop: 0 }}>
-                ✓ Assinatura do Cliente
+            <Card style={cardStyle} bodyStyle={{ padding: 24 }}>
+              <Title level={4} style={{ marginTop: 0, marginBottom: 14, color: colors.texto, display: "flex", alignItems: "center", gap: 10 }}>
+                <CheckCircleOutlined style={{ color: colors.verde }} /> Assinatura do Cliente
               </Title>
               <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12}>
                   <div>
-                    <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
+                    <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
                       NOME
                     </Text>
-                    <Paragraph style={{ margin: "8px 0 0 0" }}>
+                    <Paragraph style={{ margin: "6px 0 0 0", color: colors.texto, fontWeight: 600 }}>
                       {relatorio.assinatura_cliente.nome_signatario}
                     </Paragraph>
                   </div>
                 </Col>
                 <Col xs={24} sm={12}>
                   <div>
-                    <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700 }}>
+                    <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
                       DATA
                     </Text>
-                    <Paragraph style={{ margin: "8px 0 0 0" }}>
+                    <Paragraph style={{ margin: "6px 0 0 0", color: colors.texto, fontWeight: 600 }}>
                       {new Date(relatorio.assinatura_cliente.data_assinatura).toLocaleDateString(
                         "pt-BR"
                       )}
@@ -408,7 +469,16 @@ export default function RelatorioPublicoPage() {
                   </div>
                 </Col>
               </Row>
-              <div style={{ marginTop: 16, textAlign: "center" }}>
+              <div
+                style={{
+                  marginTop: 16,
+                  textAlign: "center",
+                  padding: 16,
+                  borderRadius: 12,
+                  border: `1px dashed ${colors.borda}`,
+                  background: colors.fundoSuave,
+                }}
+              >
                 <Image
                   src={relatorio.assinatura_cliente.imagem_assinatura}
                   style={{ maxWidth: 300, maxHeight: 150 }}
@@ -421,16 +491,16 @@ export default function RelatorioPublicoPage() {
           )}
 
           {/* QR Code e Compartilhamento */}
-          <Card style={cardStyle}>
-            <Title level={4} style={{ marginTop: 0 }}>
-              Compartilhar Relatório
+          <Card style={{ ...cardStyle, marginBottom: 0 }} bodyStyle={{ padding: 24 }}>
+            <Title level={4} style={{ marginTop: 0, marginBottom: 18, color: colors.texto, display: "flex", alignItems: "center", gap: 10 }}>
+              <ShareAltOutlined style={{ color: colors.azul }} /> Compartilhar Relatório
             </Title>
             <Row gutter={[24, 24]}>
               <Col xs={24} sm={12}>
                 <Space direction="vertical" style={{ width: "100%" }} size="large">
                   <div>
-                    <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 8 }}>
-                      Link do Relatório
+                    <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 700, display: "block", marginBottom: 8, letterSpacing: "0.05em" }}>
+                      LINK DO RELATÓRIO
                     </Text>
                     <Input.Group compact style={{ display: "flex", gap: 8 }}>
                       <input
@@ -440,33 +510,40 @@ export default function RelatorioPublicoPage() {
                         style={{
                           flex: 1,
                           padding: "8px 12px",
-                          border: "1px solid #d9d9d9",
-                          borderRadius: 6,
+                          border: `1px solid ${colors.borda}`,
+                          borderRadius: 8,
                           fontSize: 12,
                           fontFamily: "monospace",
+                          background: colors.fundoSuave,
+                          color: colors.textoSecundario,
                         }}
                       />
-                      <Button icon={<CopyOutlined />} onClick={handleCopiarLink}>
+                      <Button icon={<CopyOutlined />} onClick={handleCopiarLink} style={{ borderRadius: 8 }}>
                         Copiar
                       </Button>
                     </Input.Group>
                   </div>
 
-                  <Space direction="vertical" style={{ width: "100%" }}>
+                  <Space direction="vertical" style={{ width: "100%" }} size={10}>
                     <Button
                       block
                       type="primary"
+                      size="large"
                       icon={<ShareAltOutlined />}
                       onClick={handleCompartilhar}
+                      style={{ borderRadius: 8, fontWeight: 600 }}
                     >
                       Compartilhar
                     </Button>
                     <Button
                       block
+                      size="large"
                       style={{
                         background: "#25D366",
                         borderColor: "#25D366",
                         color: "white",
+                        borderRadius: 8,
+                        fontWeight: 600,
                       }}
                       icon={<WhatsAppOutlined />}
                       onClick={handleCompartilharWhatsApp}
@@ -478,10 +555,18 @@ export default function RelatorioPublicoPage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ textAlign: "center" }}>
-                  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 12 }}>
-                    Código QR
+                  <Text style={{ color: colors.textoFraco, fontSize: 12, fontWeight: 700, display: "block", marginBottom: 12, letterSpacing: "0.05em" }}>
+                    CÓDIGO QR
                   </Text>
-                  <div style={{ background: "#f5f5f5", padding: 16, borderRadius: 8, display: "inline-block" }}>
+                  <div
+                    style={{
+                      background: "#FFFFFF",
+                      border: `1px solid ${colors.borda}`,
+                      padding: 18,
+                      borderRadius: 14,
+                      display: "inline-block",
+                    }}
+                  >
                     <QRCode value={relatorioUrl} size={200} level="H" includeMargin={true} />
                   </div>
                 </div>
@@ -494,13 +579,13 @@ export default function RelatorioPublicoPage() {
       <Footer
         style={{
           textAlign: "center",
-          background: "rgba(255, 255, 255, 0.95)",
-          borderTop: "1px solid #E2E6EC",
-          padding: "16px 24px",
+          background: "rgba(255, 255, 255, 0.96)",
+          borderTop: `1px solid ${colors.borda}`,
+          padding: "18px 24px",
         }}
       >
-        <Text style={{ color: "#6B7280", fontSize: 12 }}>
-          © 2026 ERP - Relatório Público. Todos os direitos reservados.
+        <Text style={{ color: colors.textoFraco, fontSize: 12 }}>
+          © 2026 ERP Nexus — Relatório Público. Todos os direitos reservados.
         </Text>
       </Footer>
     </Layout>

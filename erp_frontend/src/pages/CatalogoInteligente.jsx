@@ -37,16 +37,21 @@ const { Paragraph, Text, Title } = Typography;
 const { TextArea } = Input;
 
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#F4F6F9",
-  padding: 24,
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
 };
 
 const panelStyle = {
-  background: "#FFFFFF",
   border: "1px solid #E2E6EC",
-  borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+  overflow: "hidden",
+};
+
+const statCardStyle = {
+  ...panelStyle,
+  minHeight: 110,
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -338,23 +343,24 @@ export default function CatalogoInteligentePage() {
 
   return (
     <div style={pageStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <Title level={1} style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>
+          <Title level={1} style={{ margin: 0, fontSize: 28, fontWeight: 800, color: "#10233C" }}>
+            <ThunderboltOutlined style={{ color: "#3B82F6", marginRight: 10 }} />
             Motor de Catálogo
           </Title>
-          <Text style={{ color: "#6B7280" }}>Crie produtos e serviços em lote a partir de texto, CSV ou planilha.</Text>
+          <Text style={{ color: "#5A6070" }}>Crie produtos e serviços em lote a partir de texto, CSV ou planilha.</Text>
         </div>
         <Space wrap>
-          <Button onClick={() => navigate("/estoque")} icon={<DatabaseOutlined />}>Estoque</Button>
-          <Button onClick={() => navigate("/servicos")} icon={<CheckCircleOutlined />}>Serviços</Button>
+          <Button onClick={() => navigate("/estoque")} icon={<DatabaseOutlined />} style={{ borderRadius: 8 }}>Estoque</Button>
+          <Button onClick={() => navigate("/servicos")} icon={<CheckCircleOutlined />} style={{ borderRadius: 8 }}>Serviços</Button>
         </Space>
       </div>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[20, 20]}>
         <Col xs={24} xl={9}>
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Card bordered={false} style={panelStyle} title="Entrada">
+          <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            <Card bordered={false} style={panelStyle} title={<span style={{ fontWeight: 700, color: "#10233C" }}>Entrada</span>}>
               <Form
                 form={form}
                 layout="vertical"
@@ -440,14 +446,15 @@ export default function CatalogoInteligentePage() {
                   loading={analisando}
                   disabled={criando}
                   onClick={analisar}
-                  style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700, marginTop: 16 }}
+                  size="large"
+                  style={{ borderRadius: 8, fontWeight: 700, marginTop: 16 }}
                 >
                   Analisar catálogo
                 </Button>
               </Form>
             </Card>
 
-            <Card bordered={false} style={panelStyle} title="Ensinar o motor">
+            <Card bordered={false} style={panelStyle} title={<span style={{ fontWeight: 700, color: "#10233C" }}>Ensinar o motor</span>}>
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
                 <Text type="secondary">
                   Escreva uma regra. Ex.: Quando o cliente falar split pingando, sugira limpeza de dreno e revisão de bandeja.
@@ -457,12 +464,14 @@ export default function CatalogoInteligentePage() {
                   value={mensagemMotor}
                   onChange={(event) => setMensagemMotor(event.target.value)}
                   placeholder="Quando acontecer X, sugira Y"
+                  style={{ borderRadius: 8 }}
                 />
                 <Button
                   block
                   icon={<MessageOutlined />}
                   loading={ensinando}
                   onClick={conversarComMotor}
+                  size="large"
                   style={{ borderRadius: 8, fontWeight: 700 }}
                 >
                   Enviar para a memória
@@ -494,30 +503,36 @@ export default function CatalogoInteligentePage() {
             <Card
               bordered={false}
               style={panelStyle}
-              title="Memória do ERP"
+              title={<span style={{ fontWeight: 700, color: "#10233C" }}>Memória do ERP</span>}
               extra={
-                <Button size="small" icon={<ReloadOutlined />} loading={carregandoMemoria} onClick={carregarMemoria}>
+                <Button size="small" icon={<ReloadOutlined />} loading={carregandoMemoria} onClick={carregarMemoria} style={{ borderRadius: 8 }}>
                   Atualizar
                 </Button>
               }
             >
-              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              <Space direction="vertical" size={14} style={{ width: "100%" }}>
                 <Row gutter={[8, 8]}>
                   <Col span={8}>
-                    <Text type="secondary">Ativos</Text>
-                    <div style={{ fontSize: 20, fontWeight: 900 }}>{dashboardMemoria?.ativos || 0}</div>
+                    <div style={{ textAlign: "center", padding: "10px 4px", borderRadius: 10, background: "#F8FAFD" }}>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>Ativos</Text>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: "#10233C" }}>{dashboardMemoria?.ativos || 0}</div>
+                    </div>
                   </Col>
                   <Col span={8}>
-                    <Text type="secondary">Pendentes</Text>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: "#F59E0B" }}>{dashboardMemoria?.pendentes || 0}</div>
+                    <div style={{ textAlign: "center", padding: "10px 4px", borderRadius: 10, background: "#FFFBEB" }}>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>Pendentes</Text>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: "#B45309" }}>{dashboardMemoria?.pendentes || 0}</div>
+                    </div>
                   </Col>
                   <Col span={8}>
-                    <Text type="secondary">Total</Text>
-                    <div style={{ fontSize: 20, fontWeight: 900 }}>{dashboardMemoria?.total || 0}</div>
+                    <div style={{ textAlign: "center", padding: "10px 4px", borderRadius: 10, background: "#F8FAFD" }}>
+                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>Total</Text>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: "#10233C" }}>{dashboardMemoria?.total || 0}</div>
+                    </div>
                   </Col>
                 </Row>
 
-                <Button block icon={<ThunderboltOutlined />} loading={aprendendoOS} onClick={aprenderComOS}>
+                <Button block icon={<ThunderboltOutlined />} loading={aprendendoOS} onClick={aprenderComOS} style={{ borderRadius: 8, fontWeight: 600 }}>
                   Aprender com OS concluídas
                 </Button>
 
@@ -560,24 +575,24 @@ export default function CatalogoInteligentePage() {
         </Col>
 
         <Col xs={24} xl={15}>
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Row gutter={[12, 12]}>
+          <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
-                <Card bordered={false} style={panelStyle}>
-                  <Text type="secondary">Produtos</Text>
-                  <div style={{ color: "#2563EB", fontSize: 26, fontWeight: 900 }}>{totais.produtos}</div>
+                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }}>
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Produtos</Text>
+                  <div style={{ color: "#2563EB", fontSize: 30, fontWeight: 900, marginTop: 6 }}>{totais.produtos}</div>
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card bordered={false} style={panelStyle}>
-                  <Text type="secondary">Serviços</Text>
-                  <div style={{ color: "#15803D", fontSize: 26, fontWeight: 900 }}>{totais.servicos}</div>
+                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }}>
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Serviços</Text>
+                  <div style={{ color: "#15803D", fontSize: 30, fontWeight: 900, marginTop: 6 }}>{totais.servicos}</div>
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card bordered={false} style={panelStyle}>
-                  <Text type="secondary">Valor de venda</Text>
-                  <div style={{ color: "#111827", fontSize: 24, fontWeight: 900 }}>{moneyFormatter.format(totais.valor)}</div>
+                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }}>
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Valor de venda</Text>
+                  <div style={{ color: "#10233C", fontSize: 26, fontWeight: 900, marginTop: 6 }}>{moneyFormatter.format(totais.valor)}</div>
                 </Card>
               </Col>
             </Row>
@@ -585,7 +600,7 @@ export default function CatalogoInteligentePage() {
             <Card
               bordered={false}
               style={panelStyle}
-              title="Prévia"
+              title={<span style={{ fontWeight: 700, color: "#10233C" }}>Prévia</span>}
               extra={
                 <Button
                   type="primary"
@@ -593,16 +608,29 @@ export default function CatalogoInteligentePage() {
                   loading={criando}
                   disabled={!itens.length || analisando}
                   onClick={criarItens}
-                  style={{ background: "#3B82F6", borderRadius: 8, fontWeight: 700 }}
+                  style={{ borderRadius: 8, fontWeight: 700 }}
                 >
                   Criar em lote
                 </Button>
               }
             >
               {!itens.length ? (
-                <div style={{ color: "#6B7280", padding: "48px 12px", textAlign: "center" }}>
-                  <ThunderboltOutlined style={{ color: "#3B82F6", fontSize: 34, marginBottom: 12 }} />
-                  <Paragraph>Envie uma lista para ver a separação automática.</Paragraph>
+                <div style={{ color: "#5A6070", padding: "56px 12px", textAlign: "center" }}>
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      margin: "0 auto 16px",
+                      borderRadius: 16,
+                      background: "#EFF6FF",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ThunderboltOutlined style={{ color: "#3B82F6", fontSize: 30 }} />
+                  </div>
+                  <Paragraph style={{ color: "#5A6070" }}>Envie uma lista para ver a separação automática.</Paragraph>
                 </div>
               ) : (
                 <Space direction="vertical" size={12} style={{ width: "100%" }}>

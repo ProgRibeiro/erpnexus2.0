@@ -419,10 +419,10 @@ export default function LoginPage() {
             <ArrowLeftOutlined /> Escolher outro modo
           </button>
 
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#1A1D23", margin: 0, lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#10233C", margin: 0, lineHeight: 1.2 }}>
             Bem-vindo de volta
           </h1>
-          <span style={{ fontSize: 14, color: "#9099A8", marginTop: 8, display: "block" }}>
+          <span style={{ fontSize: 14, color: "#5A6070", marginTop: 8, display: "block" }}>
             Faça login para acessar o {modoData.modoLabel}
           </span>
 
@@ -482,14 +482,15 @@ export default function LoginPage() {
                   disabled={loading}
                   style={{
                     width: "100%",
-                    height: 44,
+                    height: 46,
                     background: "#3B82F6",
                     borderColor: "#3B82F6",
                     borderRadius: 8,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: 15,
                     color: "#fff",
                     marginTop: 8,
+                    boxShadow: "0 12px 28px rgba(59, 130, 246, 0.28)",
                   }}
                 >
                   {loading ? "Entrando…" : "Entrar"}
@@ -552,13 +553,14 @@ function ModoCard({ modo, Icone, isMobile, onClick }) {
         alignItems: "center",
         gap: 16,
         cursor: "pointer",
-        transform: hovered ? "translateY(-4px)" : "translateY(0)",
+        transform: hovered ? "translateY(-6px)" : "translateY(0)",
         boxShadow: hovered
-          ? "0 20px 60px rgba(0,0,0,0.25)"
-          : "0 4px 24px rgba(0,0,0,0.10)",
+          ? "0 26px 64px rgba(15, 23, 42, 0.24)"
+          : "0 14px 36px rgba(15, 23, 42, 0.14)",
         transition: "all 0.2s ease",
         position: "relative",
         overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.12)",
       }}
     >
       <div
