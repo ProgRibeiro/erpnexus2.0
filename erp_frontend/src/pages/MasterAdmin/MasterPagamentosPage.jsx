@@ -9,6 +9,19 @@ const { Title, Text } = Typography;
 const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (v) => moneyFmt.format(Number(v || 0));
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const STATUS_COLORS = { pendente: "orange", pago: "green", vencido: "red", cancelado: "default" };
 const STATUS_LABELS = { pendente: "Pendente", pago: "Pago", vencido: "Vencido", cancelado: "Cancelado" };
 const SISTEMA_COLORS = { erp: "blue", facilities: "green", ambos: "purple" };
@@ -85,8 +98,9 @@ export default function MasterPagamentosPage() {
     : "0.0";
 
   const CARD_STYLE = {
-    background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
+    background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
     padding: "16px 20px", textAlign: "center",
+    boxShadow: "0 10px 26px rgba(15,23,42,0.045)",
   };
 
   const columns = [
@@ -94,7 +108,7 @@ export default function MasterPagamentosPage() {
       title: "Cliente", key: "cliente",
       render: (_, r) => {
         const nome = r.assinatura?.cliente?.nome_empresa || r.assinatura?.cliente_nome || "—";
-        return <Text strong style={{ fontSize: 13 }}>{nome}</Text>;
+        return <Text strong style={{ fontSize: 13, color: colors.texto }}>{nome}</Text>;
       },
     },
     {
@@ -104,7 +118,7 @@ export default function MasterPagamentosPage() {
         const sistema = r.assinatura?.plano_sistema || "";
         return (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>{plano}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: colors.texto }}>{plano}</div>
             {sistema && (
               <Tag color={SISTEMA_COLORS[sistema] || "default"} style={{ fontSize: 10, marginTop: 2 }}>
                 {SISTEMA_LABELS[sistema] || sistema}
@@ -120,13 +134,13 @@ export default function MasterPagamentosPage() {
     },
     {
       title: "Valor", dataIndex: "valor_cobrado", key: "valor",
-      render: (v) => <Text strong style={{ fontSize: 13, color: "#0F172A" }}>{fmt(v)}</Text>,
+      render: (v) => <Text strong style={{ fontSize: 13, color: colors.texto }}>{fmt(v)}</Text>,
     },
     {
       title: "Vencimento", dataIndex: "data_vencimento", key: "venc",
       render: (v) => {
         const overdue = v && v < hoje;
-        return <Text style={{ fontSize: 12, color: overdue ? "#EF4444" : "#374151" }}>{v || "—"}</Text>;
+        return <Text style={{ fontSize: 12, color: overdue ? colors.vermelho : colors.textoSecundario }}>{v || "—"}</Text>;
       },
     },
     {
@@ -142,7 +156,7 @@ export default function MasterPagamentosPage() {
       render: (_, r) => r.status !== "pago" ? (
         <Button
           size="small" icon={<CheckCircleOutlined />} type="primary"
-          style={{ fontSize: 11, background: "#10B981", borderColor: "#10B981" }}
+          style={{ fontSize: 11, background: colors.verde, borderColor: colors.verde, borderRadius: 6 }}
           onClick={() => {
             setModalPagamento({ pagamentoId: r.id });
             formPagamento.setFieldsValue({ data_pagamento: hoje, forma: "pix" });
@@ -155,41 +169,45 @@ export default function MasterPagamentosPage() {
   ];
 
   return (
-    <div style={{ padding: 28, background: "#F8FAFC", minHeight: "100vh" }}>
+    <div style={{ padding: 28, background: colors.fundoSuave, minHeight: "100vh" }}>
       <div style={{ marginBottom: 20 }}>
-        <Title level={4} style={{ margin: 0, color: "#0F172A" }}>Pagamentos</Title>
+        <Title level={4} style={{ margin: 0, color: colors.texto }}>Pagamentos</Title>
       </div>
 
       {/* KPI */}
       <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
-        <Col xs={12} sm={6}>
+        <Col xs={12} sm={12} md={6}>
           <div style={CARD_STYLE}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#10B981" }}>{fmt(recebidoMes)}</div>
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Recebido este mês</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.verde }}>{fmt(recebidoMes)}</div>
+            <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Recebido este mês</div>
           </div>
         </Col>
-        <Col xs={12} sm={6}>
+        <Col xs={12} sm={12} md={6}>
           <div style={CARD_STYLE}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#F59E0B" }}>{fmt(totalPendente)}</div>
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Pendente</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.laranja }}>{fmt(totalPendente)}</div>
+            <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Pendente</div>
           </div>
         </Col>
-        <Col xs={12} sm={6}>
+        <Col xs={12} sm={12} md={6}>
           <div style={CARD_STYLE}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#EF4444" }}>{fmt(totalVencido)}</div>
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Vencido</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.vermelho }}>{fmt(totalVencido)}</div>
+            <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Vencido</div>
           </div>
         </Col>
-        <Col xs={12} sm={6}>
+        <Col xs={12} sm={12} md={6}>
           <div style={CARD_STYLE}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#EF4444" }}>{inadimplencia}%</div>
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Inadimplência</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.vermelho }}>{inadimplencia}%</div>
+            <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Inadimplência</div>
           </div>
         </Col>
       </Row>
 
       {/* Filtros */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{
+        display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap",
+        background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
+        padding: "14px 18px", boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+      }}>
         <Input.Search
           placeholder="Buscar cliente..."
           value={buscaText}
@@ -217,7 +235,7 @@ export default function MasterPagamentosPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15,23,42,0.05)" }}>
         <Table
           columns={columns}
           dataSource={pagFiltrados}
@@ -225,6 +243,7 @@ export default function MasterPagamentosPage() {
           loading={loading}
           size="middle"
           pagination={{ pageSize: 20 }}
+          scroll={{ x: 900 }}
         />
       </div>
 
@@ -236,7 +255,7 @@ export default function MasterPagamentosPage() {
         onOk={() => formPagamento.submit()}
         confirmLoading={savingPagamento}
         okText="Confirmar"
-        okButtonProps={{ style: { background: "#10B981", borderColor: "#10B981" } }}
+        okButtonProps={{ style: { background: colors.verde, borderColor: colors.verde } }}
       >
         <Form form={formPagamento} layout="vertical" onFinish={handleConfirmar}>
           <Form.Item name="data_pagamento" label="Data do Pagamento" rules={[{ required: true }]}>

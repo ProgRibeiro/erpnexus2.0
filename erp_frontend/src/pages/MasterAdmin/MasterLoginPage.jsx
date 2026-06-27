@@ -34,44 +34,58 @@ export default function MasterLoginPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)",
+      background: "linear-gradient(135deg, #0B1220 0%, #111827 50%, #0B1120 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      padding: "24px 16px",
+      position: "relative",
+      overflow: "hidden",
     }}>
-      <div style={{ width: 420 }}>
+      <div style={{
+        position: "absolute", width: 520, height: 520, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(59,130,246,0.16), transparent 70%)",
+        top: "-12%", left: "-8%", pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", width: 480, height: 480, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(91,33,182,0.16), transparent 70%)",
+        bottom: "-14%", right: "-8%", pointerEvents: "none",
+      }} />
+
+      <div style={{ width: 420, position: "relative", zIndex: 1 }}>
         {/* Logo + badge */}
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div style={{
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 80,
-            height: 80,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
-            boxShadow: "0 8px 32px rgba(99,102,241,0.4)",
+            width: 76,
+            height: 76,
+            borderRadius: 20,
+            background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
+            boxShadow: "0 14px 36px rgba(59,130,246,0.32)",
             marginBottom: 20,
           }}>
-            <CrownOutlined style={{ fontSize: 36, color: "#fff" }} />
+            <CrownOutlined style={{ fontSize: 34, color: "#fff" }} />
           </div>
-          <Title level={2} style={{ color: "#fff", margin: 0, fontWeight: 800 }}>
+          <Title level={2} style={{ color: "#F8FAFC", margin: 0, fontWeight: 800 }}>
             Master Admin
           </Title>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 10 }}>
             <span style={{
-              background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+              background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
               color: "#fff",
               padding: "4px 16px",
               borderRadius: 20,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 700,
               letterSpacing: 2,
             }}>
               ERP NEXUS • CONTROLE GERAL
             </span>
           </div>
-          <Text style={{ color: "#94A3B8", display: "block", marginTop: 16, fontSize: 14 }}>
+          <Text style={{ color: "#94A3B8", display: "block", marginTop: 16, fontSize: 14, lineHeight: 1.6 }}>
             Painel exclusivo do proprietário. Gerencie planos,<br />
             clientes e pagamentos dos dois sistemas.
           </Text>
@@ -79,12 +93,12 @@ export default function MasterLoginPage() {
 
         {/* Card de login */}
         <div style={{
-          background: "rgba(255,255,255,0.05)",
+          background: "rgba(255,255,255,0.04)",
           backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 20,
-          padding: "40px 36px",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+          border: "1px solid rgba(148,163,184,0.16)",
+          borderRadius: 18,
+          padding: "36px 32px",
+          boxShadow: "0 28px 64px rgba(0,0,0,0.38)",
         }}>
           <Form
             layout="vertical"
@@ -98,18 +112,18 @@ export default function MasterLoginPage() {
             <Form.Item
               name="email"
               rules={[{ required: true, message: "Informe o e-mail." }]}
-              style={{ marginBottom: 20 }}
+              style={{ marginBottom: 18 }}
             >
               <Input
-                prefix={<MailOutlined style={{ color: "#6366F1" }} />}
+                prefix={<MailOutlined style={{ color: "#60A5FA" }} />}
                 placeholder="E-mail master"
                 size="large"
                 style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(148,163,184,0.22)",
+                  borderRadius: 10,
                   color: "#fff",
-                  height: 52,
+                  height: 50,
                 }}
               />
             </Form.Item>
@@ -117,18 +131,18 @@ export default function MasterLoginPage() {
             <Form.Item
               name="senha"
               rules={[{ required: true, message: "Informe a senha." }]}
-              style={{ marginBottom: 28 }}
+              style={{ marginBottom: 26 }}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: "#6366F1" }} />}
+                prefix={<LockOutlined style={{ color: "#60A5FA" }} />}
                 placeholder="Senha master"
                 size="large"
                 style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(148,163,184,0.22)",
+                  borderRadius: 10,
                   color: "#fff",
-                  height: 52,
+                  height: 50,
                 }}
               />
             </Form.Item>
@@ -140,13 +154,13 @@ export default function MasterLoginPage() {
               block
               size="large"
               style={{
-                height: 52,
-                borderRadius: 12,
-                background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+                height: 50,
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
                 border: "none",
                 fontWeight: 700,
-                fontSize: 16,
-                boxShadow: "0 8px 24px rgba(99,102,241,0.4)",
+                fontSize: 15,
+                boxShadow: "0 10px 26px rgba(59,130,246,0.35)",
               }}
             >
               {loading ? "Verificando..." : "Entrar no Painel Master"}
@@ -157,7 +171,7 @@ export default function MasterLoginPage() {
             Ambiente de desenvolvimento: admin@admin.com / admin123
           </Text>
 
-          <div style={{ textAlign: "center", marginTop: 24 }}>
+          <div style={{ textAlign: "center", marginTop: 22 }}>
             <Button
               type="link"
               style={{ color: "#94A3B8", fontSize: 13 }}

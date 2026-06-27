@@ -5,6 +5,19 @@ import masterApi from "../../services/masterApi";
 
 const { Title, Text } = Typography;
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const ACAO_LABELS = {
   login_sucesso: "Login bem-sucedido",
   login_falha: "Tentativa de login falhou",
@@ -77,15 +90,15 @@ export default function MasterLogsPage() {
   });
 
   function renderDetalhes(det) {
-    if (!det || Object.keys(det).length === 0) return <Text style={{ color: "#CBD5E1", fontSize: 11 }}>—</Text>;
+    if (!det || Object.keys(det).length === 0) return <Text style={{ color: colors.textoFraco, fontSize: 11 }}>—</Text>;
     return (
       <div style={{
-        background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 6,
-        padding: "4px 8px", fontSize: 11, color: "#64748B", fontFamily: "monospace",
+        background: colors.fundoSuave, border: `1px solid ${colors.borda}`, borderRadius: 8,
+        padding: "4px 8px", fontSize: 11, color: colors.textoSecundario, fontFamily: "monospace",
         maxWidth: 280, overflow: "hidden",
       }}>
         {Object.entries(det).map(([k, v]) => (
-          <div key={k}><Text style={{ color: "#94A3B8", fontSize: 10 }}>{k}:</Text> {String(v)}</div>
+          <div key={k}><Text style={{ color: colors.textoFraco, fontSize: 10 }}>{k}:</Text> {String(v)}</div>
         ))}
       </div>
     );
@@ -97,7 +110,7 @@ export default function MasterLogsPage() {
       dataIndex: "timestamp",
       key: "ts",
       width: 160,
-      render: (v) => <Text style={{ fontSize: 12, color: "#374151" }}>{formatDatetime(v)}</Text>,
+      render: (v) => <Text style={{ fontSize: 12, color: colors.textoSecundario }}>{formatDatetime(v)}</Text>,
     },
     {
       title: "Ação",
@@ -121,28 +134,32 @@ export default function MasterLogsPage() {
       dataIndex: "ip",
       key: "ip",
       width: 130,
-      render: (v) => <Text style={{ fontSize: 12, fontFamily: "monospace", color: "#64748B" }}>{v || "—"}</Text>,
+      render: (v) => <Text style={{ fontSize: 12, fontFamily: "monospace", color: colors.textoSecundario }}>{v || "—"}</Text>,
     },
   ];
 
   return (
-    <div style={{ padding: 28, background: "#F8FAFC", minHeight: "100vh" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+    <div style={{ padding: 28, background: colors.fundoSuave, minHeight: "100vh" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Title level={4} style={{ margin: 0, color: "#0F172A" }}>Logs de Acesso</Title>
-          <Text style={{ color: "#94A3B8", fontSize: 13 }}>{logsFiltrados.length} registros</Text>
+          <Title level={4} style={{ margin: 0, color: colors.texto }}>Logs de Acesso</Title>
+          <Text style={{ color: colors.textoFraco, fontSize: 13 }}>{logsFiltrados.length} registros</Text>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Text style={{ fontSize: 12, color: "#64748B" }}>Auto-refresh 30s</Text>
+          <Text style={{ fontSize: 12, color: colors.textoSecundario }}>Auto-refresh 30s</Text>
           <Switch size="small" checked={autoRefresh} onChange={setAutoRefresh} />
-          <Button icon={<ReloadOutlined />} size="small" onClick={load} loading={loading}>
+          <Button icon={<ReloadOutlined />} size="small" onClick={load} loading={loading} style={{ borderRadius: 6 }}>
             Atualizar
           </Button>
         </div>
       </div>
 
       {/* Filtros */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{
+        display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap",
+        background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
+        padding: "14px 18px", boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+      }}>
         <Select
           placeholder="Filtrar por ação" allowClear value={acaoFiltro || undefined}
           onChange={(v) => setAcaoFiltro(v || "")} style={{ width: 220 }}
@@ -161,7 +178,7 @@ export default function MasterLogsPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15,23,42,0.05)" }}>
         <Table
           columns={columns}
           dataSource={logsFiltrados}
@@ -169,6 +186,7 @@ export default function MasterLogsPage() {
           loading={loading}
           size="small"
           pagination={{ pageSize: 50 }}
+          scroll={{ x: 800 }}
         />
       </div>
     </div>

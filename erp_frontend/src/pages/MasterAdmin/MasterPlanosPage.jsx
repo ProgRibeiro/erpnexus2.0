@@ -9,6 +9,19 @@ import masterApi from "../../services/masterApi";
 const { Title, Text } = Typography;
 const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const SISTEMAS = [
   { value: "erp", label: "ERP Nexus" },
   { value: "facilities", label: "Facilities SaaS" },
@@ -88,13 +101,13 @@ export default function MasterPlanosPage() {
       key: "sistema",
       render: (v, r) => <Tag color={SISTEMA_COLORS[v]}>{r.sistema_display || v}</Tag>,
     },
-    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong>{v}</Text> },
+    { title: "Nome", dataIndex: "nome", key: "nome", render: (v) => <Text strong style={{ color: colors.texto }}>{v}</Text> },
     { title: "Descrição", dataIndex: "descricao", key: "descricao", ellipsis: true },
     {
       title: "Valor Mensal",
       dataIndex: "valor_mensal",
       key: "valor",
-      render: (v) => <Text strong style={{ color: "#6366F1" }}>{moneyFmt.format(Number(v))}</Text>,
+      render: (v) => <Text strong style={{ color: colors.azul }}>{moneyFmt.format(Number(v))}</Text>,
     },
     {
       title: "Limites",
@@ -122,7 +135,7 @@ export default function MasterPlanosPage() {
       dataIndex: "ativo",
       key: "ativo",
       render: (v) => v
-        ? <CheckCircleOutlined style={{ color: "#10B981", fontSize: 18 }} />
+        ? <CheckCircleOutlined style={{ color: colors.verde, fontSize: 18 }} />
         : <Text type="secondary">—</Text>,
     },
     {
@@ -140,25 +153,35 @@ export default function MasterPlanosPage() {
   ];
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <div style={{ padding: 28, background: colors.fundoSuave, minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Planos</Title>
+          <Title level={3} style={{ margin: 0, color: colors.texto }}>Planos</Title>
           <Text type="secondary">Gerencie os planos disponíveis para ERP Nexus e Facilities SaaS.</Text>
         </div>
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          style={{ background: "#6366F1", borderColor: "#6366F1", borderRadius: 10 }}
+          style={{ background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none", borderRadius: 8, fontWeight: 600 }}
           onClick={abrirNovo}
         >
           Novo Plano
         </Button>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-        <Table columns={columns} dataSource={planos} loading={loading} rowKey="id" pagination={{ pageSize: 20 }} />
-      </Card>
+      <div style={{
+        background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 16,
+        boxShadow: "0 14px 36px rgba(15,23,42,0.05)", overflow: "hidden",
+      }}>
+        <Table
+          columns={columns}
+          dataSource={planos}
+          loading={loading}
+          rowKey="id"
+          pagination={{ pageSize: 20 }}
+          scroll={{ x: 1000 }}
+        />
+      </div>
 
       <Drawer
         title={editando ? "Editar Plano" : "Novo Plano"}
@@ -166,7 +189,7 @@ export default function MasterPlanosPage() {
         onClose={() => setDrawerOpen(false)}
         width={480}
         extra={
-          <Button type="primary" style={{ background: "#6366F1" }} onClick={() => form.submit()}>
+          <Button type="primary" style={{ background: colors.azul, borderRadius: 8 }} onClick={() => form.submit()}>
             Salvar
           </Button>
         }

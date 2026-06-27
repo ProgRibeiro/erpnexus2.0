@@ -10,6 +10,19 @@ const { Title, Text } = Typography;
 const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (v) => moneyFmt.format(Number(v || 0));
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const STATUS_COLORS = { ativo: "green", trial: "blue", suspenso: "red", cancelado: "default" };
 const STATUS_LABELS = { ativo: "Ativo", trial: "Trial", suspenso: "Suspenso", cancelado: "Cancelado" };
 const SISTEMA_COLORS = { erp: "blue", facilities: "green", ambos: "purple" };
@@ -18,9 +31,9 @@ const PGTO_STATUS_COLORS = { pendente: "orange", pago: "green", vencido: "red", 
 const PGTO_STATUS_LABELS = { pendente: "Pendente", pago: "Pago", vencido: "Vencido", cancelado: "Cancelado" };
 
 function avatarColor(name) {
-  const colors = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6", "#06B6D4"];
-  const i = (name || "?").charCodeAt(0) % colors.length;
-  return colors[i];
+  const palette = [colors.azul, colors.verde, colors.laranja, colors.vermelho, "#0E7490", colors.roxo, "#2563EB"];
+  const i = (name || "?").charCodeAt(0) % palette.length;
+  return palette[i];
 }
 
 export default function MasterClientesPage() {
@@ -167,8 +180,8 @@ export default function MasterClientesPage() {
             {(r.nome_empresa || "?")[0].toUpperCase()}
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>{r.nome_empresa}</div>
-            <div style={{ fontSize: 11, color: "#94A3B8" }}>{r.email_responsavel}</div>
+            <div style={{ fontWeight: 600, fontSize: 13, color: colors.texto }}>{r.nome_empresa}</div>
+            <div style={{ fontSize: 11, color: colors.textoFraco }}>{r.email_responsavel}</div>
           </div>
         </div>
       ),
@@ -183,18 +196,18 @@ export default function MasterClientesPage() {
         ? <Tag color={SISTEMA_COLORS[r.assinatura_ativa.sistema] || "default"} style={{ fontSize: 11 }}>
             {SISTEMA_LABELS[r.assinatura_ativa.sistema] || r.assinatura_ativa.sistema}
           </Tag>
-        : <Text style={{ color: "#CBD5E1", fontSize: 12 }}>—</Text>,
+        : <Text style={{ color: colors.textoFraco, fontSize: 12 }}>—</Text>,
     },
     {
       title: "Plano / MRR", key: "plano",
       render: (_, r) => r.assinatura_ativa
         ? (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>{r.assinatura_ativa.plano}</div>
-            <div style={{ fontSize: 11, color: "#10B981" }}>{fmt(r.assinatura_ativa.valor)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: colors.texto }}>{r.assinatura_ativa.plano}</div>
+            <div style={{ fontSize: 11, color: colors.verde, fontWeight: 600 }}>{fmt(r.assinatura_ativa.valor)}</div>
           </div>
         )
-        : <Text style={{ color: "#CBD5E1", fontSize: 12 }}>—</Text>,
+        : <Text style={{ color: colors.textoFraco, fontSize: 12 }}>—</Text>,
     },
     {
       title: "Status", dataIndex: "status", key: "status",
@@ -204,11 +217,11 @@ export default function MasterClientesPage() {
       title: "Próx. Venc.", key: "venc",
       render: (_, r) => {
         const d = r.assinatura_ativa?.proximo_vencimento;
-        if (!d) return <Text style={{ color: "#CBD5E1", fontSize: 12 }}>—</Text>;
+        if (!d) return <Text style={{ color: colors.textoFraco, fontSize: 12 }}>—</Text>;
         const overdue = d < hoje;
         const close = !overdue && d <= new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
         return (
-          <Text style={{ fontSize: 12, color: overdue ? "#EF4444" : close ? "#F59E0B" : "#374151" }}>
+          <Text style={{ fontSize: 12, color: overdue ? colors.vermelho : close ? colors.laranja : colors.textoSecundario }}>
             {d}
           </Text>
         );
@@ -218,14 +231,14 @@ export default function MasterClientesPage() {
       title: "Ações", key: "acoes",
       render: (_, r) => (
         <Space>
-          <Button size="small" onClick={() => abrirDetalhe(r.id)} style={{ fontSize: 12 }}>Detalhes</Button>
+          <Button size="small" onClick={() => abrirDetalhe(r.id)} style={{ fontSize: 12, borderRadius: 6 }}>Detalhes</Button>
           {r.status === "suspenso" ? (
             <Popconfirm title="Desbloquear cliente?" onConfirm={() => handleDesbloquear(r.id)} okText="Sim" cancelText="Não">
-              <Button size="small" style={{ fontSize: 12, color: "#3B82F6", borderColor: "#3B82F6" }}>Desbloquear</Button>
+              <Button size="small" style={{ fontSize: 12, color: colors.azul, borderColor: colors.azul, borderRadius: 6 }}>Desbloquear</Button>
             </Popconfirm>
           ) : r.status !== "cancelado" ? (
             <Popconfirm title="Bloquear cliente?" onConfirm={() => handleBloquear(r.id)} okText="Sim" cancelText="Não">
-              <Button size="small" danger style={{ fontSize: 12 }}>Bloquear</Button>
+              <Button size="small" danger style={{ fontSize: 12, borderRadius: 6 }}>Bloquear</Button>
             </Popconfirm>
           ) : null}
         </Space>
@@ -251,7 +264,7 @@ export default function MasterClientesPage() {
       render: (_, r) => r.status !== "pago" ? (
         <Button
           size="small" icon={<CheckCircleOutlined />} type="primary"
-          style={{ fontSize: 11, background: "#10B981", borderColor: "#10B981" }}
+          style={{ fontSize: 11, background: colors.verde, borderColor: colors.verde, borderRadius: 6 }}
           onClick={() => {
             setModalPagamento({ pagamentoId: r.id });
             formPagamento.setFieldsValue({ data_pagamento: hoje, forma: "pix" });
@@ -268,16 +281,16 @@ export default function MasterClientesPage() {
     : [];
 
   return (
-    <div style={{ padding: 28, background: "#F8FAFC", minHeight: "100vh" }}>
+    <div style={{ padding: 28, background: colors.fundoSuave, minHeight: "100vh" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Title level={4} style={{ margin: 0, color: "#0F172A" }}>Clientes SaaS</Title>
-          <Badge count={clientes.length} style={{ background: "#6366F1" }} showZero />
+          <Title level={4} style={{ margin: 0, color: colors.texto }}>Clientes SaaS</Title>
+          <Badge count={clientes.length} style={{ background: colors.azul }} showZero />
         </div>
         <Button
           type="primary" icon={<PlusOutlined />}
-          style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", border: "none", borderRadius: 8, fontWeight: 600 }}
+          style={{ background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none", borderRadius: 8, fontWeight: 600 }}
           onClick={() => setDrawerNovo(true)}
         >
           Novo Cliente
@@ -287,25 +300,30 @@ export default function MasterClientesPage() {
       {/* KPI Mini */}
       <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
         {[
-          { label: "Total", value: clientes.length, color: "#6366F1" },
-          { label: "Ativos", value: totalAtivos, color: "#10B981" },
-          { label: "Trial", value: totalTrial, color: "#F59E0B" },
-          { label: "Suspensos", value: totalSuspensos, color: "#EF4444" },
+          { label: "Total", value: clientes.length, color: colors.azul },
+          { label: "Ativos", value: totalAtivos, color: colors.verde },
+          { label: "Trial", value: totalTrial, color: colors.laranja },
+          { label: "Suspensos", value: totalSuspensos, color: colors.vermelho },
         ].map((k) => (
-          <Col key={k.label} xs={12} sm={6}>
+          <Col key={k.label} xs={12} sm={12} md={6}>
             <div style={{
-              background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
+              background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
               padding: "14px 18px", textAlign: "center",
+              boxShadow: "0 10px 26px rgba(15,23,42,0.045)",
             }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>{k.value}</div>
-              <div style={{ fontSize: 12, color: "#64748B" }}>{k.label}</div>
+              <div style={{ fontSize: 12, color: colors.textoSecundario, fontWeight: 500 }}>{k.label}</div>
             </div>
           </Col>
         ))}
       </Row>
 
       {/* Filtros */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{
+        display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap",
+        background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
+        padding: "14px 18px", boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+      }}>
         <Input.Search
           placeholder="Buscar empresa ou email..."
           value={buscaText}
@@ -333,7 +351,7 @@ export default function MasterClientesPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15,23,42,0.05)" }}>
         <Table
           columns={columns}
           dataSource={clientesFiltrados}
@@ -342,6 +360,7 @@ export default function MasterClientesPage() {
           size="middle"
           pagination={{ pageSize: 15 }}
           onRow={(r) => ({ style: { cursor: "pointer" } })}
+          scroll={{ x: 900 }}
         />
       </div>
 
@@ -360,7 +379,7 @@ export default function MasterClientesPage() {
             {/* Header drawer */}
             <div style={{
               padding: "24px 24px 20px",
-              background: "linear-gradient(135deg, #0F172A, #1E293B)",
+              background: "linear-gradient(135deg, #0B1220, #1E293B)",
               display: "flex", alignItems: "center", gap: 16,
             }}>
               <div style={{
@@ -402,15 +421,15 @@ export default function MasterClientesPage() {
                           ["Observações", clienteSel.observacoes],
                         ].map(([label, value]) => value ? (
                           <div key={label} style={{ display: "flex", gap: 12 }}>
-                            <Text style={{ color: "#94A3B8", fontSize: 12, width: 110, flexShrink: 0 }}>{label}</Text>
-                            <Text style={{ fontSize: 13, color: "#0F172A" }}>{value}</Text>
+                            <Text style={{ color: colors.textoFraco, fontSize: 12, width: 110, flexShrink: 0 }}>{label}</Text>
+                            <Text style={{ fontSize: 13, color: colors.texto }}>{value}</Text>
                           </div>
                         ) : null)}
                         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                           {clienteSel.status !== "cancelado" && (
                             clienteSel.status === "suspenso" ? (
                               <Popconfirm title="Desbloquear cliente?" onConfirm={() => handleDesbloquear(clienteSel.id)}>
-                                <Button type="primary" size="small" style={{ background: "#3B82F6", borderColor: "#3B82F6" }}>Desbloquear</Button>
+                                <Button type="primary" size="small" style={{ background: colors.azul, borderColor: colors.azul }}>Desbloquear</Button>
                               </Popconfirm>
                             ) : (
                               <Popconfirm title="Bloquear cliente?" onConfirm={() => handleBloquear(clienteSel.id)}>
@@ -434,8 +453,8 @@ export default function MasterClientesPage() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         {(clienteSel.assinaturas || []).map((a) => (
                           <div key={a.id} style={{
-                            border: "1px solid #E2E8F0", borderRadius: 10, padding: 16,
-                            background: "#F8FAFC",
+                            border: `1px solid ${colors.borda}`, borderRadius: 12, padding: 16,
+                            background: colors.fundoSuave,
                           }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <div>
@@ -446,24 +465,24 @@ export default function MasterClientesPage() {
                               </div>
                               <Tag color={STATUS_COLORS[a.status] || "default"}>{a.status_display || a.status}</Tag>
                             </div>
-                            <div style={{ display: "flex", gap: 24, marginTop: 10 }}>
+                            <div style={{ display: "flex", gap: 24, marginTop: 10, flexWrap: "wrap" }}>
                               <div>
-                                <Text style={{ fontSize: 11, color: "#94A3B8" }}>Valor</Text>
-                                <div style={{ fontSize: 14, fontWeight: 600, color: "#10B981" }}>{fmt(a.valor_com_desconto)}</div>
+                                <Text style={{ fontSize: 11, color: colors.textoFraco }}>Valor</Text>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: colors.verde }}>{fmt(a.valor_com_desconto)}</div>
                               </div>
                               <div>
-                                <Text style={{ fontSize: 11, color: "#94A3B8" }}>Início</Text>
-                                <div style={{ fontSize: 13 }}>{a.data_inicio}</div>
+                                <Text style={{ fontSize: 11, color: colors.textoFraco }}>Início</Text>
+                                <div style={{ fontSize: 13, color: colors.texto }}>{a.data_inicio}</div>
                               </div>
                               {a.desconto_percentual > 0 && (
                                 <div>
-                                  <Text style={{ fontSize: 11, color: "#94A3B8" }}>Desconto</Text>
-                                  <div style={{ fontSize: 13, color: "#F59E0B" }}>{a.desconto_percentual}%</div>
+                                  <Text style={{ fontSize: 11, color: colors.textoFraco }}>Desconto</Text>
+                                  <div style={{ fontSize: 13, color: colors.laranja }}>{a.desconto_percentual}%</div>
                                 </div>
                               )}
                             </div>
                             <Button
-                              size="small" style={{ marginTop: 10, fontSize: 11 }}
+                              size="small" style={{ marginTop: 10, fontSize: 11, borderRadius: 6 }}
                               onClick={() => {
                                 setModalDesconto({ assinaturaId: a.id });
                                 formDesconto.setFieldsValue({ percentual: a.desconto_percentual, motivo: a.motivo_desconto });
@@ -474,7 +493,7 @@ export default function MasterClientesPage() {
                           </div>
                         ))}
                         {(!clienteSel.assinaturas || clienteSel.assinaturas.length === 0) && (
-                          <Text style={{ color: "#94A3B8" }}>Nenhuma assinatura encontrada.</Text>
+                          <Text style={{ color: colors.textoFraco }}>Nenhuma assinatura encontrada.</Text>
                         )}
                       </div>
                     ),
@@ -483,20 +502,23 @@ export default function MasterClientesPage() {
                     key: "pagamentos",
                     label: "Pagamentos",
                     children: (
-                      <Table
-                        columns={pgtoColums}
-                        dataSource={allPagamentos}
-                        rowKey="id"
-                        size="small"
-                        pagination={false}
-                      />
+                      <div style={{ overflowX: "auto" }}>
+                        <Table
+                          columns={pgtoColums}
+                          dataSource={allPagamentos}
+                          rowKey="id"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 600 }}
+                        />
+                      </div>
                     ),
                   },
                   {
                     key: "atividade",
                     label: "Atividade",
                     children: (
-                      <div style={{ padding: "20px 0", textAlign: "center", color: "#94A3B8" }}>
+                      <div style={{ padding: "20px 0", textAlign: "center", color: colors.textoFraco }}>
                         Histórico de atividade em breve.
                       </div>
                     ),
@@ -519,7 +541,7 @@ export default function MasterClientesPage() {
             <Button onClick={() => setDrawerNovo(false)} style={{ marginRight: 8 }}>Cancelar</Button>
             <Button
               type="primary" loading={savingNovo}
-              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", border: "none" }}
+              style={{ background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none" }}
               onClick={() => formNovo.submit()}
             >
               Criar Cliente

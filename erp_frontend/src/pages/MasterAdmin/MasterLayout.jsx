@@ -7,6 +7,19 @@ import {
   BellOutlined, RightOutlined,
 } from "@ant-design/icons";
 
+const colors = {
+  azul: "#3B82F6",
+  roxo: "#5B21B6",
+  verde: "#1A7A4A",
+  laranja: "#B45309",
+  vermelho: "#B91C1C",
+  texto: "#10233C",
+  textoSecundario: "#5A6070",
+  textoFraco: "#8A97AA",
+  borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
+};
+
 const menuItems = [
   { key: "/master", label: "Dashboard", icon: <LineChartOutlined />, exact: true },
   { key: "/master/clientes", label: "Clientes", icon: <TeamOutlined /> },
@@ -48,57 +61,62 @@ export default function MasterLayout() {
   const breadcrumb = BREADCRUMB_MAP[location.pathname] || "Master Admin";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: colors.fundoSuave }}>
       <div style={{
-        width: 240, minHeight: "100vh", background: "#0F172A",
+        width: 248, minHeight: "100vh",
+        background: "linear-gradient(180deg, #0B1220 0%, #111827 55%, #0B1120 100%)",
         display: "flex", flexDirection: "column", position: "fixed", left: 0, top: 0, bottom: 0, zIndex: 100,
+        boxShadow: "18px 0 36px rgba(15,23,42,0.16)",
       }}>
-        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid rgba(148,163,184,0.14)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+              width: 36, height: 36, borderRadius: 10,
+              background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
               display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              boxShadow: "0 8px 18px rgba(59,130,246,0.28)",
             }}>
-              <CrownOutlined style={{ color: "#fff", fontSize: 16 }} />
+              <CrownOutlined style={{ color: "#fff", fontSize: 17 }} />
             </div>
-            <div>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>Master Admin</div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.2 }}>ERP Nexus Platform</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: "#F8FAFC", fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>Master Admin</div>
+              <div style={{ color: "rgba(203,213,225,0.65)", fontSize: 11, lineHeight: 1.3, marginTop: 2 }}>ERP Nexus Platform</div>
             </div>
           </div>
         </div>
-        <nav style={{ flex: 1, padding: "12px 12px", overflowY: "auto" }}>
+        <nav style={{ flex: 1, padding: "14px 12px", overflowY: "auto" }}>
           {menuItems.map((item) => {
             const active = isActive(item);
             return (
               <Link key={item.key} to={item.key} style={{ textDecoration: "none" }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 8, marginBottom: 2,
-                  cursor: "pointer", transition: "all 0.15s",
-                  background: active ? "rgba(99,102,241,0.12)" : "transparent",
-                  borderLeft: active ? "3px solid #6366F1" : "3px solid transparent",
-                  color: active ? "#fff" : "rgba(255,255,255,0.65)",
+                  padding: "10px 12px", borderRadius: 9, marginBottom: 3,
+                  cursor: "pointer", transition: "background 0.14s ease, color 0.14s ease, transform 0.14s ease",
+                  background: active ? "linear-gradient(135deg, rgba(59,130,246,0.24), rgba(91,33,182,0.14))" : "transparent",
+                  border: active ? "1px solid rgba(147,197,253,0.22)" : "1px solid transparent",
+                  color: active ? "#FFFFFF" : "rgba(226,232,240,0.74)",
+                  boxShadow: active ? "0 10px 22px rgba(15,23,42,0.22)" : "none",
                 }}>
-                  <span style={{ fontSize: 16 }}>{item.icon}</span>
-                  <span style={{ fontSize: 14, fontWeight: active ? 600 : 400 }}>{item.label}</span>
+                  <span style={{ fontSize: 16, color: active ? "#93C5FD" : "rgba(148,163,184,0.75)" }}>{item.icon}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: active ? 700 : 500 }}>{item.label}</span>
                 </div>
               </Link>
             );
           })}
         </nav>
-        <div style={{ padding: "16px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ padding: "16px 16px", borderTop: "1px solid rgba(148,163,184,0.14)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <div style={{
-              width: 32, height: 32, borderRadius: "50%",
-              background: "linear-gradient(135deg, #6366F1, #8B5CF6)",
+              width: 34, height: 34, borderRadius: "50%",
+              background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.10)",
             }}>L</div>
-            <div>
-              <div style={{ color: "#fff", fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>Lucas</div>
-              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, lineHeight: 1.2 }}>Super Admin</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Lucas</div>
+              <div style={{ color: "rgba(203,213,225,0.6)", fontSize: 11, lineHeight: 1.2 }}>Super Admin</div>
             </div>
           </div>
           <Button
@@ -107,39 +125,41 @@ export default function MasterLayout() {
             block
             size="small"
             style={{
-              background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
-              color: "#EF4444", borderRadius: 6, fontWeight: 500,
+              background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.28)",
+              color: "#FCA5A5", borderRadius: 8, fontWeight: 600,
             }}
           >
             Sair
           </Button>
         </div>
       </div>
-      <div style={{ marginLeft: 240, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div style={{ marginLeft: 248, flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <header style={{
-          height: 64, background: "#fff", borderBottom: "1px solid #E2E8F0",
+          height: 64, background: "rgba(255,255,255,0.96)", borderBottom: `1px solid ${colors.borda}`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "0 28px", position: "sticky", top: 0, zIndex: 99,
+          backdropFilter: "blur(12px)",
+          boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#64748B", fontSize: 13 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: colors.textoSecundario, fontSize: 13 }}>
             <span>Master Admin</span>
-            <RightOutlined style={{ fontSize: 10 }} />
-            <span style={{ color: "#0F172A", fontWeight: 600 }}>{breadcrumb}</span>
+            <RightOutlined style={{ fontSize: 10, color: colors.textoFraco }} />
+            <span style={{ color: colors.texto, fontWeight: 700 }}>{breadcrumb}</span>
           </div>
           <Space size={12}>
             <Button
               size="small"
-              style={{ borderColor: "#3B82F6", color: "#3B82F6", borderRadius: 6, fontSize: 12 }}
+              style={{ borderColor: colors.azul, color: colors.azul, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
               onClick={() => navigate("/")}
             >
               Ir para ERP
             </Button>
             <Badge count={0} showZero={false}>
-              <Button icon={<BellOutlined />} shape="circle" size="small" style={{ border: "1px solid #E2E8F0" }} />
+              <Button icon={<BellOutlined />} shape="circle" size="small" style={{ border: `1px solid ${colors.borda}` }} />
             </Badge>
             <Avatar
               size={32}
-              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", cursor: "pointer", fontWeight: 700 }}
+              style={{ background: "linear-gradient(135deg, #3B82F6, #5B21B6)", cursor: "pointer", fontWeight: 700 }}
             >
               L
             </Avatar>
