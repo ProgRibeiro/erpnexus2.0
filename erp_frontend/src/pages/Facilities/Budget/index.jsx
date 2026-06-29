@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Row, Col, Card, Tag, Typography, Space, Skeleton, Select, Progress, Divider } from "antd";
+import { Row, Col, Card, Tag, Typography, Space, Skeleton, Select, Progress, Divider, Empty } from "antd";
 import { DollarOutlined, WalletOutlined, PieChartOutlined } from "@ant-design/icons";
 import api from "../../../services/api";
 
@@ -34,6 +34,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const statusColor = {
@@ -194,7 +195,10 @@ export default function BudgetPage() {
 
           {budgets.length === 0 ? (
             <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
-              <Text style={{ color: colors.textoSecundario }}>Nenhum budget encontrado para {filtroAno}</Text>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={`Nenhum budget encontrado para ${filtroAno}`}
+              />
             </Card>
           ) : (
             <Row gutter={[20, 20]}>
@@ -204,7 +208,7 @@ export default function BudgetPage() {
                 const realizado = Number(b.valor_realizado || 0);
                 return (
                   <Col xs={24} md={12} lg={8} key={b.id}>
-                    <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 22 }} hoverable>
+                    <Card bordered={false} style={{ ...panelStyle, transition: "transform 0.2s ease, box-shadow 0.2s ease" }} bodyStyle={{ padding: 22 }} hoverable>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                         <div style={{ fontWeight: 700, fontSize: 15, color: colors.texto }}>
                           {b.empresa || "Empresa"}

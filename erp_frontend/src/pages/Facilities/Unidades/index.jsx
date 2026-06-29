@@ -34,6 +34,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 110,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const tipoLabel = {

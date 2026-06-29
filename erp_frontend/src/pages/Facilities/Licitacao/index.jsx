@@ -198,7 +198,7 @@ export default function LicitacaoFacilitiesPage() {
             <Card
               key={l.id}
               bordered={false}
-              style={panelStyle}
+              style={{ ...panelStyle, transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
               bodyStyle={{ padding: "20px 24px" }}
               hoverable
             >
@@ -333,7 +333,7 @@ export default function LicitacaoFacilitiesPage() {
             {proposta.validade_proposta && <Tag style={{ borderRadius: 999 }}>Validade: {new Date(proposta.validade_proposta).toLocaleDateString("pt-BR")}</Tag>}
           </Space>
 
-          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
             <Table
               size="small"
               rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}
@@ -564,7 +564,7 @@ export default function LicitacaoFacilitiesPage() {
         width={900}
       >
         {modalPropostas && (
-          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
             <Table
               dataSource={modalPropostas.propostas ?? []}
               columns={colunasPropostas(modalPropostas)}

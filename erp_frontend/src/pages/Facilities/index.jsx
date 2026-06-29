@@ -47,6 +47,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const prioridadeCor = {
@@ -327,15 +328,17 @@ export default function FacilitiesDashboard() {
                         padding: "12px 14px", borderRadius: 10, cursor: "pointer",
                         border: `1px solid ${colors.borda}`,
                         background: colors.fundoSuave,
-                        transition: "background 0.15s, border-color 0.15s",
+                        transition: "all 0.2s ease",
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "#EFF4FB";
-                        e.currentTarget.style.borderColor = "#CBD5E1";
+                        e.currentTarget.style.borderColor = colors.azul;
+                        e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.08)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = colors.fundoSuave;
                         e.currentTarget.style.borderColor = colors.borda;
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
                       <div

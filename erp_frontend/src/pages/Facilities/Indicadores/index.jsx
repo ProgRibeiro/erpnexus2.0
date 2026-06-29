@@ -38,6 +38,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const PIE_COLORS = [colors.azul, colors.verde, colors.laranja, colors.vermelho, colors.roxo, colors.textoFraco];

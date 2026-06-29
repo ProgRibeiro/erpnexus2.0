@@ -118,7 +118,7 @@ export default function AprovacoesPage() {
         </Card>
       ) : aprovacoes.length === 0 ? (
         <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
-          <Empty description="Nenhuma aprovação pendente" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma aprovação pendente" />
         </Card>
       ) : (
         <Row gutter={[20, 20]}>
@@ -126,7 +126,7 @@ export default function AprovacoesPage() {
             <Col xs={24} md={12} lg={8} key={apr.id}>
               <Card
                 bordered={false}
-                style={{ ...panelStyle, borderTop: `3px solid ${colors.laranja}` }}
+                style={{ ...panelStyle, borderTop: `3px solid ${colors.laranja}`, transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
                 bodyStyle={{ padding: 22 }}
                 hoverable
               >

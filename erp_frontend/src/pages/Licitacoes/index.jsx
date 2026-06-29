@@ -392,7 +392,7 @@ export default function LicitacoesPage() {
               <Card
                 key={l.id}
                 bordered={false}
-                style={panelStyle}
+                style={{ ...panelStyle, transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
                 bodyStyle={{ padding: "20px 24px" }}
                 hoverable
               >
@@ -1025,7 +1025,7 @@ export default function LicitacoesPage() {
               </Col>
             </Row>
 
-            <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
               <Table
                 size="small"
                 rowKey={(row, idx) => `${row.ordem ?? idx}-${row.descricao}`}

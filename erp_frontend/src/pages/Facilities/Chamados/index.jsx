@@ -318,6 +318,7 @@ export default function ChamadosFacilities() {
                           borderRadius: 10, cursor: "pointer",
                           boxShadow: "0 6px 18px rgba(15, 23, 42, 0.06)",
                           borderLeft: `4px solid ${borderColor(c.prioridade)}`,
+                          transition: "transform 0.2s ease, box-shadow 0.2s ease",
                         }}
                         bodyStyle={{ padding: "12px 14px" }}
                         onClick={() => abrirDetalhe(c)}

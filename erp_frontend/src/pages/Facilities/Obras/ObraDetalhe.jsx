@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Row, Col, Card, Tag, Button, Spin, Tabs, Table, Typography,
+  Row, Col, Card, Tag, Button, Skeleton, Tabs, Table, Typography,
   Space, Progress, Modal, Form, Input, Select, DatePicker,
   message, InputNumber,
 } from "antd";
@@ -138,7 +138,7 @@ export default function ObraDetalhe() {
     return (
       <div style={pageStyle}>
         <Card bordered={false} style={panelStyle}>
-          <Spin style={{ display: "block", margin: "40px 0", textAlign: "center" }} />
+          <Skeleton active paragraph={{ rows: 8 }} />
         </Card>
       </div>
     );
@@ -258,7 +258,7 @@ export default function ObraDetalhe() {
               Nova Fase
             </Button>
           </div>
-          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
             <Table
               dataSource={projeto.fases || []}
               columns={fasesCols}
@@ -285,7 +285,7 @@ export default function ObraDetalhe() {
               Novo Registro
             </Button>
           </div>
-          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
             <Table
               dataSource={projeto.diarios || []}
               columns={diarioCols}
@@ -312,7 +312,7 @@ export default function ObraDetalhe() {
               Novo BM
             </Button>
           </div>
-          <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
             <Table
               dataSource={projeto.boletins || []}
               columns={bmCols}

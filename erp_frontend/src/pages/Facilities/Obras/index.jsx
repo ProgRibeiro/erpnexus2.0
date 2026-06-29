@@ -131,7 +131,7 @@ export default function ObrasPage() {
         </Card>
       ) : projetos.length === 0 ? (
         <Card bordered={false} style={{ ...panelStyle, textAlign: "center" }} bodyStyle={{ padding: 48 }}>
-          <Empty description="Nenhum projeto cadastrado" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum projeto cadastrado" />
         </Card>
       ) : (
         <Row gutter={[20, 20]}>
@@ -139,7 +139,7 @@ export default function ObrasPage() {
             <Col xs={24} sm={12} lg={8} xl={6} key={p.id}>
               <Card
                 bordered={false}
-                style={panelStyle}
+                style={{ ...panelStyle, cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
                 bodyStyle={{ padding: 20 }}
                 onClick={() => navigate(`/facilities/obras/${p.id}`)}
                 hoverable
