@@ -167,13 +167,16 @@ export default function ImpressaoOrcamento() {
         throw new Error("Documento de impressão não encontrado.");
       }
 
+      const exportWidth = 1123;
+      const exportHeight = 794;
+
       wrapper = document.createElement("div");
       wrapper.style.cssText = [
         "position: fixed",
         "top: 0",
         "left: -9999px",
-        "width: 1123px",
-        "min-height: 794px",
+        `width: ${exportWidth}px`,
+        `min-height: ${exportHeight}px`,
         "background: #FFFFFF",
         "z-index: -1000",
         "overflow: visible",
@@ -181,11 +184,11 @@ export default function ImpressaoOrcamento() {
       ].join("; ");
 
       const clone = element.cloneNode(true);
-      clone.classList.add("print-compact", "print-export", "print-scale-100");
+      clone.classList.add("print-compact", "print-export", "print-single-sheet");
       clone.style.cssText = [
-        "width: 1123px",
-        "max-width: 1123px",
-        "min-height: 794px",
+        `width: ${exportWidth}px`,
+        `max-width: ${exportWidth}px`,
+        `min-height: ${exportHeight}px`,
         "height: auto",
         "margin: 0",
         "border-radius: 0",
@@ -203,10 +206,10 @@ export default function ImpressaoOrcamento() {
       const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: "#FFFFFF",
-        windowWidth: 1123,
-        windowHeight: Math.max(794, clone.scrollHeight),
+        windowWidth: exportWidth,
+        windowHeight: Math.max(exportHeight, clone.scrollHeight),
         scrollX: 0,
         scrollY: 0,
         logging: false,
@@ -218,38 +221,22 @@ export default function ImpressaoOrcamento() {
       const pdf = new jsPDF("l", "mm", "a4");
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 4;
+      const margin = 3;
       const availableW = pageW - margin * 2;
       const availableH = pageH - margin * 2;
-      const imgWidthMm = availableW;
-      const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+      let imgWidthMm = availableW;
+      let imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+
+      if (imgHeightMm > availableH) {
+        imgHeightMm = availableH;
+        imgWidthMm = (canvas.width * imgHeightMm) / canvas.height;
+      }
+
+      const x = (pageW - imgWidthMm) / 2;
+      const y = (pageH - imgHeightMm) / 2;
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
-      if (imgHeightMm <= availableH) {
-        pdf.addImage(
-          imgData,
-          "JPEG",
-          margin,
-          (pageH - imgHeightMm) / 2,
-          imgWidthMm,
-          imgHeightMm,
-        );
-
-        return pdf;
-      }
-
-      const pages = Math.ceil(imgHeightMm / availableH);
-      for (let page = 0; page < pages; page += 1) {
-        if (page > 0) pdf.addPage();
-        pdf.addImage(
-          imgData,
-          "JPEG",
-          margin,
-          margin - page * availableH,
-          imgWidthMm,
-          imgHeightMm,
-        );
-      }
+      pdf.addImage(imgData, "JPEG", x, y, imgWidthMm, imgHeightMm);
 
       return pdf;
     } catch (error) {
@@ -259,13 +246,19 @@ export default function ImpressaoOrcamento() {
   };
 
   const handlePrint = async () => {
+    const printWindow = window.open("", "_blank");
     try {
       const pdf = await gerarPdfUmaPagina();
       pdf.autoPrint();
       const blobUrl = pdf.output("bloburl");
-      window.open(blobUrl, "_blank");
-      message.success("PDF de impressão gerado sem cortes.");
+      if (printWindow) {
+        printWindow.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank");
+      }
+      message.success("PDF de impressão gerado em uma única folha.");
     } catch (error) {
+      if (printWindow) printWindow.close();
       console.error("Erro ao imprimir:", error);
       message.error("Não foi possível preparar a impressão.");
     }
@@ -411,18 +404,58 @@ export default function ImpressaoOrcamento() {
         .print-compact.proposal-document .proposal-description { padding: 10px 32px !important; }
         .print-compact.proposal-document .proposal-description-box { padding: 10px 14px !important; }
         .print-compact.proposal-document .proposal-description-text { line-height: 1.4 !important; font-size: 10.8px !important; }
+        .print-compact.proposal-document .proposal-items-section { padding: 0 32px 14px !important; }
         .print-compact.proposal-document .proposal-items-title { padding-top: 10px !important; }
         .print-compact.proposal-document .proposal-items-table { margin-top: 7px !important; }
         .print-compact.proposal-document .proposal-items-table th { padding-top: 8px !important; padding-bottom: 8px !important; }
         .print-compact.proposal-document .item-row td { padding-top: 8px !important; padding-bottom: 8px !important; }
         .print-compact.proposal-document .proposal-item-main { font-size: 12px !important; }
-        .print-compact.proposal-document .proposal-totals { padding: 0 !important; }
+        .print-compact.proposal-document .proposal-totals { padding: 0 32px 10px !important; }
         .print-compact.proposal-document .proposal-total-line { padding-top: 6px !important; padding-bottom: 6px !important; }
         .print-compact.proposal-document .proposal-total-final { padding-top: 11px !important; padding-bottom: 11px !important; }
         .print-compact.proposal-document .proposal-total-final-value { font-size: 21px !important; }
         .print-compact.proposal-document .proposal-logos { padding-top: 10px !important; padding-bottom: 10px !important; }
         .print-compact.proposal-document .proposal-footer { padding-top: 9px !important; padding-bottom: 9px !important; }
         .print-single-page.proposal-document .proposal-totals { break-inside: avoid; page-break-inside: avoid; }
+        .print-export.proposal-document .proposal-header { min-height: 104px !important; }
+        .print-export.proposal-document .proposal-header-content { padding: 12px 24px 10px !important; }
+        .print-export.proposal-document .proposal-kicker { margin-bottom: 6px !important; }
+        .print-export.proposal-document .brand-mark { width: 42px !important; height: 42px !important; border-radius: 10px !important; }
+        .print-export.proposal-document .proposal-company-name { font-size: 15px !important; line-height: 1.08 !important; }
+        .print-export.proposal-document .proposal-header-actions { padding: 12px 24px 12px 8px !important; gap: 7px !important; }
+        .print-export.proposal-document .proposal-info-grid { padding: 10px 24px !important; gap: 8px !important; }
+        .print-export.proposal-document .proposal-info-grid > div { padding: 10px !important; border-radius: 9px !important; box-shadow: none !important; }
+        .print-export.proposal-document .proposal-description { padding: 8px 24px !important; }
+        .print-export.proposal-document .proposal-description-box { padding: 8px 10px !important; }
+        .print-export.proposal-document .proposal-description-text {
+          display: -webkit-box !important;
+          -webkit-line-clamp: 3 !important;
+          -webkit-box-orient: vertical !important;
+          overflow: hidden !important;
+          font-size: 9.6px !important;
+          line-height: 1.28 !important;
+        }
+        .print-export.proposal-document .proposal-items-section { padding: 0 24px 10px !important; }
+        .print-export.proposal-document .proposal-items-title { padding-top: 8px !important; padding-bottom: 5px !important; }
+        .print-export.proposal-document .proposal-items-table { margin-top: 0 !important; }
+        .print-export.proposal-document .proposal-items-table th { padding: 5px 8px !important; font-size: 8px !important; }
+        .print-export.proposal-document .item-row td { padding: 5px 8px !important; font-size: 9.5px !important; }
+        .print-export.proposal-document .proposal-item-index { width: 16px !important; height: 16px !important; font-size: 7.5px !important; }
+        .print-export.proposal-document .proposal-item-main {
+          display: -webkit-box !important;
+          -webkit-line-clamp: 2 !important;
+          -webkit-box-orient: vertical !important;
+          overflow: hidden !important;
+          font-size: 9.8px !important;
+          line-height: 1.16 !important;
+        }
+        .print-export.proposal-document .proposal-totals { padding: 0 24px 8px !important; }
+        .print-export.proposal-document .proposal-totals > div { min-width: 270px !important; max-width: 300px !important; box-shadow: none !important; }
+        .print-export.proposal-document .proposal-total-line { padding: 4px 12px !important; }
+        .print-export.proposal-document .proposal-total-final { padding: 8px 12px !important; }
+        .print-export.proposal-document .proposal-total-final-value { font-size: 17px !important; }
+        .print-export.proposal-document .proposal-logos { display: none !important; }
+        .print-export.proposal-document .proposal-footer { padding: 7px 24px !important; }
         .proposal-document {
           position: relative;
           overflow: visible !important;
@@ -727,7 +760,7 @@ export default function ImpressaoOrcamento() {
           {/* ═══════════════════════════════════════
               TABELA DE ITENS
           ═══════════════════════════════════════ */}
-          <div className="proposal-items-section" style={{ padding: "0 32px 128px", background: "#FFFFFF" }}>
+          <div className="proposal-items-section" style={{ padding: "0 32px 14px", background: "#FFFFFF" }}>
             {/* Header da seção */}
             <div className="proposal-items-title" style={{ padding: "14px 0 8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 0 }}>
               <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3B82F6" }}>Itens da Proposta</span>
