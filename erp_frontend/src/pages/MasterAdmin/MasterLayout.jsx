@@ -89,15 +89,29 @@ export default function MasterLayout() {
             const active = isActive(item);
             return (
               <Link key={item.key} to={item.key} style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 9, marginBottom: 3,
-                  cursor: "pointer", transition: "background 0.14s ease, color 0.14s ease, transform 0.14s ease",
-                  background: active ? "linear-gradient(135deg, rgba(59,130,246,0.24), rgba(91,33,182,0.14))" : "transparent",
-                  border: active ? "1px solid rgba(147,197,253,0.22)" : "1px solid transparent",
-                  color: active ? "#FFFFFF" : "rgba(226,232,240,0.74)",
-                  boxShadow: active ? "0 10px 22px rgba(15,23,42,0.22)" : "none",
-                }}>
+                <div
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 9, marginBottom: 3,
+                    cursor: "pointer", transition: "background 0.2s ease, color 0.2s ease, transform 0.2s ease",
+                    background: active ? "linear-gradient(135deg, rgba(59,130,246,0.24), rgba(91,33,182,0.14))" : "transparent",
+                    border: active ? "1px solid rgba(147,197,253,0.22)" : "1px solid transparent",
+                    color: active ? "#FFFFFF" : "rgba(226,232,240,0.74)",
+                    boxShadow: active ? "0 10px 22px rgba(15, 23, 42, 0.22)" : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = "rgba(148,163,184,0.10)";
+                      e.currentTarget.style.color = "#F1F5F9";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "rgba(226,232,240,0.74)";
+                    }
+                  }}
+                >
                   <span style={{ fontSize: 16, color: active ? "#93C5FD" : "rgba(148,163,184,0.75)" }}>{item.icon}</span>
                   <span style={{ fontSize: 13.5, fontWeight: active ? 700 : 500 }}>{item.label}</span>
                 </div>
@@ -127,6 +141,15 @@ export default function MasterLayout() {
             style={{
               background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.28)",
               color: "#FCA5A5", borderRadius: 8, fontWeight: 600,
+              transition: "background 0.2s ease, border-color 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(239,68,68,0.18)";
+              e.currentTarget.style.borderColor = "rgba(239,68,68,0.42)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(239,68,68,0.10)";
+              e.currentTarget.style.borderColor = "rgba(239,68,68,0.28)";
             }}
           >
             Sair
@@ -139,7 +162,7 @@ export default function MasterLayout() {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "0 28px", position: "sticky", top: 0, zIndex: 99,
           backdropFilter: "blur(12px)",
-          boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
+          boxShadow: "0 8px 24px rgba(15, 23, 42, 0.04)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: colors.textoSecundario, fontSize: 13 }}>
             <span>Master Admin</span>
@@ -149,7 +172,12 @@ export default function MasterLayout() {
           <Space size={12}>
             <Button
               size="small"
-              style={{ borderColor: colors.azul, color: colors.azul, borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+              style={{
+                borderColor: colors.azul, color: colors.azul, borderRadius: 8, fontSize: 12, fontWeight: 600,
+                transition: "background 0.2s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#EFF6FF"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               onClick={() => navigate("/")}
             >
               Ir para ERP

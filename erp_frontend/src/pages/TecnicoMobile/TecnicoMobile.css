@@ -46,6 +46,12 @@
   border-radius: 12px !important;
   color: #3B82F6 !important;
   background: #EFF6FF !important;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-refresh:active {
+  transform: scale(0.92);
+  background: #DBEAFE !important;
 }
 
 .ordens-list {
@@ -58,9 +64,9 @@
   cursor: pointer;
   border-radius: 16px !important;
   border: 1px solid #E2E6EC !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04) !important;
 }
 
 .ordem-card:active {
@@ -156,12 +162,25 @@
 .btn-iniciar {
   background: #3B82F6 !important;
   box-shadow: 0 10px 22px rgba(59, 130, 246, 0.28) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-iniciar:active {
+  transform: scale(0.98);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.24) !important;
 }
 
 .btn-mapa,
 .btn-navegacao {
   border-color: #E2E6EC !important;
   color: #10233C !important;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-mapa:active,
+.btn-navegacao:active {
+  transform: scale(0.98);
+  background: #F8FAFD !important;
 }
 
 /* ==================================
@@ -202,6 +221,11 @@
 .btn-copy {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.85) !important;
+  transition: transform 0.2s ease;
+}
+
+.btn-copy:active {
+  transform: scale(0.9);
 }
 
 .client-tag {
@@ -238,7 +262,7 @@
   border-radius: 16px;
   padding: 14px;
   margin-bottom: 14px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
 .timeline-item {
@@ -285,7 +309,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
 .status-tag {
@@ -303,6 +327,12 @@
   border-radius: 14px !important;
   background: #3B82F6 !important;
   box-shadow: 0 14px 30px rgba(59, 130, 246, 0.28) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-acao-grande:active {
+  transform: scale(0.98);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.24) !important;
 }
 
 /* Seção de Fotos */
@@ -314,7 +344,7 @@
   border: 1px solid #E2E6EC;
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.045);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
   margin-bottom: 14px;
 }
 
@@ -336,6 +366,12 @@
   color: #3B82F6 !important;
   border-color: #BFDBFE !important;
   border-radius: 12px !important;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-foto:active {
+  transform: scale(0.98);
+  background: #DBEAFE !important;
 }
 
 .photos-grid {
@@ -373,6 +409,11 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+  transition: transform 0.2s ease;
+}
+
+.btn-delete-foto:active {
+  transform: scale(0.92);
 }
 
 /* Laudo */
@@ -468,6 +509,11 @@
   font-weight: 700 !important;
   height: 48px !important;
   border-radius: 12px !important;
+  transition: transform 0.2s ease;
+}
+
+.btn-enviar:active {
+  transform: scale(0.98);
 }
 
 /* Assinatura */
@@ -491,6 +537,13 @@
   border-color: #BFDBFE !important;
   border-radius: 12px !important;
   background: #EFF6FF !important;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-assinar:active,
+.btn-reediatar:active {
+  transform: scale(0.98);
+  background: #DBEAFE !important;
 }
 
 /* Botão Finalizar */
@@ -500,6 +553,12 @@
   height: 56px !important;
   border-radius: 14px !important;
   box-shadow: 0 14px 30px rgba(185, 28, 28, 0.22) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-finalizar:active {
+  transform: scale(0.98);
+  box-shadow: 0 8px 18px rgba(185, 28, 28, 0.18) !important;
 }
 
 /* Offline Banner */

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Button, Input, Select, Switch, Table, Tag, Typography, message } from "antd";
+import { Button, Empty, Input, Select, Switch, Table, Tag, Typography, message } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import masterApi from "../../services/masterApi";
 
@@ -158,7 +158,7 @@ export default function MasterLogsPage() {
       <div style={{
         display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap",
         background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
-        padding: "14px 18px", boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+        padding: "14px 18px", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
       }}>
         <Select
           placeholder="Filtrar por ação" allowClear value={acaoFiltro || undefined}
@@ -178,14 +178,23 @@ export default function MasterLogsPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15,23,42,0.05)" }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)" }}>
         <Table
           columns={columns}
           dataSource={logsFiltrados}
           rowKey="id"
-          loading={loading}
+          loading={{ spinning: loading, tip: "Carregando logs..." }}
           size="small"
           pagination={{ pageSize: 50 }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum log encontrado"
+                style={{ padding: "32px 0" }}
+              />
+            ),
+          }}
           scroll={{ x: 800 }}
         />
       </div>

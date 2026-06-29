@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import {
-  Badge, Button, Card, Col, Drawer, Form, Input, message, Modal,
+  Badge, Button, Card, Col, Drawer, Empty, Form, Input, message, Modal,
   Row, Select, Space, Table, Tag, Tabs, Typography, Popconfirm, Skeleton,
 } from "antd";
 import { PlusOutlined, MoreOutlined, CheckCircleOutlined } from "@ant-design/icons";
@@ -230,7 +230,7 @@ export default function MasterClientesPage() {
     {
       title: "Ações", key: "acoes",
       render: (_, r) => (
-        <Space>
+        <Space onClick={(e) => e.stopPropagation()}>
           <Button size="small" onClick={() => abrirDetalhe(r.id)} style={{ fontSize: 12, borderRadius: 6 }}>Detalhes</Button>
           {r.status === "suspenso" ? (
             <Popconfirm title="Desbloquear cliente?" onConfirm={() => handleDesbloquear(r.id)} okText="Sim" cancelText="Não">
@@ -290,7 +290,12 @@ export default function MasterClientesPage() {
         </div>
         <Button
           type="primary" icon={<PlusOutlined />}
-          style={{ background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none", borderRadius: 8, fontWeight: 600 }}
+          style={{
+            background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none",
+            borderRadius: 8, fontWeight: 600, transition: "transform 0.2s ease, box-shadow 0.2s ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 22px rgba(59, 130, 246, 0.28)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
           onClick={() => setDrawerNovo(true)}
         >
           Novo Cliente
@@ -306,11 +311,22 @@ export default function MasterClientesPage() {
           { label: "Suspensos", value: totalSuspensos, color: colors.vermelho },
         ].map((k) => (
           <Col key={k.label} xs={12} sm={12} md={6}>
-            <div style={{
-              background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
-              padding: "14px 18px", textAlign: "center",
-              boxShadow: "0 10px 26px rgba(15,23,42,0.045)",
-            }}>
+            <div
+              style={{
+                background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
+                padding: "14px 18px", textAlign: "center",
+                boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 14px 30px rgba(15, 23, 42, 0.07)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.04)";
+              }}
+            >
               <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>{k.value}</div>
               <div style={{ fontSize: 12, color: colors.textoSecundario, fontWeight: 500 }}>{k.label}</div>
             </div>
@@ -322,7 +338,7 @@ export default function MasterClientesPage() {
       <div style={{
         display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap",
         background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
-        padding: "14px 18px", boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+        padding: "14px 18px", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
       }}>
         <Input.Search
           placeholder="Buscar empresa ou email..."
@@ -351,15 +367,34 @@ export default function MasterClientesPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15,23,42,0.05)" }}>
+      <div
+        style={{
+          background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`,
+          overflow: "hidden", boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+        }}
+      >
         <Table
           columns={columns}
           dataSource={clientesFiltrados}
           rowKey="id"
-          loading={loading}
+          loading={{ spinning: loading, tip: "Carregando clientes..." }}
           size="middle"
           pagination={{ pageSize: 15 }}
-          onRow={(r) => ({ style: { cursor: "pointer" } })}
+          onRow={(r) => ({
+            style: { cursor: "pointer", transition: "background 0.2s ease" },
+            onClick: () => abrirDetalhe(r.id),
+            onMouseEnter: (e) => { e.currentTarget.style.background = colors.fundoSuave; },
+            onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; },
+          })}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum cliente encontrado"
+                style={{ padding: "32px 0" }}
+              />
+            ),
+          }}
           scroll={{ x: 900 }}
         />
       </div>
@@ -455,6 +490,7 @@ export default function MasterClientesPage() {
                           <div key={a.id} style={{
                             border: `1px solid ${colors.borda}`, borderRadius: 12, padding: 16,
                             background: colors.fundoSuave,
+                            transition: "border-color 0.2s ease",
                           }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <div>

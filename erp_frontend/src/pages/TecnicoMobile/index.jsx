@@ -128,7 +128,11 @@ export default function TecnicoMobile() {
         </div>
 
         {ordensHoje.length === 0 ? (
-          <Empty description="Nenhuma ordem agendada para hoje" style={{ marginTop: '40px' }} />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Nenhuma ordem agendada para hoje"
+            style={{ marginTop: '40px' }}
+          />
         ) : (
           <div className="ordens-list">
             {ordensHoje.map((ordem) => (

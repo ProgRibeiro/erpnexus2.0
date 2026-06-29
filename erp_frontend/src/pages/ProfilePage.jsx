@@ -63,7 +63,7 @@ export default function ProfilePage() {
               color: "#fff",
               fontSize: 22,
               fontWeight: 800,
-              boxShadow: "0 14px 30px rgba(59,130,246,0.28)",
+              boxShadow: "0 14px 30px rgba(59, 130, 246, 0.28)",
             }}
           >
             {getInitials(user)}
@@ -139,7 +139,20 @@ export default function ProfilePage() {
             htmlType="submit"
             loading={loading}
             size="large"
-            style={{ borderRadius: 8, fontWeight: 600, paddingInline: 28 }}
+            style={{
+              borderRadius: 8,
+              fontWeight: 600,
+              paddingInline: 28,
+              transition: "transform 0.2s ease, box-shadow 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.boxShadow = "0 10px 22px rgba(59, 130, 246, 0.28)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           >
             Salvar perfil
           </Button>

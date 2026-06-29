@@ -52,6 +52,18 @@ const panelStyle = {
 const statCardStyle = {
   ...panelStyle,
   minHeight: 110,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
+};
+
+const statCardHoverHandlers = {
+  onMouseEnter: (e) => {
+    e.currentTarget.style.transform = "translateY(-2px)";
+    e.currentTarget.style.boxShadow = "0 18px 40px rgba(15, 23, 42, 0.08)";
+  },
+  onMouseLeave: (e) => {
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 14px 36px rgba(15, 23, 42, 0.05)";
+  },
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -415,7 +427,7 @@ export default function CatalogoInteligentePage() {
                     style={{
                       marginTop: 14,
                       padding: 14,
-                      border: "1px solid #D7E3F8",
+                      border: "1px solid #E2E6EC",
                       borderRadius: 10,
                       background: processoCatalogo.erro ? "#FFF7F7" : "#F8FBFF",
                     }}
@@ -578,19 +590,19 @@ export default function CatalogoInteligentePage() {
           <Space direction="vertical" size={20} style={{ width: "100%" }}>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
-                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }}>
+                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }} {...statCardHoverHandlers}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Produtos</Text>
                   <div style={{ color: "#2563EB", fontSize: 30, fontWeight: 900, marginTop: 6 }}>{totais.produtos}</div>
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }}>
+                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }} {...statCardHoverHandlers}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Serviços</Text>
                   <div style={{ color: "#15803D", fontSize: 30, fontWeight: 900, marginTop: 6 }}>{totais.servicos}</div>
                 </Card>
               </Col>
               <Col xs={24} md={8}>
-                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }}>
+                <Card bordered={false} style={statCardStyle} bodyStyle={{ padding: 20 }} {...statCardHoverHandlers}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Valor de venda</Text>
                   <div style={{ color: "#10233C", fontSize: 26, fontWeight: 900, marginTop: 6 }}>{moneyFormatter.format(totais.valor)}</div>
                 </Card>
@@ -650,7 +662,19 @@ export default function CatalogoInteligentePage() {
                     />
                   )}
                   {(resultado?.criacao?.erros || []).map((erro) => <Alert key={erro} type="error" showIcon message={erro} />)}
-                  <Table columns={columns} dataSource={itens} rowKey={(item) => `${item.tipo}-${item.linha}-${item.nome}`} scroll={{ x: 980 }} pagination={{ pageSize: 10 }} />
+                  <Table
+                    columns={columns}
+                    dataSource={itens}
+                    rowKey={(item) => `${item.tipo}-${item.linha}-${item.nome}`}
+                    scroll={{ x: 980 }}
+                    pagination={{ pageSize: 10 }}
+                    loading={{ spinning: analisando, tip: "Analisando catálogo..." }}
+                    locale={{
+                      emptyText: (
+                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum item para revisar" style={{ padding: "32px 0" }} />
+                      ),
+                    }}
+                  />
                 </Space>
               )}
             </Card>

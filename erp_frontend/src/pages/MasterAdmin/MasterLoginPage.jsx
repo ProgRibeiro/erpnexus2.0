@@ -64,7 +64,7 @@ export default function MasterLoginPage() {
             height: 76,
             borderRadius: 20,
             background: "linear-gradient(135deg, #3B82F6, #5B21B6)",
-            boxShadow: "0 14px 36px rgba(59,130,246,0.32)",
+            boxShadow: "0 14px 36px rgba(59, 130, 246, 0.32)",
             marginBottom: 20,
           }}>
             <CrownOutlined style={{ fontSize: 34, color: "#fff" }} />
@@ -160,7 +160,16 @@ export default function MasterLoginPage() {
                 border: "none",
                 fontWeight: 700,
                 fontSize: 15,
-                boxShadow: "0 10px 26px rgba(59,130,246,0.35)",
+                boxShadow: "0 10px 26px rgba(59, 130, 246, 0.35)",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 14px 32px rgba(59, 130, 246, 0.42)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 10px 26px rgba(59, 130, 246, 0.35)";
               }}
             >
               {loading ? "Verificando..." : "Entrar no Painel Master"}

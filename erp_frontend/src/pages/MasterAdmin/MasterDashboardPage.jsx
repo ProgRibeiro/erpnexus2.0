@@ -37,8 +37,19 @@ const PIE_COLORS = ["#3B82F6", "#1A7A4A", "#B45309", "#B91C1C", "#5B21B6", "#0E7
 
 const CARD_STYLE = {
   background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 16,
-  padding: "20px 24px", boxShadow: "0 14px 36px rgba(15,23,42,0.05)",
-  transition: "transform 0.18s ease, box-shadow 0.18s ease",
+  padding: "20px 24px", boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
+};
+
+const cardHoverHandlers = {
+  onMouseEnter: (e) => {
+    e.currentTarget.style.transform = "translateY(-2px)";
+    e.currentTarget.style.boxShadow = "0 18px 40px rgba(15, 23, 42, 0.08)";
+  },
+  onMouseLeave: (e) => {
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 14px 36px rgba(15, 23, 42, 0.05)";
+  },
 };
 
 const SISTEMA_LABELS = { erp: "ERP", facilities: "Facilities", ambos: "Ambos" };
@@ -80,7 +91,10 @@ export default function MasterDashboardPage() {
   if (loading) {
     return (
       <div style={{ padding: 28, background: colors.fundoSuave, minHeight: "100vh" }}>
-        <div style={{ background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 16, padding: 28 }}>
+        <div style={{
+          background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 16, padding: 28,
+          boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+        }}>
           <Skeleton active paragraph={{ rows: 8 }} />
         </div>
       </div>
@@ -92,7 +106,7 @@ export default function MasterDashboardPage() {
       <div style={{ padding: 28, background: colors.fundoSuave, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{
           background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 16,
-          boxShadow: "0 14px 36px rgba(15,23,42,0.05)", padding: "40px 48px", textAlign: "center",
+          boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)", padding: "40px 48px", textAlign: "center",
         }}>
           <Text type="danger">{error}</Text>
           <br /><br />
@@ -175,7 +189,7 @@ export default function MasterDashboardPage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         {/* MRR */}
         <Col xs={24} sm={12} md={12} lg={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -196,7 +210,7 @@ export default function MasterDashboardPage() {
         </Col>
         {/* Ativos */}
         <Col xs={24} sm={12} md={12} lg={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -215,7 +229,7 @@ export default function MasterDashboardPage() {
         </Col>
         {/* Trial */}
         <Col xs={24} sm={12} md={12} lg={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -234,7 +248,7 @@ export default function MasterDashboardPage() {
         </Col>
         {/* Churn */}
         <Col xs={24} sm={12} md={12} lg={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,

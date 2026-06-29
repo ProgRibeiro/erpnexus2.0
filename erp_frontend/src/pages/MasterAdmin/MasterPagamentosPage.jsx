@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import {
-  Button, Col, Form, Input, message, Modal, Row, Select, Table, Tag, Typography, Skeleton,
+  Button, Col, Empty, Form, Input, message, Modal, Row, Select, Table, Tag, Typography, Skeleton,
 } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import masterApi from "../../services/masterApi";
@@ -100,7 +100,19 @@ export default function MasterPagamentosPage() {
   const CARD_STYLE = {
     background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
     padding: "16px 20px", textAlign: "center",
-    boxShadow: "0 10px 26px rgba(15,23,42,0.045)",
+    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+  };
+
+  const cardHoverHandlers = {
+    onMouseEnter: (e) => {
+      e.currentTarget.style.transform = "translateY(-2px)";
+      e.currentTarget.style.boxShadow = "0 14px 30px rgba(15, 23, 42, 0.07)";
+    },
+    onMouseLeave: (e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.04)";
+    },
   };
 
   const columns = [
@@ -177,25 +189,25 @@ export default function MasterPagamentosPage() {
       {/* KPI */}
       <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
         <Col xs={12} sm={12} md={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ fontSize: 18, fontWeight: 700, color: colors.verde }}>{fmt(recebidoMes)}</div>
             <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Recebido este mês</div>
           </div>
         </Col>
         <Col xs={12} sm={12} md={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ fontSize: 18, fontWeight: 700, color: colors.laranja }}>{fmt(totalPendente)}</div>
             <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Pendente</div>
           </div>
         </Col>
         <Col xs={12} sm={12} md={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ fontSize: 18, fontWeight: 700, color: colors.vermelho }}>{fmt(totalVencido)}</div>
             <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Vencido</div>
           </div>
         </Col>
         <Col xs={12} sm={12} md={6}>
-          <div style={CARD_STYLE}>
+          <div style={CARD_STYLE} {...cardHoverHandlers}>
             <div style={{ fontSize: 18, fontWeight: 700, color: colors.vermelho }}>{inadimplencia}%</div>
             <div style={{ fontSize: 12, color: colors.textoSecundario, marginTop: 2 }}>Inadimplência</div>
           </div>
@@ -206,7 +218,7 @@ export default function MasterPagamentosPage() {
       <div style={{
         display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap",
         background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 14,
-        padding: "14px 18px", boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+        padding: "14px 18px", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
       }}>
         <Input.Search
           placeholder="Buscar cliente..."
@@ -235,14 +247,23 @@ export default function MasterPagamentosPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15,23,42,0.05)" }}>
+      <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${colors.borda}`, overflow: "hidden", boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)" }}>
         <Table
           columns={columns}
           dataSource={pagFiltrados}
           rowKey="id"
-          loading={loading}
+          loading={{ spinning: loading, tip: "Carregando pagamentos..." }}
           size="middle"
           pagination={{ pageSize: 20 }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum pagamento encontrado"
+                style={{ padding: "32px 0" }}
+              />
+            ),
+          }}
           scroll={{ x: 900 }}
         />
       </div>

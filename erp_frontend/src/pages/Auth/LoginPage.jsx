@@ -491,6 +491,16 @@ export default function LoginPage() {
                     color: "#fff",
                     marginTop: 8,
                     boxShadow: "0 12px 28px rgba(59, 130, 246, 0.28)",
+                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (loading) return;
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 16px 34px rgba(59, 130, 246, 0.36)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 12px 28px rgba(59, 130, 246, 0.28)";
                   }}
                 >
                   {loading ? "Entrando…" : "Entrar"}

@@ -411,7 +411,7 @@ export default function OSCampo() {
             <h3 className="section-title"><MessageOutlined /> Chat Interno</h3>
 
             {chat.length === 0 ? (
-              <Empty description="Sem mensagens" />
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Sem mensagens" />
             ) : (
               <div className="chat-messages">
                 {chat.map((msg, idx) => (

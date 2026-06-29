@@ -217,7 +217,7 @@ export default function RelatorioPublicoPage() {
         </Header>
         <Content style={contentStyle}>
           <div style={{ textAlign: "center", paddingTop: 100 }}>
-            <Empty description={error || "Relatório não encontrado"} style={{ marginTop: 50 }} />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={error || "Relatório não encontrado"} style={{ marginTop: 50 }} />
           </div>
         </Content>
       </Layout>
@@ -266,7 +266,15 @@ export default function RelatorioPublicoPage() {
           type="primary"
           icon={<DownloadOutlined />}
           onClick={handleBaixarPDF}
-          style={{ borderRadius: 8, fontWeight: 600 }}
+          style={{ borderRadius: 8, fontWeight: 600, transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-1px)";
+            e.currentTarget.style.boxShadow = "0 10px 22px rgba(59, 130, 246, 0.28)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
         >
           Baixar PDF
         </Button>
@@ -544,6 +552,15 @@ export default function RelatorioPublicoPage() {
                         color: "white",
                         borderRadius: 8,
                         fontWeight: 600,
+                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                        e.currentTarget.style.boxShadow = "0 10px 22px rgba(37, 211, 102, 0.32)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                       icon={<WhatsAppOutlined />}
                       onClick={handleCompartilharWhatsApp}

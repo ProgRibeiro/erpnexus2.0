@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Button, Card, Col, Drawer, Form, Input, message, Popconfirm,
+  Button, Card, Col, Drawer, Empty, Form, Input, message, Popconfirm,
   Row, Select, Space, Switch, Table, Tag, Tooltip, Typography,
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from "@ant-design/icons";
@@ -162,7 +162,12 @@ export default function MasterPlanosPage() {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          style={{ background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none", borderRadius: 8, fontWeight: 600 }}
+          style={{
+            background: `linear-gradient(135deg, ${colors.azul}, ${colors.roxo})`, border: "none",
+            borderRadius: 8, fontWeight: 600, transition: "transform 0.2s ease, box-shadow 0.2s ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 22px rgba(59, 130, 246, 0.28)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
           onClick={abrirNovo}
         >
           Novo Plano
@@ -171,14 +176,28 @@ export default function MasterPlanosPage() {
 
       <div style={{
         background: "#fff", border: `1px solid ${colors.borda}`, borderRadius: 16,
-        boxShadow: "0 14px 36px rgba(15,23,42,0.05)", overflow: "hidden",
+        boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)", overflow: "hidden",
       }}>
         <Table
           columns={columns}
           dataSource={planos}
-          loading={loading}
+          loading={{ spinning: loading, tip: "Carregando planos..." }}
           rowKey="id"
           pagination={{ pageSize: 20 }}
+          onRow={() => ({
+            style: { transition: "background 0.2s ease" },
+            onMouseEnter: (e) => { e.currentTarget.style.background = colors.fundoSuave; },
+            onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; },
+          })}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum plano cadastrado"
+                style={{ padding: "32px 0" }}
+              />
+            ),
+          }}
           scroll={{ x: 1000 }}
         />
       </div>
