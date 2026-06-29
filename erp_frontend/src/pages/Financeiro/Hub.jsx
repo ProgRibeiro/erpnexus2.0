@@ -78,6 +78,41 @@ const quickActions = [
   { key: "analitico", label: "Análise avançada", path: "/financeiro/analitico", icon: ReconciliationOutlined },
 ];
 
+const quickLinkCards = [
+  {
+    key: "lancamentos",
+    label: "Lançamentos",
+    helper: "Receitas, despesas e baixas",
+    path: "/financeiro/lancamentos",
+    icon: FileTextOutlined,
+    color: "#3B82F6",
+  },
+  {
+    key: "contas",
+    label: "Contas bancárias",
+    helper: "Saldos e movimentações",
+    path: "/financeiro/contas",
+    icon: BankOutlined,
+    color: "#1A7A4A",
+  },
+  {
+    key: "relatorios",
+    label: "Relatórios",
+    helper: "Exportações e demonstrativos",
+    path: "/financeiro/relatorios",
+    icon: BarChartOutlined,
+    color: "#B45309",
+  },
+  {
+    key: "analitico",
+    label: "Análise avançada",
+    helper: "DRE, fluxo de caixa e aging",
+    path: "/financeiro/analitico",
+    icon: ReconciliationOutlined,
+    color: "#5B21B6",
+  },
+];
+
 function toNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -320,6 +355,33 @@ export default function FinanceiroHubPage() {
           action={<Button size="small" onClick={() => load(true)}>Tentar novamente</Button>}
         />
       )}
+
+      <section className="finance-quicklinks">
+        {quickLinkCards.map((link) => {
+          const Icon = link.icon;
+          return (
+            <div
+              key={link.key}
+              className="finance-quicklink-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(link.path)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") navigate(link.path);
+              }}
+            >
+              <span className="finance-quicklink-icon" style={{ color: link.color, background: `${link.color}14` }}>
+                <Icon />
+              </span>
+              <span className="finance-quicklink-text">
+                <span className="finance-quicklink-label">{link.label}</span>
+                <span className="finance-quicklink-helper">{link.helper}</span>
+              </span>
+              <ArrowRightOutlined className="finance-quicklink-arrow" />
+            </div>
+          );
+        })}
+      </section>
 
       <section className="finance-position-card">
         <div className="finance-position-main">
