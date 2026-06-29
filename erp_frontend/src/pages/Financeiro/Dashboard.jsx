@@ -65,7 +65,8 @@ const cardStyle = {
   background: "#FFFFFF",
   border: "1px solid #E2E6EC",
   borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+  transition: "box-shadow 0.2s ease, border-color 0.2s ease",
 };
 
 const filterStyle = {

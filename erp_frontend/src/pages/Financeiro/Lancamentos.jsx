@@ -54,7 +54,8 @@ const cardStyle = {
   background: "#FFFFFF",
   border: "1px solid #E2E6EC",
   borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+  transition: "box-shadow 0.2s ease, border-color 0.2s ease",
 };
 
 const filterStyle = {
@@ -178,7 +179,7 @@ function TipoCard({ value, selected, onChange }) {
             border: `2px solid ${t.border}`,
             background: t.bg,
             cursor: "pointer",
-            transition: "all 0.18s",
+            transition: "all 0.2s ease",
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -189,7 +190,7 @@ function TipoCard({ value, selected, onChange }) {
             background: selected === t.value ? t.color : "#E5E7EB",
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontSize: 20, fontWeight: 700,
-            transition: "all 0.18s",
+            transition: "all 0.2s ease",
           }}>
             {t.icon}
           </div>

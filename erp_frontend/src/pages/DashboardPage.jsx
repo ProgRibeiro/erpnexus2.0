@@ -52,11 +52,11 @@ const metricCardStyle = {
   borderRadius: 16,
   boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
   minHeight: 164,
-  transition: "transform 0.18s ease, box-shadow 0.18s ease",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const tableStyle = {
-  border: "1px solid #EEF2F7",
+  border: "1px solid #E2E6EC",
   borderRadius: 12,
   overflow: "hidden",
 };
@@ -527,9 +527,18 @@ export default function DashboardPage() {
               textAlign: "left",
               padding: 14,
               borderRadius: 14,
-              border: "1px solid #EEF2F7",
+              border: "1px solid #E2E6EC",
               background: "#FFFFFF",
               cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(event) => {
+              event.currentTarget.style.borderColor = colors.azul;
+              event.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.08)";
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.borderColor = "#E2E6EC";
+              event.currentTarget.style.boxShadow = "none";
             }}
           >
             <div

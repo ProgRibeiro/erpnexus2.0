@@ -10,6 +10,7 @@ import {
   Card,
   Col,
   DatePicker,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -42,7 +43,8 @@ const cardStyle = {
   background: "#FFFFFF",
   border: "1px solid #E2E6EC",
   borderRadius: 12,
-  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
+  transition: "box-shadow 0.2s ease, border-color 0.2s ease",
 };
 
 function formatDate(value) {
@@ -57,6 +59,11 @@ function ContasTab({ contas, loading, onEdit }) {
       dataSource={contas}
       loading={loading}
       scroll={{ x: 900 }}
+      locale={{
+        emptyText: (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma conta bancária cadastrada" />
+        ),
+      }}
       columns={[
         { title: "Nome", dataIndex: "nome", render: (value) => <strong>{value}</strong> },
         { title: "Banco", dataIndex: "banco", render: (value) => value || "-" },
@@ -79,6 +86,11 @@ function CategoriasTab({ categorias, loading, onEdit }) {
       dataSource={categorias}
       loading={loading}
       scroll={{ x: 720 }}
+      locale={{
+        emptyText: (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma categoria cadastrada" />
+        ),
+      }}
       columns={[
         { title: "Nome", dataIndex: "nome", render: (value) => <strong>{value}</strong> },
         {
@@ -115,6 +127,11 @@ function TransferenciasTab({ transferencias, loading, onEdit }) {
       dataSource={transferencias}
       loading={loading}
       scroll={{ x: 860 }}
+      locale={{
+        emptyText: (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhuma transferência registrada" />
+        ),
+      }}
       columns={[
         { title: "Data", dataIndex: "data", width: 120, render: formatDate },
         { title: "Origem", dataIndex: "conta_origem_nome" },
