@@ -303,9 +303,19 @@ export default function ChamadosExternosPage() {
                 style={{
                   ...panelStyle,
                   borderLeft: `4px solid ${prioConf.color}`,
+                  cursor: "pointer",
+                  transition: "0.2s ease",
                 }}
                 bodyStyle={{ padding: "20px 24px" }}
-                hoverable
+                onClick={() => abrirDetalhes(c)}
+                onMouseEnter={(event) => {
+                  event.currentTarget.style.boxShadow = "0 18px 40px rgba(15, 23, 42, 0.09)";
+                  event.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.boxShadow = "0 14px 36px rgba(15, 23, 42, 0.05)";
+                  event.currentTarget.style.transform = "translateY(0)";
+                }}
               >
                 <Row align="middle" gutter={[16, 12]}>
                   <Col xs={24} md={16}>
@@ -372,7 +382,10 @@ export default function ChamadosExternosPage() {
                             width: "100%",
                             fontWeight: 600,
                           }}
-                          onClick={() => handleAcao(c.id, "em_atendimento")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleAcao(c.id, "em_atendimento");
+                          }}
                           loading={actionLoading}
                         >
                           Aceitar
@@ -381,7 +394,10 @@ export default function ChamadosExternosPage() {
                       <Button
                         type="primary"
                         style={{ borderRadius: 8, width: "100%", fontWeight: 600 }}
-                        onClick={() => abrirDetalhes(c)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          abrirDetalhes(c);
+                        }}
                       >
                         Ver Detalhes
                       </Button>

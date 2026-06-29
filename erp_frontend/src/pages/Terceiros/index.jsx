@@ -4,6 +4,7 @@ import {
   Card,
   Col,
   Drawer,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -54,6 +55,7 @@ const metricCardStyle = {
   border: `1px solid ${colors.borda}`,
   borderRadius: 16,
   boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const btnPrimaryStyle = {
@@ -246,7 +248,7 @@ export default function TerceirosPage() {
 
       <Row gutter={[20, 20]}>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20 }} hoverable>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 14 }}>
@@ -261,7 +263,7 @@ export default function TerceirosPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20 }}>
+          <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20 }} hoverable>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 14 }}>
@@ -283,6 +285,15 @@ export default function TerceirosPage() {
           dataSource={terceiros}
           rowKey="id"
           loading={loading}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum terceirizado cadastrado"
+                style={{ padding: "32px 0" }}
+              />
+            ),
+          }}
           expandable={{
             expandedRowRender: (record) => (
               <Space direction="vertical" style={{ width: "100%" }}>

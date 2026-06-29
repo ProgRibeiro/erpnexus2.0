@@ -24,6 +24,7 @@ import {
   Space,
   Typography,
   Avatar,
+  Empty,
 } from "antd";
 import {
   InfoCircleOutlined,
@@ -80,7 +81,7 @@ const panelStyle = {
 const sectionCardStyle = {
   border: `1px solid ${colors.borda}`,
   borderRadius: 14,
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.045)",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
 };
 
 const btnStyle = {
@@ -1735,16 +1736,16 @@ export default function ConfiguracoesPage() {
                 {logosClientes.length === 0 ? (
                   <div
                     style={{
-                      textAlign: "center",
-                      padding: "48px 24px",
                       background: colors.fundoSuave,
                       border: `1px solid ${colors.borda}`,
                       borderRadius: 12,
-                      color: colors.textoFraco,
-                      fontSize: 14,
                     }}
                   >
-                    Nenhum parceiro cadastrado ainda. Adicione o primeiro logo acima.
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="Nenhum parceiro cadastrado ainda. Adicione o primeiro logo acima."
+                      style={{ padding: "32px 0" }}
+                    />
                   </div>
                 ) : (
                   <Row gutter={[16, 16]}>
@@ -1753,12 +1754,24 @@ export default function ConfiguracoesPage() {
                         <div
                           style={{
                             borderRadius: 12,
-                            border: item.ativo ? "2px solid #3B82F6" : "2px solid #E2E8F0",
+                            border: item.ativo ? `2px solid ${colors.azul}` : `2px solid ${colors.borda}`,
                             overflow: "hidden",
                             background: "#FFFFFF",
                             boxShadow: item.ativo ? "0 4px 16px rgba(59,130,246,0.12)" : "none",
-                            transition: "all 0.2s",
+                            transition: "0.2s ease",
                             opacity: item.ativo ? 1 : 0.45,
+                          }}
+                          onMouseEnter={(event) => {
+                            event.currentTarget.style.transform = "translateY(-2px)";
+                            event.currentTarget.style.boxShadow = item.ativo
+                              ? "0 8px 20px rgba(59,130,246,0.16)"
+                              : "0 10px 24px rgba(15, 23, 42, 0.06)";
+                          }}
+                          onMouseLeave={(event) => {
+                            event.currentTarget.style.transform = "translateY(0)";
+                            event.currentTarget.style.boxShadow = item.ativo
+                              ? "0 4px 16px rgba(59,130,246,0.12)"
+                              : "none";
                           }}
                         >
                           <div
@@ -1768,7 +1781,7 @@ export default function ConfiguracoesPage() {
                               alignItems: "center",
                               justifyContent: "center",
                               minHeight: 80,
-                              background: "#F8FAFC",
+                              background: colors.fundoSuave,
                             }}
                           >
                             <img
@@ -1777,12 +1790,12 @@ export default function ConfiguracoesPage() {
                               style={{ maxWidth: "100%", maxHeight: 64, objectFit: "contain" }}
                             />
                           </div>
-                          <div style={{ padding: "10px 12px", borderTop: "1px solid #F1F5F9" }}>
+                          <div style={{ padding: "10px 12px", borderTop: `1px solid ${colors.borda}` }}>
                             <div
                               style={{
                                 fontSize: 12,
                                 fontWeight: 600,
-                                color: "#334155",
+                                color: colors.texto,
                                 marginBottom: 8,
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",

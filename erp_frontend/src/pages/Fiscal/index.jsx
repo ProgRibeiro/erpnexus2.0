@@ -269,18 +269,21 @@ export default function FiscalPage() {
       {config?.regime_tributario === "lucro_presumido" && (
         <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
           <Title level={4} style={{ color: colors.texto }}>Tabela de Impostos - Lucro Presumido</Title>
-          <Table
-            dataSource={impostos}
-            rowKey="id"
-            columns={[
-              { title: "Descrição", dataIndex: "descricao" },
-              { title: "PIS", dataIndex: "pis", render: (v) => `${v}%` },
-              { title: "COFINS", dataIndex: "cofins", render: (v) => `${v}%` },
-              { title: "IRPJ Serviços", dataIndex: "irpj_servicos", render: (v) => `${v}%` },
-              { title: "CSLL Serviços", dataIndex: "csll_servicos", render: (v) => `${v}%` },
-            ]}
-            pagination={false}
-          />
+          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              dataSource={impostos}
+              rowKey="id"
+              locale={{ emptyText: "Nenhuma tabela de impostos cadastrada" }}
+              columns={[
+                { title: "Descrição", dataIndex: "descricao" },
+                { title: "PIS", dataIndex: "pis", render: (v) => `${v}%` },
+                { title: "COFINS", dataIndex: "cofins", render: (v) => `${v}%` },
+                { title: "IRPJ Serviços", dataIndex: "irpj_servicos", render: (v) => `${v}%` },
+                { title: "CSLL Serviços", dataIndex: "csll_servicos", render: (v) => `${v}%` },
+              ]}
+              pagination={false}
+            />
+          </div>
         </Card>
       )}
 

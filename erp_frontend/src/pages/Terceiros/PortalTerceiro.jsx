@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Col, Row, Space, Table, Typography, Upload, message } from "antd";
+import { Button, Card, Col, Empty, Row, Space, Table, Typography, Upload, message } from "antd";
 import { SolutionOutlined, UploadOutlined } from "@ant-design/icons";
 
 import api from "../../services/api";
@@ -13,11 +13,12 @@ const colors = {
   textoSecundario: "#5A6070",
   textoFraco: "#8A97AA",
   borda: "#E2E6EC",
+  fundoSuave: "#F8FAFD",
 };
 
 const pageStyle = {
   minHeight: "100vh",
-  background: "#F8FAFD",
+  background: colors.fundoSuave,
   padding: 24,
 };
 
@@ -100,6 +101,15 @@ export default function PortalTerceiroPage() {
                 loading={loading}
                 rowKey="id"
                 dataSource={dados.ordens || []}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="Nenhuma OS aprovada ou em execução"
+                      style={{ padding: "24px 0" }}
+                    />
+                  ),
+                }}
                 columns={[
                   { title: "OS", dataIndex: "numero" },
                   { title: "Status", dataIndex: "status" },
@@ -124,6 +134,15 @@ export default function PortalTerceiroPage() {
                 rowKey="id"
                 dataSource={dados.lancamentos || []}
                 pagination={false}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="Nenhum lançamento financeiro"
+                      style={{ padding: "24px 0" }}
+                    />
+                  ),
+                }}
                 columns={[
                   { title: "Descrição", dataIndex: "descricao" },
                   { title: "Status", dataIndex: "status" },
