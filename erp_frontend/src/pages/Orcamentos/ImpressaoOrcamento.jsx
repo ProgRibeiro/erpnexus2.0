@@ -685,14 +685,14 @@ export default function ImpressaoOrcamento() {
           </div>
 
           <div className="proposal-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 0.9fr 0.85fr", gap: 12, padding: "16px 26px", background: "#FFFFFF", borderBottom: "1px solid #E2E8F0" }}>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, transition: "all 0.2s", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, transition: "all 0.2s", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
               <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Cliente</div>
               <div style={{ color: "#1E293B", fontSize: 12.5, fontWeight: 700 }}>{orcamento?.cliente_nome || "-"}</div>
               <div style={{ color: "#64748B", fontSize: 10, marginTop: 5 }}>
                 {[orcamento?.cliente_cnpj_cpf, orcamento?.cliente_email, orcamento?.cliente_telefone].filter(Boolean).join("  •  ") || "—"}
               </div>
             </div>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
               <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Condições</div>
               <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: "5px 8px", fontSize: 10 }}>
                 <span style={{ color: "#64748B", fontWeight: 600 }}>Pagamento</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{orcamento?.condicao_pagamento || "-"}</span>
@@ -700,7 +700,7 @@ export default function ImpressaoOrcamento() {
                 <span style={{ color: "#64748B", fontWeight: 600 }}>Regime</span><span style={{ color: "#1E293B", fontWeight: 600 }}>{regimeExibir}</span>
               </div>
             </div>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
+            <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
               <div style={{ color: "#3B82F6", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Resumo</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "5px 10px", fontSize: 10 }}>
                 <span style={{ color: "#64748B", fontWeight: 600 }}>Subtotal</span><span style={{ color: "#1E293B", fontWeight: 700 }}>{formatMoneyTrailing(subtotalItens)}</span>

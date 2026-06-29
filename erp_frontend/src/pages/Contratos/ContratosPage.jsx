@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, Col, DatePicker, Empty, Input, Row, Select, Skeleton, Space, Table, Tag, Typography, message } from "antd";
+import { Badge, Button, Card, Col, ConfigProvider, DatePicker, Empty, Input, Row, Select, Skeleton, Space, Table, Tag, Typography, message } from "antd";
 import {
   CalendarOutlined,
   DollarOutlined,
@@ -135,6 +135,7 @@ export default function ContratosPage() {
   const [summary, setSummary] = useState({});
   const [status, setStatus] = useState("");
   const [busca, setBusca] = useState("");
+  const [hoveredRow, setHoveredRow] = useState(null);
 
   async function fetchContratos() {
     setLoading(true);
@@ -203,7 +204,19 @@ export default function ContratosPage() {
       width: 110,
       align: "right",
       render: (_, row) => (
-        <Button size="small" onClick={() => navigate(`/contratos/${row.id}`)} style={{ borderRadius: 8, fontWeight: 600 }}>
+        <Button
+          size="small"
+          onClick={(event) => {
+            event.stopPropagation();
+            navigate(`/contratos/${row.id}`);
+          }}
+          style={{
+            borderRadius: 8,
+            fontWeight: 600,
+            opacity: hoveredRow === row.id ? 1 : 0.6,
+            transition: "opacity 0.2s ease",
+          }}
+        >
           Abrir
         </Button>
       ),
@@ -211,7 +224,25 @@ export default function ContratosPage() {
   ];
 
   return (
+    <ConfigProvider
+      theme={{
+        components: {
+          Table: {
+            headerBg: "#F8FAFC",
+            headerColor: "#6B7280",
+            rowHoverBg: "#F3F6FA",
+          },
+        },
+      }}
+    >
     <div style={pageStyle}>
+      <style>
+        {`
+          .contratos-table .ant-table-tbody > tr > td {
+            transition: background 160ms ease;
+          }
+        `}
+      </style>
       <div
         style={{
           alignItems: "center",
@@ -323,15 +354,21 @@ export default function ContratosPage() {
       <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 0 }}>
         <Skeleton active loading={loading && contratos.length === 0} paragraph={{ rows: 8 }} title={false}>
           <Table
+            className="contratos-table"
             rowKey="id"
             loading={loading && contratos.length > 0}
             columns={columns}
             dataSource={contratos}
             scroll={{ x: 1000 }}
-            onRow={(row) => ({ onClick: () => navigate(`/contratos/${row.id}`), style: { cursor: "pointer" } })}
+            onRow={(row) => ({
+              onClick: () => navigate(`/contratos/${row.id}`),
+              onMouseEnter: () => setHoveredRow(row.id),
+              onMouseLeave: () => setHoveredRow(null),
+              style: { cursor: "pointer" },
+            })}
             locale={{
               emptyText: (
-                <Empty description="Nenhum contrato encontrado" style={{ margin: "44px 0" }}>
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum contrato encontrado" style={{ margin: "44px 0" }}>
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
@@ -347,5 +384,6 @@ export default function ContratosPage() {
         </Skeleton>
       </Card>
     </div>
+    </ConfigProvider>
   );
 }

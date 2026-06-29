@@ -205,7 +205,7 @@ export default function OrcamentoUnificado() {
           message="Seleção insuficiente"
           description="Selecione ao menos 2 orçamentos para utilizar a funcionalidade de unificação."
           showIcon
-          style={{ maxWidth: 480, marginBottom: 16, borderRadius: 14, border: "1px solid #E2E6EC", boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)" }}
+          style={{ maxWidth: 480, marginBottom: 16, borderRadius: 14, border: "1px solid #E2E6EC", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}
         />
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
           Voltar para Orçamentos
@@ -222,7 +222,7 @@ export default function OrcamentoUnificado() {
           message="Erro ao carregar"
           description={error}
           showIcon
-          style={{ maxWidth: 480, marginBottom: 16, borderRadius: 14, border: "1px solid #E2E6EC", boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)" }}
+          style={{ maxWidth: 480, marginBottom: 16, borderRadius: 14, border: "1px solid #E2E6EC", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}
         />
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/orcamentos")} style={{ borderRadius: 10, height: 40, fontWeight: 600 }}>
           Voltar para Orçamentos

@@ -212,7 +212,7 @@ const sectionStyle = {
   borderRadius: 14,
   padding: 18,
   background: "#FFFFFF",
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)",
+  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
 };
 
 const metricStyle = {

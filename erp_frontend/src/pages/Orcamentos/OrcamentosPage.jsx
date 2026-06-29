@@ -908,7 +908,7 @@ export default function OrcamentosPage() {
               })}
               locale={{
                 emptyText: (
-                  <Empty description="Nenhum orçamento encontrado" style={{ margin: "44px 0" }}>
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nenhum orçamento encontrado" style={{ margin: "44px 0" }}>
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}

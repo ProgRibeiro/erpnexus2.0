@@ -42,7 +42,7 @@ export default function FiscalIntelligenceAlert({ impostos }) {
         borderRadius: 14,
         marginTop: 12,
         border: `1px solid ${colors.borda}`,
-        boxShadow: "0 10px 26px rgba(15, 23, 42, 0.04)",
+        boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
       }}
       message={
         <Space wrap size={8}>
