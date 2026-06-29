@@ -13,6 +13,14 @@ export const COMMAND_CATEGORIES = {
   SISTEMA: "sistema",
 };
 
+const goTo = (path) => {
+  window.history.pushState({}, "", path);
+  const event = typeof PopStateEvent === "function"
+    ? new PopStateEvent("popstate")
+    : new Event("popstate");
+  window.dispatchEvent(event);
+};
+
 export const COMMANDS = [
   // Navegação
   {
@@ -22,7 +30,7 @@ export const COMMANDS = [
     description: "Abre o painel principal",
     icon: "home",
     shortcut: "Home",
-    action: () => (window.location.hash = "#/"),
+    action: () => goTo("/"),
     priority: 1,
   },
   {
@@ -32,7 +40,7 @@ export const COMMANDS = [
     description: "Lista de ordens de serviço",
     icon: "file-text",
     shortcut: "Alt+O",
-    action: () => (window.location.hash = "#/ordens"),
+    action: () => goTo("/ordens"),
     priority: 2,
   },
   {
@@ -42,7 +50,7 @@ export const COMMANDS = [
     description: "Hub financeiro e análises",
     icon: "trending-up",
     shortcut: "Alt+F",
-    action: () => (window.location.hash = "#/financeiro"),
+    action: () => goTo("/financeiro"),
     priority: 3,
   },
   {
@@ -52,7 +60,7 @@ export const COMMANDS = [
     description: "Central de cadastros (clientes, serviços, estoque)",
     icon: "layers",
     shortcut: "Alt+C",
-    action: () => (window.location.hash = "#/cadastros"),
+    action: () => goTo("/cadastros"),
     priority: 4,
   },
   {
@@ -62,7 +70,7 @@ export const COMMANDS = [
     description: "Gestão de clientes",
     icon: "users",
     shortcut: "Alt+L",
-    action: () => (window.location.hash = "#/clientes"),
+    action: () => goTo("/clientes"),
     priority: 5,
   },
   {
@@ -72,7 +80,7 @@ export const COMMANDS = [
     description: "Pipeline de vendas (Kanban)",
     icon: "kanban",
     shortcut: "Alt+K",
-    action: () => (window.location.hash = "#/crm"),
+    action: () => goTo("/crm"),
     priority: 6,
   },
 
@@ -84,7 +92,7 @@ export const COMMANDS = [
     description: "Criar uma nova OS",
     icon: "plus",
     shortcut: "Ctrl+Alt+O",
-    action: () => (window.location.hash = "#/ordens/novo"),
+    action: () => goTo("/ordens/novo"),
     priority: 10,
   },
   {
@@ -93,8 +101,17 @@ export const COMMANDS = [
     title: "Ordens de Hoje",
     description: "Exibir ordens agendadas para hoje",
     icon: "calendar",
-    action: () => (window.location.hash = "#/ordens?filtro=hoje"),
+    action: () => goTo("/agenda/hoje"),
     priority: 11,
+  },
+  {
+    id: "faturamento-os",
+    category: COMMAND_CATEGORIES.ORDENS,
+    title: "Faturamento de OS",
+    description: "Abrir OS pendentes para faturar",
+    icon: "dollar-sign",
+    action: () => goTo("/faturamento"),
+    priority: 12,
   },
 
   // Ações Rápidas - Financeiro
@@ -105,7 +122,7 @@ export const COMMANDS = [
     description: "Registrar novo lançamento financeiro",
     icon: "plus-circle",
     shortcut: "Ctrl+Alt+L",
-    action: () => (window.location.hash = "#/financeiro/lancamentos/novo"),
+    action: () => goTo("/financeiro/lancamentos/novo"),
     priority: 20,
   },
   {
@@ -114,7 +131,7 @@ export const COMMANDS = [
     title: "Fluxo de Caixa",
     description: "Visualizar fluxo de caixa",
     icon: "bar-chart-2",
-    action: () => (window.location.hash = "#/financeiro/fluxo-caixa"),
+    action: () => goTo("/financeiro/analitico"),
     priority: 21,
   },
   {
@@ -123,7 +140,7 @@ export const COMMANDS = [
     title: "Recebimentos Pendentes",
     description: "Contas a receber",
     icon: "arrow-down-circle",
-    action: () => (window.location.hash = "#/financeiro/recebimentos"),
+    action: () => goTo("/financeiro/lancamentos?tipo=receita&status=pendente"),
     priority: 22,
   },
   {
@@ -132,7 +149,7 @@ export const COMMANDS = [
     title: "Pagamentos Pendentes",
     description: "Contas a pagar",
     icon: "arrow-up-circle",
-    action: () => (window.location.hash = "#/financeiro/pagamentos"),
+    action: () => goTo("/financeiro/lancamentos?tipo=despesa&status=pendente"),
     priority: 23,
   },
 
@@ -144,7 +161,7 @@ export const COMMANDS = [
     description: "Criar novo orçamento",
     icon: "file-earmark-text",
     shortcut: "Ctrl+Alt+Q",
-    action: () => (window.location.hash = "#/orcamentos/novo"),
+    action: () => goTo("/orcamentos/novo"),
     priority: 30,
   },
   {
@@ -154,7 +171,7 @@ export const COMMANDS = [
     description: "Cadastrar novo cliente",
     icon: "user-plus",
     shortcut: "Ctrl+Alt+C",
-    action: () => (window.location.hash = "#/clientes/novo"),
+    action: () => goTo("/clientes"),
     priority: 40,
   },
 
@@ -190,7 +207,7 @@ export const COMMANDS = [
     action: () => {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-      window.location.hash = "#/login";
+      goTo("/login");
     },
     priority: 102,
   },

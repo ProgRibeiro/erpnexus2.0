@@ -4,12 +4,17 @@ import {
   AppstoreOutlined,
   BellOutlined,
   BarChartOutlined,
+  CalendarOutlined,
+  DollarOutlined,
   DownOutlined,
   FileTextOutlined,
   LogoutOutlined,
+  PlusOutlined,
   SearchOutlined,
   ShopOutlined,
   SafetyCertificateOutlined,
+  ThunderboltOutlined,
+  ToolOutlined,
   UserOutlined,
   SettingOutlined,
   RightOutlined,
@@ -82,6 +87,25 @@ function buildSearchIndex() {
 function buildQuickAccessItems(navigate) {
   return [
     {
+      key: "nova-os",
+      icon: <PlusOutlined />,
+      label: "Nova OS",
+      onClick: () => navigate("/ordens/novo"),
+    },
+    {
+      key: "novo-orcamento",
+      icon: <FileTextOutlined />,
+      label: "Novo orçamento",
+      onClick: () => navigate("/orcamentos/novo"),
+    },
+    {
+      key: "novo-lancamento",
+      icon: <DollarOutlined />,
+      label: "Novo lançamento",
+      onClick: () => navigate("/financeiro/lancamentos/novo"),
+    },
+    { type: "divider" },
+    {
       key: "inicio",
       icon: <AppstoreOutlined />,
       label: "Início / Ambiente",
@@ -101,10 +125,10 @@ function buildQuickAccessItems(navigate) {
     })),
     { type: "divider" },
     {
-      key: "novo-orcamento",
-      icon: <FileTextOutlined />,
-      label: "Novo orçamento",
-      onClick: () => navigate("/orcamentos/novo"),
+      key: "comando",
+      icon: <ThunderboltOutlined />,
+      label: "Abrir comandos",
+      onClick: () => document.dispatchEvent(new CustomEvent("open-command-palette")),
     },
     {
       key: "configuracoes",
@@ -112,6 +136,70 @@ function buildQuickAccessItems(navigate) {
       label: "Configurações",
       onClick: () => navigate("/configuracoes"),
     },
+  ];
+}
+
+function getContextActions(pathname, navigate) {
+  const action = (key, label, path, icon, primary = false) => ({
+    key,
+    label,
+    icon,
+    primary,
+    onClick: () => navigate(path),
+  });
+
+  if (pathname.startsWith("/ordens/") && pathname !== "/ordens/novo") {
+    return [
+      action("voltar-os", "Todas OS", "/ordens", <ToolOutlined />),
+      action("agenda-hoje", "Agenda hoje", "/agenda/hoje", <CalendarOutlined />),
+      action("faturamento", "Faturar", "/faturamento", <DollarOutlined />, true),
+    ];
+  }
+
+  if (pathname.startsWith("/ordens")) {
+    return [
+      action("nova-os", "Nova OS", "/ordens/novo", <PlusOutlined />, true),
+      action("agenda-hoje", "Agenda hoje", "/agenda/hoje", <CalendarOutlined />),
+      action("faturamento", "Faturamento", "/faturamento", <DollarOutlined />),
+    ];
+  }
+
+  if (pathname.startsWith("/orcamentos")) {
+    return [
+      action("novo-orcamento", "Novo orçamento", "/orcamentos/novo", <PlusOutlined />, true),
+      action("orcamento-ia", "Orçamento inteligente", "/orcamentos/inteligente", <ThunderboltOutlined />),
+      action("crm", "CRM", "/crm", <BarChartOutlined />),
+    ];
+  }
+
+  if (pathname.startsWith("/financeiro") || pathname.startsWith("/faturamento")) {
+    return [
+      action("novo-lancamento", "Novo lançamento", "/financeiro/lancamentos/novo", <PlusOutlined />, true),
+      action("lancamentos", "Lançamentos", "/financeiro/lancamentos", <FileTextOutlined />),
+      action("relatorios", "Relatórios", "/financeiro/relatorios", <BarChartOutlined />),
+    ];
+  }
+
+  if (pathname.startsWith("/estoque")) {
+    return [
+      action("entrada", "Entrada", "/estoque/entrada", <PlusOutlined />, true),
+      action("saida", "Saída", "/estoque/saida", <ToolOutlined />),
+      action("alertas", "Alertas", "/estoque/alertas", <SafetyCertificateOutlined />),
+    ];
+  }
+
+  if (pathname.startsWith("/agenda")) {
+    return [
+      action("agenda-hoje", "Minhas OS", "/agenda/hoje", <CalendarOutlined />, true),
+      action("nova-os", "Nova OS", "/ordens/novo", <PlusOutlined />),
+      action("ordens", "Ver OS", "/ordens", <ToolOutlined />),
+    ];
+  }
+
+  return [
+    action("nova-os", "Nova OS", "/ordens/novo", <PlusOutlined />, true),
+    action("novo-orcamento", "Orçamento", "/orcamentos/novo", <FileTextOutlined />),
+    action("financeiro", "Financeiro", "/financeiro", <DollarOutlined />),
   ];
 }
 
@@ -127,6 +215,10 @@ export default function Header() {
   const quickAccessItems = useMemo(
     () => buildQuickAccessItems(navigate),
     [navigate]
+  );
+  const contextActions = useMemo(
+    () => getContextActions(location.pathname, navigate),
+    [location.pathname, navigate]
   );
   const searchOptions = useMemo(() => {
     const term = searchValue.trim().toLowerCase();
@@ -248,8 +340,9 @@ export default function Header() {
             <Input
               allowClear
               prefix={<SearchOutlined />}
-              placeholder="Buscar clientes, OS, orçamento, produto..."
+              placeholder="Buscar ou digitar uma ação..."
               className="erp-command-input"
+              suffix={<span className="erp-command-kbd">Ctrl K</span>}
               onPressEnter={handleSearchEnter}
             />
           </AutoComplete>
@@ -257,6 +350,20 @@ export default function Header() {
         </div>
 
         <Space size={8} className="erp-topbar-actions">
+          <div className="erp-context-actions">
+            {contextActions.map((item) => (
+              <Button
+                key={item.key}
+                type={item.primary ? "primary" : "default"}
+                icon={item.icon}
+                onClick={item.onClick}
+                className={item.primary ? "erp-context-button erp-context-button-primary" : "erp-context-button"}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
           <Tag icon={<SafetyCertificateOutlined />} className="erp-health-tag">
             Operação ativa
           </Tag>
