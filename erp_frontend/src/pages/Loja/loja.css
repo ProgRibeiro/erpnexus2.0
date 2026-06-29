@@ -1,7 +1,7 @@
 .store-shell {
   --store-ink: #0f172a;
   --store-muted: #64748b;
-  --store-border: #e2e8f0;
+  --store-border: #e2e6ec;
   min-height: 100vh;
   background: #f6f8fb !important;
 }
@@ -257,7 +257,13 @@
   height: 100%;
   border: 1px solid var(--store-border);
   border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.store-metric-card:hover {
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
 }
 
 .store-metric-card .ant-card-body {
@@ -373,7 +379,7 @@
   margin-top: 14px;
   border: 1px solid var(--store-border);
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
 .store-navigation .ant-card-body {
@@ -427,8 +433,8 @@
 
 .store-workspace .ant-card {
   border-color: var(--store-border) !important;
-  border-radius: 13px !important;
-  box-shadow: 0 7px 22px rgba(15, 23, 42, 0.045) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.05) !important;
 }
 
 .store-workspace .ant-card-head {
@@ -455,8 +461,20 @@
   background: #f8fafc;
 }
 
+.store-workspace .ant-table-tbody > tr > td {
+  transition: background 0.2s ease;
+}
+
 .store-workspace .ant-table-tbody > tr:hover > td {
   background: #f8fbff !important;
+}
+
+.store-integration-items > span {
+  transition: transform 0.2s ease;
+}
+
+.store-integration-items > span:hover {
+  transform: translateY(-1px);
 }
 
 .store-workspace .ant-input-affix-wrapper,

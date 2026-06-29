@@ -61,6 +61,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -463,12 +464,37 @@ export default function FaturamentoPage() {
           {/* Seleção de OS */}
           <div style={{ maxHeight: 220, overflowY: "auto", border: `1px solid ${colors.borda}`, borderRadius: 10, padding: "8px 12px" }}>
             {ordens.length === 0 ? (
-              <Text style={{ color: colors.textoFraco }}>Nenhuma OS disponível.</Text>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhuma OS disponível"
+                style={{ margin: "16px 0" }}
+              />
             ) : (
               ordens.map((o) => (
-                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #F1F5F9" }}>
+                <div
+                  key={o.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 10px",
+                    margin: "0 -10px",
+                    borderRadius: 8,
+                    borderBottom: "1px solid #F1F5F9",
+                    cursor: "pointer",
+                    transition: "background 0.2s ease",
+                  }}
+                  onClick={() =>
+                    setSelectedOrdens((prev) =>
+                      prev.includes(o.id) ? prev.filter((id) => id !== o.id) : [...prev, o.id]
+                    )
+                  }
+                  onMouseEnter={(event) => { event.currentTarget.style.background = "#F8FAFD"; }}
+                  onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+                >
                   <Checkbox
                     checked={selectedOrdens.includes(o.id)}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) =>
                       setSelectedOrdens((prev) =>
                         e.target.checked ? [...prev, o.id] : prev.filter((id) => id !== o.id)

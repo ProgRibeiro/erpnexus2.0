@@ -64,6 +64,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const btnStyle = {
@@ -253,7 +254,7 @@ export default function ServicosPage() {
       width: 130,
       render: (text) => {
         const cat = categoriasOpcoes.find((c) => c.value === text);
-        return <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>{cat?.label || text}</Tag>;
+        return <Tag color="blue" style={{ borderRadius: 8, fontWeight: 600 }}>{cat?.label || text}</Tag>;
       },
     },
     {
@@ -269,7 +270,7 @@ export default function ServicosPage() {
       width: 120,
       render: (text) => {
         const trib = tributacaoOpcoes.find((t) => t.value === text);
-        return <Tag color="orange" style={{ borderRadius: 6, fontWeight: 600 }}>{trib?.label || text}</Tag>;
+        return <Tag color="orange" style={{ borderRadius: 8, fontWeight: 600 }}>{trib?.label || text}</Tag>;
       },
     },
     {
@@ -303,7 +304,7 @@ export default function ServicosPage() {
               type="text"
               icon={<EditOutlined />}
               onClick={() => abrirDrawer(record)}
-              style={{ color: colors.azul }}
+              style={{ color: colors.azul, borderRadius: 8, transition: "all 0.2s ease" }}
             />
           </Tooltip>
           <Tooltip title="Deletar">
@@ -311,6 +312,7 @@ export default function ServicosPage() {
               type="text"
               icon={<DeleteOutlined />}
               danger
+              style={{ borderRadius: 8, transition: "all 0.2s ease" }}
               onClick={() => deletarServico(record.id)}
             />
           </Tooltip>
@@ -457,7 +459,11 @@ export default function ServicosPage() {
               pagination={{ pageSize: 20 }}
               locale={{
                 emptyText: (
-                  <Empty description="Nenhum serviço encontrado" style={{ margin: "44px 0" }}>
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Nenhum serviço encontrado"
+                    style={{ margin: "44px 0" }}
+                  >
                     <Button type="primary" onClick={() => abrirDrawer()} style={btnStyle}>
                       Criar primeiro serviço
                     </Button>

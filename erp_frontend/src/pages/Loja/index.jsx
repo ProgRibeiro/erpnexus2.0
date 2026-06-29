@@ -6,6 +6,7 @@ import {
   Card,
   Col,
   Divider,
+  Empty,
   Form,
   Input,
   InputNumber,
@@ -51,7 +52,7 @@ const { Text, Title } = Typography;
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const lojaBlue = "#3B82F6";
 const lojaGreen = "#10B981";
-const lojaBorder = "#E2E8F0";
+const lojaBorder = "#E2E6EC";
 const lojaMuted = "#64748B";
 
 const shellStyle = {
@@ -67,14 +68,15 @@ const pageInnerStyle = {
 
 const panelStyle = {
   border: `1px solid ${lojaBorder}`,
-  borderRadius: 10,
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05)",
+  borderRadius: 16,
+  boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
 };
 
 const compactListStyle = {
   border: `1px solid ${lojaBorder}`,
-  borderRadius: 10,
+  borderRadius: 12,
   background: "#FFFFFF",
+  transition: "all 0.2s ease",
 };
 
 function normalizeList(data) {
@@ -457,7 +459,12 @@ export default function LojaPage() {
       title: "PDV",
       width: 110,
       render: (_, item) => (
-        <Button size="small" icon={<PlusOutlined />} onClick={() => adicionarProdutoCarrinho(item)}>
+        <Button
+          size="small"
+          icon={<PlusOutlined />}
+          style={{ borderRadius: 8, transition: "all 0.2s ease" }}
+          onClick={() => adicionarProdutoCarrinho(item)}
+        >
           Adicionar
         </Button>
       ),
@@ -519,6 +526,15 @@ export default function LojaPage() {
             columns={produtoColumns}
             scroll={{ x: 980 }}
             pagination={{ pageSize: 8, showSizeChanger: false, showTotal: (total) => `${total} produtos` }}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="Nenhum produto encontrado"
+                  style={{ margin: "32px 0" }}
+                />
+              ),
+            }}
           />
         </Card>
       </Col>
@@ -591,7 +607,27 @@ export default function LojaPage() {
           <Alert type="info" showIcon message="Cadastro integrado ao estoque, PDV e fiscal." />
         </Col>
       </Row>
-      <Table size="small" loading={loading} rowKey="id" dataSource={produtosFiltrados} columns={produtoColumns} scroll={{ x: 980 }} />
+      <Table
+        size="small"
+        loading={loading}
+        rowKey="id"
+        dataSource={produtosFiltrados}
+        columns={produtoColumns}
+        scroll={{ x: 980 }}
+        locale={{
+          emptyText: (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Nenhum produto cadastrado"
+              style={{ margin: "32px 0" }}
+            >
+              <Button type="primary" icon={<PlusOutlined />} style={{ background: lojaBlue, borderRadius: 8 }} onClick={abrirCadastroProduto}>
+                Cadastrar produto
+              </Button>
+            </Empty>
+          ),
+        }}
+      />
     </Card>
   );
 
@@ -880,6 +916,15 @@ export default function LojaPage() {
                 dataSource={produtosPdvFiltrados}
                 pagination={{ pageSize: 7 }}
                 scroll={{ x: 760 }}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="Nenhum produto encontrado"
+                      style={{ margin: "28px 0" }}
+                    />
+                  ),
+                }}
                 columns={[
                   { title: "Produto", render: (_, item) => <Text strong>{getProdutoNome(item)}</Text> },
                   { title: "Código", render: (_, item) => getProdutoCodigo(item) },
@@ -888,7 +933,13 @@ export default function LojaPage() {
                   {
                     title: "",
                     render: (_, item) => (
-                      <Button type="primary" size="small" icon={<PlusOutlined />} style={{ background: lojaBlue }} onClick={() => adicionarProdutoCarrinho(item)}>
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<PlusOutlined />}
+                        style={{ background: lojaBlue, borderRadius: 8, transition: "all 0.2s ease" }}
+                        onClick={() => adicionarProdutoCarrinho(item)}
+                      >
                         Adicionar
                       </Button>
                     ),
@@ -910,6 +961,15 @@ export default function LojaPage() {
                 dataSource={carrinho}
                 pagination={false}
                 scroll={{ x: 620 }}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="Carrinho vazio"
+                      style={{ margin: "24px 0" }}
+                    />
+                  ),
+                }}
                 columns={[
                   { title: "Produto", render: (_, item) => getProdutoNome(item.produto) },
                   {

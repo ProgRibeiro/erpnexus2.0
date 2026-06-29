@@ -66,6 +66,7 @@ const panelStyle = {
 const metricCardStyle = {
   ...panelStyle,
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const drawerHeaderStyle = {
@@ -99,7 +100,8 @@ const supplyCardStyle = (active, color) => ({
   border: `1px solid ${active ? color : colors.borda}`,
   background: active ? colors.fundoSuave : "#FFFFFF",
   cursor: "pointer",
-  boxShadow: active ? "0 8px 20px rgba(15, 23, 42, 0.08)" : "none",
+  boxShadow: active ? "0 10px 24px rgba(15, 23, 42, 0.04)" : "none",
+  transition: "all 0.2s ease",
 });
 
 function SummaryCard({ color, icon, label, value, helper }) {
@@ -341,7 +343,7 @@ export default function EstoquePage() {
     {
       title: "Tipo",
       dataIndex: "tipo_suprimento",
-      render: (v) => <Tag color={v === "futuro" ? "purple" : "blue"} style={{ borderRadius: 6, fontWeight: 600 }}>{v === "futuro" ? "Futuro" : "Estoque"}</Tag>,
+      render: (v) => <Tag color={v === "futuro" ? "purple" : "blue"} style={{ borderRadius: 8, fontWeight: 600 }}>{v === "futuro" ? "Futuro" : "Estoque"}</Tag>,
     },
     {
       title: "Estoque",
