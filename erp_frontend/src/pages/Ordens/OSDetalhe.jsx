@@ -1673,7 +1673,11 @@ export default function OSDetalhePage() {
           ))}
         </Row>
       ) : (
-        <Empty description={`Nenhuma foto ${tipo === "antes" ? "antes" : "depois"} cadastrada`} />
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={`Nenhuma foto ${tipo === "antes" ? "antes" : "depois"} cadastrada`}
+          style={{ padding: "24px 0" }}
+        />
       )}
     </Card>
   );
@@ -1969,7 +1973,7 @@ export default function OSDetalhePage() {
         borderColor: isRespondido ? "#D1FAE5" : colors.borda,
         background: isRespondido ? "#F0FDF4" : colors.fundoSuave,
         marginBottom: 10,
-        transition: "all 0.2s",
+        transition: "all 0.2s ease",
       }}>
         <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 8 }} wrap>
           <Space>
@@ -2047,7 +2051,7 @@ export default function OSDetalhePage() {
                 <Space wrap style={{ marginBottom: 8 }}>
                   {fotos.map((f, fi) => (
                     <Image key={fi} src={f.arquivo || f.url} width={72} height={72}
-                      style={{ objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB" }}
+                      style={{ objectFit: "cover", borderRadius: 8, border: `1px solid ${colors.borda}` }}
                     />
                   ))}
                 </Space>
@@ -2755,7 +2759,7 @@ export default function OSDetalhePage() {
 
         <Row gutter={[16, 16]}>
           <Col xs={24} md={8}>
-            <Card bordered style={{ borderRadius: 14 }}>
+            <Card bordered={false} style={{ border: `1px solid ${colors.borda}`, borderRadius: 14, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
               <Text type="secondary" style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
                 Valor no financeiro
               </Text>
@@ -2765,7 +2769,7 @@ export default function OSDetalhePage() {
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card bordered style={{ borderRadius: 14 }}>
+            <Card bordered={false} style={{ border: `1px solid ${colors.borda}`, borderRadius: 14, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
               <Text type="secondary" style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
                 Previsão de recebimento
               </Text>
@@ -2775,7 +2779,7 @@ export default function OSDetalhePage() {
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card bordered style={{ borderRadius: 14 }}>
+            <Card bordered={false} style={{ border: `1px solid ${colors.borda}`, borderRadius: 14, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
               <Text type="secondary" style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
                 Situação
               </Text>
@@ -2952,6 +2956,13 @@ export default function OSDetalhePage() {
                     justifyContent: "center",
                     minHeight: 48,
                     padding: "0 12px",
+                    transition: "background 0.2s ease, color 0.2s ease",
+                  }}
+                  onMouseEnter={(event) => {
+                    if (!isActive && !isDone) event.currentTarget.style.background = "#EEF2F7";
+                  }}
+                  onMouseLeave={(event) => {
+                    if (!isActive && !isDone) event.currentTarget.style.background = colors.fundoSuave;
                   }}
                 >
                   {meta.label}
@@ -2999,6 +3010,19 @@ export default function OSDetalhePage() {
                       minHeight: 82,
                       padding: 12,
                       textAlign: "left",
+                      transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
+                    }}
+                    onMouseEnter={(event) => {
+                      if (!isActive) {
+                        event.currentTarget.style.borderColor = colors.azul;
+                        event.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.06)";
+                      }
+                    }}
+                    onMouseLeave={(event) => {
+                      if (!isActive) {
+                        event.currentTarget.style.borderColor = isDone ? "#BBF7D0" : colors.borda;
+                        event.currentTarget.style.boxShadow = "none";
+                      }
                     }}
                   >
                     <div style={{ alignItems: "center", display: "flex", gap: 8, marginBottom: 6 }}>

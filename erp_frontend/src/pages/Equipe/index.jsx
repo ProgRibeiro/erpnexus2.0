@@ -6,6 +6,7 @@ import {
   Card,
   Col,
   Divider,
+  Empty,
   Form,
   Input,
   Modal,
@@ -462,7 +463,15 @@ export default function EquipePage() {
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 15, showTotal: (t) => `${t} colaboradores` }}
-          locale={{ emptyText: "Nenhum colaborador encontrado" }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum colaborador encontrado"
+                style={{ margin: "44px 0" }}
+              />
+            ),
+          }}
           scroll={{ x: 980 }}
         />
       </Card>
