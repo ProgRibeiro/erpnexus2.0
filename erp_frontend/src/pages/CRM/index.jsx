@@ -56,11 +56,12 @@ const metricCardStyle = {
   borderRadius: 16,
   boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 function CrmMetricCard({ label, value, color, icon, valueColor }) {
   return (
-    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }}>
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }} hoverable>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div
@@ -436,7 +437,11 @@ export default function CRMPage() {
                 onOpen={handleOpen}
               />
             ) : (
-              <Empty description="Nenhuma coluna configurada para este pipeline" style={{ padding: "40px 0" }} />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhuma coluna configurada para este pipeline"
+                style={{ padding: "40px 0" }}
+              />
             )}
           </Card>
         </>

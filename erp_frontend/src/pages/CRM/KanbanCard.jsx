@@ -32,14 +32,23 @@ export default function KanbanCard({ oportunidade, onOpen, onDragStart }) {
       onDragStart={(event) => onDragStart(event, oportunidade)}
       onClick={() => onOpen(oportunidade)}
       style={{
+        border: "1px solid #E2E6EC",
         borderLeft: `3px solid ${prioridade.color}`,
-        borderRadius: 10,
+        borderRadius: 12,
         cursor: "grab",
-        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.04)",
+        boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)",
         transition: "all 0.2s ease",
       }}
       bodyStyle={{ padding: 12 }}
       hoverable
+      onMouseEnter={(event) => {
+        event.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.08)";
+        event.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 23, 42, 0.04)";
+        event.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <Space direction="vertical" size={8} style={{ width: "100%" }}>
         {/* Título e Prioridade */}

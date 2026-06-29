@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Col, Input, Row, Space, Tag, Typography } from "antd";
+import { Button, Card, Col, Empty, Input, Row, Space, Tag, Typography } from "antd";
 import {
   AppstoreOutlined,
   BankOutlined,
@@ -130,8 +130,19 @@ function ModuleCard({ item, onClick }) {
         ...sectionCardStyle,
         cursor: "pointer",
         height: "100%",
+        transition: "all 0.2s ease",
       }}
       bodyStyle={{ padding: 20 }}
+      onMouseEnter={(event) => {
+        event.currentTarget.style.boxShadow = "0 18px 40px rgba(15, 23, 42, 0.09)";
+        event.currentTarget.style.borderColor = colors.azul;
+        event.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.boxShadow = "0 14px 36px rgba(15, 23, 42, 0.05)";
+        event.currentTarget.style.borderColor = colors.borda;
+        event.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
         <div
@@ -231,13 +242,23 @@ export default function CadastrosPage() {
         </Space>
       </Card>
 
-      <Row gutter={[20, 20]}>
-        {filtered.map((item) => (
-          <Col key={item.key} xs={24} sm={12} lg={8} xl={6}>
-            <ModuleCard item={item} onClick={() => navigate(item.path)} />
-          </Col>
-        ))}
-      </Row>
+      {filtered.length > 0 ? (
+        <Row gutter={[20, 20]}>
+          {filtered.map((item) => (
+            <Col key={item.key} xs={24} sm={12} lg={8} xl={6}>
+              <ModuleCard item={item} onClick={() => navigate(item.path)} />
+            </Col>
+          ))}
+        </Row>
+      ) : (
+        <Card bordered={false} style={sectionCardStyle} bodyStyle={{ padding: 20 }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Nenhum cadastro encontrado para essa busca"
+            style={{ padding: "20px 0" }}
+          />
+        </Card>
+      )}
     </div>
   );
 }

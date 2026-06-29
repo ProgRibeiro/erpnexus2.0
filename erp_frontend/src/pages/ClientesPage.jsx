@@ -65,6 +65,7 @@ const metricCardStyle = {
   borderRadius: 16,
   boxShadow: "0 14px 36px rgba(15, 23, 42, 0.05)",
   minHeight: 124,
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
 const panelStyle = sectionCardStyle;
@@ -80,7 +81,7 @@ const btnStyle = {
 
 function ClientesMetricCard({ label, value, color, icon }) {
   return (
-    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }}>
+    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 18, height: "100%" }} hoverable>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div
@@ -651,7 +652,7 @@ export default function ClientesPage() {
               </Col>
             </Row>
 
-            <div style={{ border: "1px solid #EEF2F7", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ border: "1px solid #E2E6EC", borderRadius: 12, overflow: "hidden" }}>
               <Table
                 columns={colunas}
                 dataSource={clientes}

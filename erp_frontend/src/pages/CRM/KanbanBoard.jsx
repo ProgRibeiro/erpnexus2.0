@@ -110,9 +110,11 @@ export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
 
                 <div className="crm-kanban-column-body" style={{ marginTop: 12 }}>
                   {(coluna.oportunidades || []).length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "26px 0", color: colors.textoFraco, fontSize: 12 }}>
-                      <Typography.Text type="secondary">Nenhuma oportunidade</Typography.Text>
-                    </div>
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={<span style={{ color: colors.textoFraco, fontSize: 12 }}>Nenhuma oportunidade</span>}
+                      style={{ padding: "20px 0" }}
+                    />
                   ) : (
                     (coluna.oportunidades || []).map((oportunidade, index) => (
                       <Draggable
@@ -127,6 +129,11 @@ export default function KanbanBoard({ kanban, loading, onMove, onOpen }) {
                             {...provided.dragHandleProps}
                             style={{
                               marginBottom: 8,
+                              boxShadow: snapshot.isDragging
+                                ? "0 16px 32px rgba(15, 23, 42, 0.16)"
+                                : "none",
+                              borderRadius: 12,
+                              transition: snapshot.isDragging ? "none" : "box-shadow 0.2s ease",
                               ...provided.draggableProps.style,
                             }}
                           >

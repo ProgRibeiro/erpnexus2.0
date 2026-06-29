@@ -229,7 +229,7 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                     <Card
                       size="small"
                       bordered={false}
-                      style={{ marginBottom: 8, border: `1px solid ${colors.borda}`, borderRadius: 10 }}
+                      style={{ marginBottom: 8, border: `1px solid ${colors.borda}`, borderRadius: 12 }}
                     >
                       <Space direction="vertical" size={4} style={{ width: "100%" }}>
                         <div>
@@ -258,7 +258,11 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                 }))}
               />
             ) : (
-              <Empty description="Nenhuma atividade registrada" style={{ marginTop: 16 }} />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhuma atividade registrada"
+                style={{ marginTop: 16 }}
+              />
             )}
           </div>
 
@@ -307,7 +311,7 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
               </Form>
             </Card>
 
-            {(oportunidade.emails || []).length > 0 && (
+            {(oportunidade.emails || []).length > 0 ? (
               <List
                 size="small"
                 dataSource={oportunidade.emails}
@@ -332,6 +336,12 @@ export default function OportunidadeDrawer({ oportunidade, open, onClose, onRefr
                     />
                   </List.Item>
                 )}
+              />
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nenhum email registrado"
+                style={{ marginTop: 8 }}
               />
             )}
           </div>

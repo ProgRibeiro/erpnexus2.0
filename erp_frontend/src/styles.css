@@ -71,12 +71,13 @@ body {
 }
 
 .crm-kanban-column {
-  background: #f4f6f8;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: #F8FAFD;
+  border: 1px solid #E2E6EC;
+  border-radius: 14px;
   min-height: 520px;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .crm-kanban-column-header {
@@ -86,7 +87,7 @@ body {
   gap: 8px;
   min-height: 44px;
   padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #E2E6EC;
 }
 
 .crm-kanban-color {
@@ -104,8 +105,14 @@ body {
 
 .crm-kanban-card {
   cursor: grab;
-  border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(20, 33, 61, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+.crm-kanban-card:hover {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
 }
 
 .crm-kanban-card:active {
