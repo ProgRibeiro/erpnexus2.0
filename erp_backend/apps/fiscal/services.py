@@ -390,16 +390,6 @@ class MotorFiscalEspecialista:
         automacoes = []
 
         regime = config.regime_tributario
-        if valor_servicos > 0 and regime == ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL:
-            regime = ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO
-            automacoes.append(
-                self._item(
-                    "regime_tributario",
-                    "success",
-                    "Lucro Presumido aplicado automaticamente na operação.",
-                    "A operação de serviço foi enquadrada no perfil fiscal padrão solicitado para este ERP.",
-                )
-            )
 
         tipo_nota = config.tipo_nota
         tipo_sugerido = self._sugerir_tipo_nota(valor_servicos, valor_materiais, config)

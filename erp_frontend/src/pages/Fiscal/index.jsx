@@ -77,6 +77,7 @@ export default function FiscalPage() {
   const [regrasReforma, setRegrasReforma] = useState([]);
   const [reformaResultado, setReformaResultado] = useState(null);
   const [calculandoReforma, setCalculandoReforma] = useState(false);
+  const [sincronizandoCnpj, setSincronizandoCnpj] = useState(false);
 
   useEffect(() => {
     carregarConfig();
@@ -91,6 +92,8 @@ export default function FiscalPage() {
       form.setFieldsValue(response.data);
       reformaForm.setFieldsValue({
         regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
+        uf_destino: response.data?.uf || "",
+        codigo_municipio: response.data?.codigo_municipio_ibge || "",
       });
     } catch {
       message.error("Erro ao carregar configuração fiscal");
@@ -122,12 +125,43 @@ export default function FiscalPage() {
     try {
       const response = await api.patch("/fiscal/configuracao/", values);
       setConfig(response.data);
+      form.setFieldsValue(response.data);
+      reformaForm.setFieldsValue({
+        regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
+        uf_destino: response.data?.uf || "",
+        codigo_municipio: response.data?.codigo_municipio_ibge || "",
+      });
+      setReformaResultado(null);
       setEditando(false);
-      message.success("Configuração fiscal atualizada!");
+      message.success("Configuração fiscal atualizada e motor sincronizado.");
     } catch {
       message.error("Erro ao salvar configuração");
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const sincronizarCnpjCadastrado = async () => {
+    setSincronizandoCnpj(true);
+    try {
+      const cnpjAtual = form.getFieldValue("cnpj") || config?.cnpj;
+      const response = await api.post("/fiscal/sincronizar-cnpj-cadastrado/", { cnpj: cnpjAtual });
+      const novaConfig = response.data?.configuracao;
+      if (novaConfig) {
+        setConfig(novaConfig);
+        form.setFieldsValue(novaConfig);
+        reformaForm.setFieldsValue({
+          regime_emitente: regimeLegadoParaReforma(novaConfig.regime_tributario),
+          uf_destino: novaConfig.uf || "",
+          codigo_municipio: novaConfig.codigo_municipio_ibge || "",
+        });
+      }
+      setReformaResultado(null);
+      message.success("CNPJ sincronizado e motor fiscal atualizado.");
+    } catch (error) {
+      message.error(error.response?.data?.detail || "Erro ao sincronizar CNPJ cadastrado.");
+    } finally {
+      setSincronizandoCnpj(false);
     }
   };
 
@@ -208,13 +242,18 @@ export default function FiscalPage() {
       <Row gutter={[20, 20]}>
         <Col xs={24} lg={12}>
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
               <Title level={4} style={{ margin: 0, color: colors.texto }}>
                 Configuração Fiscal
               </Title>
-              <Button type="primary" onClick={() => setEditando(!editando)} style={btnStyle}>
-                {editando ? "Cancelar" : "Editar"}
-              </Button>
+              <Space wrap>
+                <Button onClick={sincronizarCnpjCadastrado} loading={sincronizandoCnpj} style={btnStyle}>
+                  Sincronizar CNPJ
+                </Button>
+                <Button type="primary" onClick={() => setEditando(!editando)} style={btnStyle}>
+                  {editando ? "Cancelar" : "Editar"}
+                </Button>
+              </Space>
             </div>
 
             <Form
@@ -222,7 +261,13 @@ export default function FiscalPage() {
               layout="vertical"
               disabled={!editando}
               onFinish={salvarConfig}
-              onValuesChange={(_, allValues) => setConfig((current) => ({ ...(current || {}), ...allValues }))}
+              onValuesChange={(changedValues, allValues) => {
+                setConfig((current) => ({ ...(current || {}), ...allValues }));
+                if (changedValues.regime_tributario) {
+                  reformaForm.setFieldValue("regime_emitente", regimeLegadoParaReforma(changedValues.regime_tributario));
+                  setReformaResultado(null);
+                }
+              }}
             >
               <Form.Item label="Regime Tributário" name="regime_tributario">
                 <Select options={regimeOpcoes} />
@@ -278,6 +323,13 @@ export default function FiscalPage() {
             </Title>
 
             <Space direction="vertical" style={{ width: "100%" }} size={16}>
+              <Alert
+                type="success"
+                showIcon
+                style={{ borderRadius: 12 }}
+                message={`Motor usando regime: ${config?.regime_tributario || "não configurado"}`}
+                description="Quando você troca Lucro Presumido, Simples Nacional, Lucro Real ou MEI e salva, o cálculo fiscal, a OS, o orçamento e o simulador da reforma passam a seguir esse regime."
+              />
               <Row gutter={12}>
                 <Col xs={24} sm={12}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.04em" }}>Valor Serviços</span>

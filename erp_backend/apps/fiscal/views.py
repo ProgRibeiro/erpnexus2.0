@@ -56,10 +56,78 @@ def _get_configuracao_fiscal():
     if empresa.razao_social and configuracao.razao_social != empresa.razao_social:
         configuracao.razao_social = empresa.razao_social
         campos_atualizar.append("razao_social")
+    if empresa.aliquota_issqn_padrao is not None and configuracao.aliquota_iss != empresa.aliquota_issqn_padrao:
+        configuracao.aliquota_iss = empresa.aliquota_issqn_padrao
+        campos_atualizar.append("aliquota_iss")
     if campos_atualizar:
         campos_atualizar.append("atualizado_em")
         configuracao.save(update_fields=campos_atualizar)
     return configuracao
+
+
+def _sincronizar_empresa_com_fiscal(configuracao: ConfiguracaoFiscal):
+    empresa = configuracao.empresa
+    campos = []
+    pares = {
+        "cnpj": configuracao.cnpj,
+        "razao_social": configuracao.razao_social,
+        "regime_tributario": configuracao.regime_tributario,
+        "aliquota_issqn_padrao": configuracao.aliquota_iss,
+    }
+    for campo, valor in pares.items():
+        if valor not in (None, "") and getattr(empresa, campo) != valor:
+            setattr(empresa, campo, valor)
+            campos.append(campo)
+    if campos:
+        empresa.save(update_fields=campos)
+
+
+def _aplicar_dados_cnpj(configuracao: ConfiguracaoFiscal, dados: dict):
+    empresa = configuracao.empresa
+    fiscal_campos = []
+    empresa_campos = []
+
+    mapeamento_fiscal = {
+        "cnpj": dados.get("cnpj"),
+        "razao_social": dados.get("razao_social"),
+        "municipio": dados.get("municipio"),
+        "codigo_municipio_ibge": dados.get("codigo_municipio_ibge") or dados.get("codigo_municipio"),
+        "uf": dados.get("uf"),
+    }
+    for campo, valor in mapeamento_fiscal.items():
+        if valor and getattr(configuracao, campo) != valor:
+            setattr(configuracao, campo, valor)
+            fiscal_campos.append(campo)
+
+    mapeamento_empresa = {
+        "cnpj": dados.get("cnpj"),
+        "razao_social": dados.get("razao_social"),
+        "email": dados.get("email"),
+        "telefone": dados.get("telefone"),
+    }
+    for campo, valor in mapeamento_empresa.items():
+        if valor and getattr(empresa, campo) != valor:
+            setattr(empresa, campo, valor)
+            empresa_campos.append(campo)
+
+    endereco_partes = [
+        dados.get("logradouro"),
+        dados.get("numero"),
+        dados.get("bairro"),
+        dados.get("municipio"),
+        dados.get("uf"),
+        dados.get("cep"),
+    ]
+    endereco = ", ".join(str(item) for item in endereco_partes if item)
+    if endereco and empresa.endereco != endereco:
+        empresa.endereco = endereco
+        empresa_campos.append("endereco")
+
+    if fiscal_campos:
+        fiscal_campos.append("atualizado_em")
+        configuracao.save(update_fields=fiscal_campos)
+    if empresa_campos:
+        empresa.save(update_fields=empresa_campos)
 
 
 def _sugerir_regime(dados: dict) -> str:
@@ -213,6 +281,33 @@ def configuracao(request):
     if request.method == "PATCH":
         serializer = ConfiguracaoFiscalSerializer(config, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        config = serializer.save()
+        _sincronizar_empresa_com_fiscal(config)
+        return Response(ConfiguracaoFiscalSerializer(config).data)
     return Response(ConfiguracaoFiscalSerializer(config).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def sincronizar_cnpj_cadastrado(request):
+    config = _get_configuracao_fiscal()
+    cnpj = request.data.get("cnpj") or config.cnpj or config.empresa.cnpj
+    if not cnpj:
+        return Response({"detail": "Nenhum CNPJ cadastrado para sincronizar."}, status=400)
+
+    service = ConsultaCNPJ()
+    try:
+        dados = service.consultar(cnpj)
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+    except ConnectionError as exc:
+        return Response({"detail": str(exc)}, status=503)
+
+    _aplicar_dados_cnpj(config, dados)
+    config.refresh_from_db()
+    return Response({
+        "configuracao": ConfiguracaoFiscalSerializer(config).data,
+        "cnpj": dados,
+        "regime_atual": config.regime_tributario,
+        "observacao": "Dados cadastrais sincronizados pelo CNPJ. O regime tributário permanece o regime configurado no ERP.",
+    })

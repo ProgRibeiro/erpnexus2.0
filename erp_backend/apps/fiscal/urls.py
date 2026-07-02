@@ -9,11 +9,13 @@ from .views import (
     decisao_ibs_cbs,
     emitir_documento_mock,
     operacoes_fiscais,
+    sincronizar_cnpj_cadastrado,
     tabelas_tributarias,
 )
 
 urlpatterns = [
     path("consultar-cnpj/", consultar_cnpj, name="fiscal-consultar-cnpj"),
+    path("sincronizar-cnpj-cadastrado/", sincronizar_cnpj_cadastrado, name="fiscal-sincronizar-cnpj-cadastrado"),
     path("calcular-impostos/", calcular_impostos, name="fiscal-calcular-impostos"),
     path("reforma/calcular/", calcular_reforma_tributaria, name="fiscal-reforma-calcular"),
     path("reforma/decisao-ibs-cbs/", decisao_ibs_cbs, name="fiscal-decisao-ibs-cbs"),
