@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Col, Divider, Form, Input, InputNumber, Row, Select, Skeleton, Space, Table, Tag, Typography, message } from "antd";
-import { CalculatorOutlined, FileProtectOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, Skeleton, Space, Table, Tag, Typography, message } from "antd";
+import { CalculatorOutlined, FileProtectOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
 import api from "../../services/api";
 import GuiaLucroPresumido from "./components/GuiaLucroPresumido";
 
@@ -46,19 +47,41 @@ const tipoNotaOpcoes = [
   { label: "Ambas", value: "ambas" },
 ];
 
+const regimesReformaOpcoes = [
+  { label: "Simples Nacional", value: "SN" },
+  { label: "Lucro Presumido", value: "LP" },
+  { label: "Lucro Real", value: "LR" },
+  { label: "MEI", value: "MEI" },
+];
+
+const money = (value) =>
+  Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const regimeLegadoParaReforma = (regime) => ({
+  mei: "MEI",
+  simples_nacional: "SN",
+  lucro_presumido: "LP",
+  lucro_real: "LR",
+}[regime] || "LP");
+
 export default function FiscalPage() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState(null);
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [form] = Form.useForm();
+  const [reformaForm] = Form.useForm();
   const [calculo, setCalculo] = useState(null);
   const [impostos, setImpostos] = useState([]);
   const [valores, setValores] = useState({ valor_servicos: 0, valor_materiais: 0 });
+  const [regrasReforma, setRegrasReforma] = useState([]);
+  const [reformaResultado, setReformaResultado] = useState(null);
+  const [calculandoReforma, setCalculandoReforma] = useState(false);
 
   useEffect(() => {
     carregarConfig();
     carregarImpostos();
+    carregarRegrasReforma();
   }, []);
 
   const carregarConfig = async () => {
@@ -66,10 +89,22 @@ export default function FiscalPage() {
       const response = await api.get("/fiscal/configuracao/");
       setConfig(response.data);
       form.setFieldsValue(response.data);
+      reformaForm.setFieldsValue({
+        regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
+      });
     } catch {
       message.error("Erro ao carregar configuração fiscal");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarRegrasReforma = async () => {
+    try {
+      const response = await api.get("/fiscal/regras/tabelas/");
+      setRegrasReforma(response.data || []);
+    } catch {
+      setRegrasReforma([]);
     }
   };
 
@@ -102,6 +137,30 @@ export default function FiscalPage() {
       setCalculo(response.data);
     } catch {
       message.error("Erro ao calcular impostos");
+    }
+  };
+
+  const calcularReformaTributaria = async (values) => {
+    setCalculandoReforma(true);
+    try {
+      const payload = {
+        valor_servicos: values.valor_servicos || 0,
+        valor_materiais: values.valor_materiais || 0,
+        regime_emitente: values.regime_emitente,
+        data_emissao: values.data_emissao?.format("YYYY-MM-DD") || dayjs().format("YYYY-MM-DD"),
+        ncm_ou_servico: values.ncm_ou_servico || "GERAL",
+        uf_destino: values.uf_destino || config?.uf || "",
+        codigo_municipio: values.codigo_municipio || config?.codigo_municipio_ibge || "",
+        salvar_snapshot: Boolean(values.salvar_snapshot),
+        referencia: values.referencia || "Simulação fiscal",
+      };
+      const response = await api.post("/fiscal/reforma/calcular/", payload);
+      setReformaResultado(response.data?.resultado || null);
+      message.success("Cálculo da Reforma Tributária concluído.");
+    } catch {
+      message.error("Erro ao calcular Reforma Tributária.");
+    } finally {
+      setCalculandoReforma(false);
     }
   };
 
@@ -265,6 +324,191 @@ export default function FiscalPage() {
           </Card>
         </Col>
       </Row>
+
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Space align="start" style={{ marginBottom: 18 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.roxo}12`,
+              color: colors.roxo,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <SafetyCertificateOutlined />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, color: colors.texto }}>
+              Motor Reforma Tributária 2026-2033
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Simule CBS/IBS, veja obrigatoriedade por regime e confira as regras versionadas.
+            </Text>
+          </div>
+        </Space>
+
+        <Alert
+          type="info"
+          showIcon
+          style={{ borderRadius: 12, marginBottom: 18 }}
+          message="Arquitetura preparada para coexistência dos tributos antigos e novos"
+          description="PIS, COFINS, ISS e ICMS continuam coexistindo com CBS/IBS/IS. As regras abaixo são versionadas por vigência e podem ser atualizadas sem alterar código."
+        />
+
+        <Row gutter={[20, 20]}>
+          <Col xs={24} lg={10}>
+            <Form
+              form={reformaForm}
+              layout="vertical"
+              initialValues={{
+                data_emissao: dayjs("2026-08-03"),
+                regime_emitente: regimeLegadoParaReforma(config?.regime_tributario),
+                valor_servicos: 1000,
+                valor_materiais: 0,
+                ncm_ou_servico: "GERAL",
+                uf_destino: config?.uf || "",
+                codigo_municipio: config?.codigo_municipio_ibge || "",
+              }}
+              onFinish={calcularReformaTributaria}
+            >
+              <Row gutter={12}>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Data da operação" name="data_emissao" rules={[{ required: true }]}>
+                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Regime emitente" name="regime_emitente" rules={[{ required: true }]}>
+                    <Select options={regimesReformaOpcoes} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Valor serviços" name="valor_servicos">
+                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Valor materiais" name="valor_materiais">
+                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="NCM / serviço" name="ncm_ou_servico">
+                    <Input placeholder="GERAL, NCM ou código serviço" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="UF destino" name="uf_destino">
+                    <Input maxLength={2} placeholder="SP" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item label="Código município IBGE" name="codigo_municipio">
+                <Input placeholder="Opcional" />
+              </Form.Item>
+
+              <Button type="primary" htmlType="submit" loading={calculandoReforma} style={btnStyle} block>
+                Calcular CBS/IBS
+              </Button>
+            </Form>
+          </Col>
+
+          <Col xs={24} lg={14}>
+            {reformaResultado ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} md={8}>
+                    <Card size="small" style={{ borderRadius: 12 }}>
+                      <Text type="secondary">Base cálculo</Text>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: colors.texto }}>{money(reformaResultado.base_calculo)}</div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Card size="small" style={{ borderRadius: 12 }}>
+                      <Text type="secondary">Total tributos</Text>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: colors.azul }}>{money(reformaResultado.total_tributos)}</div>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Card size="small" style={{ borderRadius: 12 }}>
+                      <Text type="secondary">Obrigatório produção</Text>
+                      <div>
+                        <Tag color={reformaResultado.ibs_cbs?.obrigatorio_em_producao ? "red" : "blue"} style={{ borderRadius: 999, fontWeight: 700 }}>
+                          {reformaResultado.ibs_cbs?.obrigatorio_em_producao ? "Sim" : "Ainda não"}
+                        </Tag>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+
+                <Space wrap>
+                  <Tag color={reformaResultado.ibs_cbs?.destacar ? "green" : "default"} style={{ borderRadius: 999, fontWeight: 700 }}>
+                    {reformaResultado.ibs_cbs?.destacar ? "Destacar IBS/CBS" : "Não destacar IBS/CBS"}
+                  </Tag>
+                  <Tag color={reformaResultado.ibs_cbs?.carater_informativo ? "gold" : "blue"} style={{ borderRadius: 999, fontWeight: 700 }}>
+                    {reformaResultado.ibs_cbs?.carater_informativo ? "Caráter informativo" : "Cobrança efetiva"}
+                  </Tag>
+                  <Tag color="purple" style={{ borderRadius: 999, fontWeight: 700 }}>
+                    Motor {reformaResultado.versao_motor}
+                  </Tag>
+                </Space>
+
+                <Table
+                  size="small"
+                  rowKey="codigo"
+                  pagination={false}
+                  dataSource={Object.values(reformaResultado.tributos || {})}
+                  columns={[
+                    { title: "Tributo", dataIndex: "codigo", width: 90 },
+                    { title: "Base", dataIndex: "base", render: money },
+                    { title: "Alíquota", dataIndex: "aliquota", render: (v) => `${v}%` },
+                    { title: "Valor", dataIndex: "valor", render: (v) => <Text strong>{money(v)}</Text> },
+                    { title: "Fonte", dataIndex: "fonte_normativa", ellipsis: true, render: (v, row) => v || row.observacao || "—" },
+                  ]}
+                />
+              </div>
+            ) : (
+              <div style={{ minHeight: 260, border: `1px dashed ${colors.borda}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: colors.textoFraco, textAlign: "center", padding: 24 }}>
+                Preencha a simulação para ver CBS, IBS, obrigatoriedade e caráter informativo.
+              </div>
+            )}
+          </Col>
+        </Row>
+      </Card>
+
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
+        <Title level={4} style={{ color: colors.texto, marginTop: 0 }}>
+          Regras fiscais versionadas
+        </Title>
+        <Table
+          size="small"
+          rowKey="id"
+          dataSource={regrasReforma}
+          pagination={{ pageSize: 8 }}
+          locale={{ emptyText: "Nenhuma regra fiscal versionada cadastrada" }}
+          columns={[
+            { title: "Tributo", dataIndex: "codigo_tributo", width: 100 },
+            { title: "Escopo", dataIndex: "ncm_ou_servico", render: (v, row) => [v, row.uf_municipio, row.regime_tributario].filter(Boolean).join(" · ") || "GERAL" },
+            { title: "Alíquota", dataIndex: "aliquota", render: (v) => `${v}%` },
+            { title: "Vigência início", dataIndex: "vigencia_inicio", render: (v) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
+            { title: "Vigência fim", dataIndex: "vigencia_fim", render: (v) => v ? dayjs(v).format("DD/MM/YYYY") : <Tag color="green">Vigente</Tag> },
+            { title: "Fonte normativa", dataIndex: "fonte_normativa", ellipsis: true },
+          ]}
+        />
+      </Card>
 
       {config?.regime_tributario === "lucro_presumido" && (
         <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
