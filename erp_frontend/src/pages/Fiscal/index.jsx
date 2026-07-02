@@ -351,23 +351,35 @@ export default function FiscalPage() {
                     <Text strong style={{ color: colors.texto }}>Regime:</Text>{" "}
                     <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>{calculo.regime}</Tag>
                   </div>
+                  {calculo.perfil_regime && (
+                    <Alert
+                      type="success"
+                      showIcon
+                      style={{ borderRadius: 12, marginBottom: 10 }}
+                      message={`Perfil aplicado: ${calculo.perfil_regime.nome}`}
+                      description={`${calculo.perfil_regime.modelo_apuracao} — ${calculo.perfil_regime.calculo_nota}`}
+                    />
+                  )}
                   <Divider style={{ margin: "8px 0" }} />
                   <div style={{ fontSize: 13, color: colors.textoSecundario, display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div>Subtotal Serviços: R$ {calculo.subtotal_servicos?.toFixed(2)}</div>
-                    <div>Subtotal Materiais: R$ {calculo.subtotal_materiais?.toFixed(2)}</div>
-                    <div>Subtotal: R$ {calculo.subtotal?.toFixed(2)}</div>
+                    <div>Subtotal Serviços: {money(calculo.subtotal_servicos)}</div>
+                    <div>Subtotal Materiais: {money(calculo.subtotal_materiais)}</div>
+                    <div>Subtotal: {money(calculo.subtotal)}</div>
                     <Divider style={{ margin: "8px 0" }} />
-                    <div>ISS: R$ {calculo.iss?.toFixed(2)}</div>
-                    <div>PIS: R$ {calculo.pis?.toFixed(2)}</div>
-                    <div>COFINS: R$ {calculo.cofins?.toFixed(2)}</div>
-                    <div>IRPJ: R$ {calculo.irpj?.toFixed(2)}</div>
-                    <div>CSLL: R$ {calculo.csll?.toFixed(2)}</div>
+                    <div>ISS: {money(calculo.iss)}</div>
+                    <div>PIS: {money(calculo.pis)}</div>
+                    <div>COFINS: {money(calculo.cofins)}</div>
+                    <div>IRPJ: {money(calculo.irpj)}</div>
+                    <div>CSLL: {money(calculo.csll)}</div>
+                    {calculo.aliquotas?.das !== undefined && (
+                      <div>DAS estimado: {calculo.aliquotas.das}%</div>
+                    )}
                     <Divider style={{ margin: "8px 0" }} />
                     <div style={{ fontWeight: 700, color: colors.azul, fontSize: 14 }}>
-                      Total Impostos: R$ {calculo.total_impostos?.toFixed(2)}
+                      Total Impostos: {money(calculo.total_impostos)}
                     </div>
                     <div style={{ fontWeight: 700, color: colors.azul, fontSize: 16 }}>
-                      Total Geral: R$ {calculo.total_geral?.toFixed(2)}
+                      Total Geral: {money(calculo.total_geral)}
                     </div>
                   </div>
                 </div>

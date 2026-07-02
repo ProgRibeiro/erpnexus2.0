@@ -60,10 +60,54 @@ class CalculadoraImpostos:
         (None, Decimal("33.00")),
     ]
 
+    PERFIS_REGIME = {
+        ConfiguracaoFiscal.RegimeTributario.MEI: {
+            "codigo": "mei",
+            "nome": "MEI",
+            "modelo_apuracao": "DAS fixo mensal",
+            "calculo_nota": "Sem destaque de ISS/PIS/COFINS/IRPJ/CSLL por nota no ERP.",
+            "destaca_tributos_federais": False,
+            "usa_das": True,
+            "usa_presuncao_irpj_csll": False,
+            "observacao": "MEI possui DAS fixo mensal. A nota não deve receber cálculo de Lucro Presumido.",
+        },
+        ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL: {
+            "codigo": "simples_nacional",
+            "nome": "Simples Nacional",
+            "modelo_apuracao": "DAS unificado",
+            "calculo_nota": "Calcula estimativa de DAS; não destaca IRPJ/CSLL/PIS/COFINS como Lucro Presumido.",
+            "destaca_tributos_federais": False,
+            "usa_das": True,
+            "usa_presuncao_irpj_csll": False,
+            "observacao": "Simples Nacional usa DAS unificado. O motor não aplica presunção de Lucro Presumido.",
+        },
+        ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO: {
+            "codigo": "lucro_presumido",
+            "nome": "Lucro Presumido",
+            "modelo_apuracao": "PIS/COFINS + IRPJ/CSLL por presunção",
+            "calculo_nota": "Aplica tabela de Lucro Presumido e ISS municipal.",
+            "destaca_tributos_federais": True,
+            "usa_das": False,
+            "usa_presuncao_irpj_csll": True,
+            "observacao": "Lucro Presumido aplica PIS, COFINS, IRPJ e CSLL por tabela operacional.",
+        },
+        ConfiguracaoFiscal.RegimeTributario.LUCRO_REAL: {
+            "codigo": "lucro_real",
+            "nome": "Lucro Real",
+            "modelo_apuracao": "Apuração contábil efetiva",
+            "calculo_nota": "Calcula ISS/PIS/COFINS operacional; IRPJ/CSLL dependem do lucro contábil.",
+            "destaca_tributos_federais": True,
+            "usa_das": False,
+            "usa_presuncao_irpj_csll": False,
+            "observacao": "Lucro Real não usa presunção de IRPJ/CSLL; esses valores dependem da apuração contábil.",
+        },
+    }
+
     def calcular(self, valor_servicos: Decimal, valor_materiais: Decimal, config: ConfiguracaoFiscal) -> dict:
         valor_servicos = Decimal(valor_servicos or 0)
         valor_materiais = Decimal(valor_materiais or 0)
         subtotal = valor_servicos + valor_materiais
+        perfil = self._perfil_regime(config.regime_tributario)
 
         if config.regime_tributario == ConfiguracaoFiscal.RegimeTributario.MEI:
             return self._build_response(
@@ -76,8 +120,9 @@ class CalculadoraImpostos:
                 cofins=Decimal("0"),
                 irpj=Decimal("0"),
                 csll=Decimal("0"),
-                observacao="MEI possui DAS fixo mensal, sem impostos destacados por nota.",
+                observacao=perfil["observacao"],
                 aliquotas={"iss": Decimal("0"), "pis": Decimal("0"), "cofins": Decimal("0"), "irpj": Decimal("0"), "csll": Decimal("0")},
+                perfil_regime=perfil,
             )
 
         if config.regime_tributario == ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL:
@@ -93,10 +138,11 @@ class CalculadoraImpostos:
                 cofins=Decimal("0"),
                 irpj=Decimal("0"),
                 csll=Decimal("0"),
-                observacao="Simples Nacional com DAS unificado pelo Anexo III.",
+                observacao=perfil["observacao"],
                 aliquotas={"iss": Decimal("0"), "pis": Decimal("0"), "cofins": Decimal("0"), "irpj": Decimal("0"), "csll": Decimal("0"), "das": aliquota_das},
                 total_impostos=total_das,
                 total_geral=subtotal + total_das,
+                perfil_regime=perfil,
             )
 
         tabela = (
@@ -113,12 +159,16 @@ class CalculadoraImpostos:
         iss = self._percentual(valor_servicos, config.aliquota_iss)
         pis = self._percentual(subtotal, tabela.pis)
         cofins = self._percentual(subtotal, tabela.cofins)
-        irpj = self._percentual(valor_servicos, tabela.irpj_servicos)
-        csll = self._percentual(valor_servicos, tabela.csll_servicos)
-        observacao = ""
-
         if config.regime_tributario == ConfiguracaoFiscal.RegimeTributario.LUCRO_REAL:
-            observacao = "Lucro Real exige apuração contábil efetiva; valores exibidos são referência operacional."
+            irpj = Decimal("0")
+            csll = Decimal("0")
+            observacao = perfil["observacao"]
+            aliquotas_irpj_csll = {"irpj": Decimal("0"), "csll": Decimal("0")}
+        else:
+            irpj = self._percentual(valor_servicos, tabela.irpj_servicos)
+            csll = self._percentual(valor_servicos, tabela.csll_servicos)
+            observacao = perfil["observacao"]
+            aliquotas_irpj_csll = {"irpj": tabela.irpj_servicos, "csll": tabela.csll_servicos}
 
         return self._build_response(
             regime=config.regime_tributario,
@@ -135,9 +185,9 @@ class CalculadoraImpostos:
                 "iss": config.aliquota_iss,
                 "pis": tabela.pis,
                 "cofins": tabela.cofins,
-                "irpj": tabela.irpj_servicos,
-                "csll": tabela.csll_servicos,
+                **aliquotas_irpj_csll,
             },
+            perfil_regime=perfil,
         )
 
     def _obter_aliquota_simples(self, subtotal: Decimal) -> Decimal:
@@ -169,6 +219,7 @@ class CalculadoraImpostos:
         total_geral: Decimal | None = None,
         cbs: Decimal | None = None,
         ibs: Decimal | None = None,
+        perfil_regime: dict | None = None,
     ) -> dict:
         cbs = self._round(cbs or Decimal("0"))
         ibs = self._round(ibs or Decimal("0"))
@@ -194,10 +245,26 @@ class CalculadoraImpostos:
             "valor_liquido": valor_liquido,
             "aliquotas": aliquotas,
             "regime": regime,
+            "perfil_regime": perfil_regime or self._perfil_regime(regime),
         }
         if observacao:
             response["observacao"] = observacao
         return response
+
+    def _perfil_regime(self, regime: str) -> dict:
+        return self.PERFIS_REGIME.get(
+            regime,
+            {
+                "codigo": regime or "nao_configurado",
+                "nome": regime or "Não configurado",
+                "modelo_apuracao": "Não definido",
+                "calculo_nota": "Configure o regime tributário da empresa.",
+                "destaca_tributos_federais": False,
+                "usa_das": False,
+                "usa_presuncao_irpj_csll": False,
+                "observacao": "Regime tributário não configurado.",
+            },
+        )
 
 
 class MotorFiscalEspecialista:
@@ -273,18 +340,15 @@ class MotorFiscalEspecialista:
         municipio_incidencia = self._sugerir_municipio_incidencia(config, codigo_sugerido, contexto)
         iss_retido = bool(config.iss_retido_fonte)
 
-        automacoes = contexto.get("automacoes_aplicadas") or []
-        regime_aplicado_automaticamente = any(item.get("campo") == "regime_tributario" for item in automacoes)
-
-        if config.regime_tributario != ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO and not regime_aplicado_automaticamente:
-            alertas.append(
-                self._item(
-                    "regime_tributario",
-                    "warning",
-                    "Regime tributário diferente de Lucro Presumido.",
-                    "O cálculo segue o regime cadastrado, mas as validações avançadas foram calibradas para Lucro Presumido.",
-                )
+        perfil_regime = impostos.get("perfil_regime") or self.calculadora._perfil_regime(config.regime_tributario)
+        recomendacoes.append(
+            self._item(
+                "regime_tributario",
+                "success",
+                f"Motor fiscal operando como {perfil_regime.get('nome')}.",
+                perfil_regime.get("calculo_nota") or "Regime aplicado conforme cadastro fiscal da empresa.",
             )
+        )
 
         if not config.codigo_servico_lc116:
             riscos.append(
@@ -373,7 +437,8 @@ class MotorFiscalEspecialista:
             "riscos": riscos,
             "recomendacoes": recomendacoes,
             "financeiro": self._analisar_financeiro(impostos, config),
-            "reforma_tributaria": self._reforma_tributaria(),
+            "reforma_tributaria": self._reforma_tributaria(config),
+            "perfil_regime": perfil_regime,
         }
 
     def _resolver_configuracao_efetiva(
@@ -541,16 +606,19 @@ class MotorFiscalEspecialista:
             "conciliacao": "vincular recebimento bancario ao lancamento financeiro gerado pela OS.",
         }
 
-    def _reforma_tributaria(self) -> dict:
+    def _reforma_tributaria(self, config: ConfiguracaoFiscal) -> dict:
+        perfil = self.calculadora._perfil_regime(config.regime_tributario)
         return {
             "status": "preparacao",
+            "regime_integrado": perfil.get("codigo"),
+            "modelo_apuracao": perfil.get("modelo_apuracao"),
             "cronograma": [
                 {"ano": "2026", "evento": "testes de CBS e IBS nos documentos fiscais"},
                 {"ano": "2027-2032", "evento": "transicao gradual entre tributos atuais e novo modelo"},
                 {"ano": "2033", "evento": "modelo completo com CBS e IBS"},
             ],
             "novos_campos": ["cbs", "ibs", "credito_financeiro", "ambiente_nacional"],
-            "acao_erp": "manter calculo atual e salvar estrutura pronta para CBS/IBS em dados_impostos.",
+            "acao_erp": f"manter cálculo do regime {perfil.get('nome')} e salvar estrutura pronta para CBS/IBS em dados_impostos.",
         }
 
     def _calcular_confianca(self, config: ConfiguracaoFiscal, alertas: list, riscos: list) -> int:
