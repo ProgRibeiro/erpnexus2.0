@@ -74,6 +74,12 @@ urlpatterns = [
     path("api/v1/", include(tenant_api_patterns)),
     path("api/public/", include(public_api_patterns)),
     path("sw.js", service_worker_view, name="service-worker"),
+    re_path(
+        r"^static/(?P<path>.*)$",
+        serve,
+        {"document_root": settings.BASE_DIR / "frontend_dist"},
+        name="frontend-static",
+    ),
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}, name="media"),
     re_path(r"^(?!api/|admin/|static/|media/).*$", TemplateView.as_view(template_name="index.html"), name="frontend"),
 ]
