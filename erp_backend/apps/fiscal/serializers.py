@@ -29,3 +29,17 @@ class CalcularImpostosSerializer(serializers.Serializer):
     descricao_servico = serializers.CharField(required=False, allow_blank=True)
     municipio_execucao = serializers.CharField(required=False, allow_blank=True)
     uf_execucao = serializers.CharField(required=False, allow_blank=True)
+
+
+class ConciliarPGDASSerializer(serializers.Serializer):
+    ano = serializers.IntegerField(min_value=2020, max_value=2100)
+    mes = serializers.IntegerField(min_value=1, max_value=12)
+    receita_declarada = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
+
+
+class EmitirDocumentoMockSerializer(serializers.Serializer):
+    operacao_fiscal_id = serializers.IntegerField()
+    tipo_documento = serializers.CharField(required=False, allow_blank=True, default="NFS-e")
+    numero = serializers.CharField(required=False, allow_blank=True)
+    serie = serializers.CharField(required=False, allow_blank=True)
+    dados = serializers.JSONField(required=False, default=dict)
