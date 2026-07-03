@@ -11,6 +11,71 @@ import "./styles.css";
 const rootElement = document.getElementById("root");
 const root = ReactDOM.createRoot(rootElement);
 
+async function recoverLocalApp() {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+  } finally {
+    window.location.reload();
+  }
+}
+
+function showRecoveryReloadNotice() {
+  if (document.getElementById("erp-recovery-reload-notice")) return;
+
+  const notice = document.createElement("div");
+  notice.id = "erp-recovery-reload-notice";
+  notice.style.cssText = [
+    "position: fixed",
+    "right: 18px",
+    "bottom: 18px",
+    "z-index: 99999",
+    "display: flex",
+    "align-items: center",
+    "gap: 12px",
+    "max-width: min(420px, calc(100vw - 36px))",
+    "padding: 14px 16px",
+    "background: #0F172A",
+    "color: #FFFFFF",
+    "border-radius: 14px",
+    "box-shadow: 0 18px 44px rgba(15, 23, 42, 0.28)",
+    "font-family: Inter, system-ui, sans-serif",
+  ].join("; ");
+
+  const text = document.createElement("div");
+  text.style.cssText = "font-size: 13px; line-height: 1.35; color: #E2E8F0;";
+  text.textContent = "Atualização aplicada e cache antigo removido. Recarregue para abrir a versão limpa.";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Recarregar";
+  button.style.cssText = [
+    "border: none",
+    "background: #3B82F6",
+    "color: #FFFFFF",
+    "border-radius: 10px",
+    "padding: 9px 12px",
+    "font-weight: 800",
+    "cursor: pointer",
+    "white-space: nowrap",
+  ].join("; ");
+  button.onclick = () => window.location.reload();
+
+  notice.appendChild(text);
+  notice.appendChild(button);
+  document.body.appendChild(notice);
+}
+
 function renderFatalError(error) {
   const detail = error?.message || "Erro inesperado ao carregar o sistema.";
 
@@ -73,11 +138,7 @@ function renderFatalError(error) {
           </button>
           <button
             type="button"
-            onClick={() => {
-              localStorage.clear();
-              sessionStorage.clear();
-              window.location.reload();
-            }}
+            onClick={recoverLocalApp}
             style={{
               border: "1px solid #CBD5E1",
               background: "#FFFFFF",
@@ -178,11 +239,9 @@ async function registerServiceWorker() {
 
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event?.data?.type === "SW_RECOVERY_RELOAD") {
-        // Apenas loga — o SW já limpou os caches e se desregistrou.
-        // Não recarregar aqui evita loop infinito de reload.
         console.log("[SW] Recuperação concluída, caches limpos.");
+        showRecoveryReloadNotice();
       }
     });
   }
 }
-
