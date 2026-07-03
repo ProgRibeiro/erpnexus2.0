@@ -316,6 +316,64 @@ export default function FinanceiroHubPage() {
     value: toNumber(item.total),
   }));
   const expenseCategoryTotal = expenseCategories.reduce((sum, item) => sum + item.value, 0);
+  const commandCards = [
+    {
+      key: "receber",
+      title: "Receber mais rápido",
+      description: dashboard.receber_atrasado_count
+        ? "Comece pelos títulos vencidos e registre a baixa assim que o dinheiro entrar."
+        : "Acompanhe receitas pendentes e antecipe confirmações de recebimento.",
+      value: formatMoney(dashboard.receber_atrasado || dashboard.contas_receber),
+      label: dashboard.receber_atrasado_count
+        ? `${dashboard.receber_atrasado_count} vencido(s)`
+        : "receitas pendentes",
+      icon: ArrowUpOutlined,
+      color: dashboard.receber_atrasado_count ? "#F59E0B" : "#10B981",
+      path: dashboard.receber_atrasado_count
+        ? "/financeiro/lancamentos?tipo=receita&status=atrasado"
+        : "/financeiro/lancamentos?tipo=receita&status=pendente",
+      action: "Abrir cobrança",
+    },
+    {
+      key: "pagar",
+      title: "Controlar pagamentos",
+      description: dashboard.pagar_atrasado_count
+        ? "Existem compromissos vencidos. Resolva ou reprograme para evitar ruído no caixa."
+        : "Veja próximos pagamentos antes que virem urgência.",
+      value: formatMoney(dashboard.pagar_atrasado || dashboard.contas_pagar),
+      label: dashboard.pagar_atrasado_count
+        ? `${dashboard.pagar_atrasado_count} vencido(s)`
+        : "contas a pagar",
+      icon: ArrowDownOutlined,
+      color: dashboard.pagar_atrasado_count ? "#EF4444" : "#3B82F6",
+      path: dashboard.pagar_atrasado_count
+        ? "/financeiro/lancamentos?tipo=despesa&status=atrasado"
+        : "/financeiro/lancamentos?tipo=despesa&status=pendente",
+      action: "Ver pagamentos",
+    },
+    {
+      key: "baixa",
+      title: "Baixa rápida",
+      description: "Registre recebimentos e pagamentos sem garimpar menus. É o botão de operação do caixa.",
+      value: "1 clique",
+      label: "novo movimento",
+      icon: PlusOutlined,
+      color: "#5B21B6",
+      path: "/financeiro/lancamentos?novo=1",
+      action: "Lançar agora",
+    },
+    {
+      key: "relatorio",
+      title: "Relatório executivo",
+      description: "Abra DRE, fluxo de caixa, categorias e visão por OS para conferência e tomada de decisão.",
+      value: `${Math.max(0, Math.round(margin))}%`,
+      label: "margem atual",
+      icon: BarChartOutlined,
+      color: margin >= 0 ? "#10B981" : "#EF4444",
+      path: "/financeiro/relatorios",
+      action: "Ver relatórios",
+    },
+  ];
 
   const currentDate = new Date().toLocaleDateString("pt-BR", {
     month: "long",
@@ -412,6 +470,47 @@ export default function FinanceiroHubPage() {
           <span>Projeção líquida</span>
           <strong>{formatMoney(netProjection)}</strong>
           <small>Recebimentos menos compromissos</small>
+        </div>
+      </section>
+
+      <section className="finance-command-board" aria-label="Comandos rápidos do financeiro">
+        <div className="finance-command-heading">
+          <div>
+            <Text className="finance-eyebrow">Próximos cliques</Text>
+            <Title level={4}>O que o financeiro deve fazer agora</Title>
+          </div>
+          <Button onClick={() => navigate("/financeiro/lancamentos")}>
+            Ver todos os lançamentos <ArrowRightOutlined />
+          </Button>
+        </div>
+        <div className="finance-command-grid">
+          {commandCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <button
+                key={card.key}
+                type="button"
+                className="finance-command-card"
+                onClick={() => navigate(card.path)}
+                style={{ "--command-color": card.color }}
+              >
+                <span className="finance-command-icon">
+                  <Icon />
+                </span>
+                <span className="finance-command-content">
+                  <span className="finance-command-title">{card.title}</span>
+                  <span className="finance-command-description">{card.description}</span>
+                  <span className="finance-command-footer">
+                    <strong>{card.value}</strong>
+                    <small>{card.label}</small>
+                  </span>
+                </span>
+                <span className="finance-command-action">
+                  {card.action} <ArrowRightOutlined />
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
