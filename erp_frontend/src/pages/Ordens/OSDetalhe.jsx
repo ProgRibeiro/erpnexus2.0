@@ -251,9 +251,39 @@ const leadSourceOptions = [
 ];
 
 const reportTypeOptions = [
-  { value: "simples", label: "Corretivo" },
-  { value: "tecnico", label: "Preventivo" },
-  { value: "fotografico", label: "Manutenção geral (fotos)" },
+  { value: "simples", label: "Corretivo rápido" },
+  { value: "tecnico", label: "Preventivo essencial" },
+  { value: "fotografico", label: "Fotográfico com evidências" },
+];
+
+const quickReportTemplates = [
+  {
+    key: "corretivo",
+    label: "Corretivo rápido",
+    helper: "Descrição + solução aplicada",
+    tipoRelatorio: "simples",
+    checklist: "corretiva",
+    descricao: "Manutenção corretiva realizada com diagnóstico, correção e teste operacional do equipamento.",
+    observacao: "Serviço executado, funcionamento testado e área liberada para uso.",
+  },
+  {
+    key: "preventivo",
+    label: "Preventivo essencial",
+    helper: "Resumo + perguntas obrigatórias",
+    tipoRelatorio: "tecnico",
+    checklist: "hvac",
+    descricao: "Manutenção preventiva realizada conforme escopo contratado, com inspeção, limpeza e testes funcionais.",
+    observacao: "Itens preventivos verificados. Registrar abaixo apenas não conformidades, recomendações ou pendências.",
+  },
+  {
+    key: "fotografico",
+    label: "Só fotos + resumo",
+    helper: "Ideal para serviço simples",
+    tipoRelatorio: "fotografico",
+    checklist: "corretiva",
+    descricao: "Atendimento registrado por evidências fotográficas antes/depois e resumo curto do serviço.",
+    observacao: "Fotos anexadas como principal evidência técnica do atendimento.",
+  },
 ];
 
 const checklistTypeOptions = [
@@ -1405,6 +1435,21 @@ export default function OSDetalhePage() {
     return true;
   };
 
+  const aplicarModeloRelatorioRapido = (modelo) => {
+    const tipoServico = ordem?.tipo_servico;
+    const checklistDoServico = ["hvac", "refrigeracao", "eletrica", "civil"].includes(tipoServico)
+      ? tipoServico
+      : modelo.checklist;
+
+    form.setFieldsValue({
+      tipo_relatorio: modelo.tipoRelatorio,
+      descricao_servico: form.getFieldValue("descricao_servico") || modelo.descricao,
+      observacoes_tecnicas: form.getFieldValue("observacoes_tecnicas") || modelo.observacao,
+    });
+    setChecklistTipoSelecionado(checklistDoServico);
+    message.success(`Modelo "${modelo.label}" aplicado. Agora é só anexar fotos e responder o essencial.`);
+  };
+
 
   const confirmarFaturamento = async () => {
     setSendingBilling(true);
@@ -2259,6 +2304,52 @@ export default function OSDetalhePage() {
               : "Escolha a categoria, escreva um resumo curto, responda só o essencial e anexe as fotos. O restante é opcional."
           }
         />
+        <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+          {quickReportTemplates.map((modelo) => (
+            <Col xs={24} md={8} key={modelo.key}>
+              <button
+                type="button"
+                onClick={() => aplicarModeloRelatorioRapido(modelo)}
+                style={{
+                  alignItems: "center",
+                  background: "#FFFFFF",
+                  border: "1px solid #E2E6EC",
+                  borderRadius: 14,
+                  cursor: "pointer",
+                  display: "flex",
+                  gap: 12,
+                  padding: 14,
+                  textAlign: "left",
+                  width: "100%",
+                }}
+              >
+                <span
+                  style={{
+                    alignItems: "center",
+                    background: "#EFF6FF",
+                    borderRadius: 12,
+                    color: colors.azul,
+                    display: "flex",
+                    flexShrink: 0,
+                    height: 38,
+                    justifyContent: "center",
+                    width: 38,
+                  }}
+                >
+                  <CheckOutlined />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ color: colors.texto, display: "block", fontWeight: 800 }}>
+                    {modelo.label}
+                  </span>
+                  <span style={{ color: colors.textoSecundario, display: "block", fontSize: 12, marginTop: 2 }}>
+                    {modelo.helper}
+                  </span>
+                </span>
+              </button>
+            </Col>
+          ))}
+        </Row>
         <Row gutter={[20, 12]}>
           <Col xs={24}>
             <Form.Item label="Descrição curta para o relatório" name="descricao_servico">
