@@ -53,6 +53,7 @@ import {
   PlusOutlined,
   InfoCircleOutlined,
   QuestionCircleOutlined,
+  RightOutlined,
   SaveOutlined,
   SendOutlined,
   ToolOutlined,
@@ -538,6 +539,142 @@ export default function OSDetalhePage() {
   const checklistItensVisiveis = mostrarChecklistCompleto
     ? checklistTemplate?.itens || []
     : checklistRapidoItens;
+  const proximaAcaoOperacional = useMemo(() => {
+    const hasClient = Boolean(form.getFieldValue("cliente") || ordem?.cliente);
+    const valorOrcado = Number(form.getFieldValue("valor_total_orcado") || ordem?.valor_total_orcado || 0);
+    const valorFaturado = Number(form.getFieldValue("valor_final_faturado") || ordem?.valor_final_faturado || 0);
+    const temVencimento = Boolean(form.getFieldValue("data_vencimento") || ordem?.data_vencimento);
+    const temFormaCobranca = Boolean(form.getFieldValue("forma_cobranca") || ordem?.forma_cobranca);
+    const temContaRecebimento = Boolean(form.getFieldValue("conta_recebimento") || ordem?.conta_recebimento);
+    const relatorioPronto = Boolean(reportGovernance?.pronto_final);
+
+    if (!hasClient) {
+      return {
+        tipo: "warning",
+        titulo: "Complete os dados da OS",
+        descricao: "Selecione o cliente e confirme o escopo antes de avançar.",
+        botao: "Ir para dados gerais",
+        tab: "dados-gerais",
+        icone: <InfoCircleOutlined />,
+      };
+    }
+
+    if (valorOrcado <= 0 && ["aberta", "rascunho", "orcamento_enviado"].includes(statusAtualOS)) {
+      return {
+        tipo: "warning",
+        titulo: "Defina o valor do orçamento",
+        descricao: "Inclua itens, serviços ou valor orçado para a proposta ficar pronta.",
+        botao: "Completar orçamento",
+        tab: "dados-gerais",
+        icone: <DollarOutlined />,
+      };
+    }
+
+    if (["aprovada", "agendada"].includes(statusAtualOS)) {
+      return {
+        tipo: "info",
+        titulo: "Prepare a execução",
+        descricao: "Abra a etapa de execução, informe técnico, checklist e evidências do atendimento.",
+        botao: "Ir para execução",
+        tab: "execucao",
+        icone: <ToolOutlined />,
+      };
+    }
+
+    if (statusAtualOS === "em_execucao" && !hasServicePhotos) {
+      return {
+        tipo: "warning",
+        titulo: "Adicione evidências do serviço",
+        descricao: "Inclua fotos antes/depois ou fotos técnicas para liberar um relatório mais confiável.",
+        botao: "Adicionar fotos",
+        tab: "execucao",
+        icone: <CameraOutlined />,
+      };
+    }
+
+    if (statusAtualOS === "em_execucao" && !relatorioPronto) {
+      return {
+        tipo: "warning",
+        titulo: "Finalize o relatório rápido",
+        descricao: reportGovernance?.proxima_acao || "Preencha a descrição curta e os itens mínimos da categoria.",
+        botao: "Completar relatório",
+        tab: "execucao",
+        icone: <FileSearchOutlined />,
+      };
+    }
+
+    if (statusAtualOS === "em_execucao") {
+      return {
+        tipo: "success",
+        titulo: "Execução pronta para faturamento",
+        descricao: "Revise valor, NF, vencimento, forma de cobrança e envie para o financeiro.",
+        botao: "Ir para faturamento",
+        tab: "faturamento",
+        icone: <DollarOutlined />,
+      };
+    }
+
+    if (faturamentoPendente) {
+      const faltaFaturamento = [];
+      if (valorFaturado <= 0) faltaFaturamento.push("valor faturado");
+      if (!temVencimento) faltaFaturamento.push("vencimento");
+      if (!temFormaCobranca) faltaFaturamento.push("forma de cobrança");
+      if (!temContaRecebimento) faltaFaturamento.push("conta de recebimento");
+      return {
+        tipo: faltaFaturamento.length ? "warning" : "success",
+        titulo: faltaFaturamento.length ? "Complete o faturamento" : "Faturamento pronto para envio",
+        descricao: faltaFaturamento.length
+          ? `Falta informar: ${faltaFaturamento.join(", ")}.`
+          : "Confirme e envie a OS para o financeiro acompanhar o recebimento.",
+        botao: "Abrir faturamento",
+        tab: "faturamento",
+        icone: <DollarOutlined />,
+      };
+    }
+
+    if (financeiroAguardandoOk) {
+      return {
+        tipo: "info",
+        titulo: "Aguardando OK financeiro",
+        descricao: "A OS já foi enviada ao financeiro. Acompanhe data de recebimento e baixa.",
+        botao: "Ver financeiro",
+        tab: "financeiro",
+        icone: <ClockCircleOutlined />,
+      };
+    }
+
+    if (financeiroOk) {
+      return {
+        tipo: "success",
+        titulo: "OS concluída financeiramente",
+        descricao: "Recebimento confirmado. O histórico fica disponível para auditoria e relatórios.",
+        botao: "Ver histórico",
+        tab: "historico",
+        icone: <CheckCircleOutlined />,
+      };
+    }
+
+    return {
+      tipo: "info",
+      titulo: "Continue o fluxo da OS",
+      descricao: activeWorkflowPage?.subtitle || "Avance a OS pela próxima etapa operacional.",
+      botao: "Abrir próxima etapa",
+      tab: stageTabMap[currentStage] || "dados-gerais",
+      icone: <ToolOutlined />,
+    };
+  }, [
+    activeWorkflowPage?.subtitle,
+    currentStage,
+    financeiroAguardandoOk,
+    financeiroOk,
+    form,
+    faturamentoPendente,
+    hasServicePhotos,
+    ordem,
+    reportGovernance?.pronto_final,
+    reportGovernance?.proxima_acao,
+    statusAtualOS,
+  ]);
 
   useEffect(() => {
     carregarTela();
@@ -3084,6 +3221,71 @@ export default function OSDetalhePage() {
             </Col>
           ))}
         </Row>
+
+        <Card
+          bordered={false}
+          style={{
+            ...panelStyle,
+            marginTop: 20,
+            border: proximaAcaoOperacional.tipo === "success"
+              ? "1px solid #BBF7D0"
+              : proximaAcaoOperacional.tipo === "warning"
+              ? "1px solid #FDE68A"
+              : "1px solid #BFDBFE",
+            background: proximaAcaoOperacional.tipo === "success"
+              ? "#F0FDF4"
+              : proximaAcaoOperacional.tipo === "warning"
+              ? "#FFFBEB"
+              : "#EFF6FF",
+          }}
+          bodyStyle={{ padding: 18 }}
+        >
+          <Row gutter={[16, 16]} align="middle">
+            <Col flex="44px">
+              <div
+                style={{
+                  alignItems: "center",
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  color: proximaAcaoOperacional.tipo === "success"
+                    ? colors.verde
+                    : proximaAcaoOperacional.tipo === "warning"
+                    ? colors.laranja
+                    : colors.azul,
+                  display: "flex",
+                  fontSize: 22,
+                  height: 44,
+                  justifyContent: "center",
+                  width: 44,
+                }}
+              >
+                {proximaAcaoOperacional.icone}
+              </div>
+            </Col>
+            <Col flex="auto">
+              <Text style={{ color: colors.textoFraco, fontSize: 11, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Próxima ação recomendada
+              </Text>
+              <Title level={4} style={{ color: colors.texto, margin: "2px 0 4px" }}>
+                {proximaAcaoOperacional.titulo}
+              </Title>
+              <Text style={{ color: colors.textoSecundario }}>
+                {proximaAcaoOperacional.descricao}
+              </Text>
+            </Col>
+            <Col xs={24} md="220px">
+              <Button
+                block
+                type={proximaAcaoOperacional.tipo === "warning" ? "default" : "primary"}
+                icon={<RightOutlined />}
+                onClick={() => setActiveTab(proximaAcaoOperacional.tab)}
+                style={proximaAcaoOperacional.tipo === "warning" ? subtleButtonStyle : primaryButtonStyle}
+              >
+                {proximaAcaoOperacional.botao}
+              </Button>
+            </Col>
+          </Row>
+        </Card>
 
         <Alert
           type="info"
