@@ -136,7 +136,14 @@ export default function ImpressaoOrcamento() {
   const totalProposta = Math.max(0, totalOrcamentoSemImpostos + impostoTotal);
   const baseCalculo = Math.max(0, subtotalItens - descontoOrcamento);
   const logoUrl = getLogoUrl(empresa);
-  const printScaleClass = itens.length <= 6 ? "print-scale-100" : itens.length <= 12 ? "print-scale-88" : "print-scale-72";
+  const printScaleClass =
+    itens.length <= 5
+      ? "print-scale-100"
+      : itens.length <= 9
+      ? "print-scale-88"
+      : itens.length <= 14
+      ? "print-scale-76"
+      : "print-scale-64";
   const printSizeClass = `print-compact print-single-page ${printScaleClass}`;
 
   const regimeLabels = { simples: "Simples Nacional", lucro_presumido: "Lucro Presumido", lucro_real: "Lucro Real", mei: "MEI" };
@@ -201,7 +208,17 @@ export default function ImpressaoOrcamento() {
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
-      await new Promise((r) => setTimeout(r, 300));
+      await Promise.all(
+        Array.from(clone.querySelectorAll("img")).map((image) => {
+          if (image.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            image.onload = resolve;
+            image.onerror = resolve;
+            setTimeout(resolve, 900);
+          });
+        }),
+      );
+      await new Promise((r) => setTimeout(r, 180));
 
       const canvas = await html2canvas(clone, {
         scale: 2,
@@ -319,10 +336,15 @@ export default function ImpressaoOrcamento() {
             max-width: 323.8mm !important;
             zoom: 0.88 !important;
           }
-          .print-scale-72.doc-sheet {
-            width: 395.8mm !important;
-            max-width: 395.8mm !important;
-            zoom: 0.72 !important;
+          .print-scale-76.doc-sheet {
+            width: 375mm !important;
+            max-width: 375mm !important;
+            zoom: 0.76 !important;
+          }
+          .print-scale-64.doc-sheet {
+            width: 445mm !important;
+            max-width: 445mm !important;
+            zoom: 0.64 !important;
           }
           .proposal-header,
           .proposal-metrics,
@@ -456,6 +478,22 @@ export default function ImpressaoOrcamento() {
         .print-export.proposal-document .proposal-total-final-value { font-size: 17px !important; }
         .print-export.proposal-document .proposal-logos { display: none !important; }
         .print-export.proposal-document .proposal-footer { padding: 7px 24px !important; }
+        .print-scale-76.proposal-document .proposal-description-text,
+        .print-scale-64.proposal-document .proposal-description-text {
+          display: -webkit-box !important;
+          -webkit-line-clamp: 3 !important;
+          -webkit-box-orient: vertical !important;
+          overflow: hidden !important;
+        }
+        .print-scale-64.proposal-document .proposal-header { min-height: 92px !important; }
+        .print-scale-64.proposal-document .proposal-info-grid { padding-top: 8px !important; padding-bottom: 8px !important; }
+        .print-scale-64.proposal-document .proposal-item-main {
+          display: -webkit-box !important;
+          -webkit-line-clamp: 2 !important;
+          -webkit-box-orient: vertical !important;
+          overflow: hidden !important;
+        }
+        .print-scale-64.proposal-document .proposal-logos { display: none !important; }
         .proposal-document {
           position: relative;
           overflow: visible !important;
