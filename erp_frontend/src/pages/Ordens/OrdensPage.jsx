@@ -28,7 +28,7 @@ import {
   SearchOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import api from "../../services/api";
 
@@ -148,6 +148,23 @@ function normalizeStatus(status) {
 
 function getApiStatus(status) {
   return statusApiAliases[status] || status;
+}
+
+function getFiltersFromSearchParams(searchParams) {
+  const rawStatus = searchParams.get("status") || "";
+  const status = rawStatus
+    .split(",")
+    .map((item) => normalizeStatus(item.trim()))
+    .filter((item) => statusConfig[item])
+    .filter((item, index, array) => array.indexOf(item) === index);
+
+  return {
+    busca: searchParams.get("busca") || searchParams.get("search") || "",
+    status,
+    tipoServico: searchParams.get("tipo_servico") || searchParams.get("tipoServico") || undefined,
+    tecnico: searchParams.get("tecnico") || searchParams.get("tecnico_responsavel") || undefined,
+    periodo: null,
+  };
 }
 
 function getStatusMeta(status) {
@@ -280,19 +297,15 @@ function StatusBadge({ status }) {
 
 function OrdensPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [technicians, setTechnicians] = useState([]);
   const [hoveredRow, setHoveredRow] = useState(null);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
-  const [filters, setFilters] = useState({
-    busca: "",
-    status: [],
-    tipoServico: undefined,
-    tecnico: undefined,
-    periodo: null,
-  });
+  const [filters, setFilters] = useState(() => getFiltersFromSearchParams(searchParams));
 
   const technicianOptionsFromOrders = useMemo(() => {
     const map = new Map();
@@ -354,6 +367,11 @@ function OrdensPage() {
   }, []);
 
   useEffect(() => {
+    setFilters(getFiltersFromSearchParams(searchParams));
+    setPagination((current) => ({ ...current, current: 1 }));
+  }, [searchParamsString]);
+
+  useEffect(() => {
     let isMounted = true;
 
     async function loadOrders() {
@@ -402,6 +420,7 @@ function OrdensPage() {
   };
 
   const clearFilters = () => {
+    setSearchParams({});
     setFilters({
       busca: "",
       status: [],
