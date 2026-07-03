@@ -16,6 +16,7 @@ import {
   ClockCircleOutlined,
   DollarOutlined,
   FileTextOutlined,
+  RightOutlined,
   ToolOutlined,
   WalletOutlined,
   WarningOutlined,
@@ -401,6 +402,62 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [dashboard]);
 
+  const acoesPrioritarias = useMemo(() => {
+    const totalFaturamento = Number(
+      dashboard?.aguardando_faturamento_count ||
+        dashboard?.ordens_aguardando_faturamento ||
+        faturamentoRows.length ||
+        0
+    );
+    const totalVencidos = Number(dashboard?.receber_atrasado_count || pagamentosAtrasadosRows.length || 0);
+    const totalAgenda = Number(agendaHoje.length || dashboard?.agenda_hoje_count || 0);
+
+    return [
+      {
+        key: "faturamento",
+        titulo: "Faturar OS concluídas",
+        descricao: totalFaturamento
+          ? "Transforme OS prontas em receita pendente de recebimento."
+          : "Nenhuma OS parada no faturamento agora.",
+        valor: totalFaturamento,
+        rotulo: totalFaturamento === 1 ? "OS pendente" : "OS pendentes",
+        color: colors.laranja,
+        background: "#FFFBEB",
+        border: "#FDE68A",
+        icon: <DollarOutlined />,
+        path: "/ordens?status=concluida",
+      },
+      {
+        key: "cobranca",
+        titulo: "Cobrar recebíveis vencidos",
+        descricao: totalVencidos
+          ? "Priorize os títulos atrasados para proteger o caixa."
+          : "Carteira sem cobrança vencida no momento.",
+        valor: totalVencidos,
+        rotulo: totalVencidos === 1 ? "título vencido" : "títulos vencidos",
+        color: totalVencidos ? colors.vermelho : colors.verde,
+        background: totalVencidos ? "#FEF2F2" : "#F0FDF4",
+        border: totalVencidos ? "#FECACA" : "#BBF7D0",
+        icon: <WarningOutlined />,
+        path: "/financeiro/lancamentos?tipo=receita&status=atrasado",
+      },
+      {
+        key: "agenda",
+        titulo: "Executar agenda de hoje",
+        descricao: totalAgenda
+          ? "Abra as OS do dia e acompanhe técnico, fotos e relatório."
+          : "Dia sem OS agendada. Bom sinal para organizar pendências.",
+        valor: totalAgenda,
+        rotulo: totalAgenda === 1 ? "atendimento hoje" : "atendimentos hoje",
+        color: colors.azul,
+        background: "#EFF6FF",
+        border: "#BFDBFE",
+        icon: <ToolOutlined />,
+        path: agendaHoje[0]?.id ? `/ordens/${agendaHoje[0].id}` : "/ordens",
+      },
+    ];
+  }, [agendaHoje, dashboard, faturamentoRows.length, pagamentosAtrasadosRows.length]);
+
   const agendaColunas = [
     {
       title: "Horário",
@@ -619,6 +676,89 @@ export default function DashboardPage() {
               </Col>
             ))}
           </Row>
+
+          <Card
+            bordered={false}
+            style={{
+              ...sectionCardStyle,
+              background: "linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)",
+            }}
+            bodyStyle={{ padding: 18 }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <div style={{ color: colors.texto, fontSize: 20, fontWeight: 800 }}>
+                  Ações prioritárias
+                </div>
+                <div style={{ color: colors.textoSecundario, marginTop: 4 }}>
+                  O ERP aponta o que merece clique agora para não deixar dinheiro ou operação parados.
+                </div>
+              </div>
+              <Button onClick={() => navigate("/ordens")}>
+                Ver OS
+              </Button>
+            </div>
+
+            <Row gutter={[14, 14]}>
+              {acoesPrioritarias.map((acao) => (
+                <Col xs={24} md={8} key={acao.key}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(acao.path)}
+                    style={{
+                      background: acao.background,
+                      border: `1px solid ${acao.border}`,
+                      borderRadius: 16,
+                      cursor: "pointer",
+                      display: "flex",
+                      gap: 14,
+                      height: "100%",
+                      padding: 16,
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                  >
+                    <div
+                      style={{
+                        alignItems: "center",
+                        background: "#FFFFFF",
+                        borderRadius: 14,
+                        color: acao.color,
+                        display: "flex",
+                        flexShrink: 0,
+                        fontSize: 22,
+                        height: 46,
+                        justifyContent: "center",
+                        width: 46,
+                      }}
+                    >
+                      {acao.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: colors.texto, fontSize: 16, fontWeight: 800 }}>
+                        {acao.titulo}
+                      </div>
+                      <div style={{ color: colors.textoSecundario, fontSize: 13, marginTop: 4 }}>
+                        {acao.descricao}
+                      </div>
+                      <div style={{ alignItems: "center", color: acao.color, display: "flex", fontWeight: 800, gap: 6, marginTop: 12 }}>
+                        {acao.valor} {acao.rotulo}
+                        <RightOutlined style={{ fontSize: 12 }} />
+                      </div>
+                    </div>
+                  </button>
+                </Col>
+              ))}
+            </Row>
+          </Card>
 
           <Row gutter={[20, 20]}>
             <Col xs={24} xl={14}>
