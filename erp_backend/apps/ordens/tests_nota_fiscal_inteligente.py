@@ -48,3 +48,36 @@ class NotaFiscalInteligenteTests(SimpleTestCase):
         self.assertEqual(resultado["confianca"], "0")
         self.assertTrue(resultado["precisa_revisao"])
         self.assertEqual(resultado["numero_nf_sugerido"], "")
+
+    def test_nao_usa_aliquota_como_valor_de_imposto(self):
+        texto = """
+        NFS-e 123
+        Data de Emissão: 05/07/2026
+        Valor Total da Nota R$ 5.000,00
+        ISS 3,00%
+        PIS 0,65%
+        COFINS 3,00%
+        """
+
+        resultado = NotaFiscalInteligente().analisar_texto(texto)
+
+        self.assertNotIn("valor_issqn", resultado["impostos_sugeridos"])
+        self.assertNotIn("valor_pis", resultado["impostos_sugeridos"])
+        self.assertNotIn("valor_cofins", resultado["impostos_sugeridos"])
+
+    def test_quando_linha_tem_percentual_e_reais_pega_somente_reais(self):
+        texto = """
+        NOTA FISCAL DE SERVIÇOS ELETRÔNICA - NFS-e
+        Número da NFS-e: 00012345
+        Data de Emissão: 05/07/2026
+        Valor Total da Nota R$ 5.000,00
+        ISS 3,00% R$ 150,00
+        PIS 0,65% R$ 32,50
+        COFINS 3,00% R$ 150,00
+        """
+
+        resultado = NotaFiscalInteligente().analisar_texto(texto)
+
+        self.assertEqual(resultado["impostos_sugeridos"]["valor_issqn"], "150.00")
+        self.assertEqual(resultado["impostos_sugeridos"]["valor_pis"], "32.50")
+        self.assertEqual(resultado["impostos_sugeridos"]["valor_cofins"], "150.00")

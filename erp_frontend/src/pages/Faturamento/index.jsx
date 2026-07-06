@@ -323,16 +323,23 @@ export default function FaturamentoPage() {
       const data = response.data || {};
       setNfAnalysis(data);
       const impostos = data.impostos_sugeridos || {};
+      const campos = data.campos || {};
+      const impostoConfiavel = (field) => {
+        const confianca = Number(campos[field]?.confianca || 0);
+        return confianca >= 80 && Object.prototype.hasOwnProperty.call(impostos, field)
+          ? parseMoney(impostos[field])
+          : drawerForm.getFieldValue(field);
+      };
       drawerForm.setFieldsValue({
         numero_nf: data.numero_nf_sugerido || drawerForm.getFieldValue("numero_nf"),
         data_emissao_nf: data.data_emissao_sugerida ? dayjs(data.data_emissao_sugerida) : drawerForm.getFieldValue("data_emissao_nf"),
         valor_final_faturado: parseMoney(data.valor_total_sugerido) || drawerForm.getFieldValue("valor_final_faturado"),
         descricao_servico_nf: data.descricao_sugerida || drawerForm.getFieldValue("descricao_servico_nf"),
-        valor_issqn: parseMoney(impostos.valor_issqn) || drawerForm.getFieldValue("valor_issqn"),
-        valor_pis: parseMoney(impostos.valor_pis) || drawerForm.getFieldValue("valor_pis"),
-        valor_cofins: parseMoney(impostos.valor_cofins) || drawerForm.getFieldValue("valor_cofins"),
-        valor_irpj: parseMoney(impostos.valor_irpj) || drawerForm.getFieldValue("valor_irpj"),
-        valor_csll: parseMoney(impostos.valor_csll) || drawerForm.getFieldValue("valor_csll"),
+        valor_issqn: impostoConfiavel("valor_issqn"),
+        valor_pis: impostoConfiavel("valor_pis"),
+        valor_cofins: impostoConfiavel("valor_cofins"),
+        valor_irpj: impostoConfiavel("valor_irpj"),
+        valor_csll: impostoConfiavel("valor_csll"),
       });
       message.success("PDF da nota fiscal lido. Revise os campos antes de confirmar.");
     } catch (error) {

@@ -220,6 +220,13 @@ class NotaFiscalInteligente:
         "valor_irpj": re.compile(r"(?:valor\s+(?:do\s+)?irpj|\birpj\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
         "valor_csll": re.compile(r"(?:valor\s+(?:do\s+)?csll|\bcsll\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
     }
+    imposto_tokens = {
+        "valor_issqn": ("iss", "issqn"),
+        "valor_pis": ("pis",),
+        "valor_cofins": ("cofins",),
+        "valor_irpj": ("irpj",),
+        "valor_csll": ("csll",),
+    }
 
     def analisar_arquivo(self, arquivo, ordem=None):
         texto = self._extrair_texto_pdf(arquivo)
@@ -234,7 +241,7 @@ class NotaFiscalInteligente:
         numero_nf, numero_meta = self._extrair_numero_nf(texto_limpo)
         data_emissao, data_meta = self._extrair_data_emissao(texto_limpo)
         valor_total, valor_meta = self._extrair_valor_total(texto_limpo)
-        impostos, impostos_meta = self._extrair_impostos(texto_limpo)
+        impostos, impostos_meta = self._extrair_impostos(linhas)
         cnpjs = self._extrair_cnpjs(texto_limpo)
         descricao = self._extrair_descricao(linhas, ordem=ordem)
         validacoes = self._validar_contra_os(ordem, valor_total, cnpjs)
@@ -338,21 +345,67 @@ class NotaFiscalInteligente:
         valor = max(valores) if valores else None
         return valor, self._campo(str(valor) if valor else "", 45 if valor else 0, "Maior valor monetário encontrado no PDF." if valor else "")
 
-    def _extrair_impostos(self, texto):
+    def _extrair_impostos(self, linhas):
         impostos = {}
         metadados = {}
-        for campo, pattern in self.imposto_patterns.items():
-            match = pattern.search(texto)
-            if match:
-                valor = self._parse_decimal(match.group(1))
-                if valor is not None and valor < Decimal("1000000.00"):
-                    impostos[campo] = valor
-                    metadados[campo] = self._campo(str(valor), 82, self._contexto(texto, match.start(), match.end()))
-                else:
-                    metadados[campo] = self._campo("", 0, "")
+        for campo, tokens in self.imposto_tokens.items():
+            valor, confianca, fonte = self._extrair_imposto_por_linha(linhas, tokens)
+            if valor is not None:
+                impostos[campo] = valor
+                metadados[campo] = self._campo(str(valor), confianca, fonte)
             else:
                 metadados[campo] = self._campo("", 0, "")
         return impostos, metadados
+
+    def _extrair_imposto_por_linha(self, linhas, tokens):
+        for indice, linha in enumerate(linhas):
+            normalizada = self._sem_acentos(linha).lower()
+            if not any(re.search(rf"\b{re.escape(token)}\b", normalizada) for token in tokens):
+                continue
+            if self._linha_eh_apenas_aliquota_ou_base(normalizada):
+                continue
+
+            contexto = linha
+            if indice + 1 < len(linhas):
+                proxima_normalizada = self._sem_acentos(linhas[indice + 1]).lower()
+                proxima_tem_outro_imposto = any(
+                    re.search(rf"\b{re.escape(token)}\b", proxima_normalizada)
+                    for outros_tokens in self.imposto_tokens.values()
+                    for token in outros_tokens
+                )
+                if not proxima_tem_outro_imposto and not self._extrair_valor_monetario_da_linha(contexto):
+                    contexto = f"{linha} {linhas[indice + 1]}"
+            valor = self._extrair_valor_monetario_da_linha(contexto)
+            if valor is not None:
+                confianca = 92 if "r$" in contexto.lower() or "valor" in normalizada else 78
+                return valor, confianca, re.sub(r"\s+", " ", contexto).strip()[:240]
+        return None, 0, ""
+
+    def _linha_eh_apenas_aliquota_ou_base(self, linha):
+        termos_ambiguous = ("aliquota", "alíquota", "base de calculo", "base calculo", "codigo", "código", "cst", "cfop")
+        if any(termo in linha for termo in termos_ambiguous) and "r$" not in linha and "valor" not in linha:
+            return True
+        if "%" in linha and "r$" not in linha and "valor" not in linha:
+            return True
+        return False
+
+    def _extrair_valor_monetario_da_linha(self, linha):
+        valores_com_moeda = re.findall(r"R\$\s*([\d\.\,]+)", linha, flags=re.IGNORECASE)
+        if valores_com_moeda:
+            valores = [self._parse_decimal(valor) for valor in valores_com_moeda]
+            valores = [valor for valor in valores if valor is not None]
+            return valores[-1] if valores else None
+
+        if "%" in linha:
+            return None
+
+        if not re.search(r"\bvalor\b", self._sem_acentos(linha).lower()):
+            return None
+
+        candidatos = re.findall(r"\b\d{1,3}(?:\.\d{3})*,\d{2}\b|\b\d+,\d{2}\b", linha)
+        valores = [self._parse_decimal(valor) for valor in candidatos]
+        valores = [valor for valor in valores if valor is not None]
+        return valores[-1] if valores else None
 
     def _extrair_descricao(self, linhas, ordem=None):
         termos = ("descri", "discrimina", "servi", "atividade")
