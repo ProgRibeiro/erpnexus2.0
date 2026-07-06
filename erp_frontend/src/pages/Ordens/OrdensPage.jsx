@@ -328,7 +328,7 @@ function OrdensPage() {
           const status = normalizeStatus(order.status);
           if (["lead", "orcamento", "aprovado"].includes(status)) acc.abertas += 1;
           if (status === "em_execucao") acc.execucao += 1;
-          if (status === "faturado" || order.status_pagamento === "pendente") acc.faturamento += 1;
+          if (status === "concluida") acc.faturamento += 1;
           if (isLate(order)) acc.atrasadas += 1;
           return acc;
         },

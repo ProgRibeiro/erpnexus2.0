@@ -1210,13 +1210,25 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="pendentes-faturamento")
     def pendentes_faturamento(self, request):
-        """Lista OS concluídas (prontas para faturamento) que ainda não foram faturadas."""
+        """Lista a fila oficial de OS concluídas aguardando faturamento."""
         qs = (
             OrdemServico.objects
             .filter(status=OrdemServico.Status.CONCLUIDA)
             .select_related("cliente")
-            .order_by("-criado_em")
         )
+
+        cliente = request.query_params.get("cliente")
+        data_inicio = request.query_params.get("data_inicio")
+        data_fim = request.query_params.get("data_fim")
+
+        if cliente:
+            qs = qs.filter(cliente_id=cliente)
+        if data_inicio:
+            qs = qs.filter(atualizado_em__date__gte=data_inicio)
+        if data_fim:
+            qs = qs.filter(atualizado_em__date__lte=data_fim)
+
+        qs = qs.order_by("-atualizado_em", "-criado_em")
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 

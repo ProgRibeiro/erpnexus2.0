@@ -110,6 +110,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     cliente_nome = serializers.CharField(source="cliente.nome", read_only=True)
+    cliente_cnpj_cpf = serializers.CharField(source="cliente.cnpj_cpf", read_only=True)
+    cliente_nome_fantasia = serializers.CharField(source="cliente.nome_fantasia", read_only=True)
     cliente_avulso = serializers.JSONField(write_only=True, required=False)
     tecnico_nome = serializers.CharField(source="tecnico_responsavel.username", read_only=True)
     contato_nome = serializers.CharField(source="contato_responsavel.nome", read_only=True)

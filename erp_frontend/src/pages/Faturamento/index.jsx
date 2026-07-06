@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
@@ -29,6 +30,7 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import api from "../../services/api";
 
 const { Title, Text } = Typography;
@@ -119,6 +121,27 @@ function applyMaskCNPJ(value) {
     .slice(0, 18);
 }
 
+function onlyDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function formatDocumento(value) {
+  const digits = onlyDigits(value);
+  if (digits.length === 14) return applyMaskCNPJ(digits);
+  if (digits.length === 11) {
+    return digits
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1-$2")
+      .slice(0, 14);
+  }
+  return value || "";
+}
+
+function getClienteDocumento(record) {
+  return record?.cliente_cnpj_cpf || record?.cliente_documento || record?.cliente?.cnpj_cpf || "";
+}
+
 const statusColors = {
   aberta: "blue",
   em_execucao: "processing",
@@ -179,7 +202,7 @@ export default function FaturamentoPage() {
       setClientes(
         (Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []).map((c) => ({
           value: c.id,
-          label: c.nome_razao_social || c.nome || `Cliente #${c.id}`,
+          label: `${c.nome_razao_social || c.nome || `Cliente #${c.id}`}${c.cnpj_cpf ? ` - ${formatDocumento(c.cnpj_cpf)}` : ""}`,
         }))
       );
     } catch {
@@ -247,6 +270,7 @@ export default function FaturamentoPage() {
     .reduce((acc, o) => acc + Number(o.valor_total_orcado || 0), 0);
 
   const totalPendente = ordens.reduce((acc, o) => acc + Number(o.valor_total_orcado || 0), 0);
+  const ordensSemDocumento = ordens.filter((o) => !onlyDigits(getClienteDocumento(o))).length;
 
   // Verifica se PC está preenchido (tem número, valor ou dados extraídos)
   function pcStatus(record) {
@@ -263,13 +287,40 @@ export default function FaturamentoPage() {
       title: "Número OS",
       dataIndex: "numero",
       key: "numero",
+      width: 140,
       render: (v) => <Text strong style={{ color: colors.azul }}>{v || "-"}</Text>,
+    },
+    {
+      title: "Status",
+      key: "status_faturamento",
+      width: 170,
+      render: () => (
+        <Tag color="warning" style={{ borderRadius: 999, fontWeight: 700 }}>
+          Pendente faturamento
+        </Tag>
+      ),
     },
     {
       title: "Cliente",
       dataIndex: "cliente_nome",
       key: "cliente_nome",
       render: (v) => v || "-",
+    },
+    {
+      title: "CNPJ/CPF Cliente",
+      key: "cliente_cnpj_cpf",
+      width: 180,
+      render: (_, record) => {
+        const documento = getClienteDocumento(record);
+        if (!onlyDigits(documento)) {
+          return (
+            <Tag color="error" style={{ borderRadius: 999, fontWeight: 700 }}>
+              Sem documento
+            </Tag>
+          );
+        }
+        return <Text copyable style={{ color: colors.texto, fontWeight: 600 }}>{formatDocumento(documento)}</Text>;
+      },
     },
     {
       title: "Tipo de Serviço",
@@ -282,6 +333,13 @@ export default function FaturamentoPage() {
       dataIndex: "valor_total_orcado",
       key: "valor_total_orcado",
       render: (v) => <Text strong style={{ color: colors.texto }}>{fmt(v)}</Text>,
+    },
+    {
+      title: "Concluída em",
+      dataIndex: "atualizado_em",
+      key: "atualizado_em",
+      width: 130,
+      render: (v) => (v ? dayjs(v).format("DD/MM/YYYY") : "-"),
     },
     {
       title: "Pedido de Compra",
@@ -315,7 +373,7 @@ export default function FaturamentoPage() {
                 icon={<EyeOutlined />}
                 disabled={bloqueado}
                 style={bloqueado ? { borderRadius: 8 } : { background: colors.azul, borderColor: colors.azul, borderRadius: 8, fontWeight: 600 }}
-                onClick={() => navigate(`/ordens/${record.id}`, { state: { tab: "faturamento" } })}
+                onClick={() => navigate(`/ordens/${record.id}?tab=faturamento`)}
               >
                 {bloqueado ? "PC Pendente" : "Faturar"}
               </Button>
@@ -361,7 +419,7 @@ export default function FaturamentoPage() {
                 Faturamento
               </Title>
               <Text style={{ color: colors.textoSecundario }}>
-                Gerencie OS pendentes de faturamento e agrupamentos de NF
+                Toda OS concluída entra automaticamente aqui para faturar
               </Text>
             </div>
           </Space>
@@ -376,20 +434,36 @@ export default function FaturamentoPage() {
         </div>
       </Card>
 
+      <Alert
+        showIcon
+        type="warning"
+        message="Fila oficial de pendências de faturamento"
+        description="A regra é direta: quando a OS fica concluída, ela aparece em Faturamento como pendente. Depois que o faturamento é confirmado na OS, ela sai desta fila."
+        style={{ borderRadius: 12, borderColor: "#FDE68A" }}
+      />
+
       {/* Cards de totais */}
       <Row gutter={[20, 20]}>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12} lg={6}>
           <SummaryCard color={colors.azul} icon={<FileTextOutlined />} label="OS pendentes" value={ordens.length} />
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12} lg={6}>
           <SummaryCard color={colors.verde} icon={<DollarOutlined />} label="Valor total pendente" value={fmt(totalPendente)} />
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12} lg={6}>
           <SummaryCard
             color={colors.laranja}
             icon={<CheckCircleOutlined />}
             label="OS selecionadas"
             value={`${selectedOrdens.length} / ${ordens.length}`}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <SummaryCard
+            color={ordensSemDocumento > 0 ? colors.vermelho : colors.verde}
+            icon={<ExclamationCircleOutlined />}
+            label="Sem CNPJ/CPF"
+            value={ordensSemDocumento}
           />
         </Col>
       </Row>
@@ -434,7 +508,8 @@ export default function FaturamentoPage() {
             selectedRowKeys: selectedOrdens,
             onChange: (keys) => setSelectedOrdens(keys),
           }}
-          scroll={{ x: 1000 }}
+          rowClassName={(record) => (!onlyDigits(getClienteDocumento(record)) ? "linha-sem-documento" : "")}
+          scroll={{ x: 1350 }}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{
             emptyText: (
@@ -502,7 +577,12 @@ export default function FaturamentoPage() {
                     }
                   />
                   <Text style={{ flex: 1, color: colors.texto }}>{o.numero || `OS #${o.id}`}</Text>
-                  <Text style={{ color: colors.textoFraco, fontSize: 12 }}>{o.cliente_nome || "-"}</Text>
+                  <div style={{ minWidth: 180 }}>
+                    <Text style={{ color: colors.textoFraco, fontSize: 12, display: "block" }}>{o.cliente_nome || "-"}</Text>
+                    <Text style={{ color: colors.textoFraco, fontSize: 11 }}>
+                      {formatDocumento(getClienteDocumento(o)) || "Sem CNPJ/CPF"}
+                    </Text>
+                  </div>
                   <Text strong style={{ color: colors.azul, minWidth: 90, textAlign: "right" }}>{fmt(o.valor_total_orcado)}</Text>
                 </div>
               ))
