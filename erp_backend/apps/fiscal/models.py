@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.validators import RegexValidator
 from django.db import models
 
@@ -15,6 +17,10 @@ class ConfiguracaoFiscal(models.Model):
         NFSE = "nfse", "NFS-e"
         NFE = "nfe", "NF-e"
         AMBAS = "ambas", "Ambas"
+
+    class AnexoSimples(models.TextChoices):
+        ANEXO_III = "anexo_iii", "Anexo III"
+        ANEXO_IV = "anexo_iv", "Anexo IV"
 
     empresa = models.OneToOneField(
         ConfiguracaoEmpresa,
@@ -43,6 +49,12 @@ class ConfiguracaoFiscal(models.Model):
     aliquota_iss = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     iss_retido_fonte = models.BooleanField(default=False)
     codigo_servico_lc116 = models.CharField(max_length=20, blank=True)
+    data_abertura_simples = models.DateField(default=date(2025, 12, 18))
+    anexo_simples = models.CharField(
+        max_length=20,
+        choices=AnexoSimples.choices,
+        default=AnexoSimples.ANEXO_III,
+    )
     ativo = models.BooleanField(default=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -52,6 +64,82 @@ class ConfiguracaoFiscal(models.Model):
 
     def __str__(self):
         return f"Configuração fiscal - {self.empresa.nome}"
+
+
+class FaturamentoMensalSimples(models.Model):
+    class Origem(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        NFSE = "nfse", "NFS-e"
+        IMPORTACAO = "importacao", "Importação"
+
+    empresa = models.ForeignKey(
+        ConfiguracaoEmpresa,
+        on_delete=models.CASCADE,
+        related_name="faturamentos_simples",
+    )
+    competencia = models.DateField(help_text="Use sempre o primeiro dia do mês de competência.")
+    receita_bruta = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    origem = models.CharField(max_length=20, choices=Origem.choices, default=Origem.MANUAL)
+    observacoes = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-competencia"]
+        unique_together = ["empresa", "competencia"]
+        verbose_name = "Faturamento mensal do Simples"
+        verbose_name_plural = "Faturamentos mensais do Simples"
+        indexes = [
+            models.Index(fields=["empresa", "competencia"]),
+        ]
+
+    def __str__(self):
+        return f"{self.empresa.nome} - {self.competencia:%m/%Y}"
+
+
+class ApuracaoSimplesNacional(models.Model):
+    class Alerta(models.TextChoices):
+        OK = "ok", "Dentro dos limites"
+        PERTO_SUBLIMITE = "perto_sublimite", "Perto do sublimite"
+        ACIMA_SUBLIMITE = "acima_sublimite", "Acima do sublimite"
+        PERTO_TETO = "perto_teto", "Perto do teto"
+        ACIMA_TETO = "acima_teto", "Acima do teto"
+
+    empresa = models.ForeignKey(
+        ConfiguracaoEmpresa,
+        on_delete=models.CASCADE,
+        related_name="apuracoes_simples",
+    )
+    competencia = models.DateField(help_text="Use sempre o primeiro dia do mês de competência.")
+    anexo = models.CharField(max_length=20, default=ConfiguracaoFiscal.AnexoSimples.ANEXO_III)
+    receita_mes = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    rbt12 = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    meses_atividade = models.PositiveSmallIntegerField(default=1)
+    proporcionalizado = models.BooleanField(default=True)
+    faixa = models.PositiveSmallIntegerField(default=1)
+    aliquota_nominal = models.DecimalField(max_digits=7, decimal_places=4, default=0)
+    parcela_deduzir = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    aliquota_efetiva = models.DecimalField(max_digits=7, decimal_places=4, default=0)
+    das_estimado = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    percentual_sublimite = models.DecimalField(max_digits=7, decimal_places=4, default=0)
+    percentual_teto = models.DecimalField(max_digits=7, decimal_places=4, default=0)
+    alerta = models.CharField(max_length=30, choices=Alerta.choices, default=Alerta.OK)
+    memoria_calculo = models.JSONField(default=dict, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-competencia"]
+        unique_together = ["empresa", "competencia"]
+        verbose_name = "Apuração do Simples Nacional"
+        verbose_name_plural = "Apurações do Simples Nacional"
+        indexes = [
+            models.Index(fields=["empresa", "competencia"]),
+            models.Index(fields=["alerta"]),
+        ]
+
+    def __str__(self):
+        return f"Simples {self.competencia:%m/%Y} - {self.get_alerta_display()}"
 
 
 class TabelaImpostoLucroPresumido(models.Model):
@@ -72,4 +160,3 @@ class TabelaImpostoLucroPresumido(models.Model):
 
     def __str__(self):
         return self.descricao
-

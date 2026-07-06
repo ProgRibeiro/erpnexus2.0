@@ -399,4 +399,9 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contratos.tasks.reajustar_contratos_anuais",
         "schedule": crontab(day_of_month=1, hour=7, minute=30),
     },
+    # Simples Nacional: apuração mensal e alerta de sublimite/teto
+    "apurar-simples-nacional-mensal": {
+        "task": "apps.fiscal.tasks.apurar_simples_mensal",
+        "schedule": crontab(day_of_month=2, hour=7, minute=0),
+    },
 }

@@ -47,6 +47,11 @@ const tipoNotaOpcoes = [
   { label: "Ambas", value: "ambas" },
 ];
 
+const anexoSimplesOpcoes = [
+  { label: "Anexo III", value: "anexo_iii" },
+  { label: "Anexo IV", value: "anexo_iv" },
+];
+
 const regimesReformaOpcoes = [
   { label: "Simples Nacional", value: "SN" },
   { label: "Lucro Presumido", value: "LP" },
@@ -57,12 +62,36 @@ const regimesReformaOpcoes = [
 const money = (value) =>
   Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const percent = (value) =>
+  `${(Number(value || 0) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+const alertaFiscalColor = {
+  ok: "green",
+  perto_sublimite: "gold",
+  acima_sublimite: "orange",
+  perto_teto: "volcano",
+  acima_teto: "red",
+};
+
+const alertaFiscalLabel = {
+  ok: "Dentro dos limites",
+  perto_sublimite: "Perto do sublimite",
+  acima_sublimite: "Acima do sublimite",
+  perto_teto: "Perto do teto",
+  acima_teto: "Acima do teto",
+};
+
 const regimeLegadoParaReforma = (regime) => ({
   mei: "MEI",
   simples_nacional: "SN",
   lucro_presumido: "LP",
   lucro_real: "LR",
 }[regime] || "LP");
+
+const normalizeConfigForm = (data) => ({
+  ...(data || {}),
+  data_abertura_simples: data?.data_abertura_simples ? dayjs(data.data_abertura_simples) : null,
+});
 
 export default function FiscalPage() {
   const [loading, setLoading] = useState(true);
@@ -71,6 +100,7 @@ export default function FiscalPage() {
   const [salvando, setSalvando] = useState(false);
   const [form] = Form.useForm();
   const [reformaForm] = Form.useForm();
+  const [simplesForm] = Form.useForm();
   const [calculo, setCalculo] = useState(null);
   const [impostos, setImpostos] = useState([]);
   const [valores, setValores] = useState({ valor_servicos: 0, valor_materiais: 0 });
@@ -78,18 +108,25 @@ export default function FiscalPage() {
   const [reformaResultado, setReformaResultado] = useState(null);
   const [calculandoReforma, setCalculandoReforma] = useState(false);
   const [sincronizandoCnpj, setSincronizandoCnpj] = useState(false);
+  const [simplesLoading, setSimplesLoading] = useState(false);
+  const [simplesAtual, setSimplesAtual] = useState(null);
+  const [simplesHistorico, setSimplesHistorico] = useState([]);
+  const [faturamentosSimples, setFaturamentosSimples] = useState([]);
+  const [previsaoSimples, setPrevisaoSimples] = useState([]);
+  const [cenarioPrevisao, setCenarioPrevisao] = useState({ meses: 6, crescimento_mensal: 0 });
 
   useEffect(() => {
     carregarConfig();
     carregarImpostos();
     carregarRegrasReforma();
+    carregarPainelSimples();
   }, []);
 
   const carregarConfig = async () => {
     try {
       const response = await api.get("/fiscal/configuracao/");
       setConfig(response.data);
-      form.setFieldsValue(response.data);
+      form.setFieldsValue(normalizeConfigForm(response.data));
       reformaForm.setFieldsValue({
         regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
         uf_destino: response.data?.uf || "",
@@ -120,18 +157,68 @@ export default function FiscalPage() {
     }
   };
 
+  const carregarPainelSimples = async (cenario = cenarioPrevisao) => {
+    setSimplesLoading(true);
+    try {
+      const [apuracao, faturamentos, previsao] = await Promise.all([
+        api.get("/fiscal/simples/apuracao/"),
+        api.get("/fiscal/simples/faturamentos/"),
+        api.get("/fiscal/simples/previsao/", { params: cenario }),
+      ]);
+      setSimplesAtual(apuracao.data?.atual || null);
+      setSimplesHistorico(apuracao.data?.historico || []);
+      setFaturamentosSimples(faturamentos.data || []);
+      setPrevisaoSimples(previsao.data?.previsao || []);
+    } catch {
+      message.error("Erro ao carregar painel do Simples Nacional.");
+    } finally {
+      setSimplesLoading(false);
+    }
+  };
+
+  const salvarReceitaSimples = async (values) => {
+    setSimplesLoading(true);
+    try {
+      await api.post("/fiscal/simples/faturamentos/", {
+        competencia: values.competencia?.format("YYYY-MM-01"),
+        receita_bruta: values.receita_bruta || 0,
+        origem: "manual",
+        observacoes: values.observacoes || "",
+      });
+      simplesForm.resetFields();
+      await carregarPainelSimples();
+      message.success("Receita mensal salva e DAS estimado recalculado.");
+    } catch {
+      message.error("Erro ao salvar receita mensal.");
+      setSimplesLoading(false);
+    }
+  };
+
+  const atualizarPrevisao = async (values) => {
+    const novoCenario = {
+      meses: values.meses || 6,
+      crescimento_mensal: values.crescimento_mensal || 0,
+    };
+    setCenarioPrevisao(novoCenario);
+    await carregarPainelSimples(novoCenario);
+  };
+
   const salvarConfig = async (values) => {
     setSalvando(true);
     try {
-      const response = await api.patch("/fiscal/configuracao/", values);
+      const response = await api.patch("/fiscal/configuracao/", {
+        ...values,
+        data_abertura_simples: values.data_abertura_simples?.format("YYYY-MM-DD") || values.data_abertura_simples,
+      });
       setConfig(response.data);
-      form.setFieldsValue(response.data);
+      form.setFieldsValue(normalizeConfigForm(response.data));
       reformaForm.setFieldsValue({
         regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
         uf_destino: response.data?.uf || "",
         codigo_municipio: response.data?.codigo_municipio_ibge || "",
       });
       setReformaResultado(null);
+      carregarPainelSimples();
       setEditando(false);
       message.success("Configuração fiscal atualizada e motor sincronizado.");
     } catch {
@@ -149,7 +236,7 @@ export default function FiscalPage() {
       const novaConfig = response.data?.configuracao;
       if (novaConfig) {
         setConfig(novaConfig);
-        form.setFieldsValue(novaConfig);
+        form.setFieldsValue(normalizeConfigForm(novaConfig));
         reformaForm.setFieldsValue({
           regime_emitente: regimeLegadoParaReforma(novaConfig.regime_tributario),
           uf_destino: novaConfig.uf || "",
@@ -239,6 +326,169 @@ export default function FiscalPage() {
         </Space>
       </Card>
 
+      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }} loading={simplesLoading}>
+        <Space align="start" style={{ marginBottom: 18 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: `${colors.verde}14`,
+              color: colors.verde,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              flexShrink: 0,
+            }}
+          >
+            <CalculatorOutlined />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, color: colors.texto }}>
+              Painel Simples Nacional
+            </Title>
+            <Text style={{ color: colors.textoSecundario }}>
+              Monitore faturamento mensal, RBT12, DAS estimado e previsão dos próximos meses
+            </Text>
+          </div>
+        </Space>
+
+        <Alert
+          type={simplesAtual?.alerta === "ok" ? "success" : "warning"}
+          showIcon
+          style={{ borderRadius: 12, marginBottom: 18 }}
+          message={`Status: ${alertaFiscalLabel[simplesAtual?.alerta] || "Sem apuração"}`}
+          description="A apuração usa o RBT12 proporcional enquanto a empresa tiver menos de 12 meses e muda automaticamente para os últimos 12 meses reais depois disso."
+        />
+
+        <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card size="small" style={{ borderRadius: 12 }}>
+              <Text type="secondary">RBT12 atual</Text>
+              <div style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}>{money(simplesAtual?.rbt12)}</div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card size="small" style={{ borderRadius: 12 }}>
+              <Text type="secondary">DAS estimado do mês</Text>
+              <div style={{ fontSize: 22, fontWeight: 800, color: colors.azul }}>{money(simplesAtual?.das_estimado)}</div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card size="small" style={{ borderRadius: 12 }}>
+              <Text type="secondary">Alíquota efetiva</Text>
+              <div style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}>{percent(simplesAtual?.aliquota_efetiva)}</div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card size="small" style={{ borderRadius: 12 }}>
+              <Text type="secondary">Faixa / teto usado</Text>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                <Tag color={alertaFiscalColor[simplesAtual?.alerta] || "default"} style={{ borderRadius: 999, fontWeight: 700 }}>
+                  Faixa {simplesAtual?.faixa || "-"}
+                </Tag>
+                <Text strong>{percent(simplesAtual?.percentual_teto)}</Text>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[20, 20]}>
+          <Col xs={24} lg={8}>
+            <Card size="small" style={{ borderRadius: 12 }} title="Lançar receita do mês">
+              <Form
+                form={simplesForm}
+                layout="vertical"
+                initialValues={{ competencia: dayjs(), receita_bruta: 0 }}
+                onFinish={salvarReceitaSimples}
+              >
+                <Form.Item label="Competência" name="competencia" rules={[{ required: true }]}>
+                  <DatePicker picker="month" format="MM/YYYY" style={{ width: "100%" }} />
+                </Form.Item>
+                <Form.Item label="Receita bruta do mês" name="receita_bruta" rules={[{ required: true }]}>
+                  <InputNumber min={0} step={100} style={{ width: "100%" }} />
+                </Form.Item>
+                <Form.Item label="Observações" name="observacoes">
+                  <Input.TextArea rows={2} placeholder="Ex.: valor conferido com NFS-e / contador" />
+                </Form.Item>
+                <Button type="primary" htmlType="submit" style={btnStyle} block>
+                  Salvar e recalcular
+                </Button>
+              </Form>
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={16}>
+            <Card size="small" style={{ borderRadius: 12 }} title="Previsão futura">
+              <Form
+                layout="inline"
+                initialValues={cenarioPrevisao}
+                onFinish={atualizarPrevisao}
+                style={{ marginBottom: 12, rowGap: 8 }}
+              >
+                <Form.Item label="Meses" name="meses">
+                  <InputNumber min={1} max={24} />
+                </Form.Item>
+                <Form.Item label="Crescimento mensal (%)" name="crescimento_mensal">
+                  <InputNumber min={-100} max={100} step={0.5} />
+                </Form.Item>
+                <Form.Item>
+                  <Button htmlType="submit" style={btnStyle}>Atualizar previsão</Button>
+                </Form.Item>
+              </Form>
+              <Table
+                size="small"
+                rowKey="competencia"
+                dataSource={previsaoSimples}
+                pagination={false}
+                scroll={{ x: 900 }}
+                columns={[
+                  { title: "Mês", dataIndex: "competencia", render: (v) => dayjs(v).format("MM/YYYY") },
+                  { title: "Receita prevista", dataIndex: "receita_prevista", render: money },
+                  { title: "RBT12", dataIndex: "rbt12", render: money },
+                  { title: "Alíquota efetiva", dataIndex: "aliquota_efetiva", render: percent },
+                  { title: "DAS previsto", dataIndex: "das_estimado", render: (v) => <Text strong>{money(v)}</Text> },
+                  { title: "Alerta", dataIndex: "alerta", render: (v) => <Tag color={alertaFiscalColor[v] || "default"}>{alertaFiscalLabel[v] || v}</Tag> },
+                ]}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+          <Col xs={24} lg={12}>
+            <Table
+              size="small"
+              title={() => "Faturamentos mensais lançados"}
+              rowKey="id"
+              dataSource={faturamentosSimples}
+              pagination={{ pageSize: 6 }}
+              columns={[
+                { title: "Competência", dataIndex: "competencia", render: (v) => dayjs(v).format("MM/YYYY") },
+                { title: "Receita bruta", dataIndex: "receita_bruta", render: money },
+                { title: "Origem", dataIndex: "origem", render: (v) => <Tag>{v}</Tag> },
+              ]}
+            />
+          </Col>
+          <Col xs={24} lg={12}>
+            <Table
+              size="small"
+              title={() => "Histórico de apuração"}
+              rowKey="id"
+              dataSource={simplesHistorico}
+              pagination={{ pageSize: 6 }}
+              columns={[
+                { title: "Competência", dataIndex: "competencia", render: (v) => dayjs(v).format("MM/YYYY") },
+                { title: "RBT12", dataIndex: "rbt12", render: money },
+                { title: "DAS", dataIndex: "das_estimado", render: money },
+                { title: "Alerta", dataIndex: "alerta", render: (v) => <Tag color={alertaFiscalColor[v] || "default"}>{alertaFiscalLabel[v] || v}</Tag> },
+              ]}
+            />
+          </Col>
+        </Row>
+      </Card>
+
       <Row gutter={[20, 20]}>
         <Col xs={24} lg={12}>
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
@@ -276,6 +526,19 @@ export default function FiscalPage() {
               <Form.Item label="Tipo de Nota" name="tipo_nota">
                 <Select options={tipoNotaOpcoes} />
               </Form.Item>
+
+              <Row gutter={12}>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Data de abertura no Simples" name="data_abertura_simples">
+                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Anexo do Simples" name="anexo_simples">
+                    <Select options={anexoSimplesOpcoes} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
               <Form.Item label="CNPJ" name="cnpj">
                 <Input />

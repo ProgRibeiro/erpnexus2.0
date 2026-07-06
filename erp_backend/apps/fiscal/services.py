@@ -1,9 +1,251 @@
+from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 from types import SimpleNamespace
 
 import requests
+from django.utils import timezone
 
-from .models import ConfiguracaoFiscal, TabelaImpostoLucroPresumido
+from .models import ApuracaoSimplesNacional, ConfiguracaoFiscal, FaturamentoMensalSimples, TabelaImpostoLucroPresumido
+
+
+CENTAVOS = Decimal("0.01")
+
+
+class SimplesNacionalService:
+    SUBLIMITE = Decimal("3600000.00")
+    TETO = Decimal("4800000.00")
+    TABELAS = {
+        ConfiguracaoFiscal.AnexoSimples.ANEXO_III: [
+            (Decimal("0.00"), Decimal("180000.00"), Decimal("0.0600"), Decimal("0.00")),
+            (Decimal("180000.01"), Decimal("360000.00"), Decimal("0.1120"), Decimal("9360.00")),
+            (Decimal("360000.01"), Decimal("720000.00"), Decimal("0.1350"), Decimal("17640.00")),
+            (Decimal("720000.01"), Decimal("1800000.00"), Decimal("0.1600"), Decimal("35640.00")),
+            (Decimal("1800000.01"), Decimal("3600000.00"), Decimal("0.2100"), Decimal("125640.00")),
+            (Decimal("3600000.01"), Decimal("4800000.00"), Decimal("0.3300"), Decimal("648000.00")),
+        ],
+        ConfiguracaoFiscal.AnexoSimples.ANEXO_IV: [
+            (Decimal("0.00"), Decimal("180000.00"), Decimal("0.0450"), Decimal("0.00")),
+            (Decimal("180000.01"), Decimal("360000.00"), Decimal("0.0900"), Decimal("8100.00")),
+            (Decimal("360000.01"), Decimal("720000.00"), Decimal("0.1020"), Decimal("12420.00")),
+            (Decimal("720000.01"), Decimal("1800000.00"), Decimal("0.1400"), Decimal("39780.00")),
+            (Decimal("1800000.01"), Decimal("3600000.00"), Decimal("0.2200"), Decimal("183780.00")),
+            (Decimal("3600000.01"), Decimal("4800000.00"), Decimal("0.3300"), Decimal("828000.00")),
+        ],
+    }
+
+    def calcular(self, configuracao: ConfiguracaoFiscal, competencia=None, salvar=True) -> dict:
+        competencia = self._normalizar_competencia(competencia)
+        empresa = configuracao.empresa
+        receita_mes = self._receita_mes(empresa, competencia)
+        meses_atividade = self._meses_atividade(configuracao.data_abertura_simples, competencia)
+        receitas = self._receitas_ordenadas(empresa, competencia)
+
+        if meses_atividade < 12:
+            rba = sum((item.receita_bruta for item in receitas), Decimal("0.00"))
+            rbt12 = (rba / Decimal(meses_atividade)) * Decimal("12")
+            proporcionalizado = True
+            meses_base = meses_atividade
+        else:
+            ultimos_12 = list(receitas[:12])
+            rba = sum((item.receita_bruta for item in ultimos_12), Decimal("0.00"))
+            rbt12 = rba
+            proporcionalizado = False
+            meses_base = len(ultimos_12)
+
+        faixa, aliquota_nominal, parcela_deduzir = self.buscar_faixa(rbt12, configuracao.anexo_simples)
+        aliquota_efetiva = ((rbt12 * aliquota_nominal - parcela_deduzir) / rbt12) if rbt12 > 0 else Decimal("0.00")
+        if aliquota_efetiva < 0:
+            aliquota_efetiva = Decimal("0.00")
+        das_estimado = receita_mes * aliquota_efetiva
+        percentual_sublimite = (rbt12 / self.SUBLIMITE) * Decimal("100") if self.SUBLIMITE else Decimal("0.00")
+        percentual_teto = (rbt12 / self.TETO) * Decimal("100") if self.TETO else Decimal("0.00")
+        alerta = self._alerta(rbt12)
+
+        payload = {
+            "empresa": empresa.id,
+            "competencia": competencia.isoformat(),
+            "anexo": configuracao.anexo_simples,
+            "receita_mes": self._money(receita_mes),
+            "rbt12": self._money(rbt12),
+            "meses_atividade": meses_atividade,
+            "meses_base": meses_base,
+            "proporcionalizado": proporcionalizado,
+            "faixa": faixa,
+            "aliquota_nominal": self._percent(aliquota_nominal),
+            "parcela_deduzir": self._money(parcela_deduzir),
+            "aliquota_efetiva": self._percent(aliquota_efetiva),
+            "das_estimado": self._money(das_estimado),
+            "percentual_sublimite": self._percent(percentual_sublimite / Decimal("100")),
+            "percentual_teto": self._percent(percentual_teto / Decimal("100")),
+            "alerta": alerta,
+            "sublimite": self._money(self.SUBLIMITE),
+            "teto": self._money(self.TETO),
+            "memoria_calculo": {
+                "formula_rbt12": "(receita acumulada / meses de atividade) x 12" if proporcionalizado else "soma dos últimos 12 meses reais",
+                "formula_aliquota_efetiva": "(RBT12 x alíquota nominal - parcela a deduzir) / RBT12",
+                "formula_das": "receita bruta do mês x alíquota efetiva",
+                "data_abertura": configuracao.data_abertura_simples.isoformat(),
+                "receita_acumulada_base": str(self._money(rba)),
+            },
+        }
+
+        if salvar:
+            ApuracaoSimplesNacional.objects.update_or_create(
+                empresa=empresa,
+                competencia=competencia,
+                defaults={
+                    "anexo": configuracao.anexo_simples,
+                    "receita_mes": payload["receita_mes"],
+                    "rbt12": payload["rbt12"],
+                    "meses_atividade": meses_atividade,
+                    "proporcionalizado": proporcionalizado,
+                    "faixa": faixa,
+                    "aliquota_nominal": payload["aliquota_nominal"],
+                    "parcela_deduzir": payload["parcela_deduzir"],
+                    "aliquota_efetiva": payload["aliquota_efetiva"],
+                    "das_estimado": payload["das_estimado"],
+                    "percentual_sublimite": payload["percentual_sublimite"],
+                    "percentual_teto": payload["percentual_teto"],
+                    "alerta": alerta,
+                    "memoria_calculo": payload["memoria_calculo"],
+                },
+            )
+
+        return payload
+
+    def buscar_faixa(self, rbt12: Decimal, anexo: str):
+        tabela = self.TABELAS.get(anexo) or self.TABELAS[ConfiguracaoFiscal.AnexoSimples.ANEXO_III]
+        for indice, (de, ate, aliquota, parcela_deduzir) in enumerate(tabela, start=1):
+            if de <= rbt12 <= ate:
+                return indice, aliquota, parcela_deduzir
+        ultima = tabela[-1]
+        return len(tabela), ultima[2], ultima[3]
+
+    def registrar_receita(self, configuracao: ConfiguracaoFiscal, competencia, receita_bruta, origem="manual", observacoes="") -> dict:
+        competencia = self._normalizar_competencia(competencia)
+        FaturamentoMensalSimples.objects.update_or_create(
+            empresa=configuracao.empresa,
+            competencia=competencia,
+            defaults={
+                "receita_bruta": self._decimal(receita_bruta),
+                "origem": origem or FaturamentoMensalSimples.Origem.MANUAL,
+                "observacoes": observacoes or "",
+            },
+        )
+        return self.calcular(configuracao, competencia=competencia, salvar=True)
+
+    def prever(self, configuracao: ConfiguracaoFiscal, meses=6, crescimento_mensal=Decimal("0.00")) -> list[dict]:
+        meses = max(1, min(int(meses or 6), 24))
+        crescimento_mensal = self._decimal(crescimento_mensal) / Decimal("100")
+        hoje = timezone.localdate().replace(day=1)
+        receitas_reais = {
+            item.competencia: self._decimal(item.receita_bruta)
+            for item in FaturamentoMensalSimples.objects.filter(empresa=configuracao.empresa).order_by("competencia")
+        }
+        ultimas = list(receitas_reais.values())[-3:]
+        media_base = (sum(ultimas, Decimal("0.00")) / Decimal(len(ultimas))) if ultimas else Decimal("0.00")
+        receitas_virtual = dict(receitas_reais)
+        previsoes = []
+
+        for indice in range(1, meses + 1):
+            competencia = self._somar_meses(hoje, indice)
+            receita_prevista = media_base * ((Decimal("1.00") + crescimento_mensal) ** indice)
+            receitas_virtual[competencia] = receita_prevista
+            previsoes.append(self._calcular_com_receitas(configuracao, competencia, receitas_virtual, receita_prevista))
+
+        return previsoes
+
+    def _calcular_com_receitas(self, configuracao: ConfiguracaoFiscal, competencia, receitas_por_mes: dict, receita_mes: Decimal) -> dict:
+        meses_atividade = self._meses_atividade(configuracao.data_abertura_simples, competencia)
+        abertura = self._normalizar_competencia(configuracao.data_abertura_simples)
+        meses_considerados = self._periodo_mensal(abertura, competencia)
+
+        if meses_atividade < 12:
+            rba = sum((receitas_por_mes.get(mes, Decimal("0.00")) for mes in meses_considerados), Decimal("0.00"))
+            rbt12 = (rba / Decimal(meses_atividade)) * Decimal("12")
+            proporcionalizado = True
+        else:
+            ultimos_12 = meses_considerados[-12:]
+            rba = sum((receitas_por_mes.get(mes, Decimal("0.00")) for mes in ultimos_12), Decimal("0.00"))
+            rbt12 = rba
+            proporcionalizado = False
+
+        faixa, aliquota_nominal, parcela_deduzir = self.buscar_faixa(rbt12, configuracao.anexo_simples)
+        aliquota_efetiva = ((rbt12 * aliquota_nominal - parcela_deduzir) / rbt12) if rbt12 > 0 else Decimal("0.00")
+        if aliquota_efetiva < 0:
+            aliquota_efetiva = Decimal("0.00")
+
+        return {
+            "competencia": competencia.isoformat(),
+            "receita_prevista": self._money(receita_mes),
+            "rbt12": self._money(rbt12),
+            "meses_atividade": meses_atividade,
+            "proporcionalizado": proporcionalizado,
+            "faixa": faixa,
+            "aliquota_nominal": self._percent(aliquota_nominal),
+            "aliquota_efetiva": self._percent(aliquota_efetiva),
+            "das_estimado": self._money(receita_mes * aliquota_efetiva),
+            "percentual_sublimite": self._percent((rbt12 / self.SUBLIMITE) if self.SUBLIMITE else 0),
+            "percentual_teto": self._percent((rbt12 / self.TETO) if self.TETO else 0),
+            "alerta": self._alerta(rbt12),
+        }
+
+    def _receita_mes(self, empresa, competencia) -> Decimal:
+        faturamento = FaturamentoMensalSimples.objects.filter(empresa=empresa, competencia=competencia).first()
+        return self._decimal(faturamento.receita_bruta if faturamento else 0)
+
+    def _receitas_ordenadas(self, empresa, competencia):
+        return FaturamentoMensalSimples.objects.filter(
+            empresa=empresa,
+            competencia__lte=competencia,
+        ).order_by("-competencia")
+
+    def _meses_atividade(self, data_abertura, competencia) -> int:
+        abertura = self._normalizar_competencia(data_abertura)
+        return max(1, (competencia.year - abertura.year) * 12 + competencia.month - abertura.month + 1)
+
+    def _alerta(self, rbt12: Decimal) -> str:
+        if rbt12 >= self.TETO:
+            return ApuracaoSimplesNacional.Alerta.ACIMA_TETO
+        if rbt12 >= self.TETO * Decimal("0.80"):
+            return ApuracaoSimplesNacional.Alerta.PERTO_TETO
+        if rbt12 >= self.SUBLIMITE:
+            return ApuracaoSimplesNacional.Alerta.ACIMA_SUBLIMITE
+        if rbt12 >= self.SUBLIMITE * Decimal("0.80"):
+            return ApuracaoSimplesNacional.Alerta.PERTO_SUBLIMITE
+        return ApuracaoSimplesNacional.Alerta.OK
+
+    def _normalizar_competencia(self, competencia):
+        if competencia is None:
+            hoje = timezone.localdate()
+            return hoje.replace(day=1)
+        if isinstance(competencia, str):
+            ano, mes, *_ = [int(parte) for parte in competencia.split("-")]
+            return date(ano, mes, 1)
+        return competencia.replace(day=1)
+
+    def _somar_meses(self, competencia, meses):
+        mes_total = competencia.month - 1 + int(meses)
+        ano = competencia.year + mes_total // 12
+        mes = mes_total % 12 + 1
+        return date(ano, mes, 1)
+
+    def _periodo_mensal(self, inicio, fim):
+        meses = []
+        atual = inicio
+        while atual <= fim:
+            meses.append(atual)
+            atual = self._somar_meses(atual, 1)
+        return meses
+
+    def _decimal(self, valor) -> Decimal:
+        return Decimal(str(valor or 0))
+
+    def _money(self, valor) -> Decimal:
+        return self._decimal(valor).quantize(CENTAVOS, rounding=ROUND_HALF_UP)
+
+    def _percent(self, valor) -> Decimal:
+        return self._decimal(valor).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
 
 class ConsultaCNPJ:

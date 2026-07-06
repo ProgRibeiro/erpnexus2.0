@@ -7,13 +7,19 @@ from apps.configuracoes.models import get_empresa_configurada
 
 from .models import ConfiguracaoFiscal
 from .serializers import (
+    ApuracaoSimplesNacionalSerializer,
+    CalcularSimplesSerializer,
     CalcularImpostosSerializer,
     ConciliarPGDASSerializer,
     ConfiguracaoFiscalSerializer,
     ConsultaCNPJSerializer,
     EmitirDocumentoMockSerializer,
+    FaturamentoMensalSimplesSerializer,
+    PrevisaoSimplesSerializer,
+    RegistrarFaturamentoSimplesSerializer,
 )
-from .services import ConsultaCNPJ, MotorFiscalEspecialista
+from .models import ApuracaoSimplesNacional, FaturamentoMensalSimples
+from .services import ConsultaCNPJ, MotorFiscalEspecialista, SimplesNacionalService
 from apps.fiscal_calculator.serializers import DecisaoIbsCbsSerializer, OperacaoFiscalInputSerializer
 from apps.fiscal_calculator.services import (
     CalculadoraTributariaReforma,
@@ -272,6 +278,76 @@ def conciliar_pgdas(request):
     serializer.is_valid(raise_exception=True)
     conciliacao = ConciliadorPGDAS().gerar_conciliacao(**serializer.validated_data)
     return Response(ConciliacaoPGDASSerializer(conciliacao).data)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def simples_faturamentos(request):
+    config = _get_configuracao_fiscal()
+    service = SimplesNacionalService()
+
+    if request.method == "POST":
+        serializer = RegistrarFaturamentoSimplesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resultado = service.registrar_receita(
+            configuracao=config,
+            competencia=serializer.validated_data["competencia"],
+            receita_bruta=serializer.validated_data["receita_bruta"],
+            origem=serializer.validated_data.get("origem"),
+            observacoes=serializer.validated_data.get("observacoes", ""),
+        )
+        faturamento = FaturamentoMensalSimples.objects.get(
+            empresa=config.empresa,
+            competencia=service._normalizar_competencia(serializer.validated_data["competencia"]),
+        )
+        return Response({
+            "faturamento": FaturamentoMensalSimplesSerializer(faturamento).data,
+            "apuracao": resultado,
+        }, status=201)
+
+    queryset = FaturamentoMensalSimples.objects.filter(empresa=config.empresa).order_by("-competencia")[:36]
+    return Response(FaturamentoMensalSimplesSerializer(queryset, many=True).data)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def simples_apuracao(request):
+    config = _get_configuracao_fiscal()
+    service = SimplesNacionalService()
+
+    if request.method == "POST":
+        serializer = CalcularSimplesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        competencia = serializer.validated_data.get("competencia")
+    else:
+        serializer = CalcularSimplesSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        competencia = serializer.validated_data.get("competencia")
+
+    resultado = service.calcular(config, competencia=competencia, salvar=True)
+    historico = ApuracaoSimplesNacional.objects.filter(empresa=config.empresa).order_by("-competencia")[:12]
+    return Response({
+        "atual": resultado,
+        "historico": ApuracaoSimplesNacionalSerializer(historico, many=True).data,
+        "configuracao": ConfiguracaoFiscalSerializer(config).data,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def simples_previsao(request):
+    serializer = PrevisaoSimplesSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    config = _get_configuracao_fiscal()
+    previsao = SimplesNacionalService().prever(
+        config,
+        meses=serializer.validated_data["meses"],
+        crescimento_mensal=serializer.validated_data["crescimento_mensal"],
+    )
+    return Response({
+        "previsao": previsao,
+        "configuracao": ConfiguracaoFiscalSerializer(config).data,
+    })
 
 
 @api_view(["GET", "PATCH"])

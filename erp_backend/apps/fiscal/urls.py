@@ -10,6 +10,9 @@ from .views import (
     emitir_documento_mock,
     operacoes_fiscais,
     sincronizar_cnpj_cadastrado,
+    simples_apuracao,
+    simples_faturamentos,
+    simples_previsao,
     tabelas_tributarias,
 )
 
@@ -23,5 +26,8 @@ urlpatterns = [
     path("operacoes/", operacoes_fiscais, name="fiscal-operacoes"),
     path("emissao/mock/", emitir_documento_mock, name="fiscal-emissao-mock"),
     path("obrigacoes/pgdas/conciliar/", conciliar_pgdas, name="fiscal-pgdas-conciliar"),
+    path("simples/faturamentos/", simples_faturamentos, name="fiscal-simples-faturamentos"),
+    path("simples/apuracao/", simples_apuracao, name="fiscal-simples-apuracao"),
+    path("simples/previsao/", simples_previsao, name="fiscal-simples-previsao"),
     path("configuracao/", configuracao, name="fiscal-configuracao"),
 ]
