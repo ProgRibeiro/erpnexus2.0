@@ -41,16 +41,19 @@ import {
   CheckOutlined,
   ClockCircleOutlined,
   CloseOutlined,
+  CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   FileSearchOutlined,
   DollarOutlined,
   EyeOutlined,
   FilePdfOutlined,
+  LinkOutlined,
   MessageOutlined,
   MoreOutlined,
   PaperClipOutlined,
   PlusOutlined,
+  QrcodeOutlined,
   InfoCircleOutlined,
   QuestionCircleOutlined,
   RightOutlined,
@@ -58,8 +61,10 @@ import {
   SendOutlined,
   ToolOutlined,
   UploadOutlined,
+  WhatsAppOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -467,6 +472,7 @@ export default function OSDetalhePage() {
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [gerandoRelatorioTecnico, setGerandoRelatorioTecnico] = useState(false);
   const [reportGovernance, setReportGovernance] = useState(null);
+  const [qrRelatorioOpen, setQrRelatorioOpen] = useState(false);
   const [mostrarChecklistCompleto, setMostrarChecklistCompleto] = useState(false);
   const [concluindoOS, setConcluindoOS] = useState(false);
   const [checklistFotoModal, setChecklistFotoModal] = useState({ open: false, respostaId: null, itemId: null, arquivos: [] });
@@ -506,6 +512,10 @@ export default function OSDetalhePage() {
     () => clients.find((cliente) => String(cliente.id) === String(watchedClient)),
     [clients, watchedClient]
   );
+  const publicReportUrl = useMemo(() => {
+    if (!ordem?.token_relatorio) return "";
+    return `${window.location.origin}/relatorio/${ordem.token_relatorio}`;
+  }, [ordem?.token_relatorio]);
   const expenseSummary = useMemo(() => getExpenseBreakdown(ordem?.despesas), [ordem?.despesas]);
   const valorFaturadoAtual = Number(watchedValorFaturado ?? ordem?.valor_final_faturado ?? ordem?.total_com_impostos ?? ordem?.valor_total_orcado ?? 0);
   const margemAtual = valorFaturadoAtual - Number(expenseSummary.total || 0);
@@ -1406,6 +1416,37 @@ export default function OSDetalhePage() {
         await gerarRelatorio();
       }
     },
+  };
+
+  const copiarLinkRelatorioPublico = async () => {
+    if (!publicReportUrl) {
+      message.warning("Esta OS ainda não tem link público disponível.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(publicReportUrl);
+      message.success("Link público do relatório copiado.");
+    } catch (error) {
+      console.error("Erro ao copiar link público:", error);
+      message.error("Não foi possível copiar o link.");
+    }
+  };
+
+  const abrirRelatorioPublico = () => {
+    if (!publicReportUrl) {
+      message.warning("Esta OS ainda não tem link público disponível.");
+      return;
+    }
+    window.open(publicReportUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const enviarRelatorioPublicoWhatsApp = () => {
+    if (!publicReportUrl) {
+      message.warning("Esta OS ainda não tem link público disponível.");
+      return;
+    }
+    const texto = encodeURIComponent(`Relatório da OS ${ordem?.numero || id}: ${publicReportUrl}`);
+    window.open(`https://wa.me/?text=${texto}`, "_blank", "noopener,noreferrer");
   };
 
   const validarMinimoRelatorioPorCategoria = () => {
@@ -3144,6 +3185,20 @@ export default function OSDetalhePage() {
                   Relatórios
                 </Button>
               </Dropdown>
+              <Tooltip title="Abrir relatório público">
+                <Button icon={<LinkOutlined />} style={subtleButtonStyle} disabled={!publicReportUrl} onClick={abrirRelatorioPublico}>
+                  Link público
+                </Button>
+              </Tooltip>
+              <Tooltip title="Copiar link do relatório">
+                <Button icon={<CopyOutlined />} disabled={!publicReportUrl} onClick={copiarLinkRelatorioPublico} />
+              </Tooltip>
+              <Tooltip title="Enviar link por WhatsApp">
+                <Button icon={<WhatsAppOutlined />} disabled={!publicReportUrl} onClick={enviarRelatorioPublicoWhatsApp} />
+              </Tooltip>
+              <Tooltip title="Mostrar QR Code do relatório">
+                <Button icon={<QrcodeOutlined />} disabled={!publicReportUrl} onClick={() => setQrRelatorioOpen(true)} />
+              </Tooltip>
               <Button icon={<DollarOutlined />} style={subtleButtonStyle} onClick={() => setActiveTab("faturamento")}>
                 Faturamento pendente
               </Button>
@@ -3504,6 +3559,40 @@ export default function OSDetalhePage() {
           ) : null}
         </Card>
       </Form>
+
+      <Modal
+        open={qrRelatorioOpen}
+        title="QR Code do relatório público"
+        footer={[
+          <Button key="abrir" icon={<LinkOutlined />} onClick={abrirRelatorioPublico}>
+            Abrir relatório
+          </Button>,
+          <Button key="whatsapp" icon={<WhatsAppOutlined />} onClick={enviarRelatorioPublicoWhatsApp}>
+            WhatsApp
+          </Button>,
+          <Button key="copiar" type="primary" icon={<CopyOutlined />} onClick={copiarLinkRelatorioPublico}>
+            Copiar link
+          </Button>,
+        ]}
+        onCancel={() => setQrRelatorioOpen(false)}
+      >
+        <Space direction="vertical" size={16} style={{ width: "100%", alignItems: "center" }}>
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: `1px solid ${colors.borda}`,
+              borderRadius: 14,
+              padding: 18,
+            }}
+          >
+            <QRCode value={publicReportUrl || "relatorio-indisponivel"} size={220} level="H" includeMargin />
+          </div>
+          <Input value={publicReportUrl} readOnly />
+          <Text type="secondary" style={{ textAlign: "center" }}>
+            Use este QR Code para imprimir, deixar no local de atendimento ou enviar ao cliente.
+          </Text>
+        </Space>
+      </Modal>
 
       <Modal
         open={expenseModalOpen}
