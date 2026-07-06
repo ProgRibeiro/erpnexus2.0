@@ -24,6 +24,16 @@ rand_secret() {
   openssl rand -base64 64 | tr -dc 'A-Za-z0-9' | head -c 48
 }
 
+validate_identifier() {
+  local name="$1"
+  local value="$2"
+  if [[ ! "$value" =~ ^[A-Za-z_][A-Za-z0-9_]{1,62}$ ]]; then
+    echo "ERRO: $name invalido: $value"
+    echo "Use apenas letras, numeros e underscore; comece com letra/underscore."
+    exit 1
+  fi
+}
+
 escape_sed() {
   printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
 }
@@ -115,6 +125,50 @@ configure_redis() {
   sed -i 's/^bind .*/bind 127.0.0.1 ::1/' /etc/redis/redis.conf
   sed -i 's/^protected-mode .*/protected-mode yes/' /etc/redis/redis.conf
   systemctl restart redis-server
+}
+
+configure_os_hardening() {
+  echo "Aplicando hardening basico do sistema..."
+  cat > /etc/apt/apt.conf.d/20auto-upgrades <<'APTCONF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+APTCONF
+
+  cat > /etc/fail2ban/jail.d/erp-nexus.conf <<'JAIL'
+[nginx-limit-req]
+enabled = true
+port = http,https
+filter = nginx-limit-req
+logpath = /var/log/nginx/error.log
+maxretry = 10
+findtime = 600
+bantime = 3600
+
+[nginx-botsearch]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/access.log
+maxretry = 5
+findtime = 600
+bantime = 3600
+JAIL
+
+  cat > /etc/sysctl.d/99-erp-nexus-hardening.conf <<'SYSCTL'
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.tcp_syncookies = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+kernel.kptr_restrict = 2
+kernel.dmesg_restrict = 1
+SYSCTL
+  sysctl --system >/dev/null || true
+  systemctl enable --now unattended-upgrades fail2ban
 }
 
 write_env_file() {
@@ -226,6 +280,8 @@ PY"
 
 main() {
   require_ubuntu_like
+  validate_identifier "DB_NAME" "$DB_NAME"
+  validate_identifier "DB_USER" "$DB_USER"
 
   if [[ "$DOMAIN" != "localhost" && "$DOMAIN" != "127.0.0.1" && -z "$CERTBOT_EMAIL" && "${ERP_ALLOW_HTTP:-false}" != "true" ]]; then
     echo "ERRO: para dominio publico, informe CERTBOT_EMAIL para HTTPS automatico."
@@ -244,7 +300,7 @@ main() {
   echo "[1/13] Instalando pacotes do sistema"
   apt-get update
   apt-get install -y \
-    build-essential ca-certificates curl git nginx openssl ufw \
+    build-essential ca-certificates curl fail2ban git nginx openssl ufw unattended-upgrades \
     postgresql postgresql-contrib redis-server \
     python3 python3-venv python3-dev libpq-dev \
     gettext-base
@@ -269,6 +325,9 @@ main() {
 
   echo "[4/13] Redis"
   configure_redis "$redis_password"
+
+  echo "[4.1/13] Hardening do sistema"
+  configure_os_hardening
 
   echo "[5/13] Arquivo .env seguro"
   write_env_file "$secret_key" "$db_password" "$redis_password" "$admin_password" "$backup_passphrase"
