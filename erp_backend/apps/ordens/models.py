@@ -206,6 +206,8 @@ class OrdemServico(models.Model):
     valor_irpj = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor IRPJ")
     aliquota_csll = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota CSLL (%)")
     valor_csll = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor CSLL")
+    aliquota_irrf = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota IRRF (%)")
+    valor_irrf = models.DecimalField(max_digits=12, decimal_places=2, default=0, blank=True, verbose_name="Valor IRRF")
 
     # Nova reforma tributária (IBS/CBS — vigente a partir de 2026)
     aliquota_cbs = models.DecimalField(max_digits=6, decimal_places=4, default=0, blank=True, verbose_name="Alíquota CBS (%)")

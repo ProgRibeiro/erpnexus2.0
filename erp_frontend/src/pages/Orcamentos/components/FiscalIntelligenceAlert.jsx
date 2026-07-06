@@ -1,4 +1,5 @@
 import { Alert, Space, Tag, Typography } from "antd";
+import SimplesApuracaoResumo from "../../../components/SimplesApuracaoResumo";
 
 const { Text } = Typography;
 
@@ -69,6 +70,13 @@ export default function FiscalIntelligenceAlert({ impostos }) {
       }
       description={
         <Space direction="vertical" size={6} style={{ marginTop: 4 }}>
+          {motor.simples_apuracao ? (
+            <SimplesApuracaoResumo
+              apuracao={motor.simples_apuracao}
+              compact
+              style={{ width: "100%" }}
+            />
+          ) : null}
           {automacoes.map(renderItem)}
           {riscos.map(renderItem)}
           {alertas.map(renderItem)}

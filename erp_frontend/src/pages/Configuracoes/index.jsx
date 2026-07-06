@@ -49,7 +49,7 @@ import dayjs from "dayjs";
 import configuracoesService from "../../services/configuracoes";
 import usuariosService from "../../services/usuariosService";
 import ExcelImportModal from "../../components/ExcelImportModal";
-import GuiaLucroPresumido from "../Fiscal/components/GuiaLucroPresumido";
+import GuiaFiscalRegime from "../Fiscal/components/GuiaFiscalRegime";
 
 const { Title, Text } = Typography;
 
@@ -1436,7 +1436,7 @@ export default function ConfiguracoesPage() {
                   </Form.Item>
 
                   <div style={{ marginBottom: 24 }}>
-                    <GuiaLucroPresumido
+                    <GuiaFiscalRegime
                       config={fiscalSnapshot}
                       valorReferencia={fiscalForm.getFieldValue("valor_servicos") || 10000}
                       compact

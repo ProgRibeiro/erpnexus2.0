@@ -160,3 +160,85 @@ class TabelaImpostoLucroPresumido(models.Model):
 
     def __str__(self):
         return self.descricao
+
+
+class VersaoRegraSimplesNacional(models.Model):
+    class Status(models.TextChoices):
+        RASCUNHO = "rascunho", "Rascunho"
+        ATIVA = "ativa", "Ativa"
+        ARQUIVADA = "arquivada", "Arquivada"
+
+    empresa = models.ForeignKey(
+        ConfiguracaoEmpresa,
+        on_delete=models.CASCADE,
+        related_name="versoes_regra_simples",
+    )
+    nome = models.CharField(max_length=140)
+    descricao = models.TextField(blank=True)
+    anexo = models.CharField(
+        max_length=20,
+        choices=ConfiguracaoFiscal.AnexoSimples.choices,
+        default=ConfiguracaoFiscal.AnexoSimples.ANEXO_III,
+    )
+    tabela_faixas = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Lista de faixas com limite, aliquota e deduzir.",
+    )
+    sublimite = models.DecimalField(max_digits=14, decimal_places=2, default=3600000)
+    teto = models.DecimalField(max_digits=14, decimal_places=2, default=4800000)
+    vigente_desde = models.DateField(null=True, blank=True)
+    vigente_ate = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.RASCUNHO)
+    criado_por = models.CharField(max_length=120, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Versão de regra do Simples Nacional"
+        verbose_name_plural = "Versões de regra do Simples Nacional"
+        indexes = [
+            models.Index(fields=["empresa", "status"]),
+            models.Index(fields=["empresa", "anexo"]),
+        ]
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_status_display()})"
+
+
+class SimulacaoFiscalSimples(models.Model):
+    class Origem(models.TextChoices):
+        API = "api", "API"
+        MANUAL = "manual", "Manual"
+        SISTEMA = "sistema", "Sistema"
+
+    empresa = models.ForeignKey(
+        ConfiguracaoEmpresa,
+        on_delete=models.CASCADE,
+        related_name="simulacoes_fiscais_simples",
+    )
+    competencia = models.DateField()
+    regra_versao = models.ForeignKey(
+        VersaoRegraSimplesNacional,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="simulacoes",
+    )
+    entrada = models.JSONField(default=dict, blank=True)
+    resultado = models.JSONField(default=dict, blank=True)
+    origem = models.CharField(max_length=20, choices=Origem.choices, default=Origem.API)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Simulação fiscal do Simples"
+        verbose_name_plural = "Simulações fiscais do Simples"
+        indexes = [
+            models.Index(fields=["empresa", "competencia"]),
+            models.Index(fields=["origem"]),
+        ]
+
+    def __str__(self):
+        return f"Simulação {self.competencia:%m/%Y} - {self.empresa.nome}"

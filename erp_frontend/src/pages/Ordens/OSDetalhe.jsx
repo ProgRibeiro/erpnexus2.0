@@ -69,6 +69,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import SimplesApuracaoResumo from "../../components/SimplesApuracaoResumo";
 
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -91,6 +92,33 @@ const pageStyle = {
   flexDirection: "column",
   gap: 20,
 };
+
+function isRegimeSemTributosFederaisSeparados(regime) {
+  return ["simples", "simples_nacional", "mei"].includes(
+    String(regime || "").toLowerCase(),
+  );
+}
+
+function normalizarTributacaoPorRegime(tributos, regime) {
+  if (!isRegimeSemTributosFederaisSeparados(regime)) {
+    return tributos;
+  }
+
+  return {
+    ...tributos,
+    pis: 0,
+    cofins: 0,
+    irpj: 0,
+    csll: 0,
+    irrf: 0,
+    pis_aliquota: 0,
+    cofins_aliquota: 0,
+    irpj_aliquota: 0,
+    csll_aliquota: 0,
+    total_impostos: undefined,
+    total_geral: undefined,
+  };
+}
 
 const panelStyle = {
   border: `1px solid ${colors.borda}`,
@@ -541,6 +569,9 @@ export default function OSDetalhePage() {
       ),
     [orcamentoItens]
   );
+  const usaTributosFederaisSeparados = !isRegimeSemTributosFederaisSeparados(
+    tributacao.regime || regimeEmpresa,
+  );
 
   const beforePhotos = useMemo(
     () => (ordem?.fotos || []).filter((foto) => String(foto.tipo) === "antes"),
@@ -806,7 +837,16 @@ export default function OSDetalhePage() {
       situacao_tributaria_pis_cofins: ordemAtual?.situacao_tributaria_pis_cofins || "",
     });
     if (ordemAtual?.dados_impostos && typeof ordemAtual.dados_impostos === "object") {
-      setTributacao((prev) => ({ ...prev, ...ordemAtual.dados_impostos }));
+      const regimeAtual =
+        ordemAtual?.dados_impostos?.regime ||
+        ordemAtual?.tipo_regime_tributario ||
+        regimeEmpresa;
+      setTributacao((prev) =>
+        normalizarTributacaoPorRegime(
+          { ...prev, ...ordemAtual.dados_impostos, regime: regimeAtual },
+          regimeAtual,
+        ),
+      );
     }
   };
 
@@ -874,7 +914,9 @@ export default function OSDetalhePage() {
       if (empresaResponse.status === "fulfilled") {
         const regime = empresaResponse.value.data?.regime_tributario || "simples_nacional";
         setRegimeEmpresa(regime);
-        setTributacao((prev) => ({ ...prev, regime }));
+        setTributacao((prev) =>
+          normalizarTributacaoPorRegime({ ...prev, regime }, regime),
+        );
       }
       if (qualidadeResponse.status === "fulfilled") {
         setReportGovernance(qualidadeResponse.value.data);
@@ -1055,16 +1097,22 @@ export default function OSDetalhePage() {
       const aliquotas = dados.aliquotas || {};
       const totalComImpostos = Number(dados.total_geral || (valorServicos + valorMateriais) || 0);
       form.setFieldValue("valor_final_faturado", totalComImpostos);
-      setTributacao((prev) => ({
-        ...prev,
-        ...dados,
-        regime: dados.regime || regimeEmpresa || prev.regime,
-        issqn_aliquota: Number(aliquotas.iss ?? prev.issqn_aliquota),
-        pis_aliquota: Number(aliquotas.pis ?? prev.pis_aliquota),
-        cofins_aliquota: Number(aliquotas.cofins ?? prev.cofins_aliquota),
-        irpj_aliquota: Number(aliquotas.irpj ?? prev.irpj_aliquota),
-        csll_aliquota: Number(aliquotas.csll ?? prev.csll_aliquota),
-      }));
+      const regimeAtual = dados.regime || regimeEmpresa;
+      setTributacao((prev) =>
+        normalizarTributacaoPorRegime(
+          {
+            ...prev,
+            ...dados,
+            regime: regimeAtual || prev.regime,
+            issqn_aliquota: Number(aliquotas.iss ?? prev.issqn_aliquota),
+            pis_aliquota: Number(aliquotas.pis ?? prev.pis_aliquota),
+            cofins_aliquota: Number(aliquotas.cofins ?? prev.cofins_aliquota),
+            irpj_aliquota: Number(aliquotas.irpj ?? prev.irpj_aliquota),
+            csll_aliquota: Number(aliquotas.csll ?? prev.csll_aliquota),
+          },
+          regimeAtual,
+        ),
+      );
       message.success("Impostos calculados automaticamente.");
     } catch {
       message.warning("Não foi possível calcular os impostos automaticamente.");
@@ -2676,7 +2724,7 @@ export default function OSDetalhePage() {
     tributacao.total_impostos ?? totalImpostosCalculadosPorAliquotas
   );
   const valorClienteComImpostos = Number((baseCalculoImpostos + totalImpostosPorFora).toFixed(2));
-  const totalRetencoesTrib = valorRetidoISSQN + valorCalcPIS + valorCalcCOFINS + valorCalcIRPJ + valorCalcCSLL;
+  const totalRetencoesTrib = valorRetidoISSQN + (usaTributosFederaisSeparados ? valorCalcPIS + valorCalcCOFINS + valorCalcIRPJ + valorCalcCSLL : 0);
   const valorLiquidoNF = valorFaturadoAtual - totalRetencoesTrib;
 
   const aliquotaRow = (label, field, valorCalculado, tooltip) => (
@@ -2819,21 +2867,23 @@ export default function OSDetalhePage() {
               <Input placeholder="Ex: São Paulo / SP" />
             </Form.Item>
           </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Situação tributária PIS/COFINS" name="situacao_tributaria_pis_cofins">
-              <Select
-                placeholder="Selecione..."
-                allowClear
-                options={[
-                  { value: "07", label: "07 – Operação Isenta da Contribuição" },
-                  { value: "49", label: "49 – Outras Operações de Saída" },
-                  { value: "50", label: "50 – Operação com Direito a Crédito" },
-                  { value: "70", label: "70 – Operação de Aquisição sem Direito a Crédito" },
-                  { value: "99", label: "99 – Outras Operações" },
-                ]}
-              />
-            </Form.Item>
-          </Col>
+          {usaTributosFederaisSeparados ? (
+            <Col xs={24} md={12}>
+              <Form.Item label="Situação tributária PIS/COFINS" name="situacao_tributaria_pis_cofins">
+                <Select
+                  placeholder="Selecione..."
+                  allowClear
+                  options={[
+                    { value: "07", label: "07 – Operação Isenta da Contribuição" },
+                    { value: "49", label: "49 – Outras Operações de Saída" },
+                    { value: "50", label: "50 – Operação com Direito a Crédito" },
+                    { value: "70", label: "70 – Operação de Aquisição sem Direito a Crédito" },
+                    { value: "99", label: "99 – Outras Operações" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          ) : null}
           <Col xs={24} md={12}>
             <Form.Item label="PDF da nota fiscal" name="pdf_nf_upload" valuePropName="fileList" getValueFromEvent={(event) => event?.fileList || []}>
               <Upload beforeUpload={() => false} maxCount={1}>
@@ -2878,6 +2928,23 @@ export default function OSDetalhePage() {
           </Col>
         </Row>
 
+        {tributacao?.motor_fiscal?.simples_apuracao ? (
+          <SimplesApuracaoResumo
+            apuracao={tributacao.motor_fiscal.simples_apuracao}
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+
+        {!usaTributosFederaisSeparados ? (
+          <Alert
+            type="info"
+            showIcon
+            style={{ borderRadius: 12, marginBottom: 16 }}
+            message="Regime sem destaque separado de tributos federais"
+            description="Para Simples Nacional e MEI, PIS, COFINS, IRPJ, CSLL e IRRF permanecem zerados nesta OS. O ERP mantém apenas ISSQN e demais campos aplicáveis ao documento."
+          />
+        ) : null}
+
         <Divider style={{ margin: "8px 0 14px" }} />
 
         <Row gutter={[8, 0]} style={{ marginBottom: 10 }}>
@@ -2905,10 +2972,10 @@ export default function OSDetalhePage() {
           </Col>
         </Row>
 
-        {aliquotaRow("PIS", "pis_aliquota", valorCalcPIS)}
-        {aliquotaRow("COFINS", "cofins_aliquota", valorCalcCOFINS)}
-        {aliquotaRow("IRPJ", "irpj_aliquota", valorCalcIRPJ)}
-        {aliquotaRow("CSLL", "csll_aliquota", valorCalcCSLL)}
+        {usaTributosFederaisSeparados && aliquotaRow("PIS", "pis_aliquota", valorCalcPIS)}
+        {usaTributosFederaisSeparados && aliquotaRow("COFINS", "cofins_aliquota", valorCalcCOFINS)}
+        {usaTributosFederaisSeparados && aliquotaRow("IRPJ", "irpj_aliquota", valorCalcIRPJ)}
+        {usaTributosFederaisSeparados && aliquotaRow("CSLL", "csll_aliquota", valorCalcCSLL)}
         {aliquotaRow(
           "IBS",
           "ibs_aliquota",

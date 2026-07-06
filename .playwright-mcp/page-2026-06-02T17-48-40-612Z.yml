@@ -1,0 +1,195 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: "N"
+          - generic [ref=e9]:
+            - heading "ERP Nexus" [level=2] [ref=e10]
+            - paragraph [ref=e11]: Prestador de serviços
+        - generic [ref=e12]: Ambiente local
+      - menu [ref=e15]:
+        - text: PRINCIPAL
+        - group [ref=e16]:
+          - menuitem "dashboard Dashboard" [ref=e17] [cursor=pointer]:
+            - img "dashboard" [ref=e18]:
+              - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+        - text: OPERAÇÕES
+        - group [ref=e22]:
+          - menuitem "file-text Orçamentos" [ref=e23] [cursor=pointer]:
+            - img "file-text" [ref=e24]:
+              - img [ref=e25]
+            - generic [ref=e27]: Orçamentos
+          - menuitem "thunderbolt Orçamento Inteligente" [ref=e28] [cursor=pointer]:
+            - img "thunderbolt" [ref=e29]:
+              - img [ref=e30]
+            - generic [ref=e32]: Orçamento Inteligente
+          - menuitem "file-protect Contratos Preventiva" [ref=e33] [cursor=pointer]:
+            - img "file-protect" [ref=e34]:
+              - img [ref=e35]
+            - generic [ref=e37]: Contratos Preventiva
+          - menuitem "file-text Ordens de Serviço" [ref=e38] [cursor=pointer]:
+            - img "file-text" [ref=e39]:
+              - img [ref=e40]
+            - generic [ref=e42]: Ordens de Serviço
+          - menuitem "team Clientes" [ref=e43] [cursor=pointer]:
+            - img "team" [ref=e44]:
+              - img [ref=e45]
+            - generic [ref=e47]: Clientes
+          - menuitem "calendar Agenda" [ref=e48] [cursor=pointer]:
+            - img "calendar" [ref=e49]:
+              - img [ref=e50]
+            - generic [ref=e52]: Agenda
+          - menuitem "tool Serviços" [ref=e53] [cursor=pointer]:
+            - img "tool" [ref=e54]:
+              - img [ref=e55]
+            - generic [ref=e57]: Serviços
+          - menuitem "team Terceirizados" [ref=e58] [cursor=pointer]:
+            - img "team" [ref=e59]:
+              - img [ref=e60]
+            - generic [ref=e62]: Terceirizados
+          - menuitem "team Equipe & Técnicos" [ref=e63] [cursor=pointer]:
+            - img "team" [ref=e64]:
+              - img [ref=e65]
+            - generic [ref=e67]: Equipe & Técnicos
+        - text: GESTÃO
+        - group [ref=e68]:
+          - menuitem "shopping-cart Estoque" [ref=e69] [cursor=pointer]:
+            - img "shopping-cart" [ref=e70]:
+              - img [ref=e71]
+            - generic [ref=e73]: Estoque
+          - menuitem "thunderbolt Motor de Catálogo" [ref=e74] [cursor=pointer]:
+            - img "thunderbolt" [ref=e75]:
+              - img [ref=e76]
+            - generic [ref=e78]: Motor de Catálogo
+          - menuitem "dollar Financeiro" [ref=e79] [cursor=pointer]:
+            - img "dollar" [ref=e80]:
+              - img [ref=e81]
+            - generic [ref=e83]: Financeiro
+          - menuitem "file-text Faturamento" [ref=e84] [cursor=pointer]:
+            - img "file-text" [ref=e85]:
+              - img [ref=e86]
+            - generic [ref=e88]: Faturamento
+          - menuitem "team CRM" [ref=e89] [cursor=pointer]:
+            - img "team" [ref=e90]:
+              - img [ref=e91]
+            - generic [ref=e93]: CRM
+        - text: CLIENTES FACILITIES
+        - group [ref=e94]:
+          - menuitem "alert Chamados Externos" [ref=e95] [cursor=pointer]:
+            - img "alert" [ref=e96]:
+              - img [ref=e97]
+            - generic [ref=e99]: Chamados Externos
+          - menuitem "trophy Licitações" [ref=e100] [cursor=pointer]:
+            - img "trophy" [ref=e101]:
+              - img [ref=e102]
+            - generic [ref=e104]: Licitações
+        - text: SISTEMA
+        - group [ref=e105]:
+          - menuitem "dollar Fiscal" [ref=e106] [cursor=pointer]:
+            - img "dollar" [ref=e107]:
+              - img [ref=e108]
+            - generic [ref=e110]: Fiscal
+          - menuitem "setting Configurações" [ref=e111] [cursor=pointer]:
+            - img "setting" [ref=e112]:
+              - img [ref=e113]
+            - generic [ref=e115]: Configurações
+      - generic [ref=e116]:
+        - generic [ref=e118]: U
+        - generic [ref=e119]:
+          - generic [ref=e120]: Usuário
+          - generic [ref=e123]: Sessão ativa
+        - button "logout" [ref=e124] [cursor=pointer]:
+          - img "logout" [ref=e126]:
+            - img [ref=e127]
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]: ERP Nexus
+          - img "right" [ref=e134]:
+            - img [ref=e135]
+          - generic [ref=e137]: Configurações
+        - generic [ref=e138]:
+          - button "shop Modo Loja" [ref=e140] [cursor=pointer]:
+            - img "shop" [ref=e142]:
+              - img [ref=e143]
+            - generic [ref=e145]: Modo Loja
+          - button "bell" [ref=e148] [cursor=pointer]:
+            - img "bell" [ref=e150]:
+              - img [ref=e151]
+          - generic [ref=e154] [cursor=pointer]:
+            - generic [ref=e156]: U
+            - generic [ref=e157]:
+              - generic [ref=e158]: Usuário
+              - generic [ref=e159]: admin
+    - main [ref=e160]:
+      - generic [ref=e164]:
+        - tablist [ref=e165]:
+          - generic [ref=e167]:
+            - tab "Empresa" [active] [selected] [ref=e169] [cursor=pointer]
+            - tab "Notificações" [ref=e171] [cursor=pointer]
+            - tab "Ordens de Serviço" [ref=e173] [cursor=pointer]
+            - tab "Financeira" [ref=e175] [cursor=pointer]
+            - tab "Usuários" [ref=e177] [cursor=pointer]
+            - tab "Fiscal" [ref=e179] [cursor=pointer]
+            - tab "Importação" [ref=e181] [cursor=pointer]
+            - tab "Parceiros" [ref=e183] [cursor=pointer]
+        - tabpanel "Empresa" [ref=e186]:
+          - generic [ref=e187]:
+            - generic [ref=e188]:
+              - generic [ref=e191]:
+                - generic "Nome da empresa" [ref=e193]
+                - textbox "Nome da empresa" [ref=e197]: Nexus Manutencao
+              - generic [ref=e200]:
+                - generic "Razão social" [ref=e202]
+                - textbox "Razão social" [ref=e206]: NEXUS REFRIGERACAO MANUTENCAO LTDA
+            - generic [ref=e207]:
+              - generic [ref=e210]:
+                - generic "CNPJ" [ref=e212]
+                - textbox "CNPJ" [ref=e216]: 45.461.929/0001-56
+              - generic [ref=e219]:
+                - generic "Regime tributário da empresa" [ref=e221]
+                - generic [ref=e225] [cursor=pointer]:
+                  - generic [ref=e227]:
+                    - combobox "Regime tributário da empresa" [ref=e229]
+                    - generic "Lucro Presumido" [ref=e230]
+                  - generic:
+                    - img:
+                      - img
+            - generic [ref=e231]:
+              - generic [ref=e234]:
+                - generic "Telefone" [ref=e236]
+                - textbox "Telefone" [ref=e240]: "21966896978"
+              - generic [ref=e243]:
+                - generic "Email" [ref=e245]
+                - textbox "Email" [ref=e249]: lucasribeirolkn@gmail.com
+            - generic [ref=e250]:
+              - generic [ref=e253]:
+                - generic "Site" [ref=e255]
+                - textbox "Site" [ref=e259]: https://nexusmanutencao.com/
+              - generic [ref=e262]:
+                - generic "Instagram" [ref=e264]
+                - textbox "Instagram" [ref=e268]:
+                  - /placeholder: "@empresa ou https://instagram.com/empresa"
+                  - text: "@nexusmanutencao"
+            - generic [ref=e270]:
+              - generic "Endereço" [ref=e272]
+              - textbox "Endereço" [ref=e276]: ACRÓPOLE, 02
+            - generic [ref=e277]:
+              - generic [ref=e280]:
+                - generic "Logo" [ref=e282]
+                - generic [ref=e285]:
+                  - button "upload Fazer upload da logo" [ref=e289] [cursor=pointer]:
+                    - img "upload" [ref=e291]:
+                      - img [ref=e292]
+                    - generic [ref=e294]: Fazer upload da logo
+                  - img "Preview da logo" [ref=e295]
+              - generic [ref=e296]:
+                - generic [ref=e298]:
+                  - generic "Cor principal" [ref=e300]
+                  - textbox "Cor principal" [ref=e304]: "#1677ff"
+                - generic [ref=e305]: "Preview: #1677ff"
+            - button "Salvar Empresa" [ref=e306] [cursor=pointer]:
+              - generic [ref=e307]: Salvar Empresa

@@ -70,13 +70,78 @@ const metricCardStyle = {
   transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
-const moneyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-function fmt(v) { return moneyFmt.format(Number(v || 0)); }
+const moneyFmt = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+function fmt(v) {
+  return moneyFmt.format(Number(v || 0));
+}
+
+function obterValorEspelhado(values, field) {
+  return Number(values[field] || 0);
+}
+
+function getRegimeFiscal(record) {
+  return String(
+    record?.dados_impostos?.regime || record?.tipo_regime_tributario || "",
+  ).toLowerCase();
+}
+
+function isRegimeSemTributosFederaisSeparados(regime) {
+  return ["simples", "simples_nacional", "mei"].includes(
+    String(regime || "").toLowerCase(),
+  );
+}
+
+function normalizarImpostosNotaPorRegime(values, regime) {
+  if (!isRegimeSemTributosFederaisSeparados(regime)) {
+    return values;
+  }
+
+  return {
+    ...values,
+    valor_pis: 0,
+    valor_cofins: 0,
+    valor_irpj: 0,
+    valor_csll: 0,
+    valor_irrf: 0,
+  };
+}
+
+function getRegimeLabel(regime) {
+  const value = String(regime || "").toLowerCase();
+  if (value === "simples" || value === "simples_nacional") {
+    return "Simples Nacional";
+  }
+  if (value === "lucro_presumido") {
+    return "Lucro Presumido";
+  }
+  if (value === "lucro_real") {
+    return "Lucro Real";
+  }
+  if (value === "mei") {
+    return "MEI";
+  }
+  return "Não definido";
+}
 
 function SummaryCard({ color, icon, label, value }) {
   return (
-    <Card bordered={false} style={metricCardStyle} bodyStyle={{ padding: 20, height: "100%" }} hoverable>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+    <Card
+      bordered={false}
+      style={metricCardStyle}
+      bodyStyle={{ padding: 20, height: "100%" }}
+      hoverable
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -90,7 +155,14 @@ function SummaryCard({ color, icon, label, value }) {
           >
             {label}
           </div>
-          <div style={{ color: colors.texto, fontSize: 30, fontWeight: 800, lineHeight: 1 }}>
+          <div
+            style={{
+              color: colors.texto,
+              fontSize: 30,
+              fontWeight: 800,
+              lineHeight: 1,
+            }}
+          >
             {value}
           </div>
         </div>
@@ -143,7 +215,12 @@ function formatDocumento(value) {
 }
 
 function getClienteDocumento(record) {
-  return record?.cliente_cnpj_cpf || record?.cliente_documento || record?.cliente?.cnpj_cpf || "";
+  return (
+    record?.cliente_cnpj_cpf ||
+    record?.cliente_documento ||
+    record?.cliente?.cnpj_cpf ||
+    ""
+  );
 }
 
 const statusColors = {
@@ -163,7 +240,13 @@ const formaCobrancaOptions = [
 ];
 
 function parseMoney(value) {
-  return Number(String(value || 0).replace(/\./g, "").replace(",", ".")) || 0;
+  return (
+    Number(
+      String(value || 0)
+        .replace(/\./g, "")
+        .replace(",", "."),
+    ) || 0
+  );
 }
 
 export default function FaturamentoPage() {
@@ -171,7 +254,11 @@ export default function FaturamentoPage() {
   const [ordens, setOrdens] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ cliente: undefined, status: undefined, periodo: null });
+  const [filters, setFilters] = useState({
+    cliente: undefined,
+    status: undefined,
+    periodo: null,
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedOrdens, setSelectedOrdens] = useState([]);
   const [cnpj, setCnpj] = useState("");
@@ -185,6 +272,12 @@ export default function FaturamentoPage() {
   const [nfAnalysis, setNfAnalysis] = useState(null);
   const [analisandoNf, setAnalisandoNf] = useState(false);
   const [confirmandoFaturamento, setConfirmandoFaturamento] = useState(false);
+  const [regimeFaturamentoAtual, setRegimeFaturamentoAtual] = useState("");
+  const [abrindoDrawerFaturamento, setAbrindoDrawerFaturamento] = useState(false);
+  const regimeFaturamento =
+    regimeFaturamentoAtual || getRegimeFiscal(ordemFaturando);
+  const usaTributosFederaisSeparados =
+    !isRegimeSemTributosFederaisSeparados(regimeFaturamento);
 
   useEffect(() => {
     carregarOrdens();
@@ -201,14 +294,30 @@ export default function FaturamentoPage() {
         params.data_fim = filters.periodo[1].format("YYYY-MM-DD");
       }
       // pendentes-faturamento agora retorna somente status=concluida
-      const response = await api.get("/ordens/pendentes-faturamento/", { params });
+      const response = await api.get("/ordens/pendentes-faturamento/", {
+        params,
+      });
       const data = response.data;
-      setOrdens(Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []);
+      setOrdens(
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+            ? data.results
+            : [],
+      );
     } catch {
       try {
-        const response = await api.get("/ordens/", { params: { status: "concluida" } });
+        const response = await api.get("/ordens/", {
+          params: { status: "concluida" },
+        });
         const data = response.data;
-        setOrdens(Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []);
+        setOrdens(
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data?.results)
+              ? data.results
+              : [],
+        );
       } catch {
         message.error("Não foi possível carregar as ordens.");
       }
@@ -222,10 +331,15 @@ export default function FaturamentoPage() {
       const response = await api.get("/clientes/");
       const data = response.data;
       setClientes(
-        (Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []).map((c) => ({
+        (Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+            ? data.results
+            : []
+        ).map((c) => ({
           value: c.id,
           label: `${c.nome_razao_social || c.nome || `Cliente #${c.id}`}${c.cnpj_cpf ? ` - ${formatDocumento(c.cnpj_cpf)}` : ""}`,
-        }))
+        })),
       );
     } catch {
       // silently fail
@@ -240,7 +354,9 @@ export default function FaturamentoPage() {
     }
     setBuscandoCnpj(true);
     try {
-      const response = await api.post("/fiscal/consultar-cnpj/", { cnpj: cnpjLimpo });
+      const response = await api.post("/fiscal/consultar-cnpj/", {
+        cnpj: cnpjLimpo,
+      });
       const dados = response.data;
       setRazaoSocial(dados.nome || dados.razao_social || "");
       message.success("CNPJ encontrado.");
@@ -270,9 +386,14 @@ export default function FaturamentoPage() {
       });
       const agrupamento = response.data;
       if (agrupamento?.id && selectedOrdens.length > 0) {
-        await api.post(`/ordens/faturamentos-agrupados/${agrupamento.id}/adicionar-ordens/`, {
-          ordens_ids: selectedOrdens,
-        }).catch(() => {});
+        await api
+          .post(
+            `/ordens/faturamentos-agrupados/${agrupamento.id}/adicionar-ordens/`,
+            {
+              ordens_ids: selectedOrdens,
+            },
+          )
+          .catch(() => {});
       }
       message.success("Agrupamento criado com sucesso!");
       setModalOpen(false);
@@ -287,24 +408,66 @@ export default function FaturamentoPage() {
     }
   };
 
-  const abrirFaturamentoRapido = (record) => {
-    setOrdemFaturando(record);
-    setNfAnalysis(null);
-    drawerForm.setFieldsValue({
-      valor_final_faturado: Number(record.valor_final_faturado || record.total_com_impostos || record.valor_total_orcado || 0),
-      numero_nf: record.numero_nf || "",
-      data_emissao_nf: record.data_emissao_nf ? dayjs(record.data_emissao_nf) : dayjs(),
-      data_vencimento: record.data_vencimento ? dayjs(record.data_vencimento) : dayjs().add(30, "day"),
-      forma_cobranca: record.forma_cobranca || "pix",
-      descricao_servico_nf: record.descricao_servico_nf || record.descricao_servico || "",
-      valor_issqn: Number(record.valor_issqn || 0),
-      valor_pis: Number(record.valor_pis || 0),
-      valor_cofins: Number(record.valor_cofins || 0),
-      valor_irpj: Number(record.valor_irpj || 0),
-      valor_csll: Number(record.valor_csll || 0),
-      pdf_nf_upload: [],
-    });
-    setDrawerOpen(true);
+  const abrirFaturamentoRapido = async (record) => {
+    setAbrindoDrawerFaturamento(true);
+    try {
+      const [ordemResponse, configResponse] = await Promise.all([
+        api.get(`/ordens/${record.id}/`),
+        api.get("/fiscal/configuracao/"),
+      ]);
+      const ordemAtual = ordemResponse.data || record;
+      const regimeAtual = String(
+        ordemAtual?.dados_impostos?.regime ||
+          ordemAtual?.tipo_regime_tributario ||
+          configResponse.data?.regime_tributario ||
+          getRegimeFiscal(record),
+      ).toLowerCase();
+
+      setRegimeFaturamentoAtual(regimeAtual);
+      setOrdemFaturando(ordemAtual);
+      setNfAnalysis(null);
+      drawerForm.setFieldsValue(
+        normalizarImpostosNotaPorRegime(
+          {
+            valor_final_faturado: Number(
+              ordemAtual.valor_final_faturado ||
+                ordemAtual.total_com_impostos ||
+                ordemAtual.valor_total_orcado ||
+                0,
+            ),
+            numero_nf: ordemAtual.numero_nf || "",
+            data_emissao_nf: ordemAtual.data_emissao_nf
+              ? dayjs(ordemAtual.data_emissao_nf)
+              : dayjs(),
+            data_vencimento: ordemAtual.data_vencimento
+              ? dayjs(ordemAtual.data_vencimento)
+              : dayjs().add(30, "day"),
+            forma_cobranca: ordemAtual.forma_cobranca || "pix",
+            descricao_servico_nf:
+              ordemAtual.descricao_servico_nf || ordemAtual.descricao_servico || "",
+            valor_issqn: Number(ordemAtual.valor_issqn || 0),
+            valor_pis: Number(ordemAtual.valor_pis || 0),
+            valor_cofins: Number(ordemAtual.valor_cofins || 0),
+            valor_irpj: Number(ordemAtual.valor_irpj || 0),
+            valor_csll: Number(ordemAtual.valor_csll || 0),
+            valor_irrf: Number(ordemAtual.valor_irrf || 0),
+            valor_cbs: Number(ordemAtual.valor_cbs || 0),
+            valor_ibs: Number(ordemAtual.valor_ibs || 0),
+            valor_total_retencoes: Number(ordemAtual.valor_total_retencoes || 0),
+            valor_liquido_nf: Number(
+              ordemAtual.valor_liquido_nf || ordemAtual.valor_final_faturado || 0,
+            ),
+            pdf_nf_upload: [],
+          },
+          regimeAtual,
+        ),
+      );
+      setDrawerOpen(true);
+    } catch {
+      message.error("Não foi possível abrir o faturamento com o regime fiscal atualizado.");
+    } finally {
+      setAbrindoDrawerFaturamento(false);
+    }
   };
 
   const analisarPdfNota = async () => {
@@ -317,33 +480,55 @@ export default function FaturamentoPage() {
     formData.append("arquivo", file);
     setAnalisandoNf(true);
     try {
-      const response = await api.post(`/ordens/${ordemFaturando.id}/analisar-nota-fiscal/`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.post(
+        `/ordens/${ordemFaturando.id}/analisar-nota-fiscal/`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       const data = response.data || {};
       setNfAnalysis(data);
       const impostos = data.impostos_sugeridos || {};
       const campos = data.campos || {};
       const impostoConfiavel = (field) => {
         const confianca = Number(campos[field]?.confianca || 0);
-        return confianca >= 80 && Object.prototype.hasOwnProperty.call(impostos, field)
+        return confianca >= 80 &&
+          Object.prototype.hasOwnProperty.call(impostos, field)
           ? parseMoney(impostos[field])
           : drawerForm.getFieldValue(field);
       };
-      drawerForm.setFieldsValue({
-        numero_nf: data.numero_nf_sugerido || drawerForm.getFieldValue("numero_nf"),
-        data_emissao_nf: data.data_emissao_sugerida ? dayjs(data.data_emissao_sugerida) : drawerForm.getFieldValue("data_emissao_nf"),
-        valor_final_faturado: parseMoney(data.valor_total_sugerido) || drawerForm.getFieldValue("valor_final_faturado"),
-        descricao_servico_nf: data.descricao_sugerida || drawerForm.getFieldValue("descricao_servico_nf"),
+      drawerForm.setFieldsValue(normalizarImpostosNotaPorRegime({
+        numero_nf:
+          data.numero_nf_sugerido || drawerForm.getFieldValue("numero_nf"),
+        data_emissao_nf: data.data_emissao_sugerida
+          ? dayjs(data.data_emissao_sugerida)
+          : drawerForm.getFieldValue("data_emissao_nf"),
+        valor_final_faturado:
+          parseMoney(data.valor_total_sugerido) ||
+          drawerForm.getFieldValue("valor_final_faturado"),
+        descricao_servico_nf:
+          data.descricao_sugerida ||
+          drawerForm.getFieldValue("descricao_servico_nf"),
         valor_issqn: impostoConfiavel("valor_issqn"),
         valor_pis: impostoConfiavel("valor_pis"),
         valor_cofins: impostoConfiavel("valor_cofins"),
         valor_irpj: impostoConfiavel("valor_irpj"),
         valor_csll: impostoConfiavel("valor_csll"),
-      });
-      message.success("PDF da nota fiscal lido. Revise os campos antes de confirmar.");
+        valor_irrf: impostoConfiavel("valor_irrf"),
+        valor_cbs: impostoConfiavel("valor_cbs"),
+        valor_ibs: impostoConfiavel("valor_ibs"),
+        valor_total_retencoes: impostoConfiavel("valor_total_retencoes"),
+        valor_liquido_nf: impostoConfiavel("valor_liquido_nf"),
+      }, regimeFaturamento));
+      message.success(
+        "PDF da nota fiscal lido. Revise os campos antes de confirmar.",
+      );
     } catch (error) {
-      message.error(error.response?.data?.detail || "Não foi possível ler o PDF da nota fiscal.");
+      message.error(
+        error.response?.data?.detail ||
+          "Não foi possível ler o PDF da nota fiscal.",
+      );
     } finally {
       setAnalisandoNf(false);
     }
@@ -356,11 +541,15 @@ export default function FaturamentoPage() {
       const values = await drawerForm.validateFields();
       const formData = new FormData();
       const pdfFile = values.pdf_nf_upload?.[0]?.originFileObj;
-      const campos = {
+      const campos = normalizarImpostosNotaPorRegime({
         valor_final_faturado: values.valor_final_faturado || 0,
         numero_nf: values.numero_nf || "",
-        data_emissao_nf: values.data_emissao_nf ? values.data_emissao_nf.format("YYYY-MM-DD") : "",
-        data_vencimento: values.data_vencimento ? values.data_vencimento.format("YYYY-MM-DD") : "",
+        data_emissao_nf: values.data_emissao_nf
+          ? values.data_emissao_nf.format("YYYY-MM-DD")
+          : "",
+        data_vencimento: values.data_vencimento
+          ? values.data_vencimento.format("YYYY-MM-DD")
+          : "",
         forma_cobranca: values.forma_cobranca || "",
         descricao_servico_nf: values.descricao_servico_nf || "",
         valor_issqn: values.valor_issqn || 0,
@@ -368,9 +557,18 @@ export default function FaturamentoPage() {
         valor_cofins: values.valor_cofins || 0,
         valor_irpj: values.valor_irpj || 0,
         valor_csll: values.valor_csll || 0,
-        valor_liquido_nf: Number(values.valor_final_faturado || 0) - Number(values.valor_issqn || 0),
-      };
-      Object.entries(campos).forEach(([key, value]) => formData.append(key, value));
+        valor_irrf: values.valor_irrf || 0,
+        valor_cbs: values.valor_cbs || 0,
+        valor_ibs: values.valor_ibs || 0,
+        valor_total_retencoes: obterValorEspelhado(
+          values,
+          "valor_total_retencoes",
+        ),
+        valor_liquido_nf: obterValorEspelhado(values, "valor_liquido_nf"),
+      }, regimeFaturamento);
+      Object.entries(campos).forEach(([key, value]) =>
+        formData.append(key, value),
+      );
       if (pdfFile) formData.append("pdf_nf", pdfFile);
 
       await api.patch(`/ordens/${ordemFaturando.id}/`, formData, {
@@ -387,8 +585,12 @@ export default function FaturamentoPage() {
         if (data.requer_confirmacao_pc || data.requer_confirmacao_valor_pc) {
           const confirmado = await new Promise((resolve) => {
             Modal.confirm({
-              title: data.requer_confirmacao_valor_pc ? "Faturar acima do PC?" : "Faturar sem PC completo?",
-              content: data.detail || "Confirme conscientemente para gerar o lançamento financeiro.",
+              title: data.requer_confirmacao_valor_pc
+                ? "Faturar acima do PC?"
+                : "Faturar sem PC completo?",
+              content:
+                data.detail ||
+                "Confirme conscientemente para gerar o lançamento financeiro.",
               okText: "Confirmar e faturar",
               cancelText: "Revisar",
               okButtonProps: { danger: data.requer_confirmacao_valor_pc },
@@ -409,12 +611,16 @@ export default function FaturamentoPage() {
       message.success("OS faturada e lançamento financeiro criado.");
       setDrawerOpen(false);
       setOrdemFaturando(null);
+      setRegimeFaturamentoAtual("");
       setNfAnalysis(null);
       drawerForm.resetFields();
       carregarOrdens();
     } catch (error) {
       if (error?.errorFields) return;
-      message.error(error.response?.data?.detail || "Não foi possível confirmar o faturamento.");
+      message.error(
+        error.response?.data?.detail ||
+          "Não foi possível confirmar o faturamento.",
+      );
     } finally {
       setConfirmandoFaturamento(false);
     }
@@ -424,17 +630,26 @@ export default function FaturamentoPage() {
     .filter((o) => selectedOrdens.includes(o.id))
     .reduce((acc, o) => acc + Number(o.valor_total_orcado || 0), 0);
 
-  const totalPendente = ordens.reduce((acc, o) => acc + Number(o.valor_total_orcado || 0), 0);
-  const ordensSemDocumento = ordens.filter((o) => !onlyDigits(getClienteDocumento(o))).length;
+  const totalPendente = ordens.reduce(
+    (acc, o) => acc + Number(o.valor_total_orcado || 0),
+    0,
+  );
+  const ordensSemDocumento = ordens.filter(
+    (o) => !onlyDigits(getClienteDocumento(o)),
+  ).length;
 
   // Verifica se PC está preenchido (tem número, valor ou dados extraídos)
   function pcStatus(record) {
     if (!record.tem_pedido_compra) return "sem_pc";
-    const temNumero = record.numero_pc && String(record.numero_pc).trim().length > 0;
-    const temValor = record.valor_autorizado_pc && Number(record.valor_autorizado_pc) > 0;
-    const temDados = record.dados_pc_extraidos && typeof record.dados_pc_extraidos === "object" &&
+    const temNumero =
+      record.numero_pc && String(record.numero_pc).trim().length > 0;
+    const temValor =
+      record.valor_autorizado_pc && Number(record.valor_autorizado_pc) > 0;
+    const temDados =
+      record.dados_pc_extraidos &&
+      typeof record.dados_pc_extraidos === "object" &&
       Object.keys(record.dados_pc_extraidos).length > 0;
-    return (temNumero || temValor || temDados) ? "pc_ok" : "pc_pendente";
+    return temNumero || temValor || temDados ? "pc_ok" : "pc_pendente";
   }
 
   const columns = [
@@ -443,7 +658,11 @@ export default function FaturamentoPage() {
       dataIndex: "numero",
       key: "numero",
       width: 140,
-      render: (v) => <Text strong style={{ color: colors.azul }}>{v || "-"}</Text>,
+      render: (v) => (
+        <Text strong style={{ color: colors.azul }}>
+          {v || "-"}
+        </Text>
+      ),
     },
     {
       title: "Status",
@@ -474,7 +693,11 @@ export default function FaturamentoPage() {
             </Tag>
           );
         }
-        return <Text copyable style={{ color: colors.texto, fontWeight: 600 }}>{formatDocumento(documento)}</Text>;
+        return (
+          <Text copyable style={{ color: colors.texto, fontWeight: 600 }}>
+            {formatDocumento(documento)}
+          </Text>
+        );
       },
     },
     {
@@ -484,10 +707,38 @@ export default function FaturamentoPage() {
       render: (v) => v || "-",
     },
     {
+      title: "Regime fiscal",
+      key: "regime_fiscal",
+      width: 180,
+      render: (_, record) => {
+        const regime = getRegimeFiscal(record);
+        return (
+          <Tag
+            color={
+              regime === "lucro_presumido"
+                ? "gold"
+                : regime === "lucro_real"
+                  ? "purple"
+                  : regime === "mei"
+                    ? "green"
+                    : "blue"
+            }
+            style={{ borderRadius: 999, fontWeight: 700 }}
+          >
+            {getRegimeLabel(regime)}
+          </Tag>
+        );
+      },
+    },
+    {
       title: "Valor Total",
       dataIndex: "valor_total_orcado",
       key: "valor_total_orcado",
-      render: (v) => <Text strong style={{ color: colors.texto }}>{fmt(v)}</Text>,
+      render: (v) => (
+        <Text strong style={{ color: colors.texto }}>
+          {fmt(v)}
+        </Text>
+      ),
     },
     {
       title: "Concluída em",
@@ -502,13 +753,31 @@ export default function FaturamentoPage() {
       width: 150,
       render: (_, record) => {
         const ps = pcStatus(record);
-        if (ps === "sem_pc") return <Tag color="default" style={{ borderRadius: 999, fontWeight: 600 }}>Sem PC</Tag>;
-        if (ps === "pc_ok") return (
-          <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: 999, fontWeight: 600 }}>PC Preenchido</Tag>
-        );
+        if (ps === "sem_pc")
+          return (
+            <Tag color="default" style={{ borderRadius: 999, fontWeight: 600 }}>
+              Sem PC
+            </Tag>
+          );
+        if (ps === "pc_ok")
+          return (
+            <Tag
+              icon={<CheckCircleOutlined />}
+              color="success"
+              style={{ borderRadius: 999, fontWeight: 600 }}
+            >
+              PC Preenchido
+            </Tag>
+          );
         return (
           <Tooltip title="PC obrigatório não preenchido. Preencha o Pedido de Compra na OS antes de faturar.">
-            <Tag icon={<ExclamationCircleOutlined />} color="warning" style={{ borderRadius: 999, fontWeight: 600 }}>PC Pendente</Tag>
+            <Tag
+              icon={<ExclamationCircleOutlined />}
+              color="warning"
+              style={{ borderRadius: 999, fontWeight: 600 }}
+            >
+              PC Pendente
+            </Tag>
           </Tooltip>
         );
       },
@@ -521,13 +790,25 @@ export default function FaturamentoPage() {
         const bloqueado = ps === "pc_pendente";
         return (
           <Space>
-            <Tooltip title={bloqueado ? "Preencha o PC na OS antes de faturar" : ""}>
+            <Tooltip
+              title={bloqueado ? "Preencha o PC na OS antes de faturar" : ""}
+            >
               <Button
                 size="small"
                 type="primary"
                 icon={<EyeOutlined />}
                 disabled={bloqueado}
-                style={bloqueado ? { borderRadius: 8 } : { background: colors.azul, borderColor: colors.azul, borderRadius: 8, fontWeight: 600 }}
+                loading={abrindoDrawerFaturamento && ordemFaturando?.id === record.id}
+                style={
+                  bloqueado
+                    ? { borderRadius: 8 }
+                    : {
+                        background: colors.azul,
+                        borderColor: colors.azul,
+                        borderRadius: 8,
+                        fontWeight: 600,
+                      }
+                }
                 onClick={() => abrirFaturamentoRapido(record)}
               >
                 {bloqueado ? "PC Pendente" : "Faturar"}
@@ -551,7 +832,15 @@ export default function FaturamentoPage() {
     <div style={pageStyle}>
       {/* Header */}
       <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
           <Space align="start">
             <div
               style={{
@@ -570,7 +859,15 @@ export default function FaturamentoPage() {
               <DollarOutlined />
             </div>
             <div>
-              <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 26, fontWeight: 800 }}>
+              <Title
+                level={2}
+                style={{
+                  margin: 0,
+                  color: colors.texto,
+                  fontSize: 26,
+                  fontWeight: 800,
+                }}
+              >
                 Faturamento
               </Title>
               <Text style={{ color: colors.textoSecundario }}>
@@ -581,7 +878,12 @@ export default function FaturamentoPage() {
           <Button
             type="primary"
             icon={<GroupOutlined />}
-            style={{ height: 40, paddingInline: 20, borderRadius: 10, fontWeight: 600 }}
+            style={{
+              height: 40,
+              paddingInline: 20,
+              borderRadius: 10,
+              fontWeight: 600,
+            }}
             onClick={() => setModalOpen(true)}
           >
             Agrupar para NF
@@ -600,10 +902,20 @@ export default function FaturamentoPage() {
       {/* Cards de totais */}
       <Row gutter={[20, 20]}>
         <Col xs={24} sm={12} lg={6}>
-          <SummaryCard color={colors.azul} icon={<FileTextOutlined />} label="OS pendentes" value={ordens.length} />
+          <SummaryCard
+            color={colors.azul}
+            icon={<FileTextOutlined />}
+            label="OS pendentes"
+            value={ordens.length}
+          />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <SummaryCard color={colors.verde} icon={<DollarOutlined />} label="Valor total pendente" value={fmt(totalPendente)} />
+          <SummaryCard
+            color={colors.verde}
+            icon={<DollarOutlined />}
+            label="Valor total pendente"
+            value={fmt(totalPendente)}
+          />
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <SummaryCard
@@ -645,7 +957,11 @@ export default function FaturamentoPage() {
             />
           </Col>
           <Col xs={24} sm={4}>
-            <Button icon={<SearchOutlined />} onClick={carregarOrdens} style={{ width: "100%", borderRadius: 8, fontWeight: 600 }}>
+            <Button
+              icon={<SearchOutlined />}
+              onClick={carregarOrdens}
+              style={{ width: "100%", borderRadius: 8, fontWeight: 600 }}
+            >
               Filtrar
             </Button>
           </Col>
@@ -663,7 +979,11 @@ export default function FaturamentoPage() {
             selectedRowKeys: selectedOrdens,
             onChange: (keys) => setSelectedOrdens(keys),
           }}
-          rowClassName={(record) => (!onlyDigits(getClienteDocumento(record)) ? "linha-sem-documento" : "")}
+          rowClassName={(record) =>
+            !onlyDigits(getClienteDocumento(record))
+              ? "linha-sem-documento"
+              : ""
+          }
           scroll={{ x: 1350 }}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{
@@ -679,14 +999,28 @@ export default function FaturamentoPage() {
       </Card>
 
       <Drawer
-        title={ordemFaturando ? `Faturar ${ordemFaturando.numero || `OS #${ordemFaturando.id}`}` : "Faturamento rápido"}
+        title={
+          ordemFaturando
+            ? `Faturar ${ordemFaturando.numero || `OS #${ordemFaturando.id}`}`
+            : "Faturamento rápido"
+        }
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false);
+          setRegimeFaturamentoAtual("");
+        }}
         width={720}
         destroyOnClose
         extra={
           <Space>
-            <Button onClick={() => setDrawerOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                setDrawerOpen(false);
+                setRegimeFaturamentoAtual("");
+              }}
+            >
+              Cancelar
+            </Button>
             <Button
               type="primary"
               icon={<CheckCircleOutlined />}
@@ -712,21 +1046,61 @@ export default function FaturamentoPage() {
               <Row gutter={[12, 8]}>
                 <Col xs={24} sm={12}>
                   <Text type="secondary">Cliente</Text>
-                  <div><Text strong>{ordemFaturando.cliente_nome || "-"}</Text></div>
+                  <div>
+                    <Text strong>{ordemFaturando.cliente_nome || "-"}</Text>
+                  </div>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Text type="secondary">CNPJ/CPF</Text>
-                  <div><Text strong>{formatDocumento(getClienteDocumento(ordemFaturando)) || "Sem documento"}</Text></div>
+                  <div>
+                    <Text strong>
+                      {formatDocumento(getClienteDocumento(ordemFaturando)) ||
+                        "Sem documento"}
+                    </Text>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">Regime fiscal aplicado</Text>
+                  <div>
+                    <Tag
+                      color={
+                        regimeFaturamento === "lucro_presumido"
+                          ? "gold"
+                          : regimeFaturamento === "lucro_real"
+                            ? "purple"
+                            : regimeFaturamento === "mei"
+                              ? "green"
+                              : "blue"
+                      }
+                      style={{ borderRadius: 999, fontWeight: 700, marginTop: 4 }}
+                    >
+                      {getRegimeLabel(regimeFaturamento)}
+                    </Tag>
+                  </div>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Text type="secondary">Valor da OS</Text>
-                  <div><Text strong>{fmt(ordemFaturando.valor_total_orcado)}</Text></div>
+                  <div>
+                    <Text strong>{fmt(ordemFaturando.valor_total_orcado)}</Text>
+                  </div>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Text type="secondary">Pedido de Compra</Text>
                   <div>
-                    <Tag color={pcStatus(ordemFaturando) === "pc_ok" ? "success" : pcStatus(ordemFaturando) === "pc_pendente" ? "warning" : "default"}>
-                      {pcStatus(ordemFaturando) === "pc_ok" ? "PC preenchido" : pcStatus(ordemFaturando) === "pc_pendente" ? "PC pendente" : "Sem PC"}
+                    <Tag
+                      color={
+                        pcStatus(ordemFaturando) === "pc_ok"
+                          ? "success"
+                          : pcStatus(ordemFaturando) === "pc_pendente"
+                            ? "warning"
+                            : "default"
+                      }
+                    >
+                      {pcStatus(ordemFaturando) === "pc_ok"
+                        ? "PC preenchido"
+                        : pcStatus(ordemFaturando) === "pc_pendente"
+                          ? "PC pendente"
+                          : "Sem PC"}
                     </Tag>
                   </div>
                 </Col>
@@ -735,7 +1109,11 @@ export default function FaturamentoPage() {
           )}
 
           <Form form={drawerForm} layout="vertical">
-            <Card size="small" title="Nota fiscal" style={{ borderRadius: 12, marginBottom: 16 }}>
+            <Card
+              size="small"
+              title="Nota fiscal"
+              style={{ borderRadius: 12, marginBottom: 16 }}
+            >
               <Row gutter={[12, 0]}>
                 <Col xs={24} sm={12}>
                   <Form.Item
@@ -744,7 +1122,11 @@ export default function FaturamentoPage() {
                     valuePropName="fileList"
                     getValueFromEvent={(event) => event?.fileList || []}
                   >
-                    <Upload beforeUpload={() => false} maxCount={1} accept="application/pdf">
+                    <Upload
+                      beforeUpload={() => false}
+                      maxCount={1}
+                      accept="application/pdf"
+                    >
                       <Button icon={<UploadOutlined />}>Selecionar PDF</Button>
                     </Upload>
                   </Form.Item>
@@ -762,10 +1144,18 @@ export default function FaturamentoPage() {
                 </Col>
               </Row>
               {nfAnalysis && (
-                <Space direction="vertical" size={8} style={{ width: "100%", marginBottom: 12 }}>
+                <Space
+                  direction="vertical"
+                  size={8}
+                  style={{ width: "100%", marginBottom: 12 }}
+                >
                   <Alert
                     showIcon
-                    type={Number(nfAnalysis.confianca || 0) >= 85 ? "success" : "warning"}
+                    type={
+                      Number(nfAnalysis.confianca || 0) >= 85
+                        ? "success"
+                        : "warning"
+                    }
                     message={`Leitura da NF: ${Number(nfAnalysis.confianca || 0).toFixed(0)}% de confiança`}
                     description={nfAnalysis.resumo}
                     style={{ borderRadius: 12 }}
@@ -780,7 +1170,10 @@ export default function FaturamentoPage() {
                     />
                   ) : null}
                   {nfAnalysis.chave_acesso ? (
-                    <Text copyable style={{ fontSize: 12, color: colors.textoSecundario }}>
+                    <Text
+                      copyable
+                      style={{ fontSize: 12, color: colors.textoSecundario }}
+                    >
                       Chave de acesso: {nfAnalysis.chave_acesso}
                     </Text>
                   ) : null}
@@ -788,71 +1181,206 @@ export default function FaturamentoPage() {
               )}
               <Row gutter={[12, 0]}>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Número NF-e / NFS-e" name="numero_nf" rules={[{ required: true, message: "Informe o número da NF." }]}>
+                  <Form.Item
+                    label="Número NF-e / NFS-e"
+                    name="numero_nf"
+                    rules={[
+                      { required: true, message: "Informe o número da NF." },
+                    ]}
+                  >
                     <Input placeholder="Ex.: 000123" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Data de emissão" name="data_emissao_nf" rules={[{ required: true, message: "Informe a emissão." }]}>
+                  <Form.Item
+                    label="Data de emissão"
+                    name="data_emissao_nf"
+                    rules={[{ required: true, message: "Informe a emissão." }]}
+                  >
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Valor final faturado" name="valor_final_faturado" rules={[{ required: true, message: "Informe o valor faturado." }]}>
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} formatter={(v) => `R$ ${v || ""}`} parser={(v) => v?.replace(/R\$\s?/, "")} />
+                  <Form.Item
+                    label="Valor final faturado"
+                    name="valor_final_faturado"
+                    rules={[
+                      { required: true, message: "Informe o valor faturado." },
+                    ]}
+                  >
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                      formatter={(v) => `R$ ${v || ""}`}
+                      parser={(v) => v?.replace(/R\$\s?/, "")}
+                    />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Vencimento / previsão" name="data_vencimento" rules={[{ required: true, message: "Informe o vencimento." }]}>
+                  <Form.Item
+                    label="Vencimento / previsão"
+                    name="data_vencimento"
+                    rules={[
+                      { required: true, message: "Informe o vencimento." },
+                    ]}
+                  >
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24}>
-                  <Form.Item label="Forma de cobrança" name="forma_cobranca" rules={[{ required: true, message: "Informe a forma de cobrança." }]}>
+                  <Form.Item
+                    label="Forma de cobrança"
+                    name="forma_cobranca"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Informe a forma de cobrança.",
+                      },
+                    ]}
+                  >
                     <Select options={formaCobrancaOptions} />
                   </Form.Item>
                 </Col>
                 <Col xs={24}>
-                  <Form.Item label="Descrição do serviço na NF" name="descricao_servico_nf">
-                    <Input.TextArea rows={3} placeholder="Descrição conforme a nota fiscal" />
+                  <Form.Item
+                    label="Descrição do serviço na NF"
+                    name="descricao_servico_nf"
+                  >
+                    <Input.TextArea
+                      rows={3}
+                      placeholder="Descrição conforme a nota fiscal"
+                    />
                   </Form.Item>
                 </Col>
               </Row>
             </Card>
 
-            <Card size="small" title="Impostos cobrados na nota" style={{ borderRadius: 12, marginBottom: 16 }}>
+            <Card
+              size="small"
+              title="Impostos cobrados na nota"
+              style={{ borderRadius: 12, marginBottom: 16 }}
+            >
+              {!usaTributosFederaisSeparados && (
+                <Alert
+                  showIcon
+                  type="info"
+                  style={{ borderRadius: 12, marginBottom: 16 }}
+                  message="Regime sem destaque separado de tributos federais"
+                  description="Para Simples Nacional e MEI, PIS, COFINS, IRPJ, CSLL e IRRF ficam zerados neste fluxo. O ERP mantém apenas ISSQN e demais campos aplicáveis da nota."
+                />
+              )}
               <Row gutter={[12, 0]}>
                 <Col xs={24} sm={8}>
-                  <Form.Item label="ISSQN" name="valor_issqn"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                  <Form.Item label="ISSQN" name="valor_issqn">
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
+                </Col>
+                {usaTributosFederaisSeparados && (
+                  <>
+                    <Col xs={24} sm={8}>
+                      <Form.Item label="PIS" name="valor_pis">
+                        <InputNumber
+                          min={0}
+                          step={0.01}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item label="COFINS" name="valor_cofins">
+                        <InputNumber
+                          min={0}
+                          step={0.01}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item label="IRPJ" name="valor_irpj">
+                        <InputNumber
+                          min={0}
+                          step={0.01}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item label="CSLL" name="valor_csll">
+                        <InputNumber
+                          min={0}
+                          step={0.01}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Form.Item label="IRRF" name="valor_irrf">
+                        <InputNumber
+                          min={0}
+                          step={0.01}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </>
+                )}
+                <Col xs={24} sm={8}>
+                  <Form.Item label="CBS" name="valor_cbs">
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col xs={24} sm={8}>
-                  <Form.Item label="PIS" name="valor_pis"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                  <Form.Item label="IBS" name="valor_ibs">
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col xs={24} sm={8}>
-                  <Form.Item label="COFINS" name="valor_cofins"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                  <Form.Item
+                    label="Total de retenções"
+                    name="valor_total_retencoes"
+                  >
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col xs={24} sm={8}>
-                  <Form.Item label="IRPJ" name="valor_irpj"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Form.Item label="CSLL" name="valor_csll"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                  <Form.Item label="Líquido da NF" name="valor_liquido_nf">
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
                 </Col>
               </Row>
               <Form.Item shouldUpdate>
                 {() => {
                   const values = drawerForm.getFieldsValue();
-                  const totalImpostos =
-                    Number(values.valor_issqn || 0) +
-                    Number(values.valor_pis || 0) +
-                    Number(values.valor_cofins || 0) +
-                    Number(values.valor_irpj || 0) +
-                    Number(values.valor_csll || 0);
-                  const liquido = Number(values.valor_final_faturado || 0) - Number(values.valor_issqn || 0);
+                  const totalImpostos = Number(
+                    values.valor_total_retencoes || 0,
+                  );
+                  const liquido = Number(values.valor_liquido_nf || 0);
                   return (
                     <Alert
                       showIcon
                       type="success"
-                      message={`Resumo: impostos informados ${fmt(totalImpostos)} • líquido previsto ${fmt(liquido)}`}
+                      message={`Resumo: retenções totais ${fmt(totalImpostos)} • líquido previsto ${fmt(liquido)}`}
                       style={{ borderRadius: 12 }}
                     />
                   );
@@ -873,11 +1401,20 @@ export default function FaturamentoPage() {
       >
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
           <Text style={{ color: colors.textoSecundario }}>
-            Selecione as OS abaixo e informe o tomador do serviço para gerar uma NF consolidada.
+            Selecione as OS abaixo e informe o tomador do serviço para gerar uma
+            NF consolidada.
           </Text>
 
           {/* Seleção de OS */}
-          <div style={{ maxHeight: 220, overflowY: "auto", border: `1px solid ${colors.borda}`, borderRadius: 10, padding: "8px 12px" }}>
+          <div
+            style={{
+              maxHeight: 220,
+              overflowY: "auto",
+              border: `1px solid ${colors.borda}`,
+              borderRadius: 10,
+              padding: "8px 12px",
+            }}
+          >
             {ordens.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -901,38 +1438,73 @@ export default function FaturamentoPage() {
                   }}
                   onClick={() =>
                     setSelectedOrdens((prev) =>
-                      prev.includes(o.id) ? prev.filter((id) => id !== o.id) : [...prev, o.id]
+                      prev.includes(o.id)
+                        ? prev.filter((id) => id !== o.id)
+                        : [...prev, o.id],
                     )
                   }
-                  onMouseEnter={(event) => { event.currentTarget.style.background = "#F8FAFD"; }}
-                  onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.background = "#F8FAFD";
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.background = "transparent";
+                  }}
                 >
                   <Checkbox
                     checked={selectedOrdens.includes(o.id)}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) =>
                       setSelectedOrdens((prev) =>
-                        e.target.checked ? [...prev, o.id] : prev.filter((id) => id !== o.id)
+                        e.target.checked
+                          ? [...prev, o.id]
+                          : prev.filter((id) => id !== o.id),
                       )
                     }
                   />
-                  <Text style={{ flex: 1, color: colors.texto }}>{o.numero || `OS #${o.id}`}</Text>
+                  <Text style={{ flex: 1, color: colors.texto }}>
+                    {o.numero || `OS #${o.id}`}
+                  </Text>
                   <div style={{ minWidth: 180 }}>
-                    <Text style={{ color: colors.textoFraco, fontSize: 12, display: "block" }}>{o.cliente_nome || "-"}</Text>
+                    <Text
+                      style={{
+                        color: colors.textoFraco,
+                        fontSize: 12,
+                        display: "block",
+                      }}
+                    >
+                      {o.cliente_nome || "-"}
+                    </Text>
                     <Text style={{ color: colors.textoFraco, fontSize: 11 }}>
-                      {formatDocumento(getClienteDocumento(o)) || "Sem CNPJ/CPF"}
+                      {formatDocumento(getClienteDocumento(o)) ||
+                        "Sem CNPJ/CPF"}
                     </Text>
                   </div>
-                  <Text strong style={{ color: colors.azul, minWidth: 90, textAlign: "right" }}>{fmt(o.valor_total_orcado)}</Text>
+                  <Text
+                    strong
+                    style={{
+                      color: colors.azul,
+                      minWidth: 90,
+                      textAlign: "right",
+                    }}
+                  >
+                    {fmt(o.valor_total_orcado)}
+                  </Text>
                 </div>
               ))
             )}
           </div>
 
           {selectedOrdens.length > 0 && (
-            <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "10px 14px" }}>
+            <div
+              style={{
+                background: "#EFF6FF",
+                borderRadius: 10,
+                padding: "10px 14px",
+              }}
+            >
               <Text strong style={{ color: "#1D4ED8" }}>
-                Total consolidado: {fmt(totalSelecionadas)} ({selectedOrdens.length} OS)
+                Total consolidado: {fmt(totalSelecionadas)} (
+                {selectedOrdens.length} OS)
               </Text>
             </div>
           )}
@@ -942,7 +1514,9 @@ export default function FaturamentoPage() {
           {/* Dados do tomador */}
           <Row gutter={[12, 0]} align="bottom">
             <Col xs={24} sm={14}>
-              <Text strong style={{ fontSize: 13, color: colors.texto }}>CNPJ do tomador</Text>
+              <Text strong style={{ fontSize: 13, color: colors.texto }}>
+                CNPJ do tomador
+              </Text>
               <Input
                 value={cnpj}
                 onChange={(e) => setCnpj(applyMaskCNPJ(e.target.value))}
@@ -955,7 +1529,12 @@ export default function FaturamentoPage() {
                 onClick={buscarCNPJ}
                 loading={buscandoCnpj}
                 icon={<SearchOutlined />}
-                style={{ marginTop: 22, width: "100%", borderRadius: 8, fontWeight: 600 }}
+                style={{
+                  marginTop: 22,
+                  width: "100%",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                }}
               >
                 Buscar CNPJ
               </Button>
@@ -963,7 +1542,9 @@ export default function FaturamentoPage() {
           </Row>
 
           <div>
-            <Text strong style={{ fontSize: 13, color: colors.texto }}>Razão Social do tomador</Text>
+            <Text strong style={{ fontSize: 13, color: colors.texto }}>
+              Razão Social do tomador
+            </Text>
             <Input
               value={razaoSocial}
               onChange={(e) => setRazaoSocial(e.target.value)}
@@ -974,7 +1555,12 @@ export default function FaturamentoPage() {
 
           <Row justify="end">
             <Space>
-              <Button onClick={() => setModalOpen(false)} style={{ borderRadius: 8, fontWeight: 600 }}>Cancelar</Button>
+              <Button
+                onClick={() => setModalOpen(false)}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+              >
+                Cancelar
+              </Button>
               <Button
                 type="primary"
                 icon={<FileTextOutlined />}

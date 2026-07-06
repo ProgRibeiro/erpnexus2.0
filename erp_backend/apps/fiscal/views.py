@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -17,8 +19,16 @@ from .serializers import (
     FaturamentoMensalSimplesSerializer,
     PrevisaoSimplesSerializer,
     RegistrarFaturamentoSimplesSerializer,
+    SimulacaoFiscalSimplesSerializer,
+    SimularSimplesSerializer,
+    VersaoRegraSimplesNacionalSerializer,
 )
-from .models import ApuracaoSimplesNacional, FaturamentoMensalSimples
+from .models import (
+    ApuracaoSimplesNacional,
+    FaturamentoMensalSimples,
+    SimulacaoFiscalSimples,
+    VersaoRegraSimplesNacional,
+)
 from .services import ConsultaCNPJ, MotorFiscalEspecialista, SimplesNacionalService
 from apps.fiscal_calculator.serializers import DecisaoIbsCbsSerializer, OperacaoFiscalInputSerializer
 from apps.fiscal_calculator.services import (
@@ -86,6 +96,47 @@ def _sincronizar_empresa_com_fiscal(configuracao: ConfiguracaoFiscal):
             campos.append(campo)
     if campos:
         empresa.save(update_fields=campos)
+
+
+def _decimal(value, default="0.00"):
+    if value in (None, ""):
+        return Decimal(default)
+    return Decimal(str(value))
+
+
+def _buscar_faixa_customizada(rbt12: Decimal, tabela_faixas: list):
+    if not isinstance(tabela_faixas, list) or not tabela_faixas:
+        return None
+
+    faixa_ordenada = sorted(
+        tabela_faixas,
+        key=lambda item: _decimal(item.get("limite"), default="9999999999.99"),
+    )
+    for indice, faixa in enumerate(faixa_ordenada, start=1):
+        limite = _decimal(faixa.get("limite"), default="9999999999.99")
+        if rbt12 <= limite:
+            aliquota = _decimal(faixa.get("aliquota")) / Decimal("100")
+            deduzir = _decimal(faixa.get("deduzir"))
+            return indice, aliquota, deduzir
+
+    ultima = faixa_ordenada[-1]
+    return (
+        len(faixa_ordenada),
+        _decimal(ultima.get("aliquota")) / Decimal("100"),
+        _decimal(ultima.get("deduzir")),
+    )
+
+
+def _alerta_por_limites(rbt12: Decimal, sublimite: Decimal, teto: Decimal):
+    if teto > 0 and rbt12 >= teto:
+        return ApuracaoSimplesNacional.Alerta.ACIMA_TETO
+    if teto > 0 and rbt12 >= teto * Decimal("0.80"):
+        return ApuracaoSimplesNacional.Alerta.PERTO_TETO
+    if sublimite > 0 and rbt12 >= sublimite:
+        return ApuracaoSimplesNacional.Alerta.ACIMA_SUBLIMITE
+    if sublimite > 0 and rbt12 >= sublimite * Decimal("0.80"):
+        return ApuracaoSimplesNacional.Alerta.PERTO_SUBLIMITE
+    return ApuracaoSimplesNacional.Alerta.OK
 
 
 def _aplicar_dados_cnpj(configuracao: ConfiguracaoFiscal, dados: dict):
@@ -348,6 +399,133 @@ def simples_previsao(request):
         "previsao": previsao,
         "configuracao": ConfiguracaoFiscalSerializer(config).data,
     })
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def simples_regras(request):
+    config = _get_configuracao_fiscal()
+
+    if request.method == "POST":
+        serializer = VersaoRegraSimplesNacionalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        regra = serializer.save(empresa=config.empresa)
+        return Response(VersaoRegraSimplesNacionalSerializer(regra).data, status=201)
+
+    queryset = VersaoRegraSimplesNacional.objects.filter(empresa=config.empresa).order_by("-criado_em")
+    status = request.query_params.get("status")
+    if status:
+        queryset = queryset.filter(status=status)
+    return Response(VersaoRegraSimplesNacionalSerializer(queryset[:100], many=True).data)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def simples_regra_detalhe(request, regra_id):
+    config = _get_configuracao_fiscal()
+    regra = VersaoRegraSimplesNacional.objects.filter(empresa=config.empresa, id=regra_id).first()
+    if not regra:
+        return Response({"detail": "Regra não encontrada."}, status=404)
+
+    serializer = VersaoRegraSimplesNacionalSerializer(regra, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    regra = serializer.save()
+    return Response(VersaoRegraSimplesNacionalSerializer(regra).data)
+
+
+@api_view(["POST", "GET"])
+@permission_classes([IsAuthenticated])
+def simples_simular(request):
+    config = _get_configuracao_fiscal()
+    payload = request.data if request.method == "POST" else request.query_params
+    serializer = SimularSimplesSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    service = SimplesNacionalService()
+    competencia = data.get("competencia")
+    resultado = service.calcular(config, competencia=competencia, salvar=False)
+
+    receita_mes = _decimal(resultado.get("receita_mes"))
+    if data.get("receita_bruta") is not None:
+        receita_mes = _decimal(data.get("receita_bruta"))
+        resultado["receita_mes"] = service._money(receita_mes)
+
+    regra = None
+    regra_id = data.get("regra_versao_id")
+    if regra_id:
+        regra = VersaoRegraSimplesNacional.objects.filter(empresa=config.empresa, id=regra_id).first()
+        if not regra:
+            return Response({"detail": "Regra informada não encontrada."}, status=404)
+
+        rbt12 = _decimal(resultado.get("rbt12"))
+        faixa_custom = _buscar_faixa_customizada(rbt12, regra.tabela_faixas)
+        if faixa_custom:
+            faixa, aliquota_nominal, parcela_deduzir = faixa_custom
+            aliquota_efetiva = (
+                ((rbt12 * aliquota_nominal) - parcela_deduzir) / rbt12 if rbt12 > 0 else Decimal("0.00")
+            )
+            if aliquota_efetiva < 0:
+                aliquota_efetiva = Decimal("0.00")
+
+            sublimite = _decimal(regra.sublimite, default="3600000.00")
+            teto = _decimal(regra.teto, default="4800000.00")
+            resultado.update({
+                "faixa": faixa,
+                "aliquota_nominal": service._percent(aliquota_nominal),
+                "parcela_deduzir": service._money(parcela_deduzir),
+                "aliquota_efetiva": service._percent(aliquota_efetiva),
+                "das_estimado": service._money(receita_mes * aliquota_efetiva),
+                "percentual_sublimite": service._percent((rbt12 / sublimite) if sublimite else Decimal("0.00")),
+                "percentual_teto": service._percent((rbt12 / teto) if teto else Decimal("0.00")),
+                "alerta": _alerta_por_limites(rbt12, sublimite, teto),
+                "sublimite": service._money(sublimite),
+                "teto": service._money(teto),
+            })
+
+    resultado["regra_aplicada"] = {
+        "id": regra.id if regra else None,
+        "nome": regra.nome if regra else "regra_padrao_erp",
+        "anexo": regra.anexo if regra else config.anexo_simples,
+    }
+
+    simulacao = SimulacaoFiscalSimples.objects.create(
+        empresa=config.empresa,
+        competencia=service._normalizar_competencia(competencia),
+        regra_versao=regra,
+        entrada={
+            "competencia": str(competencia) if competencia else None,
+            "receita_bruta": str(data.get("receita_bruta")) if data.get("receita_bruta") is not None else None,
+            "regra_versao_id": regra.id if regra else None,
+        },
+        resultado={
+            **resultado,
+            "receita_mes": str(resultado.get("receita_mes")),
+            "rbt12": str(resultado.get("rbt12")),
+            "aliquota_nominal": str(resultado.get("aliquota_nominal")),
+            "parcela_deduzir": str(resultado.get("parcela_deduzir")),
+            "aliquota_efetiva": str(resultado.get("aliquota_efetiva")),
+            "das_estimado": str(resultado.get("das_estimado")),
+            "percentual_sublimite": str(resultado.get("percentual_sublimite")),
+            "percentual_teto": str(resultado.get("percentual_teto")),
+            "sublimite": str(resultado.get("sublimite")),
+            "teto": str(resultado.get("teto")),
+        },
+        origem=data.get("origem", SimulacaoFiscalSimples.Origem.API),
+    )
+
+    return Response({
+        "simulacao": SimulacaoFiscalSimplesSerializer(simulacao).data,
+        "resultado": resultado,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def simples_simulacoes(request):
+    config = _get_configuracao_fiscal()
+    queryset = SimulacaoFiscalSimples.objects.filter(empresa=config.empresa).select_related("regra_versao")
+    return Response(SimulacaoFiscalSimplesSerializer(queryset[:100], many=True).data)
 
 
 @api_view(["GET", "PATCH"])

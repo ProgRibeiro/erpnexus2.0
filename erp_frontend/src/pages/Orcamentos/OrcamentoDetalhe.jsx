@@ -38,6 +38,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import FiscalIntelligenceAlert from "./components/FiscalIntelligenceAlert";
 import {
   buildItemsPayload,
   calcItemsTotals,
@@ -89,6 +90,20 @@ const detalheBtnPrimaryStyle = {
   paddingInline: 20,
   fontWeight: 600,
   borderRadius: 10,
+};
+
+const sectionTitleStyle = {
+  marginTop: 0,
+  marginBottom: 16,
+  color: colors.textoFraco,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+};
+
+const summaryCardStyle = {
+  borderRadius: 14,
+  border: `1px solid ${colors.borda}`,
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4)",
 };
 
 function getBudgetStatus(order) {
@@ -166,6 +181,51 @@ export default function OrcamentoDetalhe() {
     }),
     [items]
   );
+  const descontoEmReais = useMemo(
+    () =>
+      tipoDesconto === "percentual"
+        ? (totals.subtotal * valorDesconto) / 100
+        : Number(valorDesconto || 0),
+    [tipoDesconto, totals.subtotal, valorDesconto],
+  );
+  const totalFinal = useMemo(
+    () => Math.max(0, totals.subtotal - descontoEmReais),
+    [descontoEmReais, totals.subtotal],
+  );
+  const impostosTotal = Number(impostos?.total_impostos || 0);
+  const totalComImpostos = Number(impostos?.total_geral || totalFinal || 0);
+  const validadeFormatada = order?.validade_orcamento
+    ? dayjs(order.validade_orcamento).format("DD/MM/YYYY")
+    : "-";
+  const prazoRestante = order?.validade_orcamento
+    ? dayjs(order.validade_orcamento).endOf("day").diff(dayjs(), "day")
+    : null;
+  const resumoOperacional = [
+    {
+      label: "Total comercial",
+      value: moneyFormatter.format(totalFinal),
+      tone: colors.azul,
+      help: "Subtotal líquido após desconto.",
+    },
+    {
+      label: "Serviços",
+      value: moneyFormatter.format(totals.valorServicos),
+      tone: colors.texto,
+      help: `${itemCounters.servicos} item(ns) de serviço`,
+    },
+    {
+      label: "Produtos",
+      value: moneyFormatter.format(totals.valorMateriais),
+      tone: colors.texto,
+      help: `${itemCounters.produtos} item(ns) de produto`,
+    },
+    {
+      label: "Impostos estimados",
+      value: moneyFormatter.format(impostosTotal),
+      tone: colors.laranja,
+      help: impostos ? "Calculado pelo motor fiscal" : "Aguardando cálculo fiscal",
+    },
+  ];
 
   useEffect(() => {
     let active = true;
@@ -790,39 +850,87 @@ export default function OrcamentoDetalhe() {
     <div style={detalhePageStyle}>
       <Card
         bordered={false}
-        style={{ ...detalhePanelStyle, marginBottom: 16 }}
-        bodyStyle={{ padding: 20 }}
+        style={{
+          ...detalhePanelStyle,
+          marginBottom: 8,
+          background:
+            "linear-gradient(135deg, #F7FBFF 0%, #EEF6FF 38%, #F8FAFD 100%)",
+        }}
+        bodyStyle={{ padding: 24 }}
       >
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "space-between",
-            gap: 12,
+            gap: 16,
           }}
         >
-          <Space direction="vertical" size={4}>
-            <Title
-              level={1}
-              style={{ fontSize: 26, fontWeight: 800, margin: 0, color: colors.texto }}
+          <Space direction="vertical" size={10} style={{ maxWidth: 720 }}>
+            <Text
+              style={{
+                color: colors.textoFraco,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
             >
-              {order?.numero ||
-                `ORC-${dayjs().year()}-${String(id).padStart(4, "0")}`}
-            </Title>
+              Centro técnico do orçamento
+            </Text>
+            <div>
+              <Title
+                level={1}
+                style={{ fontSize: 28, fontWeight: 800, margin: 0, color: colors.texto }}
+              >
+                {order?.numero ||
+                  `ORC-${dayjs().year()}-${String(id).padStart(4, "0")}`}
+              </Title>
+              <Text style={{ color: colors.textoSecundario, fontSize: 15 }}>
+                Estruture escopo, composição comercial, inteligência fiscal e decisão de aprovação em uma única tela.
+              </Text>
+            </div>
             <Space size={10} wrap>
               <Tag
                 color={budgetStatusMeta.color}
-                style={{ borderRadius: 999, paddingInline: 10, fontWeight: 600 }}
+                style={{ borderRadius: 999, paddingInline: 10, fontWeight: 700 }}
               >
                 {budgetStatusMeta.label}
               </Tag>
               {editMode ? <Tag color="processing">Modo edição</Tag> : null}
+              {selectedClient?.nome ? <Tag>{selectedClient.nome}</Tag> : null}
+              {order?.tipo_servico ? <Tag color="blue">{order.tipo_servico}</Tag> : null}
+              {order?.prioridade ? <Tag color="gold">{order.prioridade}</Tag> : null}
             </Space>
           </Space>
 
           {actionButtons[budgetStatus]}
         </div>
+
+        <Row gutter={[14, 14]} style={{ marginTop: 20 }}>
+          {resumoOperacional.map((item) => (
+            <Col xs={24} sm={12} xl={6} key={item.label}>
+              <div
+                style={{
+                  ...summaryCardStyle,
+                  background: "rgba(255,255,255,0.74)",
+                  padding: 16,
+                }}
+              >
+                <Text style={{ color: colors.textoSecundario, fontSize: 12 }}>
+                  {item.label}
+                </Text>
+                <div style={{ color: item.tone, fontSize: 24, fontWeight: 800, marginTop: 6 }}>
+                  {item.value}
+                </div>
+                <Text style={{ color: colors.textoFraco, fontSize: 12 }}>
+                  {item.help}
+                </Text>
+              </div>
+            </Col>
+          ))}
+        </Row>
       </Card>
 
       {editMode ? (
@@ -836,121 +944,86 @@ export default function OrcamentoDetalhe() {
       ) : null}
 
       <Form form={form} layout="vertical">
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
-            <Title
-              level={5}
-              style={{
-                marginTop: 0,
-                marginBottom: 16,
-                color: colors.textoFraco,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-              }}
-            >
-              Cliente
-            </Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={12}>
-                <Form.Item label="Cliente" name="cliente">
-                  <Select
-                    disabled={!editMode}
-                    options={clients.map((cliente) => ({
-                      label: cliente.nome,
-                      value: cliente.id,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Form.Item
-                  label="Contato responsável"
-                  name="contato_responsavel"
-                >
-                  <Select
-                    disabled={!editMode}
-                    allowClear
-                    options={(selectedClient?.contatos || []).map(
-                      (contato) => ({ label: contato.nome, value: contato.id }),
-                    )}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Descriptions size="small" column={{ xs: 1, md: 3 }}>
-              <Descriptions.Item label="CNPJ">
-                {selectedClient?.cnpj_cpf || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Telefone">
-                {selectedClient?.telefone || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Email">
-                {selectedClient?.email || "-"}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
+        <Row gutter={[18, 18]} align="top">
+          <Col xs={24} xl={16}>
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+                <Title level={5} style={sectionTitleStyle}>
+                  Cliente e escopo
+                </Title>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={12}>
+                    <Form.Item label="Cliente" name="cliente">
+                      <Select
+                        disabled={!editMode}
+                        options={clients.map((cliente) => ({
+                          label: cliente.nome,
+                          value: cliente.id,
+                        }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Form.Item
+                      label="Contato responsável"
+                      name="contato_responsavel"
+                    >
+                      <Select
+                        disabled={!editMode}
+                        allowClear
+                        options={(selectedClient?.contatos || []).map(
+                          (contato) => ({ label: contato.nome, value: contato.id }),
+                        )}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item label="Tipo de serviço" name="tipo_servico">
+                      <Select disabled={!editMode} options={serviceOptions} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item label="Prioridade" name="prioridade">
+                      <Select disabled={!editMode} options={priorityOptions} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      label="Validade do orçamento"
+                      name="validade_orcamento"
+                    >
+                      <DatePicker
+                        disabled={!editMode}
+                        format="DD/MM/YYYY"
+                        style={{ width: "100%" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item
+                      label="Descrição do serviço"
+                      name="descricao_servico"
+                    >
+                      <TextArea disabled={!editMode} rows={4} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={10}>
+                    <Form.Item
+                      label="Condição de pagamento"
+                      name="condicao_pagamento"
+                    >
+                      <Select disabled={!editMode} options={paymentOptions} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item label="Observações e termos" name="observacoes">
+                      <TextArea disabled={!editMode} rows={4} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
 
-          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
-            <Title
-              level={5}
-              style={{
-                marginTop: 0,
-                marginBottom: 16,
-                color: colors.textoFraco,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-              }}
-            >
-              Serviço
-            </Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Form.Item label="Tipo de serviço" name="tipo_servico">
-                  <Select disabled={!editMode} options={serviceOptions} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item label="Prioridade" name="prioridade">
-                  <Select disabled={!editMode} options={priorityOptions} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  label="Validade do orçamento"
-                  name="validade_orcamento"
-                >
-                  <DatePicker
-                    disabled={!editMode}
-                    format="DD/MM/YYYY"
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24}>
-                <Form.Item
-                  label="Descrição do serviço"
-                  name="descricao_servico"
-                >
-                  <TextArea disabled={!editMode} rows={4} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  label="Condição de pagamento"
-                  name="condicao_pagamento"
-                >
-                  <Select disabled={!editMode} options={paymentOptions} />
-                </Form.Item>
-              </Col>
-              <Col xs={24}>
-                <Form.Item label="Observações e termos" name="observacoes">
-                  <TextArea disabled={!editMode} rows={4} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
-
-          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 18 }}>
+              <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 18 }}>
             <Space
               style={{
                 justifyContent: "space-between",
@@ -1019,6 +1092,10 @@ export default function OrcamentoDetalhe() {
                       <Text strong>{itemCounters.total}</Text>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                      <Text type="secondary">Itens avulsos</Text>
+                      <Text strong>{itemCounters.avulsos}</Text>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <Text type="secondary">Serviços</Text>
                       <Text strong>{moneyFormatter.format(totals.valorServicos)}</Text>
                     </div>
@@ -1057,13 +1134,7 @@ export default function OrcamentoDetalhe() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                       <Text strong>Total</Text>
                       <Text strong style={{ color: colors.azul, fontSize: 22 }}>
-                        {(() => {
-                          const descontoEmReais =
-                            tipoDesconto === "percentual"
-                              ? (totals.subtotal * valorDesconto) / 100
-                              : valorDesconto;
-                          return moneyFormatter.format(Math.max(0, totals.subtotal - descontoEmReais));
-                        })()}
+                        {moneyFormatter.format(totalFinal)}
                       </Text>
                     </div>
                   </Space>
@@ -1072,44 +1143,102 @@ export default function OrcamentoDetalhe() {
             </Row>
           </Card>
 
-          <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
-            <Title
-              level={5}
-              style={{
-                marginTop: 0,
-                marginBottom: 16,
-                color: colors.textoFraco,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-              }}
-            >
-              Timeline de status
-            </Title>
-            <Timeline items={timelineItems} />
-          </Card>
-        </Space>
-      </Form>
+              {editMode ? (
+                <Card
+                  bordered={false}
+                  style={{ ...detalhePanelStyle, marginTop: 0 }}
+                  bodyStyle={{ padding: 16 }}
+                >
+                  <Space wrap>
+                    <Button
+                      type="primary"
+                      icon={<SaveOutlined />}
+                      onClick={saveEdition}
+                      loading={saving}
+                      style={detalheBtnPrimaryStyle}
+                    >
+                      Salvar alterações
+                    </Button>
+                    <Button onClick={() => setEditMode(false)} style={{ borderRadius: 10, height: 40 }}>
+                      Cancelar edição
+                    </Button>
+                  </Space>
+                </Card>
+              ) : null}
+            </Space>
+          </Col>
 
-      {editMode ? (
-        <Card
-          bordered={false}
-          style={{ ...detalhePanelStyle, marginTop: 16 }}
-          bodyStyle={{ padding: 16 }}
-        >
-          <Space wrap>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={saveEdition}
-              loading={saving}
-              style={detalheBtnPrimaryStyle}
-            >
-              Salvar alterações
-            </Button>
-            <Button onClick={() => setEditMode(false)} style={{ borderRadius: 10, height: 40 }}>Cancelar edição</Button>
-          </Space>
-        </Card>
-      ) : null}
+          <Col xs={24} xl={8}>
+            <Space direction="vertical" size={16} style={{ width: "100%", position: "sticky", top: 20 }}>
+              <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+                <Title level={5} style={sectionTitleStyle}>
+                  Painel operacional
+                </Title>
+                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                  <div style={{ ...summaryCardStyle, padding: 14, background: colors.fundoSuave }}>
+                    <Text type="secondary">Cliente</Text>
+                    <div style={{ fontWeight: 700, color: colors.texto, marginTop: 4 }}>
+                      {selectedClient?.nome || order?.cliente_nome || "Não informado"}
+                    </div>
+                    <Text style={{ color: colors.textoFraco, fontSize: 12 }}>
+                      {selectedContact?.nome || "Sem contato definido"}
+                    </Text>
+                  </div>
+                  <Row gutter={[12, 12]}>
+                    <Col span={12}>
+                      <div style={{ ...summaryCardStyle, padding: 14 }}>
+                        <Text type="secondary">Validade</Text>
+                        <div style={{ fontWeight: 700, color: colors.texto, marginTop: 4 }}>
+                          {validadeFormatada}
+                        </div>
+                      </div>
+                    </Col>
+                    <Col span={12}>
+                      <div style={{ ...summaryCardStyle, padding: 14 }}>
+                        <Text type="secondary">Prazo</Text>
+                        <div style={{ fontWeight: 700, color: prazoRestante !== null && prazoRestante < 0 ? colors.vermelho : colors.texto, marginTop: 4 }}>
+                          {prazoRestante === null ? "-" : prazoRestante < 0 ? `Expirou há ${Math.abs(prazoRestante)}d` : `${prazoRestante}d`}
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                  <div style={{ ...summaryCardStyle, padding: 14 }}>
+                    <Text type="secondary">Composição</Text>
+                    <Descriptions size="small" column={1} style={{ marginTop: 8 }}>
+                      <Descriptions.Item label="Serviços">
+                        {moneyFormatter.format(totals.valorServicos)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Produtos">
+                        {moneyFormatter.format(totals.valorMateriais)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Desconto">
+                        {moneyFormatter.format(descontoEmReais)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Total com impostos">
+                        {moneyFormatter.format(totalComImpostos)}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                </Space>
+              </Card>
+
+              <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+                <Title level={5} style={sectionTitleStyle}>
+                  Inteligência fiscal
+                </Title>
+                <FiscalIntelligenceAlert impostos={impostos} />
+              </Card>
+
+              <Card bordered={false} style={detalhePanelStyle} bodyStyle={{ padding: 20 }}>
+                <Title level={5} style={sectionTitleStyle}>
+                  Timeline de status
+                </Title>
+                <Timeline items={timelineItems} />
+              </Card>
+            </Space>
+          </Col>
+        </Row>
+      </Form>
 
       <Modal
         open={catalogModalOpen}

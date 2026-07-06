@@ -210,7 +210,7 @@ class NotaFiscalInteligente:
     cnpj_pattern = re.compile(r"\b(\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2})\b")
     chave_pattern = re.compile(r"\b(\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})\b")
     numero_patterns = [
-        re.compile(r"(?:n[úu]mero\s+da\s+nf[se\-]*|n[úu]mero\s+da\s+nota|nota\s+fiscal\s+n[ºo]?|nf[se\-]*\s+n[ºo]?|n[ºo]\s+da\s+nota)[^\w]{0,18}([A-Z0-9\-\/\.]{3,})", re.IGNORECASE),
+        re.compile(r"(?:n[úu]mero\s+da\s+nota\s+fiscal|n[úu]mero\s+da\s+nf[se\-]*|n[úu]mero\s+da\s+nota|nota\s+fiscal\s+n[ºo]?|nf[se\-]*\s+n[ºo]?|n[ºo]\s+da\s+nota)(?:[^\dA-Z]{0,20}|[\s:.-]{0,20})([A-Z0-9\-\/\.]{3,})", re.IGNORECASE),
         re.compile(r"\bNFS?E?\s*[-:]?\s*([0-9]{3,})\b", re.IGNORECASE),
     ]
     imposto_patterns = {
@@ -219,6 +219,9 @@ class NotaFiscalInteligente:
         "valor_cofins": re.compile(r"(?:valor\s+(?:do\s+)?cofins|\bcofins\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
         "valor_irpj": re.compile(r"(?:valor\s+(?:do\s+)?irpj|\birpj\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
         "valor_csll": re.compile(r"(?:valor\s+(?:do\s+)?csll|\bcsll\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_irrf": re.compile(r"(?:valor\s+(?:do\s+)?irrf|\birrf\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_cbs": re.compile(r"(?:valor\s+(?:total\s+)?(?:do\s+)?cbs|\bcbs\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_ibs": re.compile(r"(?:valor\s+(?:total\s+)?(?:do\s+)?ibs(?:\s*(?:est|mun|estadual|municipal))?|\bibs(?:\s*(?:est|mun|estadual|municipal))?\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
     }
     imposto_tokens = {
         "valor_issqn": ("iss", "issqn"),
@@ -226,7 +229,17 @@ class NotaFiscalInteligente:
         "valor_cofins": ("cofins",),
         "valor_irpj": ("irpj",),
         "valor_csll": ("csll",),
+        "valor_irrf": ("irrf",),
+        "valor_cbs": ("cbs",),
+        "valor_ibs": ("ibs",),
     }
+    resumo_labels_nota = (
+        ("valor_total_retencoes", ("total de retenção", "total de retencao")),
+        ("valor_cbs", ("valor total do cbs", "total do cbs", "valor cbs")),
+        ("valor_ibs", ("valor total do ibs", "total do ibs", "valor ibs")),
+        ("valor_liquido_nf", ("valor total líquido", "valor total liquido", "valor total da nota fiscal", "valor total da nota fiscal - ibs/cbs", "valor total da nota", "total líquido", "total liquido")),
+        ("valor_total_nf", ("valor total da nota fiscal", "valor total da nota fiscal - ibs/cbs", "valor total da nota", "total da nota fiscal", "total da nota")),
+    )
 
     def analisar_arquivo(self, arquivo, ordem=None):
         texto = self._extrair_texto_pdf(arquivo)
@@ -242,6 +255,9 @@ class NotaFiscalInteligente:
         data_emissao, data_meta = self._extrair_data_emissao(texto_limpo)
         valor_total, valor_meta = self._extrair_valor_total(texto_limpo)
         impostos, impostos_meta = self._extrair_impostos(linhas)
+        resumo_impostos, resumo_meta = self._extrair_resumo_nota_fiscal(linhas)
+        impostos.update(resumo_impostos)
+        impostos_meta.update(resumo_meta)
         cnpjs = self._extrair_cnpjs(texto_limpo)
         descricao = self._extrair_descricao(linhas, ordem=ordem)
         validacoes = self._validar_contra_os(ordem, valor_total, cnpjs)
@@ -301,6 +317,39 @@ class NotaFiscalInteligente:
         return bruto.strip()
 
     def _extrair_numero_nf(self, texto):
+        linhas = [linha.strip() for linha in str(texto or "").splitlines() if linha.strip()]
+        etiquetas = (
+            "numero da nota fiscal",
+            "numero da nfs-e",
+            "numero da nfse",
+            "numero da nota",
+            "nota fiscal",
+            "nº da nota",
+            "no da nota",
+        )
+        for indice, linha in enumerate(linhas):
+            normalizada = self._sem_acentos(linha).lower()
+            if not any(etiqueta in normalizada for etiqueta in etiquetas):
+                continue
+
+            candidatos = [linha]
+            if indice + 1 < len(linhas):
+                candidatos.append(linhas[indice + 1])
+
+            for candidato in candidatos:
+                match = re.search(r"\b(\d{3,})\b", candidato)
+                if match:
+                    numero = match.group(1).strip(" .:-")
+                    fonte = self._contexto(texto, max(0, texto.find(candidato)), max(0, texto.find(candidato)) + len(candidato))
+                    return numero, self._campo(numero, 92, fonte)
+
+            for candidato in candidatos:
+                match = re.search(r"\b([A-Z0-9\-\.]{3,})\b", candidato)
+                if match and re.search(r"\d", match.group(1)) and "/" not in match.group(1):
+                    numero = match.group(1).strip(" .:-")
+                    fonte = self._contexto(texto, max(0, texto.find(candidato)), max(0, texto.find(candidato)) + len(candidato))
+                    return numero, self._campo(numero, 92, fonte)
+
         for pattern in self.numero_patterns:
             match = pattern.search(texto)
             if match:
@@ -324,17 +373,44 @@ class NotaFiscalInteligente:
         return data, self._campo(data.isoformat() if data else "", 55 if data else 0, "Primeira data válida encontrada no PDF." if data else "")
 
     def _extrair_valor_total(self, texto):
+        linhas = [linha.strip() for linha in str(texto or "").splitlines() if linha.strip()]
+        valor_resumo = self._extrair_valor_total_resumo_fiscal(linhas)
+        if valor_resumo is not None:
+            return valor_resumo, self._campo(str(valor_resumo), 99, "Valor total identificado no bloco-resumo da NFS-e.")
+
+        labels_prioritarios = [
+            ("valor total da nota fiscal", 98),
+            ("valor total da nota", 97),
+            ("valor total líquido", 95),
+            ("valor total liquido", 95),
+            ("total da nota fiscal", 94),
+            ("total da nota", 93),
+            ("total líquido", 90),
+            ("total liquido", 90),
+            ("valor total da nf", 90),
+            ("total da nf", 88),
+        ]
+        for indice, linha in enumerate(linhas):
+            normalizada = self._sem_acentos(linha).lower()
+            for label, confianca in labels_prioritarios:
+                if label in normalizada:
+                    valores = self._extrair_valores_monetarios_da_linha(linha)
+                    if not valores and indice + 1 < len(linhas):
+                        valores = self._extrair_valores_monetarios_da_linha(linhas[indice + 1])
+                    if valores:
+                        valor = valores[-1]
+                        return valor, self._campo(str(valor), confianca, linha[:240])
+
         contexto_patterns = [
-            re.compile(r"(?:valor\s+total\s+da\s+nota|valor\s+total\s+da\s+nf|total\s+da\s+nota|total\s+da\s+nf)[^\d]{0,45}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+            re.compile(r"(?:valor\s+total\s+da\s+nota\s+fiscal|valor\s+total\s+da\s+nota|valor\s+total\s+da\s+nf|total\s+da\s+nota\s+fiscal|total\s+da\s+nota|total\s+da\s+nf|valor\s+total\s+l[ií]quido|total\s+l[ií]quido)[^\d]{0,60}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
             re.compile(r"(?:valor\s+dos\s+servi[cç]os|total\s+dos\s+servi[cç]os)[^\d]{0,45}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
-            re.compile(r"(?:valor\s+l[ií]quido)[^\d]{0,45}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
         ]
         for index, pattern in enumerate(contexto_patterns):
             match = pattern.search(texto)
             if match:
                 valor = self._parse_decimal(match.group(1))
                 if valor is not None:
-                    confianca = [96, 90, 78][index]
+                    confianca = [92, 78][index]
                     return valor, self._campo(str(valor), confianca, self._contexto(texto, match.start(), match.end()))
         valores = []
         for match in self.money_pattern.findall(texto):
@@ -345,9 +421,34 @@ class NotaFiscalInteligente:
         valor = max(valores) if valores else None
         return valor, self._campo(str(valor) if valor else "", 45 if valor else 0, "Maior valor monetário encontrado no PDF." if valor else "")
 
+    def _extrair_valor_total_resumo_fiscal(self, linhas):
+        for indice, linha in enumerate(linhas):
+            normalizada = self._sem_acentos(linha).lower()
+            if "total de retenc" not in normalizada or "valor total" not in normalizada:
+                continue
+
+            candidatos = [linha]
+            if indice + 1 < len(linhas):
+                candidatos.append(linhas[indice + 1])
+            bloco = "\n".join(candidatos)
+            valores = self._extrair_valores_monetarios_da_linha(bloco)
+            if valores:
+                return valores[-1]
+        return None
+
+    def _extrair_valores_monetarios_da_linha(self, linha):
+        valores = []
+        for match in self.money_pattern.findall(linha):
+            bruto = match[0] or match[1]
+            valor = self._parse_decimal(bruto)
+            if valor is not None:
+                valores.append(valor)
+        return valores
+
     def _extrair_impostos(self, linhas):
         impostos = {}
         metadados = {}
+
         for campo, tokens in self.imposto_tokens.items():
             valor, confianca, fonte = self._extrair_imposto_por_linha(linhas, tokens)
             if valor is not None:
@@ -357,28 +458,71 @@ class NotaFiscalInteligente:
                 metadados[campo] = self._campo("", 0, "")
         return impostos, metadados
 
+    def _extrair_resumo_nota_fiscal(self, linhas):
+        impostos = {}
+        metadados = {}
+        for indice, linha in enumerate(linhas):
+            normalizada = self._sem_acentos(linha).lower()
+            labels_encontrados = [campo for campo, labels in self.resumo_labels_nota if any(label in normalizada for label in labels)]
+            if len(labels_encontrados) < 2:
+                continue
+
+            trecho = linha
+            if indice + 1 < len(linhas):
+                trecho = f"{linha}\n{linhas[indice + 1]}"
+            valores = self._extrair_valores_monetarios_da_linha(trecho)
+            if not valores:
+                continue
+
+            for posicao, campo in enumerate(labels_encontrados):
+                if posicao >= len(valores):
+                    break
+                valor = valores[posicao]
+                impostos[campo] = valor
+                metadados[campo] = self._campo(str(valor), 95, f"{linha[:240]} | {valores[posicao]}")
+            if valores:
+                impostos.setdefault("valor_total_nf", valores[-1])
+                metadados.setdefault("valor_total_nf", self._campo(str(valores[-1]), 95, linha[:240]))
+            if impostos:
+                break
+        return impostos, metadados
+
     def _extrair_imposto_por_linha(self, linhas, tokens):
         for indice, linha in enumerate(linhas):
             normalizada = self._sem_acentos(linha).lower()
-            if not any(re.search(rf"\b{re.escape(token)}\b", normalizada) for token in tokens):
-                continue
             if self._linha_eh_apenas_aliquota_ou_base(normalizada):
                 continue
+            outros_tokens = {
+                token
+                for valor_tokens in self.imposto_tokens.values()
+                for token in valor_tokens
+                if token not in tokens
+            }
 
-            contexto = linha
-            if indice + 1 < len(linhas):
-                proxima_normalizada = self._sem_acentos(linhas[indice + 1]).lower()
-                proxima_tem_outro_imposto = any(
-                    re.search(rf"\b{re.escape(token)}\b", proxima_normalizada)
-                    for outros_tokens in self.imposto_tokens.values()
-                    for token in outros_tokens
-                )
-                if not proxima_tem_outro_imposto and not self._extrair_valor_monetario_da_linha(contexto):
-                    contexto = f"{linha} {linhas[indice + 1]}"
-            valor = self._extrair_valor_monetario_da_linha(contexto)
-            if valor is not None:
-                confianca = 92 if "r$" in contexto.lower() or "valor" in normalizada else 78
-                return valor, confianca, re.sub(r"\s+", " ", contexto).strip()[:240]
+            for token in tokens:
+                matches = list(re.finditer(rf"\b{re.escape(token)}\b", linha, flags=re.IGNORECASE))
+                if not matches:
+                    continue
+
+                match = matches[-1]
+
+                contexto = linha[match.end():]
+                cortes = []
+                for outro_token in outros_tokens:
+                    outro_match = re.search(rf"\b{re.escape(outro_token)}\b", contexto, flags=re.IGNORECASE)
+                    if outro_match:
+                        cortes.append(outro_match.start())
+                if cortes:
+                    contexto = contexto[:min(cortes)]
+
+                if "r$" in contexto.lower():
+                    valor = self._extrair_primeiro_valor_com_moeda_da_linha(contexto)
+                else:
+                    valor = self._extrair_valor_monetario_da_linha(contexto)
+                if valor is not None:
+                    confianca = 92 if "r$" in contexto.lower() or "valor" in normalizada else 78
+                    fonte = re.sub(r"\s+", " ", f"{linha[:match.start()]}{linha[match.start():match.end()]}{contexto}").strip()[:240]
+                    return valor, confianca, fonte
         return None, 0, ""
 
     def _linha_eh_apenas_aliquota_ou_base(self, linha):
@@ -389,6 +533,21 @@ class NotaFiscalInteligente:
             return True
         return False
 
+    def _extrair_primeiro_valor_monetario_da_linha(self, linha):
+        for match in self.money_pattern.findall(linha):
+            bruto = match[0] or match[1]
+            valor = self._parse_decimal(bruto)
+            if valor is not None:
+                return valor
+        return None
+
+    def _extrair_primeiro_valor_com_moeda_da_linha(self, linha):
+        valores_com_moeda = re.findall(r"R\$\s*([\d\.\,]+)", linha, flags=re.IGNORECASE)
+        if not valores_com_moeda:
+            return None
+        valor = self._parse_decimal(valores_com_moeda[0])
+        return valor
+
     def _extrair_valor_monetario_da_linha(self, linha):
         valores_com_moeda = re.findall(r"R\$\s*([\d\.\,]+)", linha, flags=re.IGNORECASE)
         if valores_com_moeda:
@@ -397,8 +556,13 @@ class NotaFiscalInteligente:
             return valores[-1] if valores else None
 
         if "%" in linha:
-            return None
+            if not re.search(r"\bvalor\b", self._sem_acentos(linha).lower()):
+                return None
 
+            candidatos = re.findall(r"\b\d{1,3}(?:\.\d{3})*,\d{2}\b|\b\d+,\d{2}\b", linha)
+            valores = [self._parse_decimal(valor) for valor in candidatos]
+            valores = [valor for valor in valores if valor is not None]
+            return valores[-1] if valores else None
         if not re.search(r"\bvalor\b", self._sem_acentos(linha).lower()):
             return None
 
@@ -486,7 +650,15 @@ class NotaFiscalInteligente:
         )
 
     def _inferir_tipo_documento(self, texto_busca):
-        if "nota fiscal de servico" in texto_busca or "nfs-e" in texto_busca or "nfse" in texto_busca:
+        if (
+            "nota fiscal de servico" in texto_busca
+            or "nfs-e" in texto_busca
+            or "nfse" in texto_busca
+            or "imposto sobre servico de qualquer natureza" in texto_busca
+            or "tributacao nacional" in texto_busca
+            or "ibs/cbs" in texto_busca
+            or "valor total da nota fiscal - ibs/cbs" in texto_busca
+        ):
             return "nfse"
         if "danfe" in texto_busca or "nf-e" in texto_busca or "chave de acesso" in texto_busca:
             return "nfe"
@@ -883,10 +1055,9 @@ class MotorOrcamentoInteligente:
         return [produto for _, produto in produtos]
 
     def _referencias_preco(self, tokens, texto_normalizado, tipo_servico):
-        disciplinas = {tipo_servico, Servico.Categoria.MANUTENCAO, Servico.Categoria.INSTALACAO}
         referencias = ReferenciaPrecoPublico.objects.filter(ativo=True)
         if tipo_servico and tipo_servico != "outro":
-            referencias = referencias.filter(disciplina__in=disciplinas)
+            referencias = referencias.filter(disciplina=tipo_servico)
 
         pontuadas = []
         try:

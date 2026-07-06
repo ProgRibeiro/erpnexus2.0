@@ -24,6 +24,10 @@ from .models import (
 )
 
 
+def _to_decimal(value):
+    return Decimal(str(value or 0))
+
+
 def _json_safe(value):
     if isinstance(value, Decimal):
         return float(value)
@@ -151,6 +155,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         if cliente_avulso and not validated_data.get("cliente"):
             validated_data["cliente"] = self._criar_cliente_avulso(cliente_avulso)
         validated_data = self._normalizar_dados_pedido_compra(validated_data)
+        validated_data = self._normalizar_campos_fiscais_por_regime(validated_data)
         ordem = OrdemServico.objects.create(
             criado_por=usuario,
             atualizado_por=atualizado_por,
@@ -189,7 +194,9 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", None)
         request = self.context.get("request")
+        campos_recebidos = set(validated_data.keys())
         validated_data = self._normalizar_dados_pedido_compra(validated_data, instance=instance)
+        validated_data = self._normalizar_campos_fiscais_por_regime(validated_data, instance=instance)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -200,10 +207,34 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         if itens_data is not None:
             instance.itens.all().delete()
             self._salvar_itens(instance, itens_data)
-        else:
+        elif self._precisa_recalcular_totais_fiscais(campos_recebidos):
             self._atualizar_totais_fiscais(instance)
 
         return instance
+
+    def _precisa_recalcular_totais_fiscais(self, campos_recebidos):
+        campos_operacionais = {
+            "valor_total_orcado",
+            "valor_desconto",
+            "tipo_desconto",
+            "percentual_desconto",
+            "valor_servicos",
+            "valor_materiais",
+            "descricao_servico",
+            "tipo_servico",
+            "endereco_servico",
+            "cliente",
+            "cliente_avulso",
+            "tem_pedido_compra",
+            "numero_pc",
+            "valor_autorizado_pc",
+            "validade_pc",
+            "dados_pc_extraidos",
+            "resumo_pc",
+            "pc_confianca",
+            "pc_ultima_analise_em",
+        }
+        return any(campo in campos_recebidos for campo in campos_operacionais)
 
     def _salvar_itens(self, ordem, itens_data):
         for item in itens_data:
@@ -239,6 +270,103 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             validated_data["pc_confianca"] = Decimal("0.00")
             validated_data["pc_ultima_analise_em"] = None
         return validated_data
+
+    def _normalizar_campos_fiscais_por_regime(self, validated_data, instance=None):
+        campos_sensiveis = {
+            "valor_pis",
+            "valor_cofins",
+            "valor_irpj",
+            "valor_csll",
+            "valor_irrf",
+            "aliquota_pis",
+            "aliquota_cofins",
+            "aliquota_irpj",
+            "aliquota_csll",
+            "situacao_tributaria_pis_cofins",
+            "dados_impostos",
+        }
+        if not any(campo in validated_data for campo in campos_sensiveis):
+            return validated_data
+
+        regime = self._obter_regime_tributario_atual(instance=instance)
+        if regime not in {
+            ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL,
+            ConfiguracaoFiscal.RegimeTributario.MEI,
+            "simples",
+        }:
+            return validated_data
+
+        for campo in [
+            "valor_pis",
+            "valor_cofins",
+            "valor_irpj",
+            "valor_csll",
+            "valor_irrf",
+            "aliquota_pis",
+            "aliquota_cofins",
+            "aliquota_irpj",
+            "aliquota_csll",
+        ]:
+            if campo in validated_data:
+                validated_data[campo] = Decimal("0.00")
+
+        if "situacao_tributaria_pis_cofins" in validated_data:
+            validated_data["situacao_tributaria_pis_cofins"] = ""
+
+        dados_impostos = validated_data.get("dados_impostos")
+        if isinstance(dados_impostos, dict):
+            dados_impostos = {**dados_impostos}
+            for campo in [
+                "pis",
+                "cofins",
+                "irpj",
+                "csll",
+                "irrf",
+                "pis_aliquota",
+                "cofins_aliquota",
+                "irpj_aliquota",
+                "csll_aliquota",
+            ]:
+                if campo in dados_impostos:
+                    dados_impostos[campo] = 0
+
+            aliquotas = dados_impostos.get("aliquotas")
+            if isinstance(aliquotas, dict):
+                dados_impostos["aliquotas"] = {
+                    **aliquotas,
+                    "pis": 0,
+                    "cofins": 0,
+                    "irpj": 0,
+                    "csll": 0,
+                }
+
+            dados_impostos["total_impostos"] = None
+            dados_impostos["total_geral"] = None
+            validated_data["dados_impostos"] = dados_impostos
+
+        return validated_data
+
+    def _obter_regime_tributario_atual(self, instance=None):
+        if instance and getattr(instance, "tipo_regime_tributario", None) in {
+            "simples",
+            ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL,
+            ConfiguracaoFiscal.RegimeTributario.MEI,
+            ConfiguracaoFiscal.RegimeTributario.LUCRO_PRESUMIDO,
+            ConfiguracaoFiscal.RegimeTributario.LUCRO_REAL,
+        }:
+            return getattr(instance, "tipo_regime_tributario")
+
+        empresa = get_empresa_configurada()
+        fiscal_config, _ = ConfiguracaoFiscal.objects.get_or_create(
+            empresa=empresa,
+            defaults={
+                "cnpj": empresa.cnpj,
+                "razao_social": empresa.razao_social or empresa.nome,
+                "regime_tributario": empresa.regime_tributario or ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL,
+                "aliquota_iss": empresa.aliquota_issqn_padrao,
+            },
+        )
+        return fiscal_config.regime_tributario or empresa.regime_tributario or ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL
 
     def _atualizar_totais_fiscais(self, ordem):
         empresa = get_empresa_configurada()
@@ -284,6 +412,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
                 "aliquota_ibs",
                 "valor_ibs",
                 "valor_total_retencoes",
+                "valor_irrf",
                 "valor_liquido_nf",
                 "descricao_servico_nf",
                 "municipio_incidencia_issqn",

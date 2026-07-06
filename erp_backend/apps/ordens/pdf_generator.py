@@ -35,6 +35,47 @@ def _format_brl_trailing(value):
     return f"R$ {'.'.join(grupos)},{decimal}"
 
 
+def _regime_sem_tributos_federais_separados(regime):
+    return str(regime or "").lower() in {"simples", "simples_nacional", "mei"}
+
+
+def _montar_impostos_detalhados_para_orcamento(impostos):
+    impostos = impostos or {}
+    aliq = impostos.get("aliquotas") or {}
+    regime = impostos.get("regime")
+
+    itens = [
+        {"nome": "ISS", "aliquota": aliq.get("iss", 0), "valor": impostos.get("iss", 0)},
+    ]
+
+    if _regime_sem_tributos_federais_separados(regime):
+        if "das" in aliq:
+            itens.insert(
+                0,
+                {
+                    "nome": "DAS",
+                    "aliquota": aliq.get("das", 0),
+                    "valor": impostos.get("total_impostos", 0),
+                },
+            )
+    else:
+        itens.extend(
+            [
+                {"nome": "PIS", "aliquota": aliq.get("pis", 0), "valor": impostos.get("pis", 0)},
+                {"nome": "COFINS", "aliquota": aliq.get("cofins", 0), "valor": impostos.get("cofins", 0)},
+                {"nome": "IRPJ", "aliquota": aliq.get("irpj", 0), "valor": impostos.get("irpj", 0)},
+                {"nome": "CSLL", "aliquota": aliq.get("csll", 0), "valor": impostos.get("csll", 0)},
+            ]
+        )
+
+    if aliq.get("cbs") or impostos.get("cbs"):
+        itens.append({"nome": "CBS", "aliquota": aliq.get("cbs", 0), "valor": impostos.get("cbs", 0)})
+    if aliq.get("ibs") or impostos.get("ibs"):
+        itens.append({"nome": "IBS", "aliquota": aliq.get("ibs", 0), "valor": impostos.get("ibs", 0)})
+
+    return itens
+
+
 def _gerar_relatorio_pdf_reportlab(os_obj, context):
     return _gerar_relatorio_tecnico_reportlab(os_obj)
 
@@ -398,21 +439,7 @@ def _prepare_orcamento_context(os_obj):
     endereco = str(os_obj.endereco_servico) if os_obj.endereco_servico else 'A definir'
     telefone = os_obj.cliente.telefone if hasattr(os_obj.cliente, 'telefone') else 'A definir'
     cliente_email = os_obj.cliente.email if hasattr(os_obj.cliente, "email") else ""
-    aliq = impostos.get("aliquotas") or {}
-
-    impostos_detalhados = [
-        {"nome": "ISS", "aliquota": aliq.get("iss", 0), "valor": impostos.get("iss", 0)},
-        {"nome": "PIS", "aliquota": aliq.get("pis", 0), "valor": impostos.get("pis", 0)},
-        {"nome": "COFINS", "aliquota": aliq.get("cofins", 0), "valor": impostos.get("cofins", 0)},
-        {"nome": "IRPJ", "aliquota": aliq.get("irpj", 0), "valor": impostos.get("irpj", 0)},
-        {"nome": "CSLL", "aliquota": aliq.get("csll", 0), "valor": impostos.get("csll", 0)},
-    ]
-
-    if "das" in aliq:
-        impostos_detalhados.insert(
-            0,
-            {"nome": "DAS", "aliquota": aliq.get("das", 0), "valor": impostos.get("total_impostos", 0)},
-        )
+    impostos_detalhados = _montar_impostos_detalhados_para_orcamento(impostos)
 
     context = {
         'os': os_obj,

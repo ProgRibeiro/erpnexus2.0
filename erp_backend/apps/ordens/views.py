@@ -23,6 +23,8 @@ from rest_framework.views import APIView
 from apps.auditoria.models import LogAuditoria
 from apps.clientes.models import Cliente
 from apps.configuracoes.models import get_empresa_configurada
+from apps.fiscal.models import ConfiguracaoFiscal
+from apps.fiscal.services import MotorFiscalEspecialista
 from .models import AnexoChatOS, ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, ItemOrcamento, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
 from .services import GovernancaRelatorioOS, MotorOrcamentoInteligente, NotaFiscalInteligente, PedidoCompraInteligente
@@ -64,6 +66,64 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             for k, v in ordem.__dict__.items()
             if not k.startswith("_")
         }
+
+    def _valor_receber_para_faturamento(self, ordem, financeiro_fiscal=None):
+        financeiro_fiscal = financeiro_fiscal or {}
+        valor_receber = ordem.valor_final_faturado or ordem.total_com_impostos or ordem.valor_total_orcado or 0
+        valor_liquido_nf = Decimal(str(getattr(ordem, "valor_liquido_nf", 0) or 0))
+        tem_pdf_nota = bool(getattr(ordem, "pdf_nf", None))
+
+        if tem_pdf_nota and valor_liquido_nf > 0:
+            return valor_liquido_nf
+        if financeiro_fiscal.get("criar_contas_receber_por") == "valor_liquido" and valor_liquido_nf > 0:
+            return valor_liquido_nf
+        return valor_receber
+
+    def _sincronizar_snapshot_fiscal_ordem(self, ordem, fiscal_config):
+        regime_atual = fiscal_config.regime_tributario or ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL
+        regime_snapshot = "simples" if regime_atual == ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL else regime_atual
+
+        if getattr(ordem, "tipo_regime_tributario", None) == regime_snapshot:
+            return ordem
+
+        motor = MotorFiscalEspecialista()
+        impostos = motor.aplicar_em_ordem(ordem, fiscal_config)
+        motor.aplicar_campos_ordem(ordem, impostos, fiscal_config)
+        if not ordem.valor_final_faturado and ordem.total_com_impostos:
+            ordem.valor_final_faturado = ordem.total_com_impostos
+        ordem.save(
+            update_fields=[
+                "valor_servicos",
+                "valor_materiais",
+                "dados_impostos",
+                "total_com_impostos",
+                "valor_final_faturado",
+                "aliquota_issqn",
+                "valor_issqn",
+                "retencao_issqn",
+                "valor_retido_issqn",
+                "aliquota_pis",
+                "valor_pis",
+                "aliquota_cofins",
+                "valor_cofins",
+                "aliquota_irpj",
+                "valor_irpj",
+                "aliquota_csll",
+                "valor_csll",
+                "aliquota_cbs",
+                "valor_cbs",
+                "aliquota_ibs",
+                "valor_ibs",
+                "valor_total_retencoes",
+                "valor_irrf",
+                "valor_liquido_nf",
+                "descricao_servico_nf",
+                "municipio_incidencia_issqn",
+                "tipo_regime_tributario",
+                "atualizado_em",
+            ]
+        )
+        return ordem
 
     def get_queryset(self):
         queryset = (
@@ -560,11 +620,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 tipo=Lancamento.Tipo.RECEITA,
                 defaults={"cor": "#3B82F6"},
             )
-            valor_receber = ordem.valor_final_faturado or ordem.total_com_impostos or ordem.valor_total_orcado
             motor_fiscal = ordem.dados_impostos.get("motor_fiscal", {}) if isinstance(ordem.dados_impostos, dict) else {}
             financeiro_fiscal = motor_fiscal.get("financeiro", {}) if isinstance(motor_fiscal, dict) else {}
-            if financeiro_fiscal.get("criar_contas_receber_por") == "valor_liquido" and ordem.valor_liquido_nf:
-                valor_receber = ordem.valor_liquido_nf
+            valor_receber = self._valor_receber_para_faturamento(ordem, financeiro_fiscal)
             lancamento, _ = Lancamento.objects.update_or_create(
                 os=ordem,
                 tipo=Lancamento.Tipo.RECEITA,
@@ -1236,10 +1294,25 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="pendentes-faturamento")
     def pendentes_faturamento(self, request):
         """Lista a fila oficial de OS concluídas aguardando faturamento."""
+        empresa = get_empresa_configurada()
+        fiscal_config, _ = ConfiguracaoFiscal.objects.get_or_create(
+            empresa=empresa,
+            defaults={
+                "cnpj": empresa.cnpj,
+                "razao_social": empresa.razao_social or empresa.nome,
+                "regime_tributario": empresa.regime_tributario or ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL,
+                "aliquota_iss": empresa.aliquota_issqn_padrao,
+            },
+        )
+        if empresa.regime_tributario and fiscal_config.regime_tributario != empresa.regime_tributario:
+            fiscal_config.regime_tributario = empresa.regime_tributario
+            fiscal_config.save(update_fields=["regime_tributario", "atualizado_em"])
+
         qs = (
             OrdemServico.objects
             .filter(status=OrdemServico.Status.CONCLUIDA)
             .select_related("cliente")
+            .prefetch_related("itens")
         )
 
         cliente = request.query_params.get("cliente")
@@ -1254,6 +1327,8 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             qs = qs.filter(atualizado_em__date__lte=data_fim)
 
         qs = qs.order_by("-atualizado_em", "-criado_em")
+        for ordem in qs:
+            self._sincronizar_snapshot_fiscal_ordem(ordem, fiscal_config)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 

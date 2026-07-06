@@ -1,9 +1,32 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Col, DatePicker, Divider, Form, Input, InputNumber, Row, Select, Skeleton, Space, Table, Tag, Typography, message } from "antd";
-import { CalculatorOutlined, FileProtectOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Row,
+  Select,
+  Skeleton,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from "antd";
+import {
+  CalculatorOutlined,
+  FileProtectOutlined,
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
+import SimplesApuracaoResumo from "../../components/SimplesApuracaoResumo";
 import api from "../../services/api";
-import GuiaLucroPresumido from "./components/GuiaLucroPresumido";
+import GuiaFiscalRegime from "./components/GuiaFiscalRegime";
 
 const { Text, Title } = Typography;
 
@@ -52,6 +75,12 @@ const anexoSimplesOpcoes = [
   { label: "Anexo IV", value: "anexo_iv" },
 ];
 
+const statusRegraOpcoes = [
+  { label: "Rascunho", value: "rascunho" },
+  { label: "Ativa", value: "ativa" },
+  { label: "Arquivada", value: "arquivada" },
+];
+
 const regimesReformaOpcoes = [
   { label: "Simples Nacional", value: "SN" },
   { label: "Lucro Presumido", value: "LP" },
@@ -60,7 +89,10 @@ const regimesReformaOpcoes = [
 ];
 
 const money = (value) =>
-  Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 
 const percent = (value) =>
   `${(Number(value || 0) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
@@ -81,17 +113,42 @@ const alertaFiscalLabel = {
   acima_teto: "Acima do teto",
 };
 
-const regimeLegadoParaReforma = (regime) => ({
-  mei: "MEI",
-  simples_nacional: "SN",
-  lucro_presumido: "LP",
-  lucro_real: "LR",
-}[regime] || "LP");
+const regimeLegadoParaReforma = (regime) =>
+  ({
+    mei: "MEI",
+    simples_nacional: "SN",
+    lucro_presumido: "LP",
+    lucro_real: "LR",
+  })[regime] || "LP";
 
 const normalizeConfigForm = (data) => ({
   ...(data || {}),
-  data_abertura_simples: data?.data_abertura_simples ? dayjs(data.data_abertura_simples) : null,
+  data_abertura_simples: data?.data_abertura_simples
+    ? dayjs(data.data_abertura_simples)
+    : null,
 });
+
+const tabelaPadraoPorAnexo = (anexo) => {
+  if (anexo === "anexo_iv") {
+    return [
+      { limite: "180000.00", aliquota: "4.50", deduzir: "0.00" },
+      { limite: "360000.00", aliquota: "9.00", deduzir: "8100.00" },
+      { limite: "720000.00", aliquota: "10.20", deduzir: "12420.00" },
+      { limite: "1800000.00", aliquota: "14.00", deduzir: "39780.00" },
+      { limite: "3600000.00", aliquota: "22.00", deduzir: "183780.00" },
+      { limite: "4800000.00", aliquota: "33.00", deduzir: "828000.00" },
+    ];
+  }
+
+  return [
+    { limite: "180000.00", aliquota: "6.00", deduzir: "0.00" },
+    { limite: "360000.00", aliquota: "11.20", deduzir: "9360.00" },
+    { limite: "720000.00", aliquota: "13.50", deduzir: "17640.00" },
+    { limite: "1800000.00", aliquota: "16.00", deduzir: "35640.00" },
+    { limite: "3600000.00", aliquota: "21.00", deduzir: "125640.00" },
+    { limite: "4800000.00", aliquota: "33.00", deduzir: "648000.00" },
+  ];
+};
 
 export default function FiscalPage() {
   const [loading, setLoading] = useState(true);
@@ -101,9 +158,14 @@ export default function FiscalPage() {
   const [form] = Form.useForm();
   const [reformaForm] = Form.useForm();
   const [simplesForm] = Form.useForm();
+  const [regraSimplesForm] = Form.useForm();
+  const [simulacaoForm] = Form.useForm();
   const [calculo, setCalculo] = useState(null);
   const [impostos, setImpostos] = useState([]);
-  const [valores, setValores] = useState({ valor_servicos: 0, valor_materiais: 0 });
+  const [valores, setValores] = useState({
+    valor_servicos: 0,
+    valor_materiais: 0,
+  });
   const [regrasReforma, setRegrasReforma] = useState([]);
   const [reformaResultado, setReformaResultado] = useState(null);
   const [calculandoReforma, setCalculandoReforma] = useState(false);
@@ -113,13 +175,23 @@ export default function FiscalPage() {
   const [simplesHistorico, setSimplesHistorico] = useState([]);
   const [faturamentosSimples, setFaturamentosSimples] = useState([]);
   const [previsaoSimples, setPrevisaoSimples] = useState([]);
-  const [cenarioPrevisao, setCenarioPrevisao] = useState({ meses: 6, crescimento_mensal: 0 });
+  const [regrasSimples, setRegrasSimples] = useState([]);
+  const [simulacoesSimples, setSimulacoesSimples] = useState([]);
+  const [simulacaoAtual, setSimulacaoAtual] = useState(null);
+  const [salvandoRegraSimples, setSalvandoRegraSimples] = useState(false);
+  const [simulandoSimples, setSimulandoSimples] = useState(false);
+  const [atualizandoStatusRegra, setAtualizandoStatusRegra] = useState(false);
+  const [cenarioPrevisao, setCenarioPrevisao] = useState({
+    meses: 6,
+    crescimento_mensal: 0,
+  });
 
   useEffect(() => {
     carregarConfig();
     carregarImpostos();
     carregarRegrasReforma();
     carregarPainelSimples();
+    carregarGovernancaSimples();
   }, []);
 
   const carregarConfig = async () => {
@@ -128,7 +200,9 @@ export default function FiscalPage() {
       setConfig(response.data);
       form.setFieldsValue(normalizeConfigForm(response.data));
       reformaForm.setFieldsValue({
-        regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
+        regime_emitente: regimeLegadoParaReforma(
+          response.data?.regime_tributario,
+        ),
         uf_destino: response.data?.uf || "",
         codigo_municipio: response.data?.codigo_municipio_ibge || "",
       });
@@ -176,6 +250,20 @@ export default function FiscalPage() {
     }
   };
 
+  const carregarGovernancaSimples = async () => {
+    try {
+      const [regras, simulacoes] = await Promise.all([
+        api.get("/fiscal/simples/regras/"),
+        api.get("/fiscal/simples/simulacoes/"),
+      ]);
+      setRegrasSimples(regras.data || []);
+      setSimulacoesSimples(simulacoes.data || []);
+    } catch {
+      setRegrasSimples([]);
+      setSimulacoesSimples([]);
+    }
+  };
+
   const salvarReceitaSimples = async (values) => {
     setSimplesLoading(true);
     try {
@@ -203,17 +291,82 @@ export default function FiscalPage() {
     await carregarPainelSimples(novoCenario);
   };
 
+  const salvarRegraSimples = async (values) => {
+    setSalvandoRegraSimples(true);
+    try {
+      const payload = {
+        nome: values.nome,
+        descricao: values.descricao || "",
+        anexo: values.anexo,
+        status: values.status,
+        tabela_faixas: tabelaPadraoPorAnexo(values.anexo),
+      };
+      await api.post("/fiscal/simples/regras/", payload);
+      regraSimplesForm.resetFields();
+      regraSimplesForm.setFieldsValue({
+        anexo: config?.anexo_simples || "anexo_iii",
+        status: "rascunho",
+      });
+      await carregarGovernancaSimples();
+      message.success("Versão de regra do Simples criada com sucesso.");
+    } catch {
+      message.error("Erro ao criar versão de regra do Simples.");
+    } finally {
+      setSalvandoRegraSimples(false);
+    }
+  };
+
+  const atualizarStatusRegraSimples = async (regra, status) => {
+    setAtualizandoStatusRegra(true);
+    try {
+      await api.patch(`/fiscal/simples/regras/${regra.id}/`, { status });
+      await carregarGovernancaSimples();
+      message.success("Status da versão atualizado.");
+    } catch {
+      message.error("Erro ao atualizar status da versão.");
+    } finally {
+      setAtualizandoStatusRegra(false);
+    }
+  };
+
+  const simularRegrasSimples = async (values) => {
+    setSimulandoSimples(true);
+    try {
+      const payload = {
+        competencia:
+          values.competencia?.format("YYYY-MM-01") || dayjs().format("YYYY-MM-01"),
+        receita_bruta: values.receita_bruta || 0,
+        origem: "manual",
+      };
+      if (values.regra_versao_id) {
+        payload.regra_versao_id = values.regra_versao_id;
+      }
+      const response = await api.post("/fiscal/simples/simular/", payload);
+      setSimulacaoAtual(response.data?.resultado || null);
+      await carregarGovernancaSimples();
+      message.success("Simulação fiscal registrada com auditoria.");
+    } catch (error) {
+      message.error(error.response?.data?.detail || "Erro ao simular regra do Simples.");
+    } finally {
+      setSimulandoSimples(false);
+    }
+  };
+
   const salvarConfig = async (values) => {
     setSalvando(true);
     try {
       const response = await api.patch("/fiscal/configuracao/", {
         ...values,
-        data_abertura_simples: values.data_abertura_simples?.format("YYYY-MM-DD") || values.data_abertura_simples,
+        data_abertura_simples:
+          values.data_abertura_simples?.format("YYYY-MM-DD") ||
+          values.data_abertura_simples,
       });
       setConfig(response.data);
       form.setFieldsValue(normalizeConfigForm(response.data));
       reformaForm.setFieldsValue({
-        regime_emitente: regimeLegadoParaReforma(response.data?.regime_tributario),
+        regime_emitente: regimeLegadoParaReforma(
+          response.data?.regime_tributario,
+        ),
         uf_destino: response.data?.uf || "",
         codigo_municipio: response.data?.codigo_municipio_ibge || "",
       });
@@ -232,13 +385,17 @@ export default function FiscalPage() {
     setSincronizandoCnpj(true);
     try {
       const cnpjAtual = form.getFieldValue("cnpj") || config?.cnpj;
-      const response = await api.post("/fiscal/sincronizar-cnpj-cadastrado/", { cnpj: cnpjAtual });
+      const response = await api.post("/fiscal/sincronizar-cnpj-cadastrado/", {
+        cnpj: cnpjAtual,
+      });
       const novaConfig = response.data?.configuracao;
       if (novaConfig) {
         setConfig(novaConfig);
         form.setFieldsValue(normalizeConfigForm(novaConfig));
         reformaForm.setFieldsValue({
-          regime_emitente: regimeLegadoParaReforma(novaConfig.regime_tributario),
+          regime_emitente: regimeLegadoParaReforma(
+            novaConfig.regime_tributario,
+          ),
           uf_destino: novaConfig.uf || "",
           codigo_municipio: novaConfig.codigo_municipio_ibge || "",
         });
@@ -246,7 +403,9 @@ export default function FiscalPage() {
       setReformaResultado(null);
       message.success("CNPJ sincronizado e motor fiscal atualizado.");
     } catch (error) {
-      message.error(error.response?.data?.detail || "Erro ao sincronizar CNPJ cadastrado.");
+      message.error(
+        error.response?.data?.detail || "Erro ao sincronizar CNPJ cadastrado.",
+      );
     } finally {
       setSincronizandoCnpj(false);
     }
@@ -268,10 +427,13 @@ export default function FiscalPage() {
         valor_servicos: values.valor_servicos || 0,
         valor_materiais: values.valor_materiais || 0,
         regime_emitente: values.regime_emitente,
-        data_emissao: values.data_emissao?.format("YYYY-MM-DD") || dayjs().format("YYYY-MM-DD"),
+        data_emissao:
+          values.data_emissao?.format("YYYY-MM-DD") ||
+          dayjs().format("YYYY-MM-DD"),
         ncm_ou_servico: values.ncm_ou_servico || "GERAL",
         uf_destino: values.uf_destino || config?.uf || "",
-        codigo_municipio: values.codigo_municipio || config?.codigo_municipio_ibge || "",
+        codigo_municipio:
+          values.codigo_municipio || config?.codigo_municipio_ibge || "",
         salvar_snapshot: Boolean(values.salvar_snapshot),
         referencia: values.referencia || "Simulação fiscal",
       };
@@ -316,17 +478,31 @@ export default function FiscalPage() {
             <FileProtectOutlined />
           </div>
           <div>
-            <Title level={2} style={{ margin: 0, color: colors.texto, fontSize: 24, fontWeight: 800 }}>
+            <Title
+              level={2}
+              style={{
+                margin: 0,
+                color: colors.texto,
+                fontSize: 24,
+                fontWeight: 800,
+              }}
+            >
               Fiscal
             </Title>
             <Text style={{ color: colors.textoSecundario }}>
-              Configuração tributária, calculadora de impostos e validação fiscal
+              Configuração tributária, calculadora de impostos e validação
+              fiscal
             </Text>
           </div>
         </Space>
       </Card>
 
-      <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }} loading={simplesLoading}>
+      <Card
+        bordered={false}
+        style={panelStyle}
+        bodyStyle={{ padding: 20 }}
+        loading={simplesLoading}
+      >
         <Space align="start" style={{ marginBottom: 18 }}>
           <div
             style={{
@@ -349,7 +525,8 @@ export default function FiscalPage() {
               Painel Simples Nacional
             </Title>
             <Text style={{ color: colors.textoSecundario }}>
-              Monitore faturamento mensal, RBT12, DAS estimado e previsão dos próximos meses
+              Monitore faturamento mensal, RBT12, DAS estimado e previsão dos
+              próximos meses
             </Text>
           </div>
         </Space>
@@ -366,26 +543,48 @@ export default function FiscalPage() {
           <Col xs={24} sm={12} lg={6}>
             <Card size="small" style={{ borderRadius: 12 }}>
               <Text type="secondary">RBT12 atual</Text>
-              <div style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}>{money(simplesAtual?.rbt12)}</div>
+              <div
+                style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}
+              >
+                {money(simplesAtual?.rbt12)}
+              </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card size="small" style={{ borderRadius: 12 }}>
               <Text type="secondary">DAS estimado do mês</Text>
-              <div style={{ fontSize: 22, fontWeight: 800, color: colors.azul }}>{money(simplesAtual?.das_estimado)}</div>
+              <div
+                style={{ fontSize: 22, fontWeight: 800, color: colors.azul }}
+              >
+                {money(simplesAtual?.das_estimado)}
+              </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card size="small" style={{ borderRadius: 12 }}>
               <Text type="secondary">Alíquota efetiva</Text>
-              <div style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}>{percent(simplesAtual?.aliquota_efetiva)}</div>
+              <div
+                style={{ fontSize: 22, fontWeight: 800, color: colors.texto }}
+              >
+                {percent(simplesAtual?.aliquota_efetiva)}
+              </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card size="small" style={{ borderRadius: 12 }}>
               <Text type="secondary">Faixa / teto usado</Text>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                <Tag color={alertaFiscalColor[simplesAtual?.alerta] || "default"} style={{ borderRadius: 999, fontWeight: 700 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 4,
+                }}
+              >
+                <Tag
+                  color={alertaFiscalColor[simplesAtual?.alerta] || "default"}
+                  style={{ borderRadius: 999, fontWeight: 700 }}
+                >
                   Faixa {simplesAtual?.faixa || "-"}
                 </Tag>
                 <Text strong>{percent(simplesAtual?.percentual_teto)}</Text>
@@ -396,21 +595,40 @@ export default function FiscalPage() {
 
         <Row gutter={[20, 20]}>
           <Col xs={24} lg={8}>
-            <Card size="small" style={{ borderRadius: 12 }} title="Lançar receita do mês">
+            <Card
+              size="small"
+              style={{ borderRadius: 12 }}
+              title="Lançar receita do mês"
+            >
               <Form
                 form={simplesForm}
                 layout="vertical"
                 initialValues={{ competencia: dayjs(), receita_bruta: 0 }}
                 onFinish={salvarReceitaSimples}
               >
-                <Form.Item label="Competência" name="competencia" rules={[{ required: true }]}>
-                  <DatePicker picker="month" format="MM/YYYY" style={{ width: "100%" }} />
+                <Form.Item
+                  label="Competência"
+                  name="competencia"
+                  rules={[{ required: true }]}
+                >
+                  <DatePicker
+                    picker="month"
+                    format="MM/YYYY"
+                    style={{ width: "100%" }}
+                  />
                 </Form.Item>
-                <Form.Item label="Receita bruta do mês" name="receita_bruta" rules={[{ required: true }]}>
+                <Form.Item
+                  label="Receita bruta do mês"
+                  name="receita_bruta"
+                  rules={[{ required: true }]}
+                >
                   <InputNumber min={0} step={100} style={{ width: "100%" }} />
                 </Form.Item>
                 <Form.Item label="Observações" name="observacoes">
-                  <Input.TextArea rows={2} placeholder="Ex.: valor conferido com NFS-e / contador" />
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="Ex.: valor conferido com NFS-e / contador"
+                  />
                 </Form.Item>
                 <Button type="primary" htmlType="submit" style={btnStyle} block>
                   Salvar e recalcular
@@ -420,7 +638,11 @@ export default function FiscalPage() {
           </Col>
 
           <Col xs={24} lg={16}>
-            <Card size="small" style={{ borderRadius: 12 }} title="Previsão futura">
+            <Card
+              size="small"
+              style={{ borderRadius: 12 }}
+              title="Previsão futura"
+            >
               <Form
                 layout="inline"
                 initialValues={cenarioPrevisao}
@@ -430,11 +652,16 @@ export default function FiscalPage() {
                 <Form.Item label="Meses" name="meses">
                   <InputNumber min={1} max={24} />
                 </Form.Item>
-                <Form.Item label="Crescimento mensal (%)" name="crescimento_mensal">
+                <Form.Item
+                  label="Crescimento mensal (%)"
+                  name="crescimento_mensal"
+                >
                   <InputNumber min={-100} max={100} step={0.5} />
                 </Form.Item>
                 <Form.Item>
-                  <Button htmlType="submit" style={btnStyle}>Atualizar previsão</Button>
+                  <Button htmlType="submit" style={btnStyle}>
+                    Atualizar previsão
+                  </Button>
                 </Form.Item>
               </Form>
               <Table
@@ -444,12 +671,36 @@ export default function FiscalPage() {
                 pagination={false}
                 scroll={{ x: 900 }}
                 columns={[
-                  { title: "Mês", dataIndex: "competencia", render: (v) => dayjs(v).format("MM/YYYY") },
-                  { title: "Receita prevista", dataIndex: "receita_prevista", render: money },
+                  {
+                    title: "Mês",
+                    dataIndex: "competencia",
+                    render: (v) => dayjs(v).format("MM/YYYY"),
+                  },
+                  {
+                    title: "Receita prevista",
+                    dataIndex: "receita_prevista",
+                    render: money,
+                  },
                   { title: "RBT12", dataIndex: "rbt12", render: money },
-                  { title: "Alíquota efetiva", dataIndex: "aliquota_efetiva", render: percent },
-                  { title: "DAS previsto", dataIndex: "das_estimado", render: (v) => <Text strong>{money(v)}</Text> },
-                  { title: "Alerta", dataIndex: "alerta", render: (v) => <Tag color={alertaFiscalColor[v] || "default"}>{alertaFiscalLabel[v] || v}</Tag> },
+                  {
+                    title: "Alíquota efetiva",
+                    dataIndex: "aliquota_efetiva",
+                    render: percent,
+                  },
+                  {
+                    title: "DAS previsto",
+                    dataIndex: "das_estimado",
+                    render: (v) => <Text strong>{money(v)}</Text>,
+                  },
+                  {
+                    title: "Alerta",
+                    dataIndex: "alerta",
+                    render: (v) => (
+                      <Tag color={alertaFiscalColor[v] || "default"}>
+                        {alertaFiscalLabel[v] || v}
+                      </Tag>
+                    ),
+                  },
                 ]}
               />
             </Card>
@@ -465,9 +716,21 @@ export default function FiscalPage() {
               dataSource={faturamentosSimples}
               pagination={{ pageSize: 6 }}
               columns={[
-                { title: "Competência", dataIndex: "competencia", render: (v) => dayjs(v).format("MM/YYYY") },
-                { title: "Receita bruta", dataIndex: "receita_bruta", render: money },
-                { title: "Origem", dataIndex: "origem", render: (v) => <Tag>{v}</Tag> },
+                {
+                  title: "Competência",
+                  dataIndex: "competencia",
+                  render: (v) => dayjs(v).format("MM/YYYY"),
+                },
+                {
+                  title: "Receita bruta",
+                  dataIndex: "receita_bruta",
+                  render: money,
+                },
+                {
+                  title: "Origem",
+                  dataIndex: "origem",
+                  render: (v) => <Tag>{v}</Tag>,
+                },
               ]}
             />
           </Col>
@@ -479,12 +742,217 @@ export default function FiscalPage() {
               dataSource={simplesHistorico}
               pagination={{ pageSize: 6 }}
               columns={[
-                { title: "Competência", dataIndex: "competencia", render: (v) => dayjs(v).format("MM/YYYY") },
+                {
+                  title: "Competência",
+                  dataIndex: "competencia",
+                  render: (v) => dayjs(v).format("MM/YYYY"),
+                },
                 { title: "RBT12", dataIndex: "rbt12", render: money },
                 { title: "DAS", dataIndex: "das_estimado", render: money },
-                { title: "Alerta", dataIndex: "alerta", render: (v) => <Tag color={alertaFiscalColor[v] || "default"}>{alertaFiscalLabel[v] || v}</Tag> },
+                {
+                  title: "Alerta",
+                  dataIndex: "alerta",
+                  render: (v) => (
+                    <Tag color={alertaFiscalColor[v] || "default"}>
+                      {alertaFiscalLabel[v] || v}
+                    </Tag>
+                  ),
+                },
               ]}
             />
+          </Col>
+        </Row>
+
+        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+          <Col xs={24} lg={12}>
+            <Card
+              size="small"
+              style={{ borderRadius: 12 }}
+              title="Versões de regras do Simples"
+            >
+              <Form
+                form={regraSimplesForm}
+                layout="vertical"
+                initialValues={{
+                  anexo: config?.anexo_simples || "anexo_iii",
+                  status: "rascunho",
+                }}
+                onFinish={salvarRegraSimples}
+              >
+                <Form.Item
+                  label="Nome da versão"
+                  name="nome"
+                  rules={[{ required: true, message: "Informe um nome" }]}
+                >
+                  <Input placeholder="Ex.: Regra municipal julho/2026" />
+                </Form.Item>
+                <Row gutter={12}>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label="Anexo" name="anexo" rules={[{ required: true }]}>
+                      <Select options={anexoSimplesOpcoes} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label="Status" name="status" rules={[{ required: true }]}>
+                      <Select options={statusRegraOpcoes} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Form.Item label="Descrição" name="descricao">
+                  <Input.TextArea rows={2} placeholder="Escopo e observações da versão" />
+                </Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  style={btnStyle}
+                  loading={salvandoRegraSimples}
+                  block
+                >
+                  Criar versão
+                </Button>
+              </Form>
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Table
+                size="small"
+                rowKey="id"
+                dataSource={regrasSimples}
+                pagination={{ pageSize: 5 }}
+                locale={{ emptyText: "Nenhuma regra criada" }}
+                columns={[
+                  { title: "Nome", dataIndex: "nome" },
+                  {
+                    title: "Anexo",
+                    dataIndex: "anexo",
+                    render: (v) =>
+                      anexoSimplesOpcoes.find((item) => item.value === v)?.label || v,
+                  },
+                  {
+                    title: "Status",
+                    dataIndex: "status",
+                    render: (v, row) => (
+                      <Space>
+                        <Tag
+                          color={
+                            v === "ativa" ? "green" : v === "arquivada" ? "default" : "gold"
+                          }
+                        >
+                          {statusRegraOpcoes.find((item) => item.value === v)?.label || v}
+                        </Tag>
+                        {v !== "ativa" && (
+                          <Button
+                            size="small"
+                            onClick={() => atualizarStatusRegraSimples(row, "ativa")}
+                            loading={atualizandoStatusRegra}
+                          >
+                            Ativar
+                          </Button>
+                        )}
+                      </Space>
+                    ),
+                  },
+                  {
+                    title: "Criada em",
+                    dataIndex: "criado_em",
+                    render: (v) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—"),
+                  },
+                ]}
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} lg={12}>
+            <Card
+              size="small"
+              style={{ borderRadius: 12 }}
+              title="Simulação auditável por versão"
+            >
+              <Form
+                form={simulacaoForm}
+                layout="vertical"
+                initialValues={{
+                  competencia: dayjs(),
+                  receita_bruta: simplesAtual?.receita_mes || 0,
+                }}
+                onFinish={simularRegrasSimples}
+              >
+                <Row gutter={12}>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label="Competência" name="competencia" rules={[{ required: true }]}>
+                      <DatePicker picker="month" format="MM/YYYY" style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Form.Item label="Receita bruta" name="receita_bruta" rules={[{ required: true }]}>
+                      <InputNumber min={0} step={100} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Form.Item label="Versão de regra (opcional)" name="regra_versao_id">
+                  <Select
+                    allowClear
+                    placeholder="Usar regra padrão do ERP"
+                    options={regrasSimples.map((item) => ({
+                      label: `${item.nome} (${statusRegraOpcoes.find((o) => o.value === item.status)?.label || item.status})`,
+                      value: item.id,
+                    }))}
+                  />
+                </Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  style={btnStyle}
+                  loading={simulandoSimples}
+                  block
+                >
+                  Simular e auditar
+                </Button>
+              </Form>
+
+              {simulacaoAtual && (
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ borderRadius: 12, marginTop: 16 }}
+                  message={`Resultado: DAS ${money(simulacaoAtual.das_estimado)} | Faixa ${simulacaoAtual.faixa}`}
+                  description={`Regra aplicada: ${simulacaoAtual.regra_aplicada?.nome || "regra_padrao_erp"} | Alerta: ${alertaFiscalLabel[simulacaoAtual.alerta] || simulacaoAtual.alerta}`}
+                />
+              )}
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Table
+                size="small"
+                rowKey="id"
+                dataSource={simulacoesSimples}
+                pagination={{ pageSize: 5 }}
+                scroll={{ x: 760 }}
+                locale={{ emptyText: "Nenhuma simulação auditada" }}
+                columns={[
+                  {
+                    title: "Competência",
+                    dataIndex: "competencia",
+                    render: (v) => dayjs(v).format("MM/YYYY"),
+                  },
+                  {
+                    title: "Regra",
+                    dataIndex: "regra_nome",
+                    render: (v) => v || "regra_padrao_erp",
+                  },
+                  {
+                    title: "Origem",
+                    dataIndex: "origem",
+                    render: (v) => <Tag>{v}</Tag>,
+                  },
+                  {
+                    title: "Criada em",
+                    dataIndex: "criado_em",
+                    render: (v) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—"),
+                  },
+                ]}
+              />
+            </Card>
           </Col>
         </Row>
       </Card>
@@ -492,15 +960,31 @@ export default function FiscalPage() {
       <Row gutter={[20, 20]}>
         <Col xs={24} lg={12}>
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                marginBottom: 16,
+                flexWrap: "wrap",
+              }}
+            >
               <Title level={4} style={{ margin: 0, color: colors.texto }}>
                 Configuração Fiscal
               </Title>
               <Space wrap>
-                <Button onClick={sincronizarCnpjCadastrado} loading={sincronizandoCnpj} style={btnStyle}>
+                <Button
+                  onClick={sincronizarCnpjCadastrado}
+                  loading={sincronizandoCnpj}
+                  style={btnStyle}
+                >
                   Sincronizar CNPJ
                 </Button>
-                <Button type="primary" onClick={() => setEditando(!editando)} style={btnStyle}>
+                <Button
+                  type="primary"
+                  onClick={() => setEditando(!editando)}
+                  style={btnStyle}
+                >
                   {editando ? "Cancelar" : "Editar"}
                 </Button>
               </Space>
@@ -514,7 +998,10 @@ export default function FiscalPage() {
               onValuesChange={(changedValues, allValues) => {
                 setConfig((current) => ({ ...(current || {}), ...allValues }));
                 if (changedValues.regime_tributario) {
-                  reformaForm.setFieldValue("regime_emitente", regimeLegadoParaReforma(changedValues.regime_tributario));
+                  reformaForm.setFieldValue(
+                    "regime_emitente",
+                    regimeLegadoParaReforma(changedValues.regime_tributario),
+                  );
                   setReformaResultado(null);
                 }
               }}
@@ -529,7 +1016,10 @@ export default function FiscalPage() {
 
               <Row gutter={12}>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Data de abertura no Simples" name="data_abertura_simples">
+                  <Form.Item
+                    label="Data de abertura no Simples"
+                    name="data_abertura_simples"
+                  >
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
@@ -562,7 +1052,12 @@ export default function FiscalPage() {
               </Row>
 
               <Form.Item label="ISS Alíquota (%)" name="aliquota_iss">
-                <InputNumber min={0} max={100} step={0.01} style={{ width: "100%" }} />
+                <InputNumber
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  style={{ width: "100%" }}
+                />
               </Form.Item>
 
               <Form.Item label="Código LC 116" name="codigo_servico_lc116">
@@ -570,7 +1065,13 @@ export default function FiscalPage() {
               </Form.Item>
 
               {editando && (
-                <Button type="primary" htmlType="submit" style={btnStyle} loading={salvando} block>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  style={btnStyle}
+                  loading={salvando}
+                  block
+                >
                   Salvar
                 </Button>
               )}
@@ -581,7 +1082,9 @@ export default function FiscalPage() {
         <Col xs={24} lg={12}>
           <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
             <Title level={4} style={{ marginTop: 0, color: colors.texto }}>
-              <CalculatorOutlined style={{ marginRight: 8, color: colors.azul }} />
+              <CalculatorOutlined
+                style={{ marginRight: 8, color: colors.azul }}
+              />
               Calculadora de Impostos
             </Title>
 
@@ -595,24 +1098,77 @@ export default function FiscalPage() {
               />
               <Row gutter={12}>
                 <Col xs={24} sm={12}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.04em" }}>Valor Serviços</span>
-                  <InputNumber value={valores.valor_servicos} onChange={(v) => setValores((s) => ({ ...s, valor_servicos: v || 0 }))} min={0} style={{ width: "100%", marginTop: 4 }} />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: colors.textoFraco,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Valor Serviços
+                  </span>
+                  <InputNumber
+                    value={valores.valor_servicos}
+                    onChange={(v) =>
+                      setValores((s) => ({ ...s, valor_servicos: v || 0 }))
+                    }
+                    min={0}
+                    style={{ width: "100%", marginTop: 4 }}
+                  />
                 </Col>
                 <Col xs={24} sm={12}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.textoFraco, textTransform: "uppercase", letterSpacing: "0.04em" }}>Valor Materiais</span>
-                  <InputNumber value={valores.valor_materiais} onChange={(v) => setValores((s) => ({ ...s, valor_materiais: v || 0 }))} min={0} style={{ width: "100%", marginTop: 4 }} />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: colors.textoFraco,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Valor Materiais
+                  </span>
+                  <InputNumber
+                    value={valores.valor_materiais}
+                    onChange={(v) =>
+                      setValores((s) => ({ ...s, valor_materiais: v || 0 }))
+                    }
+                    min={0}
+                    style={{ width: "100%", marginTop: 4 }}
+                  />
                 </Col>
               </Row>
 
-              <Button type="primary" onClick={calcularImpostos} style={btnStyle} block>
+              <Button
+                type="primary"
+                onClick={calcularImpostos}
+                style={btnStyle}
+                block
+              >
                 Calcular
               </Button>
 
               {calculo && (
-                <div style={{ background: colors.fundoSuave, border: `1px solid ${colors.borda}`, padding: 16, borderRadius: 12 }}>
+                <div
+                  style={{
+                    background: colors.fundoSuave,
+                    border: `1px solid ${colors.borda}`,
+                    padding: 16,
+                    borderRadius: 12,
+                  }}
+                >
                   <div style={{ marginBottom: 8 }}>
-                    <Text strong style={{ color: colors.texto }}>Regime:</Text>{" "}
-                    <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600 }}>{calculo.regime}</Tag>
+                    <Text strong style={{ color: colors.texto }}>
+                      Regime:
+                    </Text>{" "}
+                    <Tag
+                      color="blue"
+                      style={{ borderRadius: 999, fontWeight: 600 }}
+                    >
+                      {calculo.regime}
+                    </Tag>
                   </div>
                   {calculo.perfil_regime && (
                     <Alert
@@ -623,10 +1179,28 @@ export default function FiscalPage() {
                       description={`${calculo.perfil_regime.modelo_apuracao} — ${calculo.perfil_regime.calculo_nota}`}
                     />
                   )}
+                  {calculo.motor_fiscal?.simples_apuracao && (
+                    <SimplesApuracaoResumo
+                      apuracao={calculo.motor_fiscal.simples_apuracao}
+                      style={{ marginBottom: 10 }}
+                    />
+                  )}
                   <Divider style={{ margin: "8px 0" }} />
-                  <div style={{ fontSize: 13, color: colors.textoSecundario, display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div>Subtotal Serviços: {money(calculo.subtotal_servicos)}</div>
-                    <div>Subtotal Materiais: {money(calculo.subtotal_materiais)}</div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: colors.textoSecundario,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <div>
+                      Subtotal Serviços: {money(calculo.subtotal_servicos)}
+                    </div>
+                    <div>
+                      Subtotal Materiais: {money(calculo.subtotal_materiais)}
+                    </div>
                     <div>Subtotal: {money(calculo.subtotal)}</div>
                     <Divider style={{ margin: "8px 0" }} />
                     <div>ISS: {money(calculo.iss)}</div>
@@ -638,10 +1212,22 @@ export default function FiscalPage() {
                       <div>DAS estimado: {calculo.aliquotas.das}%</div>
                     )}
                     <Divider style={{ margin: "8px 0" }} />
-                    <div style={{ fontWeight: 700, color: colors.azul, fontSize: 14 }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: colors.azul,
+                        fontSize: 14,
+                      }}
+                    >
                       Total Impostos: {money(calculo.total_impostos)}
                     </div>
-                    <div style={{ fontWeight: 700, color: colors.azul, fontSize: 16 }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: colors.azul,
+                        fontSize: 16,
+                      }}
+                    >
                       Total Geral: {money(calculo.total_geral)}
                     </div>
                   </div>
@@ -675,7 +1261,8 @@ export default function FiscalPage() {
               Motor Reforma Tributária 2026-2033
             </Title>
             <Text style={{ color: colors.textoSecundario }}>
-              Simule CBS/IBS, veja obrigatoriedade por regime e confira as regras versionadas.
+              Simule CBS/IBS, veja obrigatoriedade por regime e confira as
+              regras versionadas.
             </Text>
           </div>
         </Space>
@@ -695,7 +1282,9 @@ export default function FiscalPage() {
               layout="vertical"
               initialValues={{
                 data_emissao: dayjs("2026-08-03"),
-                regime_emitente: regimeLegadoParaReforma(config?.regime_tributario),
+                regime_emitente: regimeLegadoParaReforma(
+                  config?.regime_tributario,
+                ),
                 valor_servicos: 1000,
                 valor_materiais: 0,
                 ncm_ou_servico: "GERAL",
@@ -706,12 +1295,20 @@ export default function FiscalPage() {
             >
               <Row gutter={12}>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Data da operação" name="data_emissao" rules={[{ required: true }]}>
+                  <Form.Item
+                    label="Data da operação"
+                    name="data_emissao"
+                    rules={[{ required: true }]}
+                  >
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item label="Regime emitente" name="regime_emitente" rules={[{ required: true }]}>
+                  <Form.Item
+                    label="Regime emitente"
+                    name="regime_emitente"
+                    rules={[{ required: true }]}
+                  >
                     <Select options={regimesReformaOpcoes} />
                   </Form.Item>
                 </Col>
@@ -720,12 +1317,20 @@ export default function FiscalPage() {
               <Row gutter={12}>
                 <Col xs={24} sm={12}>
                   <Form.Item label="Valor serviços" name="valor_servicos">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item label="Valor materiais" name="valor_materiais">
-                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} />
+                    <InputNumber
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                    />
                   </Form.Item>
                 </Col>
               </Row>
@@ -747,7 +1352,13 @@ export default function FiscalPage() {
                 <Input placeholder="Opcional" />
               </Form.Item>
 
-              <Button type="primary" htmlType="submit" loading={calculandoReforma} style={btnStyle} block>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={calculandoReforma}
+                style={btnStyle}
+                block
+              >
                 Calcular CBS/IBS
               </Button>
             </Form>
@@ -755,26 +1366,53 @@ export default function FiscalPage() {
 
           <Col xs={24} lg={14}>
             {reformaResultado ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
                 <Row gutter={[12, 12]}>
                   <Col xs={24} md={8}>
                     <Card size="small" style={{ borderRadius: 12 }}>
                       <Text type="secondary">Base cálculo</Text>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: colors.texto }}>{money(reformaResultado.base_calculo)}</div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 800,
+                          color: colors.texto,
+                        }}
+                      >
+                        {money(reformaResultado.base_calculo)}
+                      </div>
                     </Card>
                   </Col>
                   <Col xs={24} md={8}>
                     <Card size="small" style={{ borderRadius: 12 }}>
                       <Text type="secondary">Total tributos</Text>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: colors.azul }}>{money(reformaResultado.total_tributos)}</div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 800,
+                          color: colors.azul,
+                        }}
+                      >
+                        {money(reformaResultado.total_tributos)}
+                      </div>
                     </Card>
                   </Col>
                   <Col xs={24} md={8}>
                     <Card size="small" style={{ borderRadius: 12 }}>
                       <Text type="secondary">Obrigatório produção</Text>
                       <div>
-                        <Tag color={reformaResultado.ibs_cbs?.obrigatorio_em_producao ? "red" : "blue"} style={{ borderRadius: 999, fontWeight: 700 }}>
-                          {reformaResultado.ibs_cbs?.obrigatorio_em_producao ? "Sim" : "Ainda não"}
+                        <Tag
+                          color={
+                            reformaResultado.ibs_cbs?.obrigatorio_em_producao
+                              ? "red"
+                              : "blue"
+                          }
+                          style={{ borderRadius: 999, fontWeight: 700 }}
+                        >
+                          {reformaResultado.ibs_cbs?.obrigatorio_em_producao
+                            ? "Sim"
+                            : "Ainda não"}
                         </Tag>
                       </div>
                     </Card>
@@ -782,13 +1420,32 @@ export default function FiscalPage() {
                 </Row>
 
                 <Space wrap>
-                  <Tag color={reformaResultado.ibs_cbs?.destacar ? "green" : "default"} style={{ borderRadius: 999, fontWeight: 700 }}>
-                    {reformaResultado.ibs_cbs?.destacar ? "Destacar IBS/CBS" : "Não destacar IBS/CBS"}
+                  <Tag
+                    color={
+                      reformaResultado.ibs_cbs?.destacar ? "green" : "default"
+                    }
+                    style={{ borderRadius: 999, fontWeight: 700 }}
+                  >
+                    {reformaResultado.ibs_cbs?.destacar
+                      ? "Destacar IBS/CBS"
+                      : "Não destacar IBS/CBS"}
                   </Tag>
-                  <Tag color={reformaResultado.ibs_cbs?.carater_informativo ? "gold" : "blue"} style={{ borderRadius: 999, fontWeight: 700 }}>
-                    {reformaResultado.ibs_cbs?.carater_informativo ? "Caráter informativo" : "Cobrança efetiva"}
+                  <Tag
+                    color={
+                      reformaResultado.ibs_cbs?.carater_informativo
+                        ? "gold"
+                        : "blue"
+                    }
+                    style={{ borderRadius: 999, fontWeight: 700 }}
+                  >
+                    {reformaResultado.ibs_cbs?.carater_informativo
+                      ? "Caráter informativo"
+                      : "Cobrança efetiva"}
                   </Tag>
-                  <Tag color="purple" style={{ borderRadius: 999, fontWeight: 700 }}>
+                  <Tag
+                    color="purple"
+                    style={{ borderRadius: 999, fontWeight: 700 }}
+                  >
                     Motor {reformaResultado.versao_motor}
                   </Tag>
                 </Space>
@@ -801,15 +1458,41 @@ export default function FiscalPage() {
                   columns={[
                     { title: "Tributo", dataIndex: "codigo", width: 90 },
                     { title: "Base", dataIndex: "base", render: money },
-                    { title: "Alíquota", dataIndex: "aliquota", render: (v) => `${v}%` },
-                    { title: "Valor", dataIndex: "valor", render: (v) => <Text strong>{money(v)}</Text> },
-                    { title: "Fonte", dataIndex: "fonte_normativa", ellipsis: true, render: (v, row) => v || row.observacao || "—" },
+                    {
+                      title: "Alíquota",
+                      dataIndex: "aliquota",
+                      render: (v) => `${v}%`,
+                    },
+                    {
+                      title: "Valor",
+                      dataIndex: "valor",
+                      render: (v) => <Text strong>{money(v)}</Text>,
+                    },
+                    {
+                      title: "Fonte",
+                      dataIndex: "fonte_normativa",
+                      ellipsis: true,
+                      render: (v, row) => v || row.observacao || "—",
+                    },
                   ]}
                 />
               </div>
             ) : (
-              <div style={{ minHeight: 260, border: `1px dashed ${colors.borda}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: colors.textoFraco, textAlign: "center", padding: 24 }}>
-                Preencha a simulação para ver CBS, IBS, obrigatoriedade e caráter informativo.
+              <div
+                style={{
+                  minHeight: 260,
+                  border: `1px dashed ${colors.borda}`,
+                  borderRadius: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: colors.textoFraco,
+                  textAlign: "center",
+                  padding: 24,
+                }}
+              >
+                Preencha a simulação para ver CBS, IBS, obrigatoriedade e
+                caráter informativo.
               </div>
             )}
           </Col>
@@ -828,19 +1511,55 @@ export default function FiscalPage() {
           locale={{ emptyText: "Nenhuma regra fiscal versionada cadastrada" }}
           columns={[
             { title: "Tributo", dataIndex: "codigo_tributo", width: 100 },
-            { title: "Escopo", dataIndex: "ncm_ou_servico", render: (v, row) => [v, row.uf_municipio, row.regime_tributario].filter(Boolean).join(" · ") || "GERAL" },
-            { title: "Alíquota", dataIndex: "aliquota", render: (v) => `${v}%` },
-            { title: "Vigência início", dataIndex: "vigencia_inicio", render: (v) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
-            { title: "Vigência fim", dataIndex: "vigencia_fim", render: (v) => v ? dayjs(v).format("DD/MM/YYYY") : <Tag color="green">Vigente</Tag> },
-            { title: "Fonte normativa", dataIndex: "fonte_normativa", ellipsis: true },
+            {
+              title: "Escopo",
+              dataIndex: "ncm_ou_servico",
+              render: (v, row) =>
+                [v, row.uf_municipio, row.regime_tributario]
+                  .filter(Boolean)
+                  .join(" · ") || "GERAL",
+            },
+            {
+              title: "Alíquota",
+              dataIndex: "aliquota",
+              render: (v) => `${v}%`,
+            },
+            {
+              title: "Vigência início",
+              dataIndex: "vigencia_inicio",
+              render: (v) => (v ? dayjs(v).format("DD/MM/YYYY") : "—"),
+            },
+            {
+              title: "Vigência fim",
+              dataIndex: "vigencia_fim",
+              render: (v) =>
+                v ? (
+                  dayjs(v).format("DD/MM/YYYY")
+                ) : (
+                  <Tag color="green">Vigente</Tag>
+                ),
+            },
+            {
+              title: "Fonte normativa",
+              dataIndex: "fonte_normativa",
+              ellipsis: true,
+            },
           ]}
         />
       </Card>
 
       {config?.regime_tributario === "lucro_presumido" && (
         <Card bordered={false} style={panelStyle} bodyStyle={{ padding: 20 }}>
-          <Title level={4} style={{ color: colors.texto }}>Tabela de Impostos - Lucro Presumido</Title>
-          <div style={{ border: `1px solid ${colors.borda}`, borderRadius: 12, overflow: "hidden" }}>
+          <Title level={4} style={{ color: colors.texto }}>
+            Tabela de Impostos - Lucro Presumido
+          </Title>
+          <div
+            style={{
+              border: `1px solid ${colors.borda}`,
+              borderRadius: 12,
+              overflow: "hidden",
+            }}
+          >
             <Table
               dataSource={impostos}
               rowKey="id"
@@ -848,9 +1567,21 @@ export default function FiscalPage() {
               columns={[
                 { title: "Descrição", dataIndex: "descricao" },
                 { title: "PIS", dataIndex: "pis", render: (v) => `${v}%` },
-                { title: "COFINS", dataIndex: "cofins", render: (v) => `${v}%` },
-                { title: "IRPJ Serviços", dataIndex: "irpj_servicos", render: (v) => `${v}%` },
-                { title: "CSLL Serviços", dataIndex: "csll_servicos", render: (v) => `${v}%` },
+                {
+                  title: "COFINS",
+                  dataIndex: "cofins",
+                  render: (v) => `${v}%`,
+                },
+                {
+                  title: "IRPJ Serviços",
+                  dataIndex: "irpj_servicos",
+                  render: (v) => `${v}%`,
+                },
+                {
+                  title: "CSLL Serviços",
+                  dataIndex: "csll_servicos",
+                  render: (v) => `${v}%`,
+                },
               ]}
               pagination={false}
             />
@@ -858,7 +1589,7 @@ export default function FiscalPage() {
         </Card>
       )}
 
-      <GuiaLucroPresumido
+      <GuiaFiscalRegime
         config={config || {}}
         valorReferencia={valores.valor_servicos || 10000}
       />

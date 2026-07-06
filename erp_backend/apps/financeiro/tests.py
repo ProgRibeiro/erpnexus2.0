@@ -8,9 +8,11 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django_tenants.utils import schema_context
 
 from apps.clientes.models import Cliente
 from apps.ordens.models import OrdemServico, DespesaOS
+from apps.tenants.models import Client as Tenant
 
 from .models import Lancamento, ContaBancaria, CategoriaFinanceira
 from .tasks import atualizar_lancamentos_vencidos, recalcular_saldo_conta
@@ -23,16 +25,25 @@ class FinanceiroSignalTests(TestCase):
 
     def setUp(self):
         """Configuração inicial para os testes."""
+        self.tenant = Tenant.objects.create(
+            schema_name="fin_teste",
+            nome="Tenant Financeiro Teste",
+            tipo_produto="erp",
+        )
+        self._schema_ctx = schema_context(self.tenant.schema_name)
+        self._schema_ctx.__enter__()
+        self.addCleanup(self._schema_ctx.__exit__, None, None, None)
+
         # Criar usuário
         self.usuario = User.objects.create_user(
-            username="teste@test.com",
+            email="teste@test.com",
             password="senha123"
         )
 
         # Criar cliente
         self.cliente = Cliente.objects.create(
             nome="Cliente Teste",
-            cnpj="12.345.678/0001-00",
+            cnpj_cpf="12.345.678/0001-00",
             email="cliente@test.com",
         )
 
@@ -209,8 +220,17 @@ class FinanceiroCeleryTests(TestCase):
 
     def setUp(self):
         """Configuração inicial para os testes."""
+        self.tenant = Tenant.objects.create(
+            schema_name="fin_celery_teste",
+            nome="Tenant Financeiro Celery Teste",
+            tipo_produto="erp",
+        )
+        self._schema_ctx = schema_context(self.tenant.schema_name)
+        self._schema_ctx.__enter__()
+        self.addCleanup(self._schema_ctx.__exit__, None, None, None)
+
         self.usuario = User.objects.create_user(
-            username="teste@test.com",
+            email="teste@test.com",
             password="senha123"
         )
 

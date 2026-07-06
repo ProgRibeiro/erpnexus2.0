@@ -1,0 +1,301 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]:
+            - generic [ref=e8]: "N"
+            - generic [ref=e9]:
+              - heading "ERP Nexus" [level=2] [ref=e10]
+              - paragraph [ref=e11]: Prestador de serviços
+          - generic [ref=e12]: Ambiente local
+        - menu [ref=e15]:
+          - text: PRINCIPAL
+          - group [ref=e16]:
+            - menuitem "dashboard Dashboard" [ref=e17] [cursor=pointer]:
+              - img "dashboard" [ref=e18]:
+                - img [ref=e19]
+              - generic [ref=e21]: Dashboard
+          - text: OPERAÇÕES
+          - group [ref=e22]:
+            - menuitem "file-text Orçamentos" [ref=e23] [cursor=pointer]:
+              - img "file-text" [ref=e24]:
+                - img [ref=e25]
+              - generic [ref=e27]: Orçamentos
+            - menuitem "thunderbolt Orçamento Inteligente" [ref=e28] [cursor=pointer]:
+              - img "thunderbolt" [ref=e29]:
+                - img [ref=e30]
+              - generic [ref=e32]: Orçamento Inteligente
+            - menuitem "file-protect Contratos Preventiva" [ref=e33] [cursor=pointer]:
+              - img "file-protect" [ref=e34]:
+                - img [ref=e35]
+              - generic [ref=e37]: Contratos Preventiva
+            - menuitem "file-text Ordens de Serviço" [ref=e38] [cursor=pointer]:
+              - img "file-text" [ref=e39]:
+                - img [ref=e40]
+              - generic [ref=e42]: Ordens de Serviço
+            - menuitem "team Clientes" [ref=e43] [cursor=pointer]:
+              - img "team" [ref=e44]:
+                - img [ref=e45]
+              - generic [ref=e47]: Clientes
+            - menuitem "calendar Agenda" [ref=e48] [cursor=pointer]:
+              - img "calendar" [ref=e49]:
+                - img [ref=e50]
+              - generic [ref=e52]: Agenda
+            - menuitem "tool Serviços" [ref=e53] [cursor=pointer]:
+              - img "tool" [ref=e54]:
+                - img [ref=e55]
+              - generic [ref=e57]: Serviços
+            - menuitem "team Terceirizados" [ref=e58] [cursor=pointer]:
+              - img "team" [ref=e59]:
+                - img [ref=e60]
+              - generic [ref=e62]: Terceirizados
+            - menuitem "team Equipe & Técnicos" [ref=e63] [cursor=pointer]:
+              - img "team" [ref=e64]:
+                - img [ref=e65]
+              - generic [ref=e67]: Equipe & Técnicos
+          - text: GESTÃO
+          - group [ref=e68]:
+            - menuitem "shopping-cart Estoque" [ref=e69] [cursor=pointer]:
+              - img "shopping-cart" [ref=e70]:
+                - img [ref=e71]
+              - generic [ref=e73]: Estoque
+            - menuitem "thunderbolt Motor de Catálogo" [ref=e74] [cursor=pointer]:
+              - img "thunderbolt" [ref=e75]:
+                - img [ref=e76]
+              - generic [ref=e78]: Motor de Catálogo
+            - menuitem "dollar Financeiro" [ref=e79] [cursor=pointer]:
+              - img "dollar" [ref=e80]:
+                - img [ref=e81]
+              - generic [ref=e83]: Financeiro
+            - menuitem "file-text Faturamento" [ref=e84] [cursor=pointer]:
+              - img "file-text" [ref=e85]:
+                - img [ref=e86]
+              - generic [ref=e88]: Faturamento
+            - menuitem "team CRM" [ref=e89] [cursor=pointer]:
+              - img "team" [ref=e90]:
+                - img [ref=e91]
+              - generic [ref=e93]: CRM
+          - text: CLIENTES FACILITIES
+          - group [ref=e94]:
+            - menuitem "alert Chamados Externos" [ref=e95] [cursor=pointer]:
+              - img "alert" [ref=e96]:
+                - img [ref=e97]
+              - generic [ref=e99]: Chamados Externos
+            - menuitem "trophy Licitações" [ref=e100] [cursor=pointer]:
+              - img "trophy" [ref=e101]:
+                - img [ref=e102]
+              - generic [ref=e104]: Licitações
+          - text: SISTEMA
+          - group [ref=e105]:
+            - menuitem "dollar Fiscal" [ref=e106] [cursor=pointer]:
+              - img "dollar" [ref=e107]:
+                - img [ref=e108]
+              - generic [ref=e110]: Fiscal
+            - menuitem "setting Configurações" [ref=e111] [cursor=pointer]:
+              - img "setting" [ref=e112]:
+                - img [ref=e113]
+              - generic [ref=e115]: Configurações
+        - generic [ref=e116]:
+          - generic [ref=e118]: U
+          - generic [ref=e119]:
+            - generic [ref=e120]: Usuário
+            - generic [ref=e123]: Sessão ativa
+          - button "logout" [ref=e124] [cursor=pointer]:
+            - img "logout" [ref=e126]:
+              - img [ref=e127]
+    - generic [ref=e129]:
+      - banner [ref=e130]:
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]: ERP Nexus
+            - img "right" [ref=e134]:
+              - img [ref=e135]
+            - generic [ref=e137]: Dashboard
+          - generic [ref=e138]:
+            - button "shop Modo Loja" [ref=e140] [cursor=pointer]:
+              - img "shop" [ref=e142]:
+                - img [ref=e143]
+              - generic [ref=e145]: Modo Loja
+            - button "bell" [ref=e148] [cursor=pointer]:
+              - img "bell" [ref=e150]:
+                - img [ref=e151]
+            - generic [ref=e154] [cursor=pointer]:
+              - generic [ref=e156]: U
+              - generic [ref=e157]:
+                - generic [ref=e158]: Usuário
+                - generic [ref=e159]: admin
+      - main [ref=e160]:
+        - generic [ref=e162]:
+          - generic [ref=e163]:
+            - generic [ref=e164]:
+              - heading "Boa tarde, Admin! 👋" [level=2] [ref=e165]
+              - generic [ref=e166]: Segunda-feira, 1 de junho de 2026
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e169]: Receita
+                - text: R$ 0
+              - generic [ref=e171]:
+                - generic [ref=e172]: Lucro
+                - text: R$ 0
+              - generic [ref=e174]:
+                - generic [ref=e175]: Saldo
+                - text: R$ 1.233
+          - generic [ref=e176]:
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - generic [ref=e183]: OS Abertas
+                - img "file-text" [ref=e185]:
+                  - img [ref=e186]
+              - generic [ref=e188]: "0"
+              - application [ref=e192]
+              - generic [ref=e196]:
+                - generic [ref=e197]:
+                  - img "arrow-up" [ref=e198]:
+                    - img [ref=e199]
+                  - text: 0%
+                - generic [ref=e201]: vs mês anterior
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: Em Execução Hoje
+                - img "tool" [ref=e210]:
+                  - img [ref=e211]
+              - generic [ref=e213]: "0"
+              - application [ref=e217]
+              - generic [ref=e221]:
+                - generic [ref=e222]:
+                  - img "arrow-up" [ref=e223]:
+                    - img [ref=e224]
+                  - text: 0%
+                - generic [ref=e226]: vs mês anterior
+            - generic [ref=e231]:
+              - generic [ref=e232]:
+                - generic [ref=e233]: Receita do Mês
+                - img "dollar" [ref=e235]:
+                  - img [ref=e236]
+              - generic [ref=e238]: R$ 0
+              - application [ref=e242]
+              - generic [ref=e246]:
+                - generic [ref=e247]:
+                  - img "arrow-up" [ref=e248]:
+                    - img [ref=e249]
+                  - text: 0%
+                - generic [ref=e251]: vs mês anterior
+            - generic [ref=e256]:
+              - generic [ref=e257]:
+                - generic [ref=e258]: Aguardando Faturamento
+                - img "clock-circle" [ref=e260]:
+                  - img [ref=e261]
+              - generic [ref=e264]: R$ 1.233
+              - application [ref=e268]
+              - generic [ref=e272]:
+                - generic [ref=e273]:
+                  - img "arrow-up" [ref=e274]:
+                    - img [ref=e275]
+                  - text: 0%
+                - generic [ref=e277]: vs mês anterior
+          - generic [ref=e278]:
+            - generic [ref=e281]:
+              - generic [ref=e283]:
+                - heading "Receita vs Despesa" [level=2] [ref=e284]
+                - text: últimos 6 meses
+              - generic [ref=e287]:
+                - list [ref=e289]:
+                  - listitem [ref=e290]:
+                    - img "Despesa legend icon" [ref=e291]
+                    - text: Despesa
+                  - listitem [ref=e293]:
+                    - img "Receita legend icon" [ref=e294]
+                    - text: Receita
+                - application [ref=e296]:
+                  - generic [ref=e305]:
+                    - generic [ref=e308]: 2026-05-01
+                    - generic [ref=e309]:
+                      - generic [ref=e311]: R$ 0
+                      - generic [ref=e313]: R$ 1
+                      - generic [ref=e315]: R$ 2
+                      - generic [ref=e317]: R$ 3
+                      - generic [ref=e319]: R$ 4
+            - generic [ref=e322]:
+              - generic [ref=e324]:
+                - heading "Distribuição OS" [level=2] [ref=e325]
+                - text: por status
+              - application [ref=e329]
+              - generic [ref=e339]: ": 24"
+          - generic [ref=e343]:
+            - generic [ref=e344]:
+              - heading "Pipeline de Orçamentos" [level=2] [ref=e345]
+              - text: Visualização do funil de conversão
+            - generic [ref=e346]:
+              - generic [ref=e348]:
+                - generic [ref=e349]: Rascunho
+                - generic [ref=e350]: "0"
+                - generic [ref=e351]: R$ 0
+              - generic [ref=e352]: →
+              - generic [ref=e354]:
+                - generic [ref=e355]: Enviado
+                - generic [ref=e356]: "0"
+                - generic [ref=e357]: R$ 0
+              - generic [ref=e358]: →
+              - generic [ref=e360]:
+                - generic [ref=e361]: Aprovado
+                - generic [ref=e362]: "0"
+                - generic [ref=e363]: R$ 0
+          - generic [ref=e364]:
+            - generic [ref=e367]:
+              - generic [ref=e368]:
+                - heading "Aguardando Faturamento" [level=2] [ref=e369]
+                - button "ver todas arrow-right" [ref=e370] [cursor=pointer]:
+                  - generic [ref=e371]: ver todas
+                  - img "arrow-right" [ref=e372]:
+                    - img [ref=e373]
+              - table [ref=e381]:
+                - rowgroup [ref=e382]:
+                  - row "OS Cliente Valor Dias aguardando" [ref=e383]:
+                    - columnheader "OS" [ref=e384]
+                    - columnheader "Cliente" [ref=e385]
+                    - columnheader "Valor" [ref=e386]
+                    - columnheader "Dias aguardando" [ref=e387]
+                - rowgroup [ref=e388]:
+                  - row "#35 Cliente nao informado R$ 359,00 0 dias" [ref=e389] [cursor=pointer]:
+                    - cell "#35" [ref=e390]:
+                      - strong [ref=e392]: "#35"
+                    - cell "Cliente nao informado" [ref=e393]
+                    - cell "R$ 359,00" [ref=e394]:
+                      - strong [ref=e396]: R$ 359,00
+                    - cell "0 dias" [ref=e397]:
+                      - generic [ref=e398]: 0 dias
+                  - row "#37 Cliente nao informado R$ 400,00 0 dias" [ref=e399] [cursor=pointer]:
+                    - cell "#37" [ref=e400]:
+                      - strong [ref=e402]: "#37"
+                    - cell "Cliente nao informado" [ref=e403]
+                    - cell "R$ 400,00" [ref=e404]:
+                      - strong [ref=e406]: R$ 400,00
+                    - cell "0 dias" [ref=e407]:
+                      - generic [ref=e408]: 0 dias
+                  - row "#348 Cliente nao informado R$ 474,36 0 dias" [ref=e409] [cursor=pointer]:
+                    - cell "#348" [ref=e410]:
+                      - strong [ref=e412]: "#348"
+                    - cell "Cliente nao informado" [ref=e413]
+                    - cell "R$ 474,36" [ref=e414]:
+                      - strong [ref=e416]: R$ 474,36
+                    - cell "0 dias" [ref=e417]:
+                      - generic [ref=e418]: 0 dias
+            - generic [ref=e421]:
+              - generic [ref=e422]:
+                - heading "Pagamentos Atrasados" [level=2] [ref=e423]
+                - button "ver todas arrow-right" [ref=e424] [cursor=pointer]:
+                  - generic [ref=e425]: ver todas
+                  - img "arrow-right" [ref=e426]:
+                    - img [ref=e427]
+              - table [ref=e435]:
+                - rowgroup [ref=e436]:
+                  - row "OS Cliente Valor Dias atraso" [ref=e437]:
+                    - columnheader "OS" [ref=e438]
+                    - columnheader "Cliente" [ref=e439]
+                    - columnheader "Valor" [ref=e440]
+                    - columnheader "Dias atraso" [ref=e441]
+                - rowgroup [ref=e442]:
+                  - row "Nenhum pagamento atrasado" [ref=e443]:
+                    - cell "Nenhum pagamento atrasado" [ref=e444]
+  - generic [ref=e445]: R$ 0

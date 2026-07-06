@@ -155,6 +155,31 @@ class SimplesNacionalService:
 
         return previsoes
 
+    def estimar_para_receita(self, configuracao: ConfiguracaoFiscal, receita_mes, competencia=None) -> dict | None:
+        empresa = getattr(configuracao, "empresa", None)
+        data_abertura = getattr(configuracao, "data_abertura_simples", None)
+        if not empresa or not data_abertura:
+            return None
+
+        competencia = self._normalizar_competencia(competencia)
+        receita_mes = self._decimal(receita_mes)
+        receitas = {
+            item.competencia: self._decimal(item.receita_bruta)
+            for item in FaturamentoMensalSimples.objects.filter(
+                empresa=empresa,
+                competencia__lte=competencia,
+            ).order_by("competencia")
+        }
+        receitas[competencia] = receita_mes
+        resultado = self._calcular_com_receitas(
+            configuracao,
+            competencia,
+            receitas,
+            receita_mes,
+        )
+        resultado["receita_mes"] = self._money(receita_mes)
+        return resultado
+
     def _calcular_com_receitas(self, configuracao: ConfiguracaoFiscal, competencia, receitas_por_mes: dict, receita_mes: Decimal) -> dict:
         meses_atividade = self._meses_atividade(configuracao.data_abertura_simples, competencia)
         abertura = self._normalizar_competencia(configuracao.data_abertura_simples)
@@ -368,8 +393,16 @@ class CalculadoraImpostos:
             )
 
         if config.regime_tributario == ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL:
-            aliquota_das = self._obter_aliquota_simples(subtotal)
-            total_das = self._percentual(subtotal, aliquota_das)
+            apuracao_simples = getattr(config, "apuracao_simples", None) or {}
+            if apuracao_simples:
+                aliquota_das = self._round(
+                    Decimal(str(apuracao_simples.get("aliquota_efetiva", 0) or 0))
+                    * Decimal("100")
+                )
+                total_das = self._round(apuracao_simples.get("das_estimado", 0))
+            else:
+                aliquota_das = self._obter_aliquota_simples(subtotal)
+                total_das = self._percentual(subtotal, aliquota_das)
             return self._build_response(
                 regime="simples_nacional",
                 subtotal_servicos=valor_servicos,
@@ -681,6 +714,7 @@ class MotorFiscalEspecialista:
             "financeiro": self._analisar_financeiro(impostos, config),
             "reforma_tributaria": self._reforma_tributaria(config),
             "perfil_regime": perfil_regime,
+            "simples_apuracao": getattr(config, "apuracao_simples", None),
         }
 
     def _resolver_configuracao_efetiva(
@@ -695,8 +729,24 @@ class MotorFiscalEspecialista:
         ).lower()
         codigo_sugerido = self._sugerir_codigo_servico(texto_operacao, config)
         automacoes = []
+        apuracao_simples = None
 
         regime = config.regime_tributario
+
+        if regime == ConfiguracaoFiscal.RegimeTributario.SIMPLES_NACIONAL:
+            apuracao_simples = SimplesNacionalService().estimar_para_receita(
+                config,
+                valor_servicos + valor_materiais,
+            )
+            if apuracao_simples:
+                automacoes.append(
+                    self._item(
+                        "simples_nacional_rbt12",
+                        "success",
+                        "Alíquota do Simples calculada pelo RBT12 vigente.",
+                        f"Faixa {apuracao_simples.get('faixa')} com alíquota efetiva de {Decimal(str(apuracao_simples.get('aliquota_efetiva', 0))) * Decimal('100'):.2f}%.",
+                    )
+                )
 
         tipo_nota = config.tipo_nota
         tipo_sugerido = self._sugerir_tipo_nota(valor_servicos, valor_materiais, config)
@@ -737,6 +787,10 @@ class MotorFiscalEspecialista:
         config_efetiva = SimpleNamespace(
             regime_tributario=regime,
             tipo_nota=tipo_nota,
+            anexo_simples=getattr(config, "anexo_simples", ConfiguracaoFiscal.AnexoSimples.ANEXO_III),
+            data_abertura_simples=getattr(config, "data_abertura_simples", None),
+            empresa=getattr(config, "empresa", None),
+            apuracao_simples=apuracao_simples,
             cnpj=config.cnpj,
             razao_social=config.razao_social,
             municipio=config.municipio,

@@ -13,6 +13,10 @@ from .views import (
     simples_apuracao,
     simples_faturamentos,
     simples_previsao,
+    simples_regra_detalhe,
+    simples_regras,
+    simples_simulacoes,
+    simples_simular,
     tabelas_tributarias,
 )
 
@@ -29,5 +33,9 @@ urlpatterns = [
     path("simples/faturamentos/", simples_faturamentos, name="fiscal-simples-faturamentos"),
     path("simples/apuracao/", simples_apuracao, name="fiscal-simples-apuracao"),
     path("simples/previsao/", simples_previsao, name="fiscal-simples-previsao"),
+    path("simples/regras/", simples_regras, name="fiscal-simples-regras"),
+    path("simples/regras/<int:regra_id>/", simples_regra_detalhe, name="fiscal-simples-regra-detalhe"),
+    path("simples/simular/", simples_simular, name="fiscal-simples-simular"),
+    path("simples/simulacoes/", simples_simulacoes, name="fiscal-simples-simulacoes"),
     path("configuracao/", configuracao, name="fiscal-configuracao"),
 ]

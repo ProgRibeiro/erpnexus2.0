@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from .models import ApuracaoSimplesNacional, ConfiguracaoFiscal, FaturamentoMensalSimples, TabelaImpostoLucroPresumido
+from .models import (
+    ApuracaoSimplesNacional,
+    ConfiguracaoFiscal,
+    FaturamentoMensalSimples,
+    SimulacaoFiscalSimples,
+    TabelaImpostoLucroPresumido,
+    VersaoRegraSimplesNacional,
+)
 
 
 class ConfiguracaoFiscalSerializer(serializers.ModelSerializer):
@@ -49,6 +56,36 @@ class CalcularSimplesSerializer(serializers.Serializer):
 class PrevisaoSimplesSerializer(serializers.Serializer):
     meses = serializers.IntegerField(min_value=1, max_value=24, required=False, default=6)
     crescimento_mensal = serializers.DecimalField(max_digits=6, decimal_places=2, required=False, default=0)
+
+
+class VersaoRegraSimplesNacionalSerializer(serializers.ModelSerializer):
+    empresa_nome = serializers.CharField(source="empresa.nome", read_only=True)
+
+    class Meta:
+        model = VersaoRegraSimplesNacional
+        fields = "__all__"
+        read_only_fields = ["empresa", "empresa_nome", "criado_em", "atualizado_em"]
+
+
+class SimulacaoFiscalSimplesSerializer(serializers.ModelSerializer):
+    empresa_nome = serializers.CharField(source="empresa.nome", read_only=True)
+    regra_nome = serializers.CharField(source="regra_versao.nome", read_only=True)
+
+    class Meta:
+        model = SimulacaoFiscalSimples
+        fields = "__all__"
+        read_only_fields = ["empresa", "empresa_nome", "regra_nome", "criado_em"]
+
+
+class SimularSimplesSerializer(serializers.Serializer):
+    competencia = serializers.DateField(required=False)
+    receita_bruta = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
+    regra_versao_id = serializers.IntegerField(required=False)
+    origem = serializers.ChoiceField(
+        choices=SimulacaoFiscalSimples.Origem.choices,
+        required=False,
+        default=SimulacaoFiscalSimples.Origem.API,
+    )
 
 
 class TabelaImpostoLucroPresumidoSerializer(serializers.ModelSerializer):

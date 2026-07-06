@@ -1,15 +1,28 @@
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory
+from django_tenants.utils import schema_context
 
 from apps.clientes.models import Cliente, EnderecoCliente
+from apps.tenants.models import Client as Tenant
 
 from .models import OrdemServico
+from .views import RelatorioPublicoView
 
 
 class RelatorioPublicoTestCase(TestCase):
     def setUp(self):
-        self.client = APIClient()
+        self.tenant = Tenant.objects.create(
+            schema_name="relatorio_pub_teste",
+            nome="Tenant Relatorio Publico Teste",
+            tipo_produto="erp",
+        )
+
+        self.factory = APIRequestFactory()
+        self._schema_ctx = schema_context(self.tenant.schema_name)
+        self._schema_ctx.__enter__()
+        self.addCleanup(self._schema_ctx.__exit__, None, None, None)
+
         self.cliente = Cliente.objects.create(
             nome="Cliente Relatorio",
             cnpj_cpf="12345678000100",
@@ -18,7 +31,7 @@ class RelatorioPublicoTestCase(TestCase):
         )
         self.endereco = EnderecoCliente.objects.create(
             cliente=self.cliente,
-            tipo="comercial",
+            tipo="servico",
             logradouro="Rua Teste",
             numero="123",
             cidade="Sao Paulo",
@@ -36,9 +49,8 @@ class RelatorioPublicoTestCase(TestCase):
         )
 
     def test_relatorio_publico_nao_expoe_campos_financeiros(self):
-        url = reverse("publico-relatorio", kwargs={"token": self.ordem.token_relatorio})
-
-        response = self.client.get(url)
+        request = self.factory.get("/api/v1/ordens/relatorio/publico/")
+        response = RelatorioPublicoView.as_view()(request, token=self.ordem.token_relatorio)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["cliente_nome"], self.cliente.nome)
