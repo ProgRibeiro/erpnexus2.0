@@ -755,13 +755,29 @@ export default function FaturamentoPage() {
                 </Col>
               </Row>
               {nfAnalysis && (
-                <Alert
-                  showIcon
-                  type={Number(nfAnalysis.confianca || 0) >= 70 ? "success" : "warning"}
-                  message={`Leitura da NF: ${Number(nfAnalysis.confianca || 0).toFixed(0)}% de confiança`}
-                  description={nfAnalysis.resumo}
-                  style={{ borderRadius: 12, marginBottom: 12 }}
-                />
+                <Space direction="vertical" size={8} style={{ width: "100%", marginBottom: 12 }}>
+                  <Alert
+                    showIcon
+                    type={Number(nfAnalysis.confianca || 0) >= 85 ? "success" : "warning"}
+                    message={`Leitura da NF: ${Number(nfAnalysis.confianca || 0).toFixed(0)}% de confiança`}
+                    description={nfAnalysis.resumo}
+                    style={{ borderRadius: 12 }}
+                  />
+                  {nfAnalysis.validacoes?.avisos?.length ? (
+                    <Alert
+                      showIcon
+                      type="warning"
+                      message="Pontos para revisar"
+                      description={nfAnalysis.validacoes.avisos.join(" ")}
+                      style={{ borderRadius: 12 }}
+                    />
+                  ) : null}
+                  {nfAnalysis.chave_acesso ? (
+                    <Text copyable style={{ fontSize: 12, color: colors.textoSecundario }}>
+                      Chave de acesso: {nfAnalysis.chave_acesso}
+                    </Text>
+                  ) : null}
+                </Space>
               )}
               <Row gutter={[12, 0]}>
                 <Col xs={24} sm={12}>

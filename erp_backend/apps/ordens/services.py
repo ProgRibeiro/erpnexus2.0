@@ -3,7 +3,7 @@ import re
 import unicodedata
 from collections import Counter
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.db.models import Count
 from django.db.utils import OperationalError, ProgrammingError
@@ -206,17 +206,19 @@ class PedidoCompraInteligente:
 
 class NotaFiscalInteligente:
     money_pattern = re.compile(r"R\$\s*([\d\.\,]+)|\b(\d{1,3}(?:\.\d{3})*,\d{2})\b")
-    date_pattern = re.compile(r"\b(\d{2}/\d{2}/\d{4})\b")
+    date_pattern = re.compile(r"\b(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})\b")
+    cnpj_pattern = re.compile(r"\b(\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2})\b")
+    chave_pattern = re.compile(r"\b(\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})\b")
     numero_patterns = [
-        re.compile(r"(?:n[úu]mero\s+da\s+nf[se\-]*|n[úu]mero\s+da\s+nota|nota\s+fiscal\s+n[ºo]?|nf[se\-]*\s+n[ºo]?)[^\w]{0,12}([A-Z0-9\-\/\.]{3,})", re.IGNORECASE),
+        re.compile(r"(?:n[úu]mero\s+da\s+nf[se\-]*|n[úu]mero\s+da\s+nota|nota\s+fiscal\s+n[ºo]?|nf[se\-]*\s+n[ºo]?|n[ºo]\s+da\s+nota)[^\w]{0,18}([A-Z0-9\-\/\.]{3,})", re.IGNORECASE),
         re.compile(r"\bNFS?E?\s*[-:]?\s*([0-9]{3,})\b", re.IGNORECASE),
     ]
     imposto_patterns = {
-        "valor_issqn": re.compile(r"\bISS(?:QN)?\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
-        "valor_pis": re.compile(r"\bPIS\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
-        "valor_cofins": re.compile(r"\bCOFINS\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
-        "valor_irpj": re.compile(r"\bIRPJ\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
-        "valor_csll": re.compile(r"\bCSLL\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_issqn": re.compile(r"(?:valor\s+(?:do\s+)?iss(?:qn)?|iss\s+retido|\bissqn\b|\biss\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_pis": re.compile(r"(?:valor\s+(?:do\s+)?pis|\bpis\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_cofins": re.compile(r"(?:valor\s+(?:do\s+)?cofins|\bcofins\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_irpj": re.compile(r"(?:valor\s+(?:do\s+)?irpj|\birpj\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_csll": re.compile(r"(?:valor\s+(?:do\s+)?csll|\bcsll\b)[^\n\r\d]{0,40}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
     }
 
     def analisar_arquivo(self, arquivo, ordem=None):
@@ -225,23 +227,48 @@ class NotaFiscalInteligente:
 
     def analisar_texto(self, texto, ordem=None):
         texto_limpo = self._normalizar_texto(texto)
+        texto_busca = self._sem_acentos(texto_limpo).lower()
         linhas = [linha.strip() for linha in texto_limpo.splitlines() if linha.strip()]
-        numero_nf = self._extrair_numero_nf(texto_limpo)
-        data_emissao = self._extrair_data_emissao(texto_limpo)
-        valor_total = self._extrair_valor_total(texto_limpo)
-        impostos = self._extrair_impostos(texto_limpo)
+        tipo_documento = self._inferir_tipo_documento(texto_busca)
+        chave_acesso = self._extrair_chave_acesso(texto_limpo)
+        numero_nf, numero_meta = self._extrair_numero_nf(texto_limpo)
+        data_emissao, data_meta = self._extrair_data_emissao(texto_limpo)
+        valor_total, valor_meta = self._extrair_valor_total(texto_limpo)
+        impostos, impostos_meta = self._extrair_impostos(texto_limpo)
+        cnpjs = self._extrair_cnpjs(texto_limpo)
         descricao = self._extrair_descricao(linhas, ordem=ordem)
-        confianca = self._calcular_confianca(numero_nf, data_emissao, valor_total, impostos, descricao)
+        validacoes = self._validar_contra_os(ordem, valor_total, cnpjs)
+        confianca = self._calcular_confianca(
+            numero_nf,
+            data_emissao,
+            valor_total,
+            impostos,
+            descricao,
+            chave_acesso=chave_acesso,
+            validacoes=validacoes,
+            texto_extraido=texto_limpo,
+        )
 
         return {
             "texto_extraido": texto_limpo[:12000],
+            "tipo_documento": tipo_documento,
+            "chave_acesso": chave_acesso,
             "numero_nf_sugerido": numero_nf,
             "data_emissao_sugerida": data_emissao.isoformat() if data_emissao else None,
             "valor_total_sugerido": str(valor_total or Decimal("0.00")),
             "descricao_sugerida": descricao,
             "impostos_sugeridos": {key: str(value) for key, value in impostos.items()},
-            "resumo": self._resumo(numero_nf, data_emissao, valor_total, impostos),
+            "cnpjs_detectados": cnpjs,
+            "campos": {
+                "numero_nf": numero_meta,
+                "data_emissao": data_meta,
+                "valor_total": valor_meta,
+                **impostos_meta,
+            },
+            "validacoes": validacoes,
+            "resumo": self._resumo(numero_nf, data_emissao, valor_total, impostos, chave_acesso, validacoes),
             "confianca": str(confianca),
+            "precisa_revisao": confianca < Decimal("85") or bool(validacoes.get("avisos")),
             "analisado_em": timezone.now().isoformat(),
         }
 
@@ -262,54 +289,70 @@ class NotaFiscalInteligente:
 
     def _normalizar_texto(self, texto):
         bruto = str(texto or "").replace("\x00", " ")
-        return re.sub(r"[ \t]+", " ", bruto).strip()
+        bruto = re.sub(r"[ \t]+", " ", bruto)
+        bruto = re.sub(r"\n{3,}", "\n\n", bruto)
+        return bruto.strip()
 
     def _extrair_numero_nf(self, texto):
         for pattern in self.numero_patterns:
             match = pattern.search(texto)
             if match:
-                return match.group(1).strip(" .:-")
-        return ""
+                numero = match.group(1).strip(" .:-")
+                return numero, self._campo(numero, 92, self._contexto(texto, match.start(), match.end()))
+        return "", self._campo("", 0, "")
 
     def _extrair_data_emissao(self, texto):
         contexto_patterns = [
-            re.compile(r"(?:emiss[aã]o|emitida\s+em|data\s+da\s+nota)[^\d]{0,20}(\d{2}/\d{2}/\d{4})", re.IGNORECASE),
+            re.compile(r"(?:data\s+(?:e\s+hora\s+)?de\s+emiss[aã]o|emiss[aã]o|emitida\s+em|data\s+da\s+nota)[^\d]{0,30}(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})", re.IGNORECASE),
         ]
         for pattern in contexto_patterns:
             match = pattern.search(texto)
             if match:
-                return self._parse_date(match.group(1))
+                data = self._parse_date(match.group(1))
+                if data:
+                    return data, self._campo(data.isoformat(), 94, self._contexto(texto, match.start(), match.end()))
         datas = [self._parse_date(item) for item in self.date_pattern.findall(texto)]
         datas = [item for item in datas if item]
-        return min(datas) if datas else None
+        data = min(datas) if datas else None
+        return data, self._campo(data.isoformat() if data else "", 55 if data else 0, "Primeira data válida encontrada no PDF." if data else "")
 
     def _extrair_valor_total(self, texto):
         contexto_patterns = [
-            re.compile(r"(?:valor\s+total\s+da\s+nota|valor\s+dos\s+servi[cç]os|total\s+da\s+nf|valor\s+l[ií]quido)[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+            re.compile(r"(?:valor\s+total\s+da\s+nota|valor\s+total\s+da\s+nf|total\s+da\s+nota|total\s+da\s+nf)[^\d]{0,45}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+            re.compile(r"(?:valor\s+dos\s+servi[cç]os|total\s+dos\s+servi[cç]os)[^\d]{0,45}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+            re.compile(r"(?:valor\s+l[ií]quido)[^\d]{0,45}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
         ]
-        for pattern in contexto_patterns:
+        for index, pattern in enumerate(contexto_patterns):
             match = pattern.search(texto)
             if match:
                 valor = self._parse_decimal(match.group(1))
                 if valor is not None:
-                    return valor
+                    confianca = [96, 90, 78][index]
+                    return valor, self._campo(str(valor), confianca, self._contexto(texto, match.start(), match.end()))
         valores = []
         for match in self.money_pattern.findall(texto):
             bruto = match[0] or match[1]
             valor = self._parse_decimal(bruto)
             if valor is not None:
                 valores.append(valor)
-        return max(valores) if valores else None
+        valor = max(valores) if valores else None
+        return valor, self._campo(str(valor) if valor else "", 45 if valor else 0, "Maior valor monetário encontrado no PDF." if valor else "")
 
     def _extrair_impostos(self, texto):
         impostos = {}
+        metadados = {}
         for campo, pattern in self.imposto_patterns.items():
             match = pattern.search(texto)
             if match:
                 valor = self._parse_decimal(match.group(1))
-                if valor is not None:
+                if valor is not None and valor < Decimal("1000000.00"):
                     impostos[campo] = valor
-        return impostos
+                    metadados[campo] = self._campo(str(valor), 82, self._contexto(texto, match.start(), match.end()))
+                else:
+                    metadados[campo] = self._campo("", 0, "")
+            else:
+                metadados[campo] = self._campo("", 0, "")
+        return impostos, metadados
 
     def _extrair_descricao(self, linhas, ordem=None):
         termos = ("descri", "discrimina", "servi", "atividade")
@@ -324,44 +367,130 @@ class NotaFiscalInteligente:
             return candidatas[0]
         return getattr(ordem, "descricao_servico_nf", "") or getattr(ordem, "descricao_servico", "") or ""
 
-    def _calcular_confianca(self, numero_nf, data_emissao, valor_total, impostos, descricao):
+    def _calcular_confianca(self, numero_nf, data_emissao, valor_total, impostos, descricao, chave_acesso="", validacoes=None, texto_extraido=""):
+        validacoes = validacoes or {}
+        if not texto_extraido or len(texto_extraido.strip()) < 80:
+            return Decimal("0")
         score = Decimal("0")
         if numero_nf:
-            score += Decimal("25")
+            score += Decimal("22")
+        if chave_acesso:
+            score += Decimal("18")
         if data_emissao:
-            score += Decimal("20")
+            score += Decimal("18")
         if valor_total and valor_total > 0:
-            score += Decimal("30")
+            score += Decimal("24")
         if impostos:
-            score += Decimal("15")
-        if descricao:
             score += Decimal("10")
+        if descricao:
+            score += Decimal("8")
+        if validacoes.get("valor_confere_os"):
+            score += Decimal("8")
+        if validacoes.get("cnpj_cliente_confere"):
+            score += Decimal("5")
+        if validacoes.get("avisos"):
+            score -= Decimal(len(validacoes["avisos"]) * 6)
         return min(score, Decimal("100"))
 
-    def _resumo(self, numero_nf, data_emissao, valor_total, impostos):
+    def _resumo(self, numero_nf, data_emissao, valor_total, impostos, chave_acesso="", validacoes=None):
+        validacoes = validacoes or {}
         partes = []
         if numero_nf:
             partes.append(f"NF {numero_nf}")
+        if chave_acesso:
+            partes.append("chave de acesso detectada")
         if data_emissao:
             partes.append(f"emissão {data_emissao.strftime('%d/%m/%Y')}")
         if valor_total:
             partes.append(f"valor R$ {valor_total}")
         if impostos:
             partes.append(f"{len(impostos)} imposto(s) detectado(s)")
+        if validacoes.get("valor_confere_os"):
+            partes.append("valor confere com a OS")
         return " • ".join(partes) or "PDF lido, mas sem dados fiscais confiáveis."
 
     def _parse_date(self, valor):
         try:
-            return timezone.datetime.strptime(valor, "%d/%m/%Y").date()
+            formato = "%Y-%m-%d" if "-" in str(valor) else "%d/%m/%Y"
+            return timezone.datetime.strptime(valor, formato).date()
         except (TypeError, ValueError):
             return None
 
     def _parse_decimal(self, valor):
-        normalizado = str(valor).replace(".", "").replace(",", ".").strip()
+        bruto = str(valor or "").strip()
+        normalizado = re.sub(r"[^\d,\.]", "", bruto)
+        if "," in normalizado:
+            normalizado = normalizado.replace(".", "").replace(",", ".")
         try:
             return Decimal(normalizado)
         except (InvalidOperation, ValueError):
             return None
+
+    def _sem_acentos(self, texto):
+        return "".join(
+            char for char in unicodedata.normalize("NFKD", str(texto or ""))
+            if not unicodedata.combining(char)
+        )
+
+    def _inferir_tipo_documento(self, texto_busca):
+        if "nota fiscal de servico" in texto_busca or "nfs-e" in texto_busca or "nfse" in texto_busca:
+            return "nfse"
+        if "danfe" in texto_busca or "nf-e" in texto_busca or "chave de acesso" in texto_busca:
+            return "nfe"
+        return "desconhecido"
+
+    def _extrair_chave_acesso(self, texto):
+        match = self.chave_pattern.search(texto)
+        if not match:
+            compacto = re.sub(r"\D", "", texto)
+            chave = re.search(r"\d{44}", compacto)
+            return chave.group(0) if chave else ""
+        return re.sub(r"\D", "", match.group(1))
+
+    def _extrair_cnpjs(self, texto):
+        vistos = []
+        for item in self.cnpj_pattern.findall(texto):
+            doc = re.sub(r"\D", "", item)
+            if len(doc) == 14 and doc not in vistos:
+                vistos.append(doc)
+        return vistos[:10]
+
+    def _validar_contra_os(self, ordem, valor_total, cnpjs):
+        avisos = []
+        resultado = {
+            "valor_confere_os": False,
+            "cnpj_cliente_confere": False,
+            "avisos": avisos,
+        }
+        if not ordem:
+            return resultado
+
+        valor_os = Decimal(getattr(ordem, "valor_final_faturado", 0) or getattr(ordem, "total_com_impostos", 0) or getattr(ordem, "valor_total_orcado", 0) or 0)
+        if valor_total and valor_os:
+            diferenca = abs(valor_total - valor_os)
+            resultado["diferenca_valor_os"] = str(diferenca.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+            resultado["valor_confere_os"] = diferenca <= Decimal("0.05")
+            if not resultado["valor_confere_os"]:
+                avisos.append(f"Valor da NF difere da OS em R$ {resultado['diferenca_valor_os']}.")
+
+        cliente = getattr(ordem, "cliente", None)
+        cliente_doc = re.sub(r"\D", "", getattr(cliente, "cnpj_cpf", "") or "") if cliente else ""
+        if cliente_doc and cnpjs:
+            resultado["cnpj_cliente_confere"] = cliente_doc in cnpjs
+            if not resultado["cnpj_cliente_confere"]:
+                avisos.append("CNPJ/CPF do cliente da OS não apareceu nos documentos detectados da NF.")
+        return resultado
+
+    def _campo(self, valor, confianca, fonte):
+        return {
+            "valor": valor,
+            "confianca": int(confianca),
+            "fonte": fonte,
+        }
+
+    def _contexto(self, texto, inicio, fim, margem=80):
+        trecho = texto[max(0, inicio - margem):min(len(texto), fim + margem)]
+        return re.sub(r"\s+", " ", trecho).strip()[:240]
 
 
 class MotorOrcamentoInteligente:
