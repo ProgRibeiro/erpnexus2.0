@@ -325,6 +325,7 @@ class RelatorioPublicoSerializer(serializers.ModelSerializer):
     cliente_email = serializers.CharField(source="cliente.email", read_only=True)
     tecnico_nome = serializers.CharField(source="tecnico_responsavel.username", read_only=True)
     contato_nome = serializers.CharField(source="contato_responsavel.nome", read_only=True)
+    endereco_servico_texto = serializers.StringRelatedField(source="endereco_servico", read_only=True)
     fotos = FotoOSSerializer(many=True, read_only=True)
     assinatura_cliente = AssinaturaClienteOSSerializer(read_only=True)
 
@@ -336,19 +337,13 @@ class RelatorioPublicoSerializer(serializers.ModelSerializer):
             "token_relatorio",
             "status",
             "tipo_servico",
-            "cliente",
             "cliente_nome",
             "cliente_telefone",
             "cliente_celular",
             "cliente_email",
             "contato_nome",
-            "endereco_servico",
+            "endereco_servico_texto",
             "descricao_servico",
-            "valor_total_orcado",
-            "condicao_pagamento",
-            "validade_orcamento",
-            "data_aprovacao",
-            "tecnico_responsavel",
             "tecnico_nome",
             "data_agendada",
             "hora_inicio",

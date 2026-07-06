@@ -27,7 +27,6 @@ import {
   ShareAltOutlined,
   ToolOutlined,
   UserOutlined,
-  WalletOutlined,
   WhatsAppOutlined,
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
@@ -74,11 +73,6 @@ const headerCardStyle = {
   border: "none",
 };
 
-const moneyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
 const statusConfig = {
   rascunho: { label: "Rascunho", color: "default" },
   aberta: { label: "Aberta", color: "processing" },
@@ -99,6 +93,9 @@ export default function RelatorioPublicoPage() {
 
   const baseUrl = window.location.origin;
   const relatorioUrl = `${baseUrl}/relatorio/${token}`;
+  const clienteNome = relatorio?.cliente_nome || relatorio?.cliente?.nome || "-";
+  const clienteTelefone = relatorio?.cliente_telefone || relatorio?.cliente_celular || relatorio?.cliente?.telefone || relatorio?.cliente?.celular || "";
+  const enderecoServico = relatorio?.endereco_servico_texto || relatorio?.endereco_servico || "";
 
   useEffect(() => {
     carregarRelatorio();
@@ -124,7 +121,7 @@ export default function RelatorioPublicoPage() {
   };
 
   const handleCompartilharWhatsApp = () => {
-    const numeroCliente = relatorio?.cliente?.telefone || relatorio?.cliente?.celular;
+    const numeroCliente = clienteTelefone;
     if (!numeroCliente) {
       message.warning("Número de WhatsApp do cliente não disponível");
       return;
@@ -164,7 +161,7 @@ export default function RelatorioPublicoPage() {
       link.setAttribute("download", `relatorio_${relatorio?.numero}.pdf`);
       document.body.appendChild(link);
       link.click();
-      link.parentChild?.removeChild(link);
+      link.parentNode?.removeChild(link);
       message.success("PDF baixado com sucesso!");
     } catch (err) {
       console.error("Erro ao baixar PDF:", err);
@@ -332,7 +329,7 @@ export default function RelatorioPublicoPage() {
                       CLIENTE
                     </Text>
                     <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
-                      {relatorio.cliente?.nome}
+                      {clienteNome}
                     </Paragraph>
                   </div>
                 </div>
@@ -365,19 +362,21 @@ export default function RelatorioPublicoPage() {
                   </div>
                 </div>
               </Col>
-              <Col xs={24} sm={12}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <WalletOutlined style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginTop: 3 }} />
-                  <div>
-                    <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
-                      VALOR TOTAL
-                    </Text>
-                    <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
-                      {moneyFormatter.format(relatorio.valor_total_orcado || 0)}
-                    </Paragraph>
+              {enderecoServico && (
+                <Col xs={24} sm={12}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <SafetyCertificateOutlined style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginTop: 3 }} />
+                    <div>
+                      <Text style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em" }}>
+                        LOCAL DO ATENDIMENTO
+                      </Text>
+                      <Paragraph style={{ margin: "4px 0 0 0", fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>
+                        {enderecoServico}
+                      </Paragraph>
+                    </div>
                   </div>
-                </div>
-              </Col>
+                </Col>
+              )}
             </Row>
           </Card>
 
