@@ -1,0 +1,24 @@
+[Unit]
+Description=ERP Nexus Celery Beat
+After=network.target postgresql.service redis-server.service erp-nexus.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__APP_DIR__/erp_backend
+EnvironmentFile=__APP_DIR__/erp_backend/.env
+ExecStart=__APP_DIR__/.venv/bin/celery -A config beat --loglevel=INFO --schedule=/var/lib/erp-nexus/celerybeat-schedule
+UMask=0027
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=__APP_DIR__ /var/lib/erp-nexus __BACKUP_DIR__
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

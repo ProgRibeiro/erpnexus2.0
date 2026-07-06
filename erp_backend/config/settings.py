@@ -25,8 +25,8 @@ environ.Env.read_env(BASE_DIR.parent / ".env")
 environ.Env.read_env(BASE_DIR / ".env", overwrite=True)
 
 SECRET_KEY = env("SECRET_KEY", default=env("DJANGO_SECRET_KEY", default="unsafe-default-key-local-dev"))
-DEBUG = env.bool("DEBUG", default=env("DJANGO_DEBUG", default=True))
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "0.0.0.0", ".localhost"])
+DEBUG = env.bool("DEBUG", default=env("DJANGO_DEBUG", default=False))
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", ".localhost"])
 
 SHARED_APPS = [
     'django_tenants',
@@ -119,7 +119,7 @@ DATABASES = {
         "ENGINE": "django_tenants.postgresql_backend",
         "NAME": env("DB_NAME", default="erp_db"),
         "USER": env("DB_USER", default="postgres"),
-        "PASSWORD": env("DB_PASSWORD", default="73882768"),
+        "PASSWORD": env("DB_PASSWORD", default=""),
         "HOST": env("DB_HOST", default="localhost"),
         "PORT": env("DB_PORT", default="5432"),
     }

@@ -1,0 +1,29 @@
+[Unit]
+Description=ERP Nexus Gunicorn
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__APP_DIR__/erp_backend
+EnvironmentFile=__APP_DIR__/erp_backend/.env
+ExecStart=__APP_DIR__/.venv/bin/gunicorn config.wsgi:application --bind unix:/run/erp-nexus/gunicorn.sock --workers 3 --timeout 120 --access-logfile - --error-logfile -
+ExecReload=/bin/kill -s HUP $MAINPID
+RuntimeDirectory=erp-nexus
+RuntimeDirectoryMode=0750
+UMask=0027
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=__APP_DIR__ /run/erp-nexus __BACKUP_DIR__
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
