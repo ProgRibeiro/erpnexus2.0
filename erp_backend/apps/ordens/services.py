@@ -204,6 +204,166 @@ class PedidoCompraInteligente:
             return None
 
 
+class NotaFiscalInteligente:
+    money_pattern = re.compile(r"R\$\s*([\d\.\,]+)|\b(\d{1,3}(?:\.\d{3})*,\d{2})\b")
+    date_pattern = re.compile(r"\b(\d{2}/\d{2}/\d{4})\b")
+    numero_patterns = [
+        re.compile(r"(?:n[úu]mero\s+da\s+nf[se\-]*|n[úu]mero\s+da\s+nota|nota\s+fiscal\s+n[ºo]?|nf[se\-]*\s+n[ºo]?)[^\w]{0,12}([A-Z0-9\-\/\.]{3,})", re.IGNORECASE),
+        re.compile(r"\bNFS?E?\s*[-:]?\s*([0-9]{3,})\b", re.IGNORECASE),
+    ]
+    imposto_patterns = {
+        "valor_issqn": re.compile(r"\bISS(?:QN)?\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_pis": re.compile(r"\bPIS\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_cofins": re.compile(r"\bCOFINS\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_irpj": re.compile(r"\bIRPJ\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        "valor_csll": re.compile(r"\bCSLL\b[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+    }
+
+    def analisar_arquivo(self, arquivo, ordem=None):
+        texto = self._extrair_texto_pdf(arquivo)
+        return self.analisar_texto(texto, ordem=ordem)
+
+    def analisar_texto(self, texto, ordem=None):
+        texto_limpo = self._normalizar_texto(texto)
+        linhas = [linha.strip() for linha in texto_limpo.splitlines() if linha.strip()]
+        numero_nf = self._extrair_numero_nf(texto_limpo)
+        data_emissao = self._extrair_data_emissao(texto_limpo)
+        valor_total = self._extrair_valor_total(texto_limpo)
+        impostos = self._extrair_impostos(texto_limpo)
+        descricao = self._extrair_descricao(linhas, ordem=ordem)
+        confianca = self._calcular_confianca(numero_nf, data_emissao, valor_total, impostos, descricao)
+
+        return {
+            "texto_extraido": texto_limpo[:12000],
+            "numero_nf_sugerido": numero_nf,
+            "data_emissao_sugerida": data_emissao.isoformat() if data_emissao else None,
+            "valor_total_sugerido": str(valor_total or Decimal("0.00")),
+            "descricao_sugerida": descricao,
+            "impostos_sugeridos": {key: str(value) for key, value in impostos.items()},
+            "resumo": self._resumo(numero_nf, data_emissao, valor_total, impostos),
+            "confianca": str(confianca),
+            "analisado_em": timezone.now().isoformat(),
+        }
+
+    def _extrair_texto_pdf(self, arquivo):
+        if hasattr(arquivo, "seek"):
+            arquivo.seek(0)
+        conteudo = arquivo.read() if hasattr(arquivo, "read") else arquivo
+        if hasattr(arquivo, "seek"):
+            arquivo.seek(0)
+        reader = PdfReader(io.BytesIO(conteudo))
+        textos = []
+        for page in reader.pages:
+            try:
+                textos.append(page.extract_text() or "")
+            except Exception:
+                continue
+        return "\n".join(textos)
+
+    def _normalizar_texto(self, texto):
+        bruto = str(texto or "").replace("\x00", " ")
+        return re.sub(r"[ \t]+", " ", bruto).strip()
+
+    def _extrair_numero_nf(self, texto):
+        for pattern in self.numero_patterns:
+            match = pattern.search(texto)
+            if match:
+                return match.group(1).strip(" .:-")
+        return ""
+
+    def _extrair_data_emissao(self, texto):
+        contexto_patterns = [
+            re.compile(r"(?:emiss[aã]o|emitida\s+em|data\s+da\s+nota)[^\d]{0,20}(\d{2}/\d{2}/\d{4})", re.IGNORECASE),
+        ]
+        for pattern in contexto_patterns:
+            match = pattern.search(texto)
+            if match:
+                return self._parse_date(match.group(1))
+        datas = [self._parse_date(item) for item in self.date_pattern.findall(texto)]
+        datas = [item for item in datas if item]
+        return min(datas) if datas else None
+
+    def _extrair_valor_total(self, texto):
+        contexto_patterns = [
+            re.compile(r"(?:valor\s+total\s+da\s+nota|valor\s+dos\s+servi[cç]os|total\s+da\s+nf|valor\s+l[ií]quido)[^\d]{0,30}(?:R\$\s*)?([\d\.\,]+)", re.IGNORECASE),
+        ]
+        for pattern in contexto_patterns:
+            match = pattern.search(texto)
+            if match:
+                valor = self._parse_decimal(match.group(1))
+                if valor is not None:
+                    return valor
+        valores = []
+        for match in self.money_pattern.findall(texto):
+            bruto = match[0] or match[1]
+            valor = self._parse_decimal(bruto)
+            if valor is not None:
+                valores.append(valor)
+        return max(valores) if valores else None
+
+    def _extrair_impostos(self, texto):
+        impostos = {}
+        for campo, pattern in self.imposto_patterns.items():
+            match = pattern.search(texto)
+            if match:
+                valor = self._parse_decimal(match.group(1))
+                if valor is not None:
+                    impostos[campo] = valor
+        return impostos
+
+    def _extrair_descricao(self, linhas, ordem=None):
+        termos = ("descri", "discrimina", "servi", "atividade")
+        candidatas = []
+        for index, linha in enumerate(linhas):
+            lower = linha.lower()
+            if any(termo in lower for termo in termos):
+                trecho = " ".join(linhas[index:index + 3])
+                if len(trecho) > 20:
+                    candidatas.append(trecho[:600])
+        if candidatas:
+            return candidatas[0]
+        return getattr(ordem, "descricao_servico_nf", "") or getattr(ordem, "descricao_servico", "") or ""
+
+    def _calcular_confianca(self, numero_nf, data_emissao, valor_total, impostos, descricao):
+        score = Decimal("0")
+        if numero_nf:
+            score += Decimal("25")
+        if data_emissao:
+            score += Decimal("20")
+        if valor_total and valor_total > 0:
+            score += Decimal("30")
+        if impostos:
+            score += Decimal("15")
+        if descricao:
+            score += Decimal("10")
+        return min(score, Decimal("100"))
+
+    def _resumo(self, numero_nf, data_emissao, valor_total, impostos):
+        partes = []
+        if numero_nf:
+            partes.append(f"NF {numero_nf}")
+        if data_emissao:
+            partes.append(f"emissão {data_emissao.strftime('%d/%m/%Y')}")
+        if valor_total:
+            partes.append(f"valor R$ {valor_total}")
+        if impostos:
+            partes.append(f"{len(impostos)} imposto(s) detectado(s)")
+        return " • ".join(partes) or "PDF lido, mas sem dados fiscais confiáveis."
+
+    def _parse_date(self, valor):
+        try:
+            return timezone.datetime.strptime(valor, "%d/%m/%Y").date()
+        except (TypeError, ValueError):
+            return None
+
+    def _parse_decimal(self, valor):
+        normalizado = str(valor).replace(".", "").replace(",", ".").strip()
+        try:
+            return Decimal(normalizado)
+        except (InvalidOperation, ValueError):
+            return None
+
+
 class MotorOrcamentoInteligente:
     """
     Motor local de sugestão de orçamento.

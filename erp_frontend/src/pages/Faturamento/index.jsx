@@ -7,9 +7,11 @@ import {
   Col,
   DatePicker,
   Divider,
+  Drawer,
   Empty,
   Form,
   Input,
+  InputNumber,
   Modal,
   Row,
   Select,
@@ -18,6 +20,7 @@ import {
   Tag,
   Tooltip,
   Typography,
+  Upload,
   message,
 } from "antd";
 import {
@@ -28,6 +31,7 @@ import {
   GroupOutlined,
   SearchOutlined,
   CheckCircleOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -150,6 +154,18 @@ const statusColors = {
   aprovada: "cyan",
 };
 
+const formaCobrancaOptions = [
+  { label: "Boleto", value: "boleto" },
+  { label: "Pix", value: "pix" },
+  { label: "Cartão", value: "cartao" },
+  { label: "Transferência", value: "transferencia" },
+  { label: "Dinheiro", value: "dinheiro" },
+];
+
+function parseMoney(value) {
+  return Number(String(value || 0).replace(/\./g, "").replace(",", ".")) || 0;
+}
+
 export default function FaturamentoPage() {
   const navigate = useNavigate();
   const [ordens, setOrdens] = useState([]);
@@ -163,6 +179,12 @@ export default function FaturamentoPage() {
   const [buscandoCnpj, setBuscandoCnpj] = useState(false);
   const [criando, setCriando] = useState(false);
   const [form] = Form.useForm();
+  const [drawerForm] = Form.useForm();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [ordemFaturando, setOrdemFaturando] = useState(null);
+  const [nfAnalysis, setNfAnalysis] = useState(null);
+  const [analisandoNf, setAnalisandoNf] = useState(false);
+  const [confirmandoFaturamento, setConfirmandoFaturamento] = useState(false);
 
   useEffect(() => {
     carregarOrdens();
@@ -262,6 +284,132 @@ export default function FaturamentoPage() {
       message.error("Erro ao criar agrupamento.");
     } finally {
       setCriando(false);
+    }
+  };
+
+  const abrirFaturamentoRapido = (record) => {
+    setOrdemFaturando(record);
+    setNfAnalysis(null);
+    drawerForm.setFieldsValue({
+      valor_final_faturado: Number(record.valor_final_faturado || record.total_com_impostos || record.valor_total_orcado || 0),
+      numero_nf: record.numero_nf || "",
+      data_emissao_nf: record.data_emissao_nf ? dayjs(record.data_emissao_nf) : dayjs(),
+      data_vencimento: record.data_vencimento ? dayjs(record.data_vencimento) : dayjs().add(30, "day"),
+      forma_cobranca: record.forma_cobranca || "pix",
+      descricao_servico_nf: record.descricao_servico_nf || record.descricao_servico || "",
+      valor_issqn: Number(record.valor_issqn || 0),
+      valor_pis: Number(record.valor_pis || 0),
+      valor_cofins: Number(record.valor_cofins || 0),
+      valor_irpj: Number(record.valor_irpj || 0),
+      valor_csll: Number(record.valor_csll || 0),
+      pdf_nf_upload: [],
+    });
+    setDrawerOpen(true);
+  };
+
+  const analisarPdfNota = async () => {
+    const file = drawerForm.getFieldValue("pdf_nf_upload")?.[0]?.originFileObj;
+    if (!file || !ordemFaturando?.id) {
+      message.warning("Selecione o PDF da nota fiscal primeiro.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("arquivo", file);
+    setAnalisandoNf(true);
+    try {
+      const response = await api.post(`/ordens/${ordemFaturando.id}/analisar-nota-fiscal/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const data = response.data || {};
+      setNfAnalysis(data);
+      const impostos = data.impostos_sugeridos || {};
+      drawerForm.setFieldsValue({
+        numero_nf: data.numero_nf_sugerido || drawerForm.getFieldValue("numero_nf"),
+        data_emissao_nf: data.data_emissao_sugerida ? dayjs(data.data_emissao_sugerida) : drawerForm.getFieldValue("data_emissao_nf"),
+        valor_final_faturado: parseMoney(data.valor_total_sugerido) || drawerForm.getFieldValue("valor_final_faturado"),
+        descricao_servico_nf: data.descricao_sugerida || drawerForm.getFieldValue("descricao_servico_nf"),
+        valor_issqn: parseMoney(impostos.valor_issqn) || drawerForm.getFieldValue("valor_issqn"),
+        valor_pis: parseMoney(impostos.valor_pis) || drawerForm.getFieldValue("valor_pis"),
+        valor_cofins: parseMoney(impostos.valor_cofins) || drawerForm.getFieldValue("valor_cofins"),
+        valor_irpj: parseMoney(impostos.valor_irpj) || drawerForm.getFieldValue("valor_irpj"),
+        valor_csll: parseMoney(impostos.valor_csll) || drawerForm.getFieldValue("valor_csll"),
+      });
+      message.success("PDF da nota fiscal lido. Revise os campos antes de confirmar.");
+    } catch (error) {
+      message.error(error.response?.data?.detail || "Não foi possível ler o PDF da nota fiscal.");
+    } finally {
+      setAnalisandoNf(false);
+    }
+  };
+
+  const confirmarFaturamentoRapido = async () => {
+    if (!ordemFaturando?.id) return;
+    setConfirmandoFaturamento(true);
+    try {
+      const values = await drawerForm.validateFields();
+      const formData = new FormData();
+      const pdfFile = values.pdf_nf_upload?.[0]?.originFileObj;
+      const campos = {
+        valor_final_faturado: values.valor_final_faturado || 0,
+        numero_nf: values.numero_nf || "",
+        data_emissao_nf: values.data_emissao_nf ? values.data_emissao_nf.format("YYYY-MM-DD") : "",
+        data_vencimento: values.data_vencimento ? values.data_vencimento.format("YYYY-MM-DD") : "",
+        forma_cobranca: values.forma_cobranca || "",
+        descricao_servico_nf: values.descricao_servico_nf || "",
+        valor_issqn: values.valor_issqn || 0,
+        valor_pis: values.valor_pis || 0,
+        valor_cofins: values.valor_cofins || 0,
+        valor_irpj: values.valor_irpj || 0,
+        valor_csll: values.valor_csll || 0,
+        valor_liquido_nf: Number(values.valor_final_faturado || 0) - Number(values.valor_issqn || 0),
+      };
+      Object.entries(campos).forEach(([key, value]) => formData.append(key, value));
+      if (pdfFile) formData.append("pdf_nf", pdfFile);
+
+      await api.patch(`/ordens/${ordemFaturando.id}/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const enviarConfirmacao = (flags = {}) =>
+        api.post(`/ordens/${ordemFaturando.id}/confirmar-faturamento/`, flags);
+
+      try {
+        await enviarConfirmacao();
+      } catch (error) {
+        const data = error.response?.data || {};
+        if (data.requer_confirmacao_pc || data.requer_confirmacao_valor_pc) {
+          const confirmado = await new Promise((resolve) => {
+            Modal.confirm({
+              title: data.requer_confirmacao_valor_pc ? "Faturar acima do PC?" : "Faturar sem PC completo?",
+              content: data.detail || "Confirme conscientemente para gerar o lançamento financeiro.",
+              okText: "Confirmar e faturar",
+              cancelText: "Revisar",
+              okButtonProps: { danger: data.requer_confirmacao_valor_pc },
+              onOk: () => resolve(true),
+              onCancel: () => resolve(false),
+            });
+          });
+          if (!confirmado) return;
+          await enviarConfirmacao({
+            forcar_sem_pc: Boolean(data.requer_confirmacao_pc),
+            forcar_valor_pc: Boolean(data.requer_confirmacao_valor_pc),
+          });
+        } else {
+          throw error;
+        }
+      }
+
+      message.success("OS faturada e lançamento financeiro criado.");
+      setDrawerOpen(false);
+      setOrdemFaturando(null);
+      setNfAnalysis(null);
+      drawerForm.resetFields();
+      carregarOrdens();
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(error.response?.data?.detail || "Não foi possível confirmar o faturamento.");
+    } finally {
+      setConfirmandoFaturamento(false);
     }
   };
 
@@ -373,7 +521,7 @@ export default function FaturamentoPage() {
                 icon={<EyeOutlined />}
                 disabled={bloqueado}
                 style={bloqueado ? { borderRadius: 8 } : { background: colors.azul, borderColor: colors.azul, borderRadius: 8, fontWeight: 600 }}
-                onClick={() => navigate(`/ordens/${record.id}?tab=faturamento`)}
+                onClick={() => abrirFaturamentoRapido(record)}
               >
                 {bloqueado ? "PC Pendente" : "Faturar"}
               </Button>
@@ -522,6 +670,175 @@ export default function FaturamentoPage() {
           }}
         />
       </Card>
+
+      <Drawer
+        title={ordemFaturando ? `Faturar ${ordemFaturando.numero || `OS #${ordemFaturando.id}`}` : "Faturamento rápido"}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        width={720}
+        destroyOnClose
+        extra={
+          <Space>
+            <Button onClick={() => setDrawerOpen(false)}>Cancelar</Button>
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              loading={confirmandoFaturamento}
+              onClick={confirmarFaturamentoRapido}
+            >
+              Confirmar faturamento
+            </Button>
+          </Space>
+        }
+      >
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Alert
+            showIcon
+            type="info"
+            message="Revise antes de confirmar"
+            description="O PDF da nota pode preencher campos automaticamente, mas a confirmação final usa os dados visíveis aqui para salvar a OS e criar o lançamento financeiro."
+            style={{ borderRadius: 12 }}
+          />
+
+          {ordemFaturando && (
+            <Card size="small" style={{ borderRadius: 12 }}>
+              <Row gutter={[12, 8]}>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">Cliente</Text>
+                  <div><Text strong>{ordemFaturando.cliente_nome || "-"}</Text></div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">CNPJ/CPF</Text>
+                  <div><Text strong>{formatDocumento(getClienteDocumento(ordemFaturando)) || "Sem documento"}</Text></div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">Valor da OS</Text>
+                  <div><Text strong>{fmt(ordemFaturando.valor_total_orcado)}</Text></div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">Pedido de Compra</Text>
+                  <div>
+                    <Tag color={pcStatus(ordemFaturando) === "pc_ok" ? "success" : pcStatus(ordemFaturando) === "pc_pendente" ? "warning" : "default"}>
+                      {pcStatus(ordemFaturando) === "pc_ok" ? "PC preenchido" : pcStatus(ordemFaturando) === "pc_pendente" ? "PC pendente" : "Sem PC"}
+                    </Tag>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
+          )}
+
+          <Form form={drawerForm} layout="vertical">
+            <Card size="small" title="Nota fiscal" style={{ borderRadius: 12, marginBottom: 16 }}>
+              <Row gutter={[12, 0]}>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    label="PDF da nota fiscal"
+                    name="pdf_nf_upload"
+                    valuePropName="fileList"
+                    getValueFromEvent={(event) => event?.fileList || []}
+                  >
+                    <Upload beforeUpload={() => false} maxCount={1} accept="application/pdf">
+                      <Button icon={<UploadOutlined />}>Selecionar PDF</Button>
+                    </Upload>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Button
+                    block
+                    icon={<SearchOutlined />}
+                    loading={analisandoNf}
+                    onClick={analisarPdfNota}
+                    style={{ marginTop: 30, borderRadius: 8, fontWeight: 600 }}
+                  >
+                    Ler PDF e preencher
+                  </Button>
+                </Col>
+              </Row>
+              {nfAnalysis && (
+                <Alert
+                  showIcon
+                  type={Number(nfAnalysis.confianca || 0) >= 70 ? "success" : "warning"}
+                  message={`Leitura da NF: ${Number(nfAnalysis.confianca || 0).toFixed(0)}% de confiança`}
+                  description={nfAnalysis.resumo}
+                  style={{ borderRadius: 12, marginBottom: 12 }}
+                />
+              )}
+              <Row gutter={[12, 0]}>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Número NF-e / NFS-e" name="numero_nf" rules={[{ required: true, message: "Informe o número da NF." }]}>
+                    <Input placeholder="Ex.: 000123" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Data de emissão" name="data_emissao_nf" rules={[{ required: true, message: "Informe a emissão." }]}>
+                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Valor final faturado" name="valor_final_faturado" rules={[{ required: true, message: "Informe o valor faturado." }]}>
+                    <InputNumber min={0} step={0.01} style={{ width: "100%" }} formatter={(v) => `R$ ${v || ""}`} parser={(v) => v?.replace(/R\$\s?/, "")} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item label="Vencimento / previsão" name="data_vencimento" rules={[{ required: true, message: "Informe o vencimento." }]}>
+                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24}>
+                  <Form.Item label="Forma de cobrança" name="forma_cobranca" rules={[{ required: true, message: "Informe a forma de cobrança." }]}>
+                    <Select options={formaCobrancaOptions} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24}>
+                  <Form.Item label="Descrição do serviço na NF" name="descricao_servico_nf">
+                    <Input.TextArea rows={3} placeholder="Descrição conforme a nota fiscal" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+
+            <Card size="small" title="Impostos cobrados na nota" style={{ borderRadius: 12, marginBottom: 16 }}>
+              <Row gutter={[12, 0]}>
+                <Col xs={24} sm={8}>
+                  <Form.Item label="ISSQN" name="valor_issqn"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item label="PIS" name="valor_pis"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item label="COFINS" name="valor_cofins"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item label="IRPJ" name="valor_irpj"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item label="CSLL" name="valor_csll"><InputNumber min={0} step={0.01} style={{ width: "100%" }} /></Form.Item>
+                </Col>
+              </Row>
+              <Form.Item shouldUpdate>
+                {() => {
+                  const values = drawerForm.getFieldsValue();
+                  const totalImpostos =
+                    Number(values.valor_issqn || 0) +
+                    Number(values.valor_pis || 0) +
+                    Number(values.valor_cofins || 0) +
+                    Number(values.valor_irpj || 0) +
+                    Number(values.valor_csll || 0);
+                  const liquido = Number(values.valor_final_faturado || 0) - Number(values.valor_issqn || 0);
+                  return (
+                    <Alert
+                      showIcon
+                      type="success"
+                      message={`Resumo: impostos informados ${fmt(totalImpostos)} • líquido previsto ${fmt(liquido)}`}
+                      style={{ borderRadius: 12 }}
+                    />
+                  );
+                }}
+              </Form.Item>
+            </Card>
+          </Form>
+        </Space>
+      </Drawer>
 
       {/* Modal Agrupamento */}
       <Modal

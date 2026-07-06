@@ -25,7 +25,7 @@ from apps.clientes.models import Cliente
 from apps.configuracoes.models import get_empresa_configurada
 from .models import AnexoChatOS, ChatOS, ChecklistItem, ChecklistTemplate, DespesaOS, FaturamentoAgrupado, FotoChecklist, FotoOS, ItemOrcamento, LogStatusOS, OrdemServico, RespostaChecklist
 from .pdf_generator import gerar_relatorio_pdf, gerar_orcamento_pdf, salvar_relatorio_pdf, salvar_orcamento_pdf
-from .services import GovernancaRelatorioOS, MotorOrcamentoInteligente, PedidoCompraInteligente
+from .services import GovernancaRelatorioOS, MotorOrcamentoInteligente, NotaFiscalInteligente, PedidoCompraInteligente
 from .serializers import (
     ChatOSSerializer,
     ChecklistItemSerializer,
@@ -589,6 +589,31 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 "lancamento": LancamentoSerializer(lancamento).data,
             }
         )
+
+    @action(detail=True, methods=["post"], url_path="analisar-nota-fiscal")
+    def analisar_nota_fiscal(self, request, pk=None):
+        ordem = self.get_object()
+        arquivo = request.FILES.get("arquivo") or request.FILES.get("pdf_nf")
+        analisador = NotaFiscalInteligente()
+
+        try:
+            if arquivo is not None:
+                analise = analisador.analisar_arquivo(arquivo, ordem=ordem)
+            elif ordem.pdf_nf:
+                with ordem.pdf_nf.open("rb") as pdf_salvo:
+                    analise = analisador.analisar_arquivo(pdf_salvo, ordem=ordem)
+            else:
+                return Response(
+                    {"detail": "Envie um PDF da nota fiscal para análise."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as error:
+            return Response(
+                {"detail": f"Não foi possível analisar o PDF da nota fiscal: {error}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(analise)
 
     @action(detail=True, methods=["post"], url_path="upload-fotos")
     def upload_fotos(self, request, pk=None):
